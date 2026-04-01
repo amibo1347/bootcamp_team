@@ -71,7 +71,9 @@ Commit Message:
 
 ## 작업 흐름
 
-   브랜치 생성 (git checkout -b feat/이름) 후 작업
+   브랜치 생성 (git checkout -b 브랜치이름) 후 작업
+
+   이미 생성된 브랜치 이동 git checkouut 브랜치이름
 
    내 브랜치에 push 하기
 
