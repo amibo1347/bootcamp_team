@@ -1,0 +1,17 @@
+# 의존성 패키지 (용량이 크고 npm install로 재생성 가능)
+node_modules/
+
+# 빌드 결과물 (Webpack 설정에 따라 dist 또는 build)
+/build/
+
+# 운영체제 임시 파일
+.DS_Store
+Thumbs.db
+
+# 환경 변수 파일 (비밀번호나 API 키가 들어있을 수 있음)
+.env
+.env.local
+
+# 로그 파일
+*.log
+npm-debug.log*

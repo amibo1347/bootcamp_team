@@ -1,0 +1,45 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+# Node.js (Tailwind/Webpack 빌드 관련)
+node_modules/
+npm-debug.log*
+package-lock.json (선택사항: 팀 협업 시에는 포함, 혼자 개발 시 제외 가능)
+
+# 백업 및 임시 파일 (이미지에서 확인된 중복 파일 방지)
+*.bak
+*.tmp

@@ -1,0 +1,88 @@
+## 프로젝트 Title : 테마형 인트라넷 메이커(?)
+
+## 시작하기 
+프로젝트를 로컬 환경에서 실행하려면 아래 단계를 따르세요.
+
+   1. 필수 조건
+   Node.js (버전 18.x 이상 권장)
+
+   npm (Node.js 설치 시 함께 설치됨)
+
+   2. 설치 및 실행
+   터미널 실행(cmd)
+   # 저장소 복제
+   git clone https://github.com/사용자이름/intranet.git
+
+   # 프로젝트 폴더로 이동
+   cd intranet
+
+   # 의존성 패키지 설치
+   npm install
+
+   # 개발 서버 실행 (localhost:8080)
+   npm run start & npm start (둘 중 하나 택 1 : 차이점 없음)
+
+   # 배포용 빌드 (dist 폴더 생성 : 프로젝트 100% 완성하고 나서 사용하는 코드)
+   npm run build
+
+## 기술스택
+Frontend: Mustache 서버 데이터를 화면에 뿌려주는 템플릿 엔진
+
+UI/UX:	Tailwind CSS + Alpine.js 현대적이고 반응형인 인트라넷 디자인 구현
+
+Build Tool: Webpack 5 / Gradle 프론트 자산 관리 및 자바 프로젝트 빌드
+
+Database: MySQL 각종 데이터 저장용
+
+Backend:	Java 17 / Spring Boot 시스템 로직 및 API 컨트롤러 관리
+
+## 프로젝트 구조
+src/
+├── css/            # Tailwind 및 커스텀 스타일
+├── js/             # 메인 로직 및 차트 초기화
+├── partials/       # 재사용 가능한 HTML 조각 (Sidebar, Header 등)
+├── images/         # 사진
+└── index.html      # 메인 대시보드 페이지
+
+## 팀 협업 규칙
+팀 협업 규칙 (Git Flow)
+Main Branch: 배포 가능한 상태의 코드만 관리 (메인은 건드리지 않기)
+
+브랜치 생성 : git checkout -b 이름(feat/이름)
+
+## 필수 명령어
+   git pull	: 원격 저장소 내용 가져오기
+
+   git add . : 변경 사항 스테이징	
+
+   git commit -m "내용"	: 로컬 저장소에 저장	(ex/ git commit -m "feat/로그인 구현")
+
+   git push	: 원격 저장소에 올리기	
+
+Commit Message:
+
+   feat: 새로운 기능 추가
+
+   fix: 버그 수정
+
+   docs: 문서 수정 (README 등)
+
+   style: 스타일 변경 (코드 변경 없음)
+
+## 작업 흐름
+
+   브랜치 생성 (git checkout -b feat/이름) 후 작업
+
+   내 브랜치에 push 하기
+
+   GitHub 사이트에서 Pull Request (PR) 생성
+
+   팀장의 승인 후 main에 합치기(Merge)
+
+## ⚠️ 주의 사항
+node_modules는 절대 Push하지 마세요.
+
+중요한 보안 키나 환경 변수는 .env 파일에 작성하고 깃허브에 올리지 않습니다.
+
+## License
+This project is based on [TailAdmin](https://tailadmin.com/) and is licensed under the MIT License.

@@ -1,0 +1,6 @@
+{{! [모바일 오버레이] : 소형 화면에서 사이드바 열릴 때 배경을 어둡게 처리, 클릭 시 사이드바 닫힘 }}
+<div
+  @click="sidebarToggle = false"
+  :class="sidebarToggle ? 'block lg:hidden' : 'hidden'"
+  class="fixed w-full h-screen z-9 bg-gray-900/50"
+></div>

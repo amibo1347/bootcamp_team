@@ -1,0 +1,4 @@
+/* [TailwindCSS 진입점] : Vite/PostCSS 빌드 시 이 파일을 읽어 output.css를 생성
+   - 수정 후 빌드 재실행 필요: npm run build (또는 npm run dev)
+   - 커스텀 CSS가 필요하면 @import 아래에 추가할 것 */
+@import "tailwindcss";
