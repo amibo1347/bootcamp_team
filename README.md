@@ -10,11 +10,12 @@
 
    2. 설치 및 실행
    터미널 실행(cmd)
-   # 저장소 복제
+   # 저장소 복제 (방법 2가지 원래 폴더 이름 그대로 사용, 원하는 이름 설정)
    git clone https://github.com/amibo1347/Bootcamp_TeamProject
+   git clone https://github.com/amibo1347/Bootcamp_TeamProject 바꾸고싶은 폴더 이름
 
    # 프로젝트 폴더로 이동
-   cd Bootcamp_TeamProject
+   cd Bootcamp_TeamProject (폴더 이름 바꾼 경우 : cd 바꾼 폴더 이름)
 
    # 의존성 패키지 설치
    npm install
