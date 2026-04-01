@@ -11,10 +11,10 @@
    2. 설치 및 실행
    터미널 실행(cmd)
    # 저장소 복제
-   git clone https://github.com/사용자이름/intranet.git
+   git clone https://github.com/amibo1347/Bootcamp_TeamProject
 
    # 프로젝트 폴더로 이동
-   cd intranet
+   cd Bootcamp_TeamProject
 
    # 의존성 패키지 설치
    npm install
