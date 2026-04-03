@@ -71,7 +71,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (year) {
     year.textContent = new Date().getFullYear();
   }
-
   // [URL 복사 버튼] : #copy-button 클릭 시 #website-input 값을 클립보드에 복사, 2초 후 텍스트 복원
   const copyInput = document.getElementById("copy-input");
   if (copyInput) {

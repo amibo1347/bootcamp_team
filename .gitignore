@@ -40,6 +40,9 @@ node_modules/
 npm-debug.log*
 package-lock.json (선택사항: 팀 협업 시에는 포함, 혼자 개발 시 제외 가능)
 
+# DB 관련
+/src/main/resources/wallet/
+
 # 백업 및 임시 파일 (이미지에서 확인된 중복 파일 방지)
 *.bak
 *.tmp
