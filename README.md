@@ -10,11 +10,12 @@
 
    2. 설치 및 실행
    터미널 실행(cmd)
-   # 저장소 복제
-   git clone https://github.com/사용자이름/intranet.git
+   # 저장소 복제 (방법 2가지 원래 폴더 이름 그대로 사용, 원하는 이름 설정)
+   git clone https://github.com/amibo1347/Bootcamp_TeamProject
+   git clone https://github.com/amibo1347/Bootcamp_TeamProject 바꾸고싶은 폴더 이름
 
    # 프로젝트 폴더로 이동
-   cd intranet
+   cd Bootcamp_TeamProject (폴더 이름 바꾼 경우 : cd 바꾼 폴더 이름)
 
    # 의존성 패키지 설치
    npm install
@@ -71,7 +72,9 @@ Commit Message:
 
 ## 작업 흐름
 
-   브랜치 생성 (git checkout -b feat/이름) 후 작업
+   브랜치 생성 (git checkout -b 브랜치이름) 후 작업
+
+   이미 생성된 브랜치 이동 git checkouut 브랜치이름
 
    내 브랜치에 push 하기
 
