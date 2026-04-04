@@ -1,4 +1,4 @@
-package com.team1.intranet;
+package com.team.intranet;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

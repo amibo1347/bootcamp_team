@@ -1,4 +1,4 @@
-package com.team1.intranet.config;
+package com.team.intranet.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,7 +19,8 @@ public class SecurityConfig {
                     "/favicon.ico",
                     "/login",
                     "/signup",
-                    "/error"
+                    "/error",
+                    "/index"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
