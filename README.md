@@ -49,17 +49,20 @@ src/
 팀 협업 규칙 (Git Flow)
 Main Branch: 배포 가능한 상태의 코드만 관리 (메인은 건드리지 않기)
 
+origin = 현재 레포지토리 주소 별칭
+
 브랜치 생성 : git checkout -b 이름(feat/이름)
 
 ## 필수 명령어
-   git pull	: 원격 저장소 내용 가져오기
+   git pull origin	: 원격 저장소 내용 가져오기
+      ex/ git pull origin main : origin(GitHub주소)의 main 브라우저 내용을 내 컴퓨터로 가져온다
 
    git add . : 변경 사항 스테이징	
 
    git commit -m "내용"	: 로컬 저장소에 저장	(ex/ git commit -m "feat/로그인 구현")
 
-   git push	: 원격 저장소에 올리기	
-
+   git push	origin: 원격 저장소에 올리기	
+      ex/ git push origin main : 내 컴퓨터의 main 브랜치 내용을 origin(GitHub주소)로 보낸다
 Commit Message:
 
    feat: 새로운 기능 추가
