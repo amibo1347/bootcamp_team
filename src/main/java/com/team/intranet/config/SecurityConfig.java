@@ -20,7 +20,8 @@ public class SecurityConfig {
                     "/login",
                     "/signup",
                     "/error",
-                    "/index"
+                    "/index",
+                    "/calendar"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
