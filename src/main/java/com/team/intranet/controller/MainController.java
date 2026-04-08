@@ -57,6 +57,6 @@ public class MainController {
 
     @GetMapping("/settings")
     public String settings() {
-        return "settings"; // settings.mustache should exist or this will 404
+        return "settings"; 
     }
 }
