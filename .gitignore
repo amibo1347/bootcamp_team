@@ -42,7 +42,7 @@ package-lock.json (선택사항: 팀 협업 시에는 포함, 혼자 개발 시 
 
 static/js/index.js
 # DB 관련
-/src/main/resources/wallet/
+src/main/resources/wallet_IntranetDB
 src/main/resources/application.properties
 # 백업 및 임시 파일 (이미지에서 확인된 중복 파일 방지)
 *.bak
