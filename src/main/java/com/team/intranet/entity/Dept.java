@@ -1,5 +1,7 @@
 package com.team.intranet.entity;
 
+import com.team.intranet.entity.Company;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -32,5 +34,5 @@ public class Dept {
 
     @ManyToOne
     @JoinColumn(name="company_id")
-    private Long companyId;
+    private Company company;
 }
