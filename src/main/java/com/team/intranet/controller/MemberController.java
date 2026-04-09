@@ -16,7 +16,7 @@ import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
 @Controller
-@RequestMapping("Member") // 전체 매핑에 Member 설정
+@RequestMapping("/member") // 전체 매핑에 member 설정
 @RequiredArgsConstructor
 public class MemberController {
 ////////////////////////////////////////
