@@ -63,7 +63,7 @@
             try {
                 // 2. 서버로 중복 체크 요청 (Spring Boot Controller의 @GetMapping과 매칭)
                 // URL은 실제 환경에 맞게 수정하세요 (예: /api/check-id)
-                const response = await fetch(`/user/check-id?loginId=${loginId}`, {
+                const response = await fetch(`/member/check-id?loginId=${loginId}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
@@ -77,7 +77,7 @@
                 const result = await response.json(); // 서버에서 true/false 반환 가정
 
                 // 3. 결과 처리
-                if (result.success) {
+                if (!result) {
                     showTooltip($loginId, "사용 가능한 아이디입니다.");
                     applyStatusStyle($loginId, "#10B981"); // 초록색
                     isIdChecked = true;

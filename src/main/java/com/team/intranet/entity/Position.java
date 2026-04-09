@@ -27,9 +27,6 @@ public class Position {
     @Column(name="position_name")
     private String positionName;
 
-    @Column(name="level")
-    private int level;
-
     @ManyToOne
     @JoinColumn(name="company_id")
     private Company company;

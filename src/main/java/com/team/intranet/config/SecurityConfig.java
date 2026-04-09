@@ -29,7 +29,7 @@ public class SecurityConfig {
                     "/signup",
                     "/error",
                     "/index",
-                    "/calendar"
+                    "/calendar", "/member/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

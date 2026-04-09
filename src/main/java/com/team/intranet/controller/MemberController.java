@@ -1,10 +1,13 @@
 package com.team.intranet.controller;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.team.intranet.dto.MemberDto;
 import com.team.intranet.entity.Member;
@@ -41,6 +44,13 @@ public class MemberController {
             default :
                 return "redirect:/signup";
         }
+    }
+
+    @GetMapping("/check-id") 
+    @ResponseBody // 페이지가 아닌 '데이터'를 반환하기 위해 필수!
+    public ResponseEntity<Boolean> checkId(@RequestParam("loginId") String loginId) {
+        boolean isDuplicate = memberService.isDuplicateId(loginId);
+        return ResponseEntity.ok(isDuplicate); // true/false 데이터를 반환
     }
 
     // 로그인

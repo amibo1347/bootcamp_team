@@ -101,4 +101,9 @@ public class MemberService {
 
         return member; 
     }
+
+    public boolean isDuplicateId(String loginId) {
+        // 여기서 에러가 나는지 확인!
+        return memberRepository.existsByLoginId(loginId); 
+    }
 }
