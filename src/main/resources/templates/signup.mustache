@@ -107,7 +107,7 @@
         font-size: 0.875rem;
         color: #1F2937;
         box-sizing: border-box;
-      " required/>
+      " required />
 
                             <button type="button" id="loginIdCheck" name="loginIdCheck" style="
     /* [레이아웃] */
@@ -139,8 +139,8 @@
                             비밀번호
                         </label>
                         <div x-data="{ showPassword: false }" style="position:relative;">
-                            <input :type="showPassword ? 'text' : 'password'" id="password" name="password" minlength="8" placeholder="비밀번호를 입력하세요"
-                                style="
+                            <input :type="showPassword ? 'text' : 'password'" id="password" name="password"
+                                minlength="8" placeholder="비밀번호를 입력하세요" style="
                   width: 100%;
                   height: 2.75rem;
                   border: none;
@@ -150,7 +150,7 @@
                   font-size: 0.875rem;
                   color: #1F2937;
                   box-sizing: border-box;
-                " required/>
+                " required />
 
                             <!-- 비밀번호 표시/숨기기 토글 -->
                             <span @click="showPassword = !showPassword"
@@ -189,7 +189,7 @@
                   font-size: 0.875rem;
                   color: #1F2937;
                   box-sizing: border-box;
-                " required/>
+                " required />
                             <!-- 비밀번호 확인 표시/숨기기 토글 -->
                             <span @click="showConfirm = !showConfirm"
                                 style="position:absolute; right:1rem; top:50%; transform:translateY(-50%); cursor:pointer; color:#6B7280;">
@@ -225,7 +225,7 @@
                 font-size: 0.875rem;
                 color: #1F2937;
                 box-sizing: border-box;
-              " required/>
+              " required />
                     </div>
 
                     <!-- 이메일 입력 필드 -->
@@ -244,7 +244,7 @@
                 font-size: 0.875rem;
                 color: #1F2937;
                 box-sizing: border-box;
-              " required/>
+              " required />
                     </div>
 
 
@@ -287,18 +287,10 @@
         margin: 0;
         list-style: none;
       ">
-                                <li @click="selected = 'IT 개발팀'; open = false"
+                                <!-- <li @click="selected = 'IT 개발팀'; open = false"
                                     style="padding: 0.75rem 1rem; font-size: 0.875rem; color: #1F2937; cursor: pointer;"
                                     onmouseover="this.style.backgroundColor='#F3F4F6'"
-                                    onmouseout="this.style.backgroundColor='transparent'">IT 개발팀</li>
-                                <li @click="selected = '디자인팀'; open = false"
-                                    style="padding: 0.75rem 1rem; font-size: 0.875rem; color: #1F2937; cursor: pointer;"
-                                    onmouseover="this.style.backgroundColor='#F3F4F6'"
-                                    onmouseout="this.style.backgroundColor='transparent'">디자인팀</li>
-                                <li @click="selected = '인사관리팀'; open = false"
-                                    style="padding: 0.75rem 1rem; font-size: 0.875rem; color: #1F2937; cursor: pointer;"
-                                    onmouseover="this.style.backgroundColor='#F3F4F6'"
-                                    onmouseout="this.style.backgroundColor='transparent'">인사관리팀</li>   
+                                    onmouseout="this.style.backgroundColor='transparent'">IT 개발팀</li>   -->
                             </ul>
                         </div>
                         <input type="hidden" name="dept" :value="selected === '부서를 선택하세요' ? '' : selected">
@@ -319,13 +311,13 @@
       font-size: 0.875rem;
       color: #1F2937;
       box-sizing: border-box;
-    " required/>
+    " required />
                     </div>
 
                     <!-- 버튼 영역: 가입하기(블루그레이)와 로그인으로(outline) 가로 1:1 배치 -->
                     <div style="display:flex; gap:0.75rem; margin-top:0.875rem;">
                         <!-- 로그인으로 버튼: outline 스타일 -->
-                        <a href="/login" style="
+                        <a href="/member/login" style="
                 flex: 1;
                 height: 3rem;
                 display: flex;
@@ -366,7 +358,7 @@
     </div>
 
     <script type="module" src="/js/index.js"></script>
-    <script src="/js/signup.js"></script>
+    <script src="/js/member/signup.js"></script>
 </body>
 
 </html>

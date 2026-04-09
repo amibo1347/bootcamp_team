@@ -34,7 +34,7 @@
 
     // 2. 비밀번호 조건 검사 (영문+숫자+특수문자 포함, 8자 이상)
     const validatePw = (pw) => {
-        const pwRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+        const pwRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
         return pwRegex.test(pw);
     };
 
@@ -124,6 +124,7 @@
 
         if ($passwordCheck.value === "") {
             applyStatusStyle($passwordCheck, "transparent");
+            return;
         }
 
         if ($password.value === $passwordCheck.value) {
