@@ -1,4 +1,4 @@
-package com.team.intranet.controller;
+package com.team.intranet.controller.view;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;

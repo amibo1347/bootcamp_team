@@ -63,7 +63,7 @@
             try {
                 // 2. 서버로 중복 체크 요청 (Spring Boot Controller의 @GetMapping과 매칭)
                 // URL은 실제 환경에 맞게 수정하세요 (예: /api/check-id)
-                const response = await fetch(`/member/check-id?loginId=${loginId}`, {
+                const response = await fetch(`/api/member/check-id?loginId=${loginId}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'

@@ -28,30 +28,24 @@
         }
 
         try {
-            // 1. 백엔드가 만든 API로 데이터 전송
-            const response = await fetch('/api/verify-code', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('input[name="_csrf"]').value // hidden input에서 토큰 가져오기
-                },
-                body: JSON.stringify({ accessCode: userInput })
+            const response = await fetch(`/api/member/company/verify?companyCode=${userInput}`, {
+                method: 'GET'
             });
 
             if (!response.ok) throw new Error('네트워크 응답 에러');
 
-            // 2. 백엔드가 보내준 결과 받기 { success: true/false }
+            // 1. 서버가 { "isVerify": true, "companyId": ... } 객체를 보냅니다.
             const result = await response.json();
+            console.log("서버 응답 데이터:", result);
 
-            if (result.success) {
-                // 성공: 가입 페이지로 이동
+            // 2. result 자체가 아니라 result 안의 'isVerify' 속성을 확인해야 합니다.
+            if (result.isVerify) {
+                // 성공: 가입 페이지로 이동 (나중에 companyId가 필요하면 result.companyId로 사용 가능!)
                 location.href = '/member/signup';
             } else {
-                // 실패: 에러 메시지 처리 (주형님 스타일대로 시각적 피드백)
                 alert("인증 코드가 일치하지 않습니다.");
                 $accessCodeInput.value = '';
                 $accessCodeInput.focus();
-                // 여기서 input 테두리를 빨간색으로 바꾸는 함수를 호출하면 더 좋겠죠?
             }
 
         } catch (error) {

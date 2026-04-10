@@ -7,4 +7,5 @@ import com.team.intranet.entity.Company;
 
 public interface CompanyRepository extends JpaRepository<Company, Long>{
     Optional<Company> findByCompanyCode(String companyCode);
+    boolean existsByCompanyCode(String companyCode);
 }

@@ -1,4 +1,4 @@
-package com.team.intranet.controller;
+package com.team.intranet.controller.view;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -25,10 +25,7 @@ public class MainController {
         return "signin";
     }
 
-    @GetMapping("/signup")
-    public String signup() {
-        return "signup";
-    }
+    
 
     @GetMapping("/tables")
     public String tables() {

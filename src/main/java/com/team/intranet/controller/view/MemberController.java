@@ -1,4 +1,4 @@
-package com.team.intranet.controller;
+package com.team.intranet.controller.view;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -22,55 +22,59 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/member") // 전체 매핑에 member 설정
 @RequiredArgsConstructor
 public class MemberController {
-////////////////////////////////////////
+
+    ////////////////////////////////////////
 /// 의존성 주입
     private final MemberService memberService;
 
-////////////////////////////////////////
+    ////////////////////////////////////////
 /// 비즈니스 로직
+/// 
+    @GetMapping("/signup")
+public String signupPage(HttpSession session, Model model) {
+    Long companyId = (Long) session.getAttribute("verifiedCompanyId");
+    if (companyId == null) {
+        return "redirect:/login"; // 인증 안 했으면 다시 로그인/모달창으로
+    }
+    model.addAttribute("companyId", companyId);
+    return "signup";
+}
 
     @PostMapping("/signup") // 회원 가입
     public String newMember(MemberDto dto, Model model) {
 
         MemberType result = memberService.join(dto);
 
-        switch(result){
+        switch (result) {
             case JOIN_SUCCESS: // 가입 성공
                 return "redirect:/signin";
             case ALEADY_MEMBER: // 이미 회원 정보가 있음
                 return "redirect:/signup";
             case NOT_MATCH_PASSWORD: // 비밀번호가 일치하지 않음
                 return "redirect:/signup";
-            default :
+            default:
                 return "redirect:/signup";
         }
     }
 
-    @GetMapping("/check-id") 
-    @ResponseBody // 페이지가 아닌 '데이터'를 반환하기 위해 필수!
-    public ResponseEntity<Boolean> checkId(@RequestParam("loginId") String loginId) {
-        boolean isDuplicate = memberService.isDuplicateId(loginId);
-        return ResponseEntity.ok(isDuplicate); // true/false 데이터를 반환
-    }
-
     // 로그인
     @PostMapping("/login")
-    public String login(@RequestParam String loginId, @RequestParam String password, HttpSession session, Model model){
+    public String login(@RequestParam String loginId, @RequestParam String password, HttpSession session, Model model) {
         try {
-        // 서비스에서 로그인 시도
-        Member loginMember = memberService.login(loginId, password);
+            // 서비스에서 로그인 시도
+            Member loginMember = memberService.login(loginId, password);
 
-        // 세션에 필요한 정보 저장
-        MemberSession ms = new MemberSession(loginMember);
-        session.setAttribute("member", ms);
+            // 세션에 필요한 정보 저장
+            MemberSession ms = new MemberSession(loginMember);
+            session.setAttribute("member", ms);
 
-        return "redirect:/index"; // 로그인 성공 시 메인으로
-        
-    } catch (Exception e) {
-        // 로그인 실패 시 에러 메시지를 담아 로그인 페이지로 다시 보냄
-        model.addAttribute("loginError", e.getMessage());
-        return "member/signin"; 
-    }
+            return "redirect:/index"; // 로그인 성공 시 메인으로
+
+        } catch (Exception e) {
+            // 로그인 실패 시 에러 메시지를 담아 로그인 페이지로 다시 보냄
+            model.addAttribute("loginError", e.getMessage());
+            return "member/signin";
+        }
 
     }
 }

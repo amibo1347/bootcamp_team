@@ -19,25 +19,28 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .authorizeHttpRequests(auth -> auth
+                .csrf(csrf -> csrf
+            .ignoringRequestMatchers("/api/**", "/company/**") // API 경로는 CSRF 검사 제외
+        )
+                .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    "/css/**",
-                    "/js/**",
-                    "/images/**",
-                    "/favicon.ico",
-                    "/login",
-                    "/signup",
-                    "/error",
-                    "/index",
-                    "/calendar", "/member/**"
+                        "/css/**",
+                        "/js/**",
+                        "/images/**",
+                        "/favicon.ico",
+                        "/login",
+                        "/signup",
+                        "/error",
+                        "/index",
+                        "/calendar", "/member/**", "/api/**"
                 ).permitAll()
                 .anyRequest().authenticated()
-            )
-            .formLogin(form -> form
+                )
+                .formLogin(form -> form
                 .loginPage("/login")
                 .permitAll()
-            )
-            .logout(logout -> logout.permitAll());
+                )
+                .logout(logout -> logout.permitAll());
 
         return http.build();
     }

@@ -1,25 +1,24 @@
 package com.team.intranet.service;
 
+import java.util.Optional;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.team.intranet.repository.MemberRepository;
-import com.team.intranet.repository.CompanyRepository;
-import com.team.intranet.repository.DeptRepository;
-import com.team.intranet.repository.PositionRepository;
-import com.team.intranet.entity.Member;
+import com.team.intranet.dto.MemberDto;
 import com.team.intranet.entity.Company;
 import com.team.intranet.entity.Dept;
+import com.team.intranet.entity.Member;
 import com.team.intranet.entity.Position;
-
-import jakarta.transaction.Transactional;
-import java.util.Optional;
-
-import com.team.intranet.dto.MemberDto;
 import com.team.intranet.enums.member.MemberType;
 import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.Status;
+import com.team.intranet.repository.CompanyRepository;
+import com.team.intranet.repository.DeptRepository;
+import com.team.intranet.repository.MemberRepository;
+import com.team.intranet.repository.PositionRepository;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -99,11 +98,30 @@ public class MemberService {
             throw new RuntimeException("관리자의 승인을 기다리는 중입니다.");
         }
 
-        return member; 
+        return member;
     }
 
     public boolean isDuplicateId(String loginId) {
         // 여기서 에러가 나는지 확인!
-        return memberRepository.existsByLoginId(loginId); 
+        return memberRepository.existsByLoginId(loginId);
     }
+
+    public Long getVerifyCompanyId(String companyCode) {
+    try {
+        if (companyRepository == null) {
+            System.err.println("!!! 리포지토리가 null입니다. 주입이 안 됐어요 !!!");
+            return null;
+        }
+        
+        return companyRepository.findByCompanyCode(companyCode)
+                .map(Company::getCompanyId)
+                .orElse(null);
+                
+    } catch (Exception e) {
+        // 인텔리제이 콘솔에 아주 상세한 에러 이유를 찍어줍니다.
+        System.err.println("!!! 여기서 에러가 났습니다 !!!");
+        e.printStackTrace(); 
+        throw e; // 다시 던져서 500 에러를 유지하되, 로그는 남깁니다.
+    }
+}
 }
