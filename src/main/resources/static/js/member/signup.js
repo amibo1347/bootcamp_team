@@ -177,11 +177,11 @@
             return;
         }
 
-        if (!dept) {
-            event.preventDefault();
-            alert("부서를 선택해주세요."); // 드랍다운은 alert가 직관적입니다.
-            return;
-        }
+        // if (!dept) {
+        //     event.preventDefault();
+        //     alert("부서를 선택해주세요."); // 드랍다운은 alert가 직관적입니다.
+        //     return;
+        // }
     });
 
 

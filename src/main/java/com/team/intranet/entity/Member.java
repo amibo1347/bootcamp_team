@@ -9,6 +9,8 @@ import com.team.intranet.entity.Company;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Table;
@@ -52,12 +54,14 @@ public class Member {
     @Column(name = "birth_day")
     private LocalDateTime birthDay;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "role")
     private Role role;
 
     @Column(name = "phone")
     private String phone;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private Status status;
 
@@ -83,7 +87,7 @@ public class Member {
         member.password = encodedPassword;
         member.name = dto.getName();
         member.company = company;
-        member.status = Status.PENDING;
+        member.status = Status.WAIT;
         member.role = Role.USER;
         member.createdAt = LocalDateTime.now();
         return member;
@@ -91,7 +95,7 @@ public class Member {
 
     // 가입 승인
     public void accept(Dept dept, Position position) {
-        this.status = Status.ACCEPT;
+        this.status = Status.JOIN;
         this.dept = dept;
         this.position = position;
         this.acceptedAt = LocalDateTime.now(); 

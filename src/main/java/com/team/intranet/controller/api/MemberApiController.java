@@ -1,5 +1,6 @@
 package com.team.intranet.controller.api;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
@@ -29,13 +30,19 @@ public class MemberApiController {
     }
 
     @GetMapping("/company/verify")
-    public ResponseEntity<?> verify(@RequestParam String companyCode, HttpSession session) {
+    @ResponseBody
+    public Map<String, Object> verifyCompany(@RequestParam String companyCode, HttpSession session) {
         Long companyId = memberService.getVerifyCompanyId(companyCode);
+        Map<String, Object> response = new HashMap<>();
+
         if (companyId != null) {
-            // 세션에 "verifiedCompanyId"라는 이름으로 저장
             session.setAttribute("verifiedCompanyId", companyId);
-            return ResponseEntity.ok(Map.of("isVerify", true));
+            session.setAttribute("verifiedCompanyCode", companyCode);
+            response.put("isVerify", true);
+            response.put("companyId", companyId);
+        } else {
+            response.put("isVerify", false);
         }
-        return ResponseEntity.ok(Map.of("isVerify", false));
+        return response;
     }
 }

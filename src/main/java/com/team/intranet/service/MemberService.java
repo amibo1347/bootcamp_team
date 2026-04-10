@@ -25,36 +25,41 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MemberService {
 
-    //////////////////////////////////
-/// 의존성 주입
     private final MemberRepository memberRepository;
     private final CompanyRepository companyRepository;
     private final DeptRepository deptRepository;
     private final PositionRepository positionRepository;
     private final PasswordEncoder passwordEncoder;
 
-    //////////////////////////////////
-/// 메소드
-
     // 회원가입 
     @Transactional
     public MemberType join(MemberDto dto) {
         Optional<Member> foundMember = memberRepository.findByLoginId(dto.getLoginId());
-        Company company = companyRepository.findByCompanyCode(dto.getCompany().getCompanyCode()).orElse(null);
+
+        if (foundMember.isPresent()) {
+            return MemberType.ALEADY_MEMBER;
+        }
 
         if (!dto.is_Password_Match()) {
             return MemberType.NOT_MATCH_PASSWORD;
         }
-        String encodedPassword = passwordEncoder.encode(dto.getPassword());
 
-        if (foundMember.isPresent()) { // 회원 유무
-            return MemberType.ALEADY_MEMBER; // 회원이 있을 경우 ALEADY_MEMBER 반환
+        // 기업 코드 보안 검증
+        if (dto.getCompanyCode() == null || dto.getCompanyCode().isEmpty()) {
+            return MemberType.NOT_COMPANY;
+        }
+        System.out.println("전달받은 기업 코드: [" + dto.getCompanyCode() + "]");
+        Company company = companyRepository.findByCompanyCodeIgnoreCase(dto.getCompanyCode()).orElse(null);
+        System.out.println("DB 조회 결과: " + (company == null ? "찾지 못함" : "찾음 - " + company.getCompanyName()));
+        if (company == null) {
+            return MemberType.NOT_COMPANY;
         }
 
+        String encodedPassword = passwordEncoder.encode(dto.getPassword());
         Member member = Member.createPendingMember(dto, encodedPassword, company);
-        memberRepository.save(member); // 회원 정보 저장
+        memberRepository.save(member);
 
-        return MemberType.JOIN_SUCCESS; // 가입 성공 반환
+        return MemberType.JOIN_SUCCESS;
     }
 
     // 가입 승인
@@ -76,52 +81,37 @@ public class MemberService {
         Position position = positionRepository.findById(positionId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 직급이 없습니다"));
 
-        if (targetMember.getStatus() == Status.PENDING) {
+        if (targetMember.getStatus() == Status.WAIT) {
             targetMember.accept(dept, position);
         }
     }
 
+    // 로그인
     @Transactional
     public Member login(String loginId, String password) {
-
-        // 1. 아이디로 회원 조회
         Member member = memberRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
 
-        // 2. 비밀번호 일치 확인
         if (!passwordEncoder.matches(password, member.getPassword())) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        // 3. 가입 승인 상태 확인
-        if (member.getStatus() == Status.PENDING) {
+        if (member.getStatus() == Status.WAIT) {
             throw new RuntimeException("관리자의 승인을 기다리는 중입니다.");
         }
 
         return member;
     }
 
+    // 아이디 중복 확인
     public boolean isDuplicateId(String loginId) {
-        // 여기서 에러가 나는지 확인!
         return memberRepository.existsByLoginId(loginId);
     }
 
+    // 기업 코드 인증
     public Long getVerifyCompanyId(String companyCode) {
-    try {
-        if (companyRepository == null) {
-            System.err.println("!!! 리포지토리가 null입니다. 주입이 안 됐어요 !!!");
-            return null;
-        }
-        
-        return companyRepository.findByCompanyCode(companyCode)
+        return companyRepository.findByCompanyCodeIgnoreCase(companyCode)
                 .map(Company::getCompanyId)
                 .orElse(null);
-                
-    } catch (Exception e) {
-        // 인텔리제이 콘솔에 아주 상세한 에러 이유를 찍어줍니다.
-        System.err.println("!!! 여기서 에러가 났습니다 !!!");
-        e.printStackTrace(); 
-        throw e; // 다시 던져서 500 에러를 유지하되, 로그는 남깁니다.
     }
-}
 }

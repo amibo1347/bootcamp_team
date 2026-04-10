@@ -41,7 +41,7 @@
             // 2. result 자체가 아니라 result 안의 'isVerify' 속성을 확인해야 합니다.
             if (result.isVerify) {
                 // 성공: 가입 페이지로 이동 (나중에 companyId가 필요하면 result.companyId로 사용 가능!)
-                location.href = '/member/signup';
+                location.href = `/member/signup?companyId=${result.companyId}&companyCode=${userInput}`;
             } else {
                 alert("인증 코드가 일치하지 않습니다.");
                 $accessCodeInput.value = '';

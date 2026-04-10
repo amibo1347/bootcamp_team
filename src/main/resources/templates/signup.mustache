@@ -87,6 +87,8 @@
 
             <form method="post" action="/member/signup" id="form-signup" name="form-signup">
                 <input type="hidden" name="{{_csrf.parameterName}}" value="{{_csrf.token}}" />
+                <input type="hidden" name="companyId" value="{{companyId}}">
+                <input type="hidden" name="companyCode" value="{{companyCode}}">
                 <div style="display:flex; flex-direction:column; gap:0.625rem;">
 
                     <!-- 아이디 입력 필드 -->

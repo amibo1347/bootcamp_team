@@ -1,13 +1,11 @@
 package com.team.intranet.controller.view;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.team.intranet.dto.MemberDto;
 import com.team.intranet.entity.Member;
@@ -33,10 +31,12 @@ public class MemberController {
     @GetMapping("/signup")
 public String signupPage(HttpSession session, Model model) {
     Long companyId = (Long) session.getAttribute("verifiedCompanyId");
+    String companyCode = (String) session.getAttribute("verifiedCompanyCode");
     if (companyId == null) {
         return "redirect:/login"; // 인증 안 했으면 다시 로그인/모달창으로
     }
     model.addAttribute("companyId", companyId);
+    model.addAttribute("companyCode", companyCode);
     return "signup";
 }
 
@@ -46,14 +46,16 @@ public String signupPage(HttpSession session, Model model) {
         MemberType result = memberService.join(dto);
 
         switch (result) {
-            case JOIN_SUCCESS: // 가입 성공
-                return "redirect:/signin";
-            case ALEADY_MEMBER: // 이미 회원 정보가 있음
-                return "redirect:/signup";
-            case NOT_MATCH_PASSWORD: // 비밀번호가 일치하지 않음
-                return "redirect:/signup";
+            case JOIN_SUCCESS: 
+                // 회원가입 성공 시 로그인 페이지로 보냅니다. 
+                return "redirect:/login"; 
+                
+            case NOT_COMPANY:
+            case ALEADY_MEMBER:
+            case NOT_MATCH_PASSWORD:
             default:
-                return "redirect:/signup";
+                // 실패 시 다시 회원가입 폼으로 보냅니다.
+                return "redirect:/member/signup?error=" + result.name();
         }
     }
 
