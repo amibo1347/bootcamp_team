@@ -1,5 +1,6 @@
 package com.team.intranet.controller.view;
 
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +14,7 @@ import com.team.intranet.enums.member.MemberType;
 import com.team.intranet.service.MemberService;
 import com.team.intranet.session.MemberSession;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
@@ -28,12 +30,26 @@ public class MemberController {
     ////////////////////////////////////////
 /// 비즈니스 로직
 /// 
+    @GetMapping("/login")
+    public String login(HttpServletRequest request, Model model) {
+        // Ensure CSRF token is available to Mustache templates
+        Object token = request.getAttribute("_csrf");
+        if (token instanceof CsrfToken) {
+            model.addAttribute("_csrf", token);
+        }
+        return "signin";
+    }
+    
     @GetMapping("/signup")
 public String signupPage(HttpSession session, Model model) {
     Long companyId = (Long) session.getAttribute("verifiedCompanyId");
     String companyCode = (String) session.getAttribute("verifiedCompanyCode");
+    String verifiedLogoPath = (String) session.getAttribute("logoPath");
     if (companyId == null) {
-        return "redirect:/login"; // 인증 안 했으면 다시 로그인/모달창으로
+        return "redirect:login"; // 인증 안 했으면 다시 로그인/모달창으로
+    }
+    if (verifiedLogoPath != null) {
+        model.addAttribute("logoPath", verifiedLogoPath);
     }
     model.addAttribute("companyId", companyId);
     model.addAttribute("companyCode", companyCode);
@@ -48,14 +64,14 @@ public String signupPage(HttpSession session, Model model) {
         switch (result) {
             case JOIN_SUCCESS: 
                 // 회원가입 성공 시 로그인 페이지로 보냅니다. 
-                return "redirect:/login"; 
+                return "redirect:login"; 
                 
             case NOT_COMPANY:
             case ALEADY_MEMBER:
             case NOT_MATCH_PASSWORD:
             default:
                 // 실패 시 다시 회원가입 폼으로 보냅니다.
-                return "redirect:/member/signup?error=" + result.name();
+                return "redirect:signup?error=" + result.name();
         }
     }
 

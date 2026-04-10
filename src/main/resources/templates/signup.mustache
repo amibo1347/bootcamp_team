@@ -81,8 +81,17 @@
         <div class="signup-card bg-white dark:bg-gray-800">
 
             <!-- 로고 이미지: 중앙 정렬 -->
-            <div style="display:flex; justify-content:center; margin-bottom:1.25rem;">
-                <!-- <img src="/images/logo/auth-logo.svg" alt="서비스 로고" style="width: 180px;" /> -->
+            <div style="display:flex; justify-content:center; border-bottom: 1px solid #F3F4F6; padding-top: 1.2rem; margin-bottom: 0.2rem;">
+                {{#logoPath}}
+                <img src="{{logoPath}}" alt="기업 로고" id="companyLogoImg" style="
+                width: 180px;       /* 가로 크기를 명확하게 지정 */
+                height: auto;       /* 비율에 맞춰 높이 자동 조절 */
+                object-fit: contain;
+                display: block;
+                /* 부드러운 느낌을 위해 살짝만 필터 적용 */
+                filter: contrast(105%);
+             ">
+                {{/logoPath}}
             </div>
 
             <form method="post" action="/member/signup" id="form-signup" name="form-signup">

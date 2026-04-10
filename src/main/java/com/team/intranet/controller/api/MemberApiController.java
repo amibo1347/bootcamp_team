@@ -36,8 +36,11 @@ public class MemberApiController {
         Map<String, Object> response = new HashMap<>();
 
         if (companyId != null) {
+            String logoPath = memberService.getLogoPath(companyId);
+
             session.setAttribute("verifiedCompanyId", companyId);
             session.setAttribute("verifiedCompanyCode", companyCode);
+            session.setAttribute("logoPath", logoPath);
             response.put("isVerify", true);
             response.put("companyId", companyId);
         } else {

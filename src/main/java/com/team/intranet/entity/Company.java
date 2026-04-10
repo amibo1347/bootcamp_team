@@ -38,4 +38,7 @@ public class Company {
 
     @Column(name = "company_domain")
     private String companyDomain;
+
+    @Column(name="logo_path")
+    private String logoPath;
 }

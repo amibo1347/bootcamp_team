@@ -2,10 +2,9 @@ package com.team.intranet.entity;
 
 import java.time.LocalDateTime;
 
+import com.team.intranet.dto.MemberDto;
 import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.Status;
-import com.team.intranet.dto.MemberDto;
-import com.team.intranet.entity.Company;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,14 +12,13 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
-import jakarta.persistence.Table;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.AllArgsConstructor;
 
 @Entity
 @Table(name = "tbl_member")

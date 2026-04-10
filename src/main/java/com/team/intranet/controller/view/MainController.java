@@ -15,18 +15,6 @@ public class MainController {
         return "index";
     }
 
-    @GetMapping("/login")
-    public String login(HttpServletRequest request, Model model) {
-        // Ensure CSRF token is available to Mustache templates
-        Object token = request.getAttribute("_csrf");
-        if (token instanceof CsrfToken) {
-            model.addAttribute("_csrf", token);
-        }
-        return "signin";
-    }
-
-    
-
     @GetMapping("/tables")
     public String tables() {
         return "basic-tables";

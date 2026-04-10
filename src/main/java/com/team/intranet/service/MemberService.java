@@ -1,6 +1,7 @@
 package com.team.intranet.service;
 
 import java.util.Optional;
+import java.util.List;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -108,10 +109,21 @@ public class MemberService {
         return memberRepository.existsByLoginId(loginId);
     }
 
+    // 기업 로고
+    public String getLogoPath(Long companyId) {
+        Company company = companyRepository.findById(companyId).orElse(null);
+
+        return (company != null) ? company.getLogoPath() : null;
+    }
+
     // 기업 코드 인증
     public Long getVerifyCompanyId(String companyCode) {
         return companyRepository.findByCompanyCodeIgnoreCase(companyCode)
                 .map(Company::getCompanyId)
                 .orElse(null);
+    }
+
+    public List<Member> findWaitMembers(){
+        return memberRepository.findByStatus(Status.WAIT);
     }
 }
