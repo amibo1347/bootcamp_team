@@ -86,6 +86,8 @@ public class Member {
         member.loginId = dto.getLoginId();
         member.password = encodedPassword;
         member.name = dto.getName();
+        member.email = dto.getEmail();
+        member.phone = dto.getPhone();
         member.company = company;
         member.status = Status.WAIT;
         member.role = Role.USER;

@@ -75,7 +75,7 @@ public String signupPage(HttpSession session, Model model) {
         } catch (Exception e) {
             // 로그인 실패 시 에러 메시지를 담아 로그인 페이지로 다시 보냄
             model.addAttribute("loginError", e.getMessage());
-            return "member/signin";
+            return "signin";
         }
 
     }
