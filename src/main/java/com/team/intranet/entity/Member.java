@@ -45,6 +45,8 @@ public class Member {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "accepted_at")
     private LocalDateTime acceptedAt; // 승인 날짜
     @Column(name = "name")
     private String name;
@@ -52,7 +54,7 @@ public class Member {
     @Column(name = "birth_day")
     private LocalDateTime birthDay;
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated(EnumType.STRING)    
     @Column(name = "role")
     private Role role;
 

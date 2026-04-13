@@ -1,7 +1,7 @@
 package com.team.intranet.service;
 
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -11,9 +11,11 @@ import com.team.intranet.entity.Company;
 import com.team.intranet.entity.Dept;
 import com.team.intranet.entity.Member;
 import com.team.intranet.entity.Position;
+import com.team.intranet.enums.ErrorCode;
 import com.team.intranet.enums.member.MemberType;
 import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.Status;
+import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.CompanyRepository;
 import com.team.intranet.repository.DeptRepository;
 import com.team.intranet.repository.MemberRepository;
@@ -38,7 +40,7 @@ public class MemberService {
         Optional<Member> foundMember = memberRepository.findByLoginId(dto.getLoginId());
 
         if (foundMember.isPresent()) {
-            return MemberType.ALEADY_MEMBER;
+            return MemberType.ALREADY_MEMBER;
         }
 
         if (!dto.is_Password_Match()) {
@@ -49,9 +51,7 @@ public class MemberService {
         if (dto.getCompanyCode() == null || dto.getCompanyCode().isEmpty()) {
             return MemberType.NOT_COMPANY;
         }
-        System.out.println("전달받은 기업 코드: [" + dto.getCompanyCode() + "]");
         Company company = companyRepository.findByCompanyCodeIgnoreCase(dto.getCompanyCode()).orElse(null);
-        System.out.println("DB 조회 결과: " + (company == null ? "찾지 못함" : "찾음 - " + company.getCompanyName()));
         if (company == null) {
             return MemberType.NOT_COMPANY;
         }
@@ -63,46 +63,51 @@ public class MemberService {
         return MemberType.JOIN_SUCCESS;
     }
 
-    // 가입 승인
     @Transactional
-    public void acceptMember(Long memberId, String adminLoginId, Long deptId, Long positionId) {
-        Member admin = memberRepository.findByLoginId(adminLoginId)
-                .orElseThrow(() -> new IllegalArgumentException("관리자 정보가 없습니다."));
+public void acceptMember(Long memberId, String adminLoginId, Long deptId, Long positionId) {
+    // 1. 관리자 권한 체크 (기존 로직)
+    Member admin = memberRepository.findByLoginId(adminLoginId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_ADMIN_ROLE));
 
-        if (admin.getRole() != Role.ADMIN) {
-            throw new RuntimeException("승인 권한이 없습니다");
-        }
-
-        Member targetMember = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 회원이 없습니다"));
-
-        Dept dept = deptRepository.findById(deptId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 부서가 없습니다"));
-
-        Position position = positionRepository.findById(positionId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 직급이 없습니다"));
-
-        if (targetMember.getStatus() == Status.WAIT) {
-            targetMember.accept(dept, position);
-        }
+    if (admin.getRole() != Role.ADMIN) {
+        throw new BusinessException(ErrorCode.NOT_ADMIN_ROLE);
     }
+
+    // 2. 대상 회원 조회
+    Member targetMember = memberRepository.findById(memberId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+    if (targetMember.getStatus() != Status.WAIT) {
+        throw new BusinessException(ErrorCode.ALREADY_JOIN_MEMBER);
+    }
+
+    // 3. 부서 및 직급 조회
+    Dept dept = deptRepository.findById(deptId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.DEPT_NOT_FOUND));
+
+    Position position = positionRepository.findById(positionId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.POSITION_NOT_FOUND));
+
+    // 4. 승인 처리 (이제 안심하고 실행)
+    targetMember.accept(dept, position);
+}
 
     // 로그인
-    @Transactional
-    public Member login(String loginId, String password) {
-        Member member = memberRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
+    // @Transactional
+    // public Member login(String loginId, String password) {
+    //     Member member = memberRepository.findByLoginId(loginId)
+    //             .orElseThrow(() -> new BusinessException(ErrorCode.LOGIN_FAILED));
 
-        if (!passwordEncoder.matches(password, member.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
-        }
+    //     if (!passwordEncoder.matches(password, member.getPassword())) {
+    //         throw new BusinessException(ErrorCode.LOGIN_FAILED);
+    //     }
 
-        if (member.getStatus() == Status.WAIT) {
-            throw new RuntimeException("관리자의 승인을 기다리는 중입니다.");
-        }
+    //     if (member.getStatus() == Status.WAIT) {
+    //         throw new BusinessException(ErrorCode.WAITING_ACCEPT);
+    //     }
 
-        return member;
-    }
+    //     return member;
+    // }
 
     // 아이디 중복 확인
     public boolean isDuplicateId(String loginId) {
@@ -123,7 +128,7 @@ public class MemberService {
                 .orElse(null);
     }
 
-    public List<Member> findWaitMembers(){
-        return memberRepository.findByStatus(Status.WAIT);
+    public List<Member> findWaitMembers(Long companyId){
+        return memberRepository.findByStatusAndCompanyCompanyId(Status.WAIT, companyId);
     }
 }

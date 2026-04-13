@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.SessionAttribute;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -29,20 +30,26 @@ public class AdminController {
 
     /////////////////////////////////////
 /// 의존성 주입
-    private MemberService memberService;
-    private DeptService deptService;
-    private PositionService positionService;
+    private final MemberService memberService;
+    private final DeptService deptService;
+    private final PositionService positionService;
 
     /////////////////////////////////////
 /// 컨트롤러
 
     @GetMapping("/join-list")
-    public String joinList(Model model) {
+    public String joinList(Model model, 
+        @SessionAttribute(name = "member", required = false) MemberSession ms) {
+        
+        if (ms == null || ms.getCompanyId() == null) {
+        return "redirect:/member/login"; 
+    }
+        Long companyId = ms.getCompanyId();
 
-        List<Member> waitingMembers = memberService.findWaitMembers();
+        List<Member> waitingMembers = memberService.findWaitMembers(companyId);
 
-        List<Dept> depts = deptService.findAll();
-        List<Position> positions = positionService.findAll();
+        List<Dept> depts = deptService.findAll(companyId);
+        List<Position> positions = positionService.findAll(companyId);
 
         model.addAttribute("members", waitingMembers); // 승인 대기중인 회원
         model.addAttribute("depts", depts);            // 부서 목록
@@ -62,13 +69,13 @@ public class AdminController {
         MemberSession ms = (MemberSession) session.getAttribute("member");
 
         if (ms == null) {
-            return "redirect:/login"; // 세션 만료 시 로그인 페이지로
+            return "redirect:/member/login"; // 세션 만료 시 로그인 페이지로
         }
 
         String adminId = ms.getLoginId();
 
         // MemberService에 승인 로직 위임
         memberService.acceptMember(memberId, adminId, deptId, positionId);
-        return "redirect:/admin/pending-list";
+        return "redirect:/admin/join-list";
     }
 }

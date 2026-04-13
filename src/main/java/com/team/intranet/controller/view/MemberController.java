@@ -67,7 +67,7 @@ public String signupPage(HttpSession session, Model model) {
                 return "redirect:login"; 
                 
             case NOT_COMPANY:
-            case ALEADY_MEMBER:
+            case ALREADY_MEMBER:
             case NOT_MATCH_PASSWORD:
             default:
                 // 실패 시 다시 회원가입 폼으로 보냅니다.
@@ -76,23 +76,23 @@ public String signupPage(HttpSession session, Model model) {
     }
 
     // 로그인
-    @PostMapping("/login")
-    public String login(@RequestParam String loginId, @RequestParam String password, HttpSession session, Model model) {
-        try {
-            // 서비스에서 로그인 시도
-            Member loginMember = memberService.login(loginId, password);
+    // @PostMapping("/login")
+    // public String login(@RequestParam String loginId, @RequestParam String password, HttpSession session, Model model) {
+    //     try {
+    //         // 서비스에서 로그인 시도
+    //         Member loginMember = memberService.login(loginId, password);
 
-            // 세션에 필요한 정보 저장
-            MemberSession ms = new MemberSession(loginMember);
-            session.setAttribute("member", ms);
+    //         // 세션에 필요한 정보 저장
+    //         MemberSession ms = new MemberSession(loginMember);
+    //         session.setAttribute("member", ms);
 
-            return "redirect:/index"; // 로그인 성공 시 메인으로
+    //         return "redirect:/index"; // 로그인 성공 시 메인으로
 
-        } catch (Exception e) {
-            // 로그인 실패 시 에러 메시지를 담아 로그인 페이지로 다시 보냄
-            model.addAttribute("loginError", e.getMessage());
-            return "signin";
-        }
+    //     } catch (Exception e) {
+    //         // 로그인 실패 시 에러 메시지를 담아 로그인 페이지로 다시 보냄
+    //         model.addAttribute("loginError", e.getMessage());
+    //         return "signin";
+    //     }
 
-    }
+    // }
 }
