@@ -64,18 +64,18 @@ public class PositionService {
 
     // 직급 수정
     @Transactional
-    public void updatePosition(MemberSession ms, PositionDto dto, Long PositionId){
+    public void updatePosition(MemberSession ms, PositionDto dto, Long positionId){
         validateAdmin(ms);
-        Position position = findPositionAndValidateOwner(ms, PositionId);
+        Position position = findPositionAndValidateOwner(ms, positionId);
         
         position.setPositionName(dto.getPositionName());
     }
 
     // 직급 삭제
     @Transactional
-    public void deletePosition(MemberSession ms, Long PositionId){
+    public void deletePosition(MemberSession ms, Long positionId){
         validateAdmin(ms);
-        Position Position = findPositionAndValidateOwner(ms, PositionId);
-        positionRepository.delete(Position);
+        Position position = findPositionAndValidateOwner(ms, positionId);
+        positionRepository.delete(position);
     }
 }

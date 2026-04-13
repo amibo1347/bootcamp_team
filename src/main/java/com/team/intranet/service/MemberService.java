@@ -64,10 +64,10 @@ public class MemberService {
     }
 
     @Transactional
-public void acceptMember(Long memberId, String adminLoginId, Long deptId, Long positionId) {
-    // 1. 관리자 권한 체크 (기존 로직)
-    Member admin = memberRepository.findByLoginId(adminLoginId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_ADMIN_ROLE));
+public void acceptMember(Long memberId, Long adminId, Long deptId, Long positionId) {
+    // 1. 관리자 정보 및 권한 체크
+    Member admin = memberRepository.findById(adminId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
     if (admin.getRole() != Role.ADMIN) {
         throw new BusinessException(ErrorCode.NOT_ADMIN_ROLE);
@@ -77,19 +77,59 @@ public void acceptMember(Long memberId, String adminLoginId, Long deptId, Long p
     Member targetMember = memberRepository.findById(memberId)
             .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
+    // 3. 같은 회사인지 철저히 검증 (보안의 핵심)
+    if (!targetMember.getCompany().getCompanyId().equals(admin.getCompany().getCompanyId())) {
+        throw new BusinessException(ErrorCode.ACCESS_DENIED);
+    }
+
     if (targetMember.getStatus() != Status.WAIT) {
         throw new BusinessException(ErrorCode.ALREADY_JOIN_MEMBER);
     }
 
-    // 3. 부서 및 직급 조회
+    // 4. 부서 및 직급 조회 (Fetch Join 등을 고려하면 더 좋음)
     Dept dept = deptRepository.findById(deptId)
             .orElseThrow(() -> new BusinessException(ErrorCode.DEPT_NOT_FOUND));
 
     Position position = positionRepository.findById(positionId)
             .orElseThrow(() -> new BusinessException(ErrorCode.POSITION_NOT_FOUND));
 
-    // 4. 승인 처리 (이제 안심하고 실행)
+    // 5. 도메인 모델에 승인 로직 위임
     targetMember.accept(dept, position);
+}
+
+@Transactional
+public void updateMemberInfo(Long memberId, Long adminId, Long deptId, Long positionId) {
+    // 1. 관리자 정보 및 권한 체크
+    Member admin = memberRepository.findById(adminId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+    if (admin.getRole() != Role.ADMIN) {
+        throw new BusinessException(ErrorCode.NOT_ADMIN_ROLE);
+    }
+
+    // 2. 수정 대상 회원 조회
+    Member targetMember = memberRepository.findById(memberId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+    // 3. 보안 체크: 같은 회사 소속인지 확인
+    if (!targetMember.getCompany().getCompanyId().equals(admin.getCompany().getCompanyId())) {
+        throw new BusinessException(ErrorCode.ACCESS_DENIED);
+    }
+
+    // 4. 부서 및 직급 조회 및 회사 일치 확인
+    Dept dept = deptRepository.findById(deptId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.DEPT_NOT_FOUND));
+    
+    Position position = positionRepository.findById(positionId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.POSITION_NOT_FOUND));
+
+    if (!dept.getCompany().getCompanyId().equals(admin.getCompany().getCompanyId()) ||
+        !position.getCompany().getCompanyId().equals(admin.getCompany().getCompanyId())) {
+        throw new BusinessException(ErrorCode.ACCESS_DENIED);
+    }
+
+    // 5. 실제 수정 로직 수행 (Dirty Checking 활용)
+    targetMember.updateInfo(dept, position);
 }
 
     // 로그인
@@ -131,4 +171,44 @@ public void acceptMember(Long memberId, String adminLoginId, Long deptId, Long p
     public List<Member> findWaitMembers(Long companyId){
         return memberRepository.findByStatusAndCompanyCompanyId(Status.WAIT, companyId);
     }
+    
+    public List<Member> findJoinMembers(Long companyId){
+        return memberRepository.findByStatusAndCompanyCompanyId(Status.JOIN, companyId);
+    }
+    
+    public List<Member> findFireMembers(Long companyId){
+        return memberRepository.findByStatusAndCompanyCompanyId(Status.LEAVE, companyId);
+    }
+    
+    public List<Member> findRejectMembers(Long companyId){
+        return memberRepository.findByStatusAndCompanyCompanyId(Status.REJECT, companyId);
+    }
+
+    // 1. 가입 반려 처리 (WAIT -> REJECT)
+@Transactional
+public void rejectMember(Long memberId, Long adminId) {
+    Member admin = memberRepository.findById(adminId).orElseThrow();
+    Member target = memberRepository.findById(memberId).orElseThrow();
+
+    // 보안 체크: 같은 회사인지 확인
+    if (!admin.getCompany().getCompanyId().equals(target.getCompany().getCompanyId())) {
+        throw new BusinessException(ErrorCode.ACCESS_DENIED);
+    }
+
+    target.setStatus(Status.REJECT); // Dirty Checking으로 자동 업데이트
+}
+
+// 2. 퇴사 처리 (JOIN -> LEAVE)
+@Transactional
+public void fireMember(Long memberId, Long adminId) {
+    Member admin = memberRepository.findById(adminId).orElseThrow();
+    Member target = memberRepository.findById(memberId).orElseThrow();
+
+    // 보안 체크
+    if (!admin.getCompany().getCompanyId().equals(target.getCompany().getCompanyId())) {
+        throw new BusinessException(ErrorCode.ACCESS_DENIED);
+    }
+
+    target.setStatus(Status.LEAVE);
+}
 }

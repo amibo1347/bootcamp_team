@@ -18,11 +18,13 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "tbl_member")
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Member {
@@ -65,8 +67,8 @@ public class Member {
     @Column(name = "status")
     private Status status;
 
-    @ManyToOne
-    @JoinColumn(name = "company_id")
+    @ManyToOne(optional = false)
+  @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
     @ManyToOne
@@ -102,5 +104,11 @@ public class Member {
         this.position = position;
         this.acceptedAt = LocalDateTime.now(); 
     }
+
+    // 기존 회원 정보 변경
+    public void updateInfo(Dept dept, Position position) {
+    this.dept = dept;
+    this.position = position;
+}
 
 }

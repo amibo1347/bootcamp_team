@@ -46,10 +46,11 @@ public class SecurityConfig {
                 .permitAll()
             )
             .logout(logout -> logout
-                .logoutUrl("/member/logout")
-                .logoutSuccessUrl("/index")
-                .invalidateHttpSession(true) // 💡 로그아웃 시 세션 무효화
-                .permitAll()
+            .logoutUrl("/member/logout")          // 💡 HTML에서 호출할 로그아웃 주소
+            .logoutSuccessUrl("/member/login")    // 💡 로그아웃 성공 후 이동할 페이지
+            .invalidateHttpSession(true)          // 💡 서버 세션 완전히 삭제 (중요!)
+            .deleteCookies("JSESSIONID")          // 💡 브라우저에 남은 세션 쿠키 삭제
+            .permitAll()
             );
 
         return http.build();

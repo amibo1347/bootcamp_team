@@ -31,14 +31,17 @@ public class MemberController {
 /// 비즈니스 로직
 /// 
     @GetMapping("/login")
-    public String login(HttpServletRequest request, Model model) {
-        // Ensure CSRF token is available to Mustache templates
-        Object token = request.getAttribute("_csrf");
-        if (token instanceof CsrfToken) {
-            model.addAttribute("_csrf", token);
-        }
-        return "signin";
+public String loginForm(HttpServletRequest request, Model model) {
+    HttpSession session = request.getSession();
+    String errorMsg = (String) session.getAttribute("loginError");
+
+    if (errorMsg != null) {
+        model.addAttribute("errorMessage", errorMsg);
+        session.removeAttribute("loginError"); 
     }
+
+    return "signin"; 
+}
     
     @GetMapping("/signup")
 public String signupPage(HttpSession session, Model model) {

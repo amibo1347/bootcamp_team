@@ -72,13 +72,12 @@
           /> -->
       </div>
 
-
-      {{#loginError}} <!--원인을 모른체 로그인이 취소되어 임시 확인용 메시지창-->
-      <div
-        style="color: #ef4444; background-color: #fee2e2; border: 1px solid #fecaca; padding: 0.75rem; border-radius: 0.375rem; margin-bottom: 1rem; font-size: 0.875rem; text-align: center;">
-        {{loginError}}
-      </div>
-      {{/loginError}}
+<!--------------------바꿨어!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
+      {{#errorMessage}}
+    <div style="color: red; margin-bottom: 15px;">
+        {{errorMessage}}
+    </div>
+    {{/errorMessage}}
 
       <form method="post" action="/member/login">
         <!--csrf부분 지워야되는듯?-->

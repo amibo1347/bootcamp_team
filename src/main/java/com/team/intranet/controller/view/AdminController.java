@@ -37,9 +37,9 @@ public class AdminController {
     /////////////////////////////////////
 /// 컨트롤러
 
-    @GetMapping("/join-list")
+    @GetMapping("/waitingList")
     public String joinList(Model model, 
-        @SessionAttribute(name = "member", required = false) MemberSession ms) {
+        @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
         
         if (ms == null || ms.getCompanyId() == null) {
         return "redirect:/member/login"; 
@@ -54,28 +54,80 @@ public class AdminController {
         model.addAttribute("members", waitingMembers); // 승인 대기중인 회원
         model.addAttribute("depts", depts);            // 부서 목록
         model.addAttribute("positions", positions);    // 직급 목록
-        return "/admin/join-list";
+        return "/admin/waitingList";
     }
 
     // 가입 승인용 포스트매핑
     @PostMapping("/accept/{id}")
     public String approveMember(
-            @PathVariable("id") Long memberId, // 누구를?
-            @RequestParam Long deptId, // 어떤 부서로?
-            @RequestParam Long positionId, // 어떤 직급으로?
-            HttpSession session // 관리자 확인용
-    ) {
-        // 세션 정보 추출
-        MemberSession ms = (MemberSession) session.getAttribute("member");
+            @PathVariable("id") Long memberId,
+            @RequestParam Long deptId,
+            @RequestParam Long positionId,
+            @SessionAttribute("memberSession") MemberSession ms) { // 세션 바로 가져오기
 
-        if (ms == null) {
-            return "redirect:/member/login"; // 세션 만료 시 로그인 페이지로
-        }
-
-        String adminId = ms.getLoginId();
-
-        // MemberService에 승인 로직 위임
-        memberService.acceptMember(memberId, adminId, deptId, positionId);
-        return "redirect:/admin/join-list";
+        // 서비스의 파라미터 타입에 맞춰서 ms.getLoginId() 혹은 ms.getMemberId() 전달
+        memberService.acceptMember(memberId, ms.getMemberId(), deptId, positionId);
+        return "redirect:/admin/waitingList";
     }
+
+    // 가입 반려 (거절)
+    @PostMapping("/reject/{id}")
+    public String rejectMember(
+            @PathVariable("id") Long memberId, 
+            @SessionAttribute("memberSession") MemberSession ms) {
+
+        // 반려 시에도 관리자 권한 확인을 위해 ms.getMemberId() 전달 추천
+        memberService.rejectMember(memberId, ms.getMemberId()); 
+        return "redirect:/admin/waitingList";
+    }
+
+    @GetMapping("memberList")
+    public String memberList(Model model, 
+        @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+        
+        if (ms == null || ms.getCompanyId() == null) {
+        return "redirect:/member/login"; 
+    }
+        Long companyId = ms.getCompanyId();
+
+        List<Member> joinMembers = memberService.findJoinMembers(companyId);
+
+        List<Dept> depts = deptService.findAll(companyId);
+        List<Position> positions = positionService.findAll(companyId);
+
+        model.addAttribute("members", joinMembers); // 승인 대기중인 회원
+        model.addAttribute("depts", depts);            // 부서 목록
+        model.addAttribute("positions", positions);    // 직급 목록
+
+        return "admin/memberList";
+    }
+
+    // 회원 정보 수정 (부서, 직급 변경)
+@PostMapping("/update/{id}")
+public String updateMember(
+        @PathVariable("id") Long memberId,
+        @RequestParam Long deptId,
+        @RequestParam Long positionId,
+        HttpSession session) {
+    
+    MemberSession ms = (MemberSession) session.getAttribute("memberSession");
+    if (ms == null) return "redirect:/member/login";
+
+    // Service에서 회원 정보(부서, 직급) 업데이트 로직 수행
+    memberService.updateMemberInfo(memberId,ms.getMemberId(), deptId, positionId);
+    
+    return "redirect:/admin/memberList";
+}
+
+// 퇴사 처리
+@PostMapping("/fire/{id}")
+public String fireMember(@PathVariable("id") Long memberId, HttpSession session) {
+    MemberSession ms = (MemberSession) session.getAttribute("memberSession");
+    if (ms == null) return "redirect:/member/login";
+
+    // Service에서 회원을 삭제하거나 Status를 'LEAVE'로 변경
+    memberService.fireMember(memberId, ms.getMemberId());
+    
+    return "redirect:/admin/memberList";
+}
 }
