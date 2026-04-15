@@ -81,7 +81,8 @@
         <div class="signup-card bg-white dark:bg-gray-800">
 
             <!-- 로고 이미지: 중앙 정렬 -->
-            <div style="display:flex; justify-content:center; border-bottom: 1px solid #F3F4F6; padding-top: 1.2rem; margin-bottom: 0.2rem;">
+            <div
+                style="display:flex; justify-content:center; border-bottom: 1px solid #F3F4F6; padding-top: 1.2rem; margin-bottom: 0.2rem;">
                 {{#logoPath}}
                 <img src="{{logoPath}}" alt="기업 로고" id="companyLogoImg" style="
                 width: 180px;       /* 가로 크기를 명확하게 지정 */
@@ -258,7 +259,81 @@
               " required />
                     </div>
 
+                    <!-- 생년월일 입력 필드 -->
+                    <div style="margin-bottom: 0.625rem;">
+                        <label
+                            style="display:block; font-size:0.875rem; font-weight:500; color:#374151; margin-bottom:0.25rem;">
+                            생년월일
+                        </label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="number" name="birthYear" placeholder="년(4자)" min="1900" max="2026" style="
+            flex: 1.5; height: 2.75rem; border: none; background-color: #F3F4F6;
+            border-radius: 0.75rem; padding: 0 1rem; font-size: 0.875rem; color: #1F2937; box-sizing: border-box;
+        " required />
 
+                            <select name="birthMonth" style="
+            flex: 1; height: 2.75rem; border: none; background-color: #F3F4F6;
+            border-radius: 0.75rem; padding: 0 0.5rem; font-size: 0.875rem; color: #1F2937; cursor: pointer;
+        " required>
+                                <option value="" disabled selected>월</option>
+                                {{#months}} <option value="{{.}}">{{.}}월</option>
+                                {{/months}}
+                                {{^months}}
+                                <option value="1">1월</option>
+                                <option value="2">2월</option>
+                                <option value="3">3월</option>
+                                <option value="4">4월</option>
+                                <option value="5">5월</option>
+                                <option value="6">6월</option>
+                                <option value="7">7월</option>
+                                <option value="8">8월</option>
+                                <option value="9">9월</option>
+                                <option value="10">10월</option>
+                                <option value="11">11월</option>
+                                <option value="12">12월</option>
+                                {{/months}}
+                            </select>
+
+                            <input type="number" name="birthDay" placeholder="일" min="1" max="31" style="
+            flex: 1; height: 2.75rem; border: none; background-color: #F3F4F6;
+            border-radius: 0.75rem; padding: 0 1rem; font-size: 0.875rem; color: #1F2937; box-sizing: border-box;
+        " required />
+                        </div>
+                    </div>
+
+                    <!-- 성별 선택 필드 -->
+                    <div style="margin-bottom: 0.625rem;">
+                        <label
+                            style="display:block; font-size:0.875rem; font-weight:500; color:#374151; margin-bottom:0.25rem;">
+                            성별
+                        </label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <label style="flex: 1; cursor: pointer;">
+                                <input type="radio" name="gender" value="MALE" class="hidden peer" required>
+                                <div
+                                    class="flex items-center justify-center h-11 bg-gray-100 rounded-xl text-sm text-gray-500 peer-checked:bg-indigo-100 peer-checked:text-indigo-600 peer-checked:ring-1 peer-checked:ring-indigo-400 transition-all">
+                                    남자
+                                </div>
+                            </label>
+                            <label style="flex: 1; cursor: pointer;">
+                                <input type="radio" name="gender" value="FEMALE" class="hidden peer">
+                                <div
+                                    class="flex items-center justify-center h-11 bg-gray-100 rounded-xl text-sm text-gray-500 peer-checked:bg-pink-100 peer-checked:text-pink-600 peer-checked:ring-1 peer-checked:ring-pink-400 transition-all">
+                                    여자
+                                </div>
+                            </label>
+                            <label style="flex: 1; cursor: pointer;">
+                                <input type="radio" name="gender" value="NONE" class="hidden peer">
+                                <div
+                                    class="flex items-center justify-center h-11 bg-gray-100 rounded-xl text-sm text-gray-500 peer-checked:bg-gray-200 peer-checked:text-gray-700 transition-all">
+                                    선택안함
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+
+                    <!-- 부서 선택 드롭다운 -->
                     <div style="margin-bottom: 0.625rem; position: relative;"
                         x-data="{ open: false, selected: '부서를 선택하세요' }">
                         <label
@@ -307,6 +382,7 @@
                         <input type="hidden" name="dept" :value="selected === '부서를 선택하세요' ? '' : selected">
                     </div>
 
+                    <!-- 연락처 입력 필드 -->
                     <div style="margin-bottom: 0.875rem;">
                         <label
                             style="display:block; font-size:0.875rem; font-weight:500; color:#374151; margin-bottom:0.25rem;">

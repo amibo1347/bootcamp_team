@@ -8,6 +8,12 @@
     const $password = document.querySelector('#password');
     const $passwordCheck = document.querySelector('#passwordCheck');
 
+    const $birthYear = document.querySelector('input[name="birthYear"]');
+    const $birthMonth = document.querySelector('select[name="birthMonth"]');
+    const $birthDay = document.querySelector('input[name="birthDay"]');
+
+    const $genderInputs = document.getElementsByName('gender');
+
     const $deptInput = document.querySelector('input[name="dept"]');
 
     let isIdChecked = false;
@@ -36,6 +42,20 @@
     const validatePw = (pw) => {
         const pwRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
         return pwRegex.test(pw);
+    };
+
+    // 3. 생년월일 유효성 검사 (숫자 범위 체크)
+    const validateBirth = (y, m, d) => {
+        const year = parseInt(y);
+        const month = parseInt(m);
+        const day = parseInt(d);
+        const currentYear = new Date().getFullYear();
+
+        if (!y || year < 1900 || year > currentYear) return "년도를 정확히 입력해주세요.";
+        if (!m) return "월을 선택해주세요.";
+        if (!d || day < 1 || day > 31) return "일을 정확히 입력해주세요.";
+
+        return "OK";
     };
 
 
@@ -153,6 +173,13 @@
         const pw = $password.value;
         const dept = $deptInput ? $deptInput.value : "";
 
+        const birthY = $birthYear.value;
+        const birthM = $birthMonth.value;
+        const birthD = $birthDay.value;
+
+        let genderSelected = false;
+        $genderInputs.forEach(input => { if (input.checked) genderSelected = true; });
+
         if (!validateId(loginId)) {
             event.preventDefault();
             showTooltip($loginId, '아이디 조건을 확인해주세요 (4~12자).');
@@ -174,6 +201,22 @@
         if ($password.value !== $passwordCheck.value) {
             event.preventDefault();
             showTooltip($passwordCheck, "비밀번호가 일치하지 않습니다.");
+            return;
+        }
+
+        // [추가] 생년월일 유효성 검사 실행
+        const birthResult = validateBirth(birthY, birthM, birthD);
+        if (birthResult !== "OK") {
+            event.preventDefault();
+            // 연도 입력창에 툴팁 표시
+            showTooltip($birthYear, birthResult);
+            return;
+        }
+
+        // [추가] 성별 유효성 검사 실행
+        if (!genderSelected) {
+            event.preventDefault();
+            alert("성별을 선택해주세요."); // 라디오 버튼은 커스텀 툴팁보다 alert가 명확합니다.
             return;
         }
 
@@ -201,6 +244,7 @@
         // 툴팁 출력 후 다시 입력하면 에러 사라지게 처리
         const clearMsg = () => element.setCustomValidity("");
         element.addEventListener('input', clearMsg, { once: true });
+        element.addEventListener('change', clearMsg, { once: true });
     }
 
     function applyStatusStyle(element, color) {
