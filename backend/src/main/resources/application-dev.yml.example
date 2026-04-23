@@ -1,0 +1,16 @@
+# Copy to application-dev.yml (git-ignored) and fill in values.
+# Activate with: SPRING_PROFILES_ACTIVE=dev
+
+spring:
+  datasource:
+    url: jdbc:oracle:thin:@intranetdb_high?TNS_ADMIN=/path/to/Wallet_IntranetDB
+    username: ADMIN
+    password: your-password
+    driver-class-name: oracle.jdbc.OracleDriver
+
+app:
+  jwt:
+    secret: replace-with-a-long-random-base64-string
+    expiration-ms: 3600000
+  cors:
+    allowed-origins: http://localhost:3000

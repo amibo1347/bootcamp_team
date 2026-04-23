@@ -1,6 +1,11 @@
 HELP.md
-.gradle
+.DS_Store
+
+### Gradle ###
+.gradle/
+**/.gradle/
 build/
+**/build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
@@ -14,6 +19,7 @@ build/
 .springBeans
 .sts4-cache
 bin/
+**/bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
 
@@ -35,15 +41,22 @@ out/
 ### VS Code ###
 .vscode/
 
-# Node.js (Tailwind/Webpack 빌드 관련)
+### Node.js ###
 node_modules/
+**/node_modules/
 npm-debug.log*
-package-lock.json (선택사항: 팀 협업 시에는 포함, 혼자 개발 시 제외 가능)
+.next/
+out/
+.turbo/
 
-static/js/index.js
-# DB 관련
-src/main/resources/Wallet_IntranetDB/
-src/main/resources/application.properties
-# 백업 및 임시 파일 (이미지에서 확인된 중복 파일 방지)
+### Backend secrets & wallets ###
+backend/src/main/resources/Wallet_IntranetDB/
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-dev.yml
+backend/.env
+.env
+.env.local
+
+### Backup & temp ###
 *.bak
 *.tmp

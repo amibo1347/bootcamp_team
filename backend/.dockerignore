@@ -1,0 +1,15 @@
+.gradle/
+build/
+bin/
+out/
+.idea/
+.vscode/
+node_modules/
+*.iml
+Dockerfile
+.dockerignore
+
+src/main/resources/Wallet_IntranetDB/
+src/main/resources/application.properties
+src/main/resources/application-local.yml
+src/main/resources/application-dev.yml
