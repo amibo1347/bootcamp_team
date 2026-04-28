@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="_csrf" content="{{_csrf.token}}" />
+    <meta name="_csrf_header" content="{{_csrf.headerName}}" />
+    <title>
+        Member List
+    </title>
+    <link rel="stylesheet" href="/css/output.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body
+    x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-init="
+         darkMode = JSON.parse(localStorage.getItem('darkMode'));
+         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}">
+    <!-- ===== 로딩 화면 ===== -->
+    {{>partials/preloader}}
+    <!-- ===== Preloader End ===== -->
+
+    <!-- ===== Page Wrapper Start ===== -->
+    <div class="flex h-screen overflow-hidden">
+        <!-- ===== 사이드바 ===== -->
+        {{>partials/sidebar}}
+        <!-- ===== Sidebar End ===== -->
+
+        <!-- ===== Content Area Start ===== -->
+        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+            <!-- Small Device Overlay Start -->
+            {{>partials/overlay}}
+            <!-- Small Device Overlay End -->
+
+            <!-- ===== Header Start ===== -->
+            {{>partials/header}}
+            <!-- ===== Header End ===== -->
+
+            <!-- ===== Main Content Start ===== -->
+
+            <main>
+                <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+                    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <h2 class="text-lg font-black text-black dark:text-white">직원 목록</h2>
+                    </div>
+
+                    <div
+                        class="mb-6 rounded-xl border border-stroke bg-white px-5 py-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
+                        <form action="/member/list" method="get" class="flex flex-wrap items-center justify-end gap-3">
+
+                            <!-- 부서 선택 드롭다운 수정 필요!!!! -->
+                            <!-- 모델로 태워야 함!!!!!! -->
+                            <div class="relative z-20 bg-transparent dark:bg-form-input w-full sm:w-45">
+                                <select
+                                    class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark">
+                                    <option value="">부서 선택</option>
+                                    <option value="hr" selected>인사팀</option>
+                                    <option value="dev">개발팀</option>
+                                </select>
+                            </div>
+                            <!-- 부서 선택 드롭다운 수정 필요!!!!! -->
+
+
+                            <!-- 직원 이름 검색 수정 필요!!!!!! -->
+                            <!-- 실제로 검색 가능하게 연결 필요!!!!! -->
+                            <div class="w-full sm:w-64">
+                                <input type="text" placeholder="직원 이름 검색"
+                                    class="w-full rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white" />
+                            </div>
+                            <button type="submit"
+                                class="flex justify-center rounded bg-primary py-2 px-6 font-medium text-white hover:bg-opacity-90">
+                                검색
+                            </button>
+                        </form>
+                    </div>
+                    <!-- 직원 검색 수정 필요!!!!!! -->
+
+                    <div
+                        class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
+                        <h3 class="mb-6 text-xl font-semibold text-black dark:text-white">인사팀</h3>
+
+
+                        <!-- 부서 소속 직원 목록 모델 태워야 함!!!!! -->
+                        <!-- 부서 소속 직원 정보(사진, 이름, 직급, 이메일, 연락처, 생년월일, 입사일) 필요!!!!!! -->
+                        <div class="flex flex-col gap-4">
+                            {{#employeeList}}
+                            <div
+                                class="flex flex-wrap items-center justify-between rounded-2xl border border-stroke p-4 transition-hover hover:shadow-md dark:border-strokedark">
+                                <div class="flex items-center gap-5">
+                                    <div
+                                        class="h-20 w-20 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
+                                        {{#profileImg}}
+                                        <img src="{{profileImg}}" alt="profile">
+                                        {{/profileImg}}
+                                        {{^profileImg}}
+                                        <svg class="h-12 w-12 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                                            <path
+                                                d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                        {{/profileImg}}
+                                    </div>
+
+                                    <div class="flex flex-col">
+                                        <div class="flex items-end gap-2 mb-1">
+                                            <span class="text-xl font-bold text-black dark:text-white">{{name}}</span>
+                                            <span class="text-sm font-medium text-gray-500">{{position}}</span>
+                                        </div>
+                                        <span class="text-sm text-gray-600">{{email}}</span>
+                                        <span class="text-sm text-gray-600">{{phone}}</span>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="hidden lg:flex items-center gap-8 border-l border-stroke px-8 dark:border-strokedark">
+                                    <div class="flex flex-col gap-1">
+                                        <p class="text-sm"><span class="text-gray-500 mr-2">생년월일</span> {{birthDate}}
+                                        </p>
+                                        <p class="text-sm"><span class="text-gray-500 mr-2">입사일</span> {{hireDate}}</p>
+                                    </div>
+                                </div>
+
+
+                                <!-- 직원 정보 수정 / 직원 삭제 버튼 -->
+                                <!-- 수정 / 삭제 로직 구현 제대로 안 됨!!!! -->
+                                <div class="flex flex-col gap-2">
+                                    <button
+                                        class="rounded-md bg-blue-100 px-6 py-1 text-sm font-medium text-blue-600 hover:bg-blue-200 transition">수정</button>
+                                    <button onclick="deleteMember('{{id}}')"
+                                        class="rounded-md bg-red-100 px-6 py-1 text-sm font-medium text-red-600 hover:bg-red-200 transition">삭제</button>
+                                </div>
+                            </div>
+                            {{/employeeList}}
+
+
+                            <!-- 직원이 존재하지 않을 시 -->
+                            {{^employeeList}}
+                            <div class="py-20 text-center text-gray-500">등록된 직원이 없습니다.</div>
+                            {{/employeeList}}
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- ===== Main Content End ===== -->
+
+
+
+            <!-- ===== Content Area End ===== -->
+        </div>
+        <!-- ===== Page Wrapper End ===== -->
+        <script type="module" src="/js/index.js"></script>
+        <script src="/js/admin/memberList.js"></script>
+</body>
+
+</html>
