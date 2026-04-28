@@ -26,8 +26,8 @@ public class DeptController {
         if (ms == null) return "redirect:/member/login";
 
         List<Dept> depts = deptService.findAll(ms.getCompanyId());
-        model.addAttribute("depts", depts);
-        return "admin/dept/list"; 
+        model.addAttribute("departments", depts);
+        return "master/managingDept";
     }
 
     // 부서 생성 처리

@@ -14,7 +14,7 @@ public class MainController {
 
     @GetMapping("/tables")
     public String tables() {
-        return "basic-tables";
+        return "meterials/basic-tables";
     }
 
     @GetMapping("/profile")
@@ -29,12 +29,12 @@ public class MainController {
 
     @GetMapping("/form-elements")
     public String formElements() {
-        return "form-elements";
+        return "meterials/form-elements";
     }
 
     @GetMapping("/blank")
     public String blank() {
-        return "blank";
+        return "meterials/blank";
     }
 
     @GetMapping("/settings")

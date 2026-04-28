@@ -1,13 +1,13 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport"
         content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <meta name="_csrf" content="{{_csrf.token}}" />
-    <meta name="_csrf_header" content="{{_csrf.headerName}}" />
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
     <title>
         Waiting List
     </title>
@@ -22,23 +22,23 @@
          $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
     :class="{'dark bg-gray-900': darkMode === true}">
     <!-- ===== 로딩 화면 ===== -->
-    {{>partials/preloader}}
+    <div th:replace="~{partials/preloader}"></div>
     <!-- ===== Preloader End ===== -->
 
     <!-- ===== Page Wrapper Start ===== -->
     <div class="flex h-screen overflow-hidden">
         <!-- ===== 사이드바 ===== -->
-        {{>partials/sidebar}}
+        <div th:replace="~{partials/sidebar}"></div>
         <!-- ===== Sidebar End ===== -->
 
         <!-- ===== Content Area Start ===== -->
         <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
             <!-- Small Device Overlay Start -->
-            {{>partials/overlay}}
+            <div th:replace="~{partials/overlay}"></div>
             <!-- Small Device Overlay End -->
 
             <!-- ===== Header Start ===== -->
-            {{>partials/header}}
+            <div th:replace="~{partials/header}"></div>
             <!-- ===== Header End ===== -->
 
             <!-- ===== Main Content Start ===== -->
@@ -50,15 +50,12 @@
                     승인 대기 목록
                 </div>
 
-                {{#count}}
-                <span class="ml-3 px-4 py-1 text-sm font-medium text-white bg-rose-200 rounded-full">
-                    {{count}}명
+                <span th:if="${count}" class="ml-3 px-4 py-1 text-sm font-medium text-white bg-rose-200 rounded-full">
+                    <span th:text="${count}"></span>명
                 </span>
-                {{/count}}
             </div>
 
-            {{#members}}
-            <div
+            <div th:each="member : ${members}"
                 class="flex items-center justify-between p-6 mx-4 mb-4 bg-white border border-gray-200 rounded-3xl shadow-sm">
 
                 <div class="flex items-center space-x-4">
@@ -68,10 +65,10 @@
 
                     <!-- 가입 신청 직원 이름 & 부서 -->
                     <div class="flex flex-col min-w-[100px]">
-                        <div class="text-base font-bold text-gray-900">{{name}}</div>
+                        <div class="text-base font-bold text-gray-900" th:text="${member.name}"></div>
                         <div class="text-sm font-semibold text-gray-400">
-                            {{#dept}}{{deptName}}{{/dept}}
-                            {{^dept}}소속 없음{{/dept}}
+                            <span th:if="${member.dept}" th:text="${member.dept.deptName}"></span>
+                            <span th:unless="${member.dept}">소속 없음</span>
                         </div>
                     </div>
 
@@ -87,30 +84,28 @@
 
                         <div x-show="open" @click.away="open = false"
                             class="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
-                            {{#positions}}
-                            <button type="button" @click="selected = '{{positionName}}'; open = false"
-                                class="w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors text-gray-700">
-                                {{positionName}}
+                            <button th:each="pos : ${positions}" type="button"
+                                th:attr="@click=|selected = '${pos.positionName}'; open = false|"
+                                class="w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors text-gray-700"
+                                th:text="${pos.positionName}">
                             </button>
-                            {{/positions}}
                         </div>
                     </div>
                 </div>
 
                 <!-- 가입 신청 직원 승인 & 거절 버튼 -->
                 <div class="flex items-center space-x-3">
-                    <button type="button" onclick="approveMember({{memberId}})"
+                    <button type="button" th:attr="onclick=|approveMember(${member.memberId})|"
                         class="h-8 px-8 text-base font-bold text-white bg-blue-400 hover:bg-blue-600 rounded-xl transition-all shadow-md active:scale-95">
                         승인
                     </button>
 
-                    <button type="button" onclick="rejectMember({{memberId}})"
+                    <button type="button" th:attr="onclick=|rejectMember(${member.memberId})|"
                         class="h-8 px-8 text-base font-bold text-white bg-rose-400 hover:bg-red-600 rounded-xl transition-all shadow-md active:scale-95">
                         거절
                     </button>
                 </div>
             </div>
-            {{/members}}
             <!-- ===== Main Content End ===== -->
 
 

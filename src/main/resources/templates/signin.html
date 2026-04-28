@@ -6,8 +6,9 @@
   <meta name="viewport"
     content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-  <title>Sign In | TailAdmin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/css/output.css" />
+  <title>Sign In | TailAdmin</title>
   <style>
     /* [레이아웃 리셋] : 프레임워크 기본 컨테이너 여백/크기 제약 해제 */
     html,
@@ -72,9 +73,18 @@
           /> -->
       </div>
 
-<!--------------------바꿨어!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
-      <div th:if="${errorMessage}" style="color: red; margin-bottom: 15px;">
-        <span th:text="${errorMessage}"></span>
+<!-------------------- 바꿨음 -->
+      <div th:if="${errorMessage}"
+        class="flex items-center p-4 mb-6 text-sm text-red-900 border-2 border-red-200 rounded-2xl bg-red-100/80 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
+        role="alert">
+        <svg class="flex-shrink-0 w-5 h-5 mr-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v4a1 1 0 102 0V7zm-1 8a1 1 0 100-2 1 1 0 000 2z">
+          </path>
+        </svg>
+        <div>
+          <span class="font-black">로그인 실패</span>
+          <p class="font-medium" th:text="${errorMessage}"></p>
+        </div>
       </div>
 
       <form method="post" action="/member/login" th:action="@{/member/login}">

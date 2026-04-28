@@ -27,7 +27,7 @@ public class PositionController {
 
         List<Position> positions = positionService.findAll(ms.getCompanyId());
         model.addAttribute("positions", positions);
-        return "admin/position/list"; 
+        return "master/managingPosition";
     }
 
     // 직급 생성 처리
