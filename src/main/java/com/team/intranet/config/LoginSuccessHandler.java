@@ -32,6 +32,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         MemberSession ms = new MemberSession(member);
         HttpSession session = request.getSession();
         session.setAttribute("memberSession", ms);
+        System.out.println("이미지주소: " + member.getProfileImgUrl());
 
         // 3. 성공 후 메인 페이지로 이동
         response.sendRedirect("/index");

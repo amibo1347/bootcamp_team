@@ -17,6 +17,7 @@
         private final Role role;            // 권한
         private final Long companyId;       // 기업 id
         private final String companyName;   // 기업 이름
+        private final String profileImgUrl; // 프로필 이미지 URL
 
         // 엔티티를 세션 객체로 변환하는 생성자
         public MemberSession(Member member) {
@@ -27,5 +28,6 @@
             this.role = member.getRole();
             this.companyId = member.getCompany().getCompanyId();
             this.companyName = member.getCompany().getCompanyName();
+            this.profileImgUrl = member.getProfileImgUrl();
         }
     }

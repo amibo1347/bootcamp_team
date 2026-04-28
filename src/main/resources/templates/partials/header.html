@@ -279,7 +279,8 @@
           @click.prevent="dropdownOpen = ! dropdownOpen"
         >
           <span class="mr-3 h-11 w-11 overflow-hidden rounded-full">
-            <img src="/images/user/owner.jpg" alt="User" />
+            <img th:src="${session.memberSession?.profileImgUrl ?: '\images\user\defalut_user.jpg'}"
+              class="w-full h-full object-cover"/>
           </span>
 
           <span class="text-theme-sm mr-1 block font-medium" 

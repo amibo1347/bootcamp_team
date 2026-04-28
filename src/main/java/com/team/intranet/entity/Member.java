@@ -68,7 +68,7 @@ public class Member {
     private Status status;
 
     @ManyToOne(optional = false)
-  @JoinColumn(name = "company_id", nullable = false)
+    @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
     @ManyToOne
@@ -78,6 +78,9 @@ public class Member {
     @ManyToOne
     @JoinColumn(name = "position_id")
     private Position position;
+
+    @Column(name = "profile_imgUrl")
+    private String profileImgUrl;
 
 ///////////////////////////////
 /// 함수
@@ -90,6 +93,7 @@ public class Member {
         member.name = dto.getName();
         member.email = dto.getEmail();
         member.phone = dto.getPhone();
+        member.profileImgUrl = dto.getProfileImgUrl();
         member.company = company;
         member.status = Status.WAIT;
         member.role = Role.USER;
