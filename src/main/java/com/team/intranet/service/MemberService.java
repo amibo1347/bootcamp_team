@@ -132,23 +132,6 @@ public class MemberService {
         targetMember.updateInfo(dept, position);
     }
 
-    // 로그인
-    // @Transactional
-    // public Member login(String loginId, String password) {
-    // Member member = memberRepository.findByLoginId(loginId)
-    // .orElseThrow(() -> new BusinessException(ErrorCode.LOGIN_FAILED));
-
-    // if (!passwordEncoder.matches(password, member.getPassword())) {
-    // throw new BusinessException(ErrorCode.LOGIN_FAILED);
-    // }
-
-    // if (member.getStatus() == Status.WAIT) {
-    // throw new BusinessException(ErrorCode.WAITING_ACCEPT);
-    // }
-
-    // return member;
-    // }
-
     // 아이디 중복 확인
     public boolean isDuplicateId(String loginId) {
         return memberRepository.existsByLoginId(loginId);

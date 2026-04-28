@@ -13,6 +13,7 @@
         private final Long memberId;        // DB 식별자
         private final String loginId;       // 로그인 아이디
         private final String name;          // 사용자 이름
+        private final String email;         // 사용자 이메일
         private final Role role;            // 권한
         private final Long companyId;       // 기업 id
         private final String companyName;   // 기업 이름
@@ -22,6 +23,7 @@
             this.memberId = member.getMemberId();
             this.loginId = member.getLoginId();
             this.name = member.getName();
+            this.email = member.getEmail();
             this.role = member.getRole();
             this.companyId = member.getCompany().getCompanyId();
             this.companyName = member.getCompany().getCompanyName();
