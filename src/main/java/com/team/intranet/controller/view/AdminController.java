@@ -57,7 +57,7 @@ public class AdminController {
 
         // 새로 추가했음 확인!!!!!!
         model.addAttribute("count", waitingMembers.size()); // 승인 대기중인 회원 수
-        return "admin/waitingList";
+        return "/subAdmin/waitingList";
     }
 
     // 가입 승인용 포스트매핑
@@ -102,7 +102,7 @@ public class AdminController {
         model.addAttribute("depts", depts); // 부서 목록
         model.addAttribute("positions", positions); // 직급 목록
 
-        return "admin/memberList";
+        return "subAdmin/memberList";
     }
 
     // 회원 정보 수정 (부서, 직급 변경)

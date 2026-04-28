@@ -73,8 +73,8 @@
           /> -->
       </div>
 
-<!-------------------- 바꿨음 -->
-      <div th:if="${errorMessage}"
+      <!-------------------- 바꿨음 -->
+      <div th:if="${errorMessage != null}"
         class="flex items-center p-4 mb-6 text-sm text-red-900 border-2 border-red-200 rounded-2xl bg-red-100/80 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
         role="alert">
         <svg class="flex-shrink-0 w-5 h-5 mr-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
@@ -89,7 +89,7 @@
 
       <form method="post" action="/member/login" th:action="@{/member/login}">
         <!--csrf부분 지워야되는듯?-->
-        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+        <!-- <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" /> -->
         <div style="display: flex; flex-direction: column; gap: 0.75rem">
           <!-- 아이디 입력 필드: 테두리 없이 연한 회색 배경 -->
           <div>

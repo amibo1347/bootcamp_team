@@ -21,20 +21,21 @@ public class DeptController {
 
     // 부서 관리 메인 페이지 (목록 조회)
     @GetMapping("/list")
-    public String deptList(@SessionAttribute(name = "memberSession", required = false) MemberSession ms, 
-                           Model model) {
-        if (ms == null) return "redirect:/member/login";
+    public String deptList(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+            Model model) {
+        if (ms == null)
+            return "redirect:/member/login";
 
         List<Dept> depts = deptService.findAll(ms.getCompanyId());
         model.addAttribute("departments", depts);
-        return "master/managingDept";
+        return "admin/managingDept";
     }
 
     // 부서 생성 처리
     @PostMapping("/create")
     public String createDept(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
-                             @ModelAttribute DeptDto deptDto,
-                             RedirectAttributes redirectAttributes) {
+            @ModelAttribute DeptDto deptDto,
+            RedirectAttributes redirectAttributes) {
         try {
             deptService.createDept(ms, deptDto);
             redirectAttributes.addFlashAttribute("message", "부서가 성공적으로 생성되었습니다.");
@@ -47,9 +48,9 @@ public class DeptController {
     // 부서 수정 처리
     @PostMapping("/update/{deptId}")
     public String updateDept(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
-                             @PathVariable Long deptId,
-                             @ModelAttribute DeptDto deptDto,
-                             RedirectAttributes redirectAttributes) {
+            @PathVariable Long deptId,
+            @ModelAttribute DeptDto deptDto,
+            RedirectAttributes redirectAttributes) {
         try {
             deptService.updateDept(ms, deptDto, deptId);
             redirectAttributes.addFlashAttribute("message", "부서 정보가 수정되었습니다.");
@@ -62,8 +63,8 @@ public class DeptController {
     // 부서 삭제 처리
     @PostMapping("/delete/{deptId}")
     public String deleteDept(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
-                             @PathVariable Long deptId,
-                             RedirectAttributes redirectAttributes) {
+            @PathVariable Long deptId,
+            RedirectAttributes redirectAttributes) {
         try {
             deptService.deleteDept(ms, deptId);
             redirectAttributes.addFlashAttribute("message", "부서가 삭제되었습니다.");
