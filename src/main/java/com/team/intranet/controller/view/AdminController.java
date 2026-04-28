@@ -57,7 +57,7 @@ public class AdminController {
 
         // 새로 추가했음 확인!!!!!!
         model.addAttribute("count", waitingMembers.size()); // 승인 대기중인 회원 수
-        return "/admin/waitingList";
+        return "admin/waitingList";
     }
 
     // 가입 승인용 포스트매핑
@@ -84,7 +84,7 @@ public class AdminController {
         return "redirect:/admin/waitingList";
     }
 
-    @GetMapping("memberList")
+    @GetMapping("/memberList")
     public String memberList(Model model,
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
 

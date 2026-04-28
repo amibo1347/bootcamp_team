@@ -40,7 +40,7 @@ public String loginForm(HttpServletRequest request, Model model) {
         session.removeAttribute("loginError"); 
     }
 
-    return "signin"; 
+    return "member/signin";
 }
     
     @GetMapping("/signup")
@@ -56,7 +56,7 @@ public String signupPage(HttpSession session, Model model) {
     }
     model.addAttribute("companyId", companyId);
     model.addAttribute("companyCode", companyCode);
-    return "signup";
+    return "member/signup";
 }
 
     @PostMapping("/signup") // 회원 가입
