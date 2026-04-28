@@ -27,6 +27,6 @@ public class DeptController {
 
         List<Dept> depts = deptService.findAll(ms.getCompanyId());
         model.addAttribute("departments", depts);
-        return "master/managingDept";
+        return "admin/managingDept";
     }
 }
