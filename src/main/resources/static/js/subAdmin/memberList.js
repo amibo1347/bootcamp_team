@@ -3,7 +3,7 @@ function fetchMembersByDept() {
     const container = document.querySelector('#memberListContainer');
 
     const query = deptId ? `?deptId=${encodeURIComponent(deptId)}` : '';
-    fetch(`/admin/memberList/filter${query}`)
+    fetch(`/subAdmin/memberList/filter${query}`)
         .then(response => {
             if (!response.ok) throw new Error('Network response was not ok');
             return response.text();
@@ -42,7 +42,6 @@ window.openEditModal = (button) => {
     document.querySelector('#editEmail').value = button.dataset.email || '';
     document.querySelector('#editPhone').value = button.dataset.phone || '';
     document.querySelector('#editBirth').value = button.dataset.birth || '';
-    document.querySelector('#editHire').value = button.dataset.hire || '';
 
     // 2. 프로필 이미지 처리
     const modalImg = document.querySelector('#modalProfileImg');
@@ -106,8 +105,7 @@ window.updateMember = async () => {
     formData.append('positionId', document.querySelector('#editPosition').value);
     formData.append('email', document.querySelector('#editEmail').value);
     formData.append('phone', document.querySelector('#editPhone').value);
-    formData.append('birthDate', document.querySelector('#editBirth').value);
-    formData.append('hireDate', document.querySelector('#editHire').value);
+    formData.append('birthDay', document.querySelector('#editBirth').value);
 
     // 만약 파일이 선택되었다면 파일도 추가
     if (fileInput.files[0]) {
@@ -119,7 +117,7 @@ window.updateMember = async () => {
     const header = document.querySelector('meta[name="_csrf_header"]')?.content;
 
     try {
-        const response = await fetch(`/api/admin/update/${id}`, {
+        const response = await fetch(`/api/subAdmin/update/${id}`, {
             method: 'POST',
             headers: {
                 [header]: token
@@ -152,7 +150,7 @@ window.deleteMember = async (memberId) => {
         const header = document.querySelector('meta[name="_csrf_header"]')?.content;
 
     try {
-        const response = await fetch(`/api/admin/fire/${memberId}`, {
+        const response = await fetch(`/api/subAdmin/fire/${memberId}`, {
             method: 'POST',
             headers: {
                 [header]: token

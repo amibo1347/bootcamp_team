@@ -45,44 +45,44 @@
             <!-- ===== Main Content Start ===== -->
 
             <main class="p-8 space-y-8">
-                <h1 class="text-3xl font-black text-gray-900 ml-2">부서 관리</h1>
+                <h1 class="text-2xl font-black text-gray-900 ml-2">부서 관리</h1>
 
                 <section
                     class="p-10 border border-gray-300 rounded-[32px] bg-white shadow-sm flex items-center space-x-8">
-                    <h2 class="text-2xl font-black text-gray-900">부서 추가 생성</h2>
+                    <h2 class="text-lg font-semibold text-gray-900">부서 추가 생성</h2>
 
                     <div class="flex items-center space-x-3">
                         <input type="text" placeholder="부서명"
                             class="w-64 h-12 px-4 border border-gray-400 outline-none focus:ring-2 focus:ring-indigo-300 transition-all">
                         <button type="button"
-                            class="px-6 py-3 bg-indigo-400 text-white font-black rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm">
+                            class="px-6 py-3 bg-indigo-400 text-white font-medium rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm">
                             생성
                         </button>
                     </div>
                 </section>
 
                 <section class="p-10 border border-gray-300 rounded-[32px] bg-white shadow-sm">
-                    <h2 class="text-2xl font-black text-gray-900 mb-8">기존 부서 목록</h2>
+                    <h2 class="text-lg font-semibold text-gray-900 mb-8">기존 부서 목록</h2>
 
                     <div class="border border-gray-400 overflow-hidden min-h-[400px] flex flex-col">
                         <div class="flex-1">
                             <div th:each="dept : ${departments}"
                                 class="flex items-center justify-between p-5 border-b border-gray-400 last:border-b-0 hover:bg-gray-50 transition-colors">
-                                <span class="text-xl font-bold text-gray-900 ml-4" th:text="${dept.deptName}"></span>
+                                <span class="text-lg font-semibold text-gray-900 ml-4" th:text="${dept.deptName}"></span>
 
                                 <div class="flex items-center space-x-3 mr-4">
                                     <button type="button"
-                                        class="px-8 py-2.5 bg-indigo-300 text-white font-black rounded-xl hover:bg-indigo-400 transition-all shadow-sm">
+                                        class="px-8 py-2.5 bg-indigo-300 text-white font-medium rounded-xl hover:bg-indigo-400 transition-all shadow-sm">
                                         수정
                                     </button>
                                     <button type="button"
-                                        class="px-8 py-2.5 bg-rose-300 text-white font-black rounded-xl hover:bg-rose-400 transition-all shadow-sm">
+                                        class="px-8 py-2.5 bg-rose-300 text-white font-medium rounded-xl hover:bg-rose-400 transition-all shadow-sm">
                                         삭제
                                     </button>
                                 </div>
                             </div>
 
-                            <div th:if="${departments == null or #lists.isEmpty(departments)}" class="p-20 text-center text-gray-400 font-bold">등록된 부서가 없습니다.</div>
+                            <div th:if="${departments == null or #lists.isEmpty(departments)}" class="p-20 text-center text-gray-400">등록된 부서가 없습니다.</div>
                         </div>
                         <div class="bg-white flex-1"></div>
                     </div>
