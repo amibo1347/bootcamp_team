@@ -68,7 +68,7 @@
 
                             <div class="hidden sm:block h-10 w-[1px] bg-gray-200 dark:bg-strokedark"></div>
 
-                            <form action="/admin/memberlist/search" method="get"
+                            <form action="/admin/memberList/search" method="get"
                                 class="flex items-end gap-3 w-full sm:w-auto">
                                 <div class="w-full sm:w-64">
                                     <label class="mb-1 block text-xs font-medium text-gray-500">직원 이름 검색</label>
@@ -85,61 +85,62 @@
 
 
 
-                    <!-- 부서 소속 직원 목록 모델 태워야 함!!!!! -->
-                    <!-- 부서 소속 직원 정보(사진, 이름, 직급, 이메일, 연락처, 생년월일, 입사일) 필요!!!!!! -->
-                    <div id="memberListContainer" th:fragment="memberListFragment" class="flex flex-col gap-4">
-                        <div
+                    <div id="memberListContainer" class="flex flex-col gap-4">
+                        <div th:fragment="memberListFragment"
                             class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
-                            <h3 class="mb-6 text-xl font-semibold text-black dark:text-white"
-                                th:text="${selectedDeptName}">부서 이름</h3>
-                            <div th:each="emp : ${members}"
-                                class="flex flex-wrap items-center justify-between rounded-2xl border border-stroke p-4 transition-hover hover:shadow-md dark:border-strokedark">
-                                <div class="flex items-center gap-5">
+                            <h3 class="mb-6 text-xl font-semibold text-black dark:text-white">부서 소속 직원 목록</h3>
 
-                                    <!-- 근데 우리 프로필 사진은 어디서 받아서 뿌리는 거지??? ㅋㅋㅋㅋㅋㅋㅋㅋㅋ -->
-                                    <!-- <div
-                                            class="h-20 w-20 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
-                                            <img th:if="${emp.profileImg}" th:src="${emp.profileImg}" alt="profile">
-                                            <svg th:unless="${emp.profileImg}" class="h-12 w-12 text-slate-400"
-                                                fill="currentColor" viewBox="0 0 24 24">
-                                                <path
-                                                    d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
-                                            </svg>
-                                        </div> -->
-
-                                    <div class="flex flex-col">
-                                        <div class="flex items-end gap-2 mb-1">
-                                            <span class="text-xl font-bold text-black dark:text-white"
-                                                th:text="${emp.name}"></span>
-                                            <span class="text-sm font-medium text-gray-500"
-                                                th:text="${emp.position}"></span>
+                            <div th:if="${members != null and !#lists.isEmpty(members)}" class="space-y-4">
+                                <div th:each="emp : ${members}"
+                                    class="rounded-2xl border border-stroke p-4 transition-hover hover:shadow-md dark:border-strokedark">
+                                    <div class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+                                        <div class="flex flex-col gap-1">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <span class="text-xl font-bold text-black dark:text-white"
+                                                    th:text="${emp.name}">이름</span>
+                                                <span
+                                                    class="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
+                                                    th:text="${emp.dept != null ? emp.dept.deptName : '미지정'}">부서</span>
+                                                <span class="text-sm font-medium text-gray-500"
+                                                    th:text="${emp.position != null ? emp.position.positionName : '직급 미지정'}">직급</span>
+                                            </div>
+                                            <span class="text-sm text-gray-600"
+                                                th:text="${emp.email != null ? emp.email : '-'}">이메일</span>
+                                            <span class="text-sm text-gray-600"
+                                                th:text="${emp.phone != null ? emp.phone : '-'}">연락처</span>
+                                            <div class="mt-1 flex flex-wrap gap-4 text-sm text-gray-600">
+                                                <span>생년월일:
+                                                    <span
+                                                        th:text="${emp.birthDay != null ? #temporals.format(emp.birthDay, 'yyyy-MM-dd') : '-'}">-</span>
+                                                </span>
+                                                <span>입사일:
+                                                    <span
+                                                        th:text="${emp.acceptedAt != null ? #temporals.format(emp.acceptedAt, 'yyyy-MM-dd') : '-'}">-</span>
+                                                </span>
+                                            </div>
                                         </div>
-                                        <span class="text-sm text-gray-600" th:text="${emp.email}"></span>
-                                        <span class="text-sm text-gray-600" th:text="${emp.phone}"></span>
+
+                                        <div class="flex flex-col gap-2">
+                                            <button type="button"
+                                                class="rounded-md bg-blue-100 px-6 py-1 text-sm font-medium text-blue-600 transition hover:bg-blue-200 js-edit-member-btn"
+                                                th:attr="data-member-id=${emp.memberId},
+                                                         data-member-name=${emp.name},
+                                                         data-dept-id=${emp.dept != null ? emp.dept.deptId : ''},
+                                                         data-position-id=${emp.position != null ? emp.position.positionId : ''},
+                                                         data-email=${emp.email != null ? emp.email : ''},
+                                                         data-phone=${emp.phone != null ? emp.phone : ''},
+                                                         data-birth=${emp.birthDay != null ? #temporals.format(emp.birthDay, 'yyyy-MM-dd') : ''},
+                                                         data-hire=${emp.acceptedAt != null ? #temporals.format(emp.acceptedAt, 'yyyy-MM-dd') : ''},
+                                                         data-profile-img=${emp.profileImg != null ? emp.profileImg : ''}">
+                                                수정
+                                            </button>
+                                            <button type="button"
+                                                th:attr="onclick=|deleteMember(${emp.memberId})|"
+                                                class="rounded-md bg-red-100 px-6 py-1 text-sm font-medium text-red-600 transition hover:bg-red-200">
+                                                퇴사
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-
-                                <div
-                                    class="hidden lg:flex items-center gap-8 border-l border-stroke px-8 dark:border-strokedark">
-                                    <div class="flex flex-col gap-1">
-                                        <p class="text-sm"><span class="text-gray-500 mr-2">생년월일</span> <span
-                                                th:text="${emp.birthDay}"></span></p>
-                                        <p class="text-sm"><span class="text-gray-500 mr-2">입사일</span> <span
-                                                th:text="${emp.acceptedAt}"></span></p>
-                                    </div>
-                                </div>
-
-
-                                <!-- 직원 정보 수정 / 직원 삭제 버튼 -->
-                                <!-- 수정 / 삭제 로직 구현 제대로 안 됨!!!! -->
-                                <div class="flex flex-col gap-2">
-                                    <button
-                                        th:attr="onclick=|openEditModal('${emp.memberId}', '${emp.name}', '${emp.position}', '${emp.email}', '${emp.phone}', '${emp.birthDay}', '${emp.acceptedAt}', '${emp.profileImg}')|"
-                                        class="rounded-md bg-blue-100 px-6 py-1 text-sm font-medium text-blue-600 hover:bg-blue-200 transition">
-                                        수정
-                                    </button>
-                                    <button th:attr="onclick=|deleteMember('${emp.memberId}')|"
-                                        class="rounded-md bg-red-100 px-6 py-1 text-sm font-medium text-red-600 hover:bg-red-200 transition">삭제</button>
                                 </div>
                             </div>
 
@@ -192,21 +193,27 @@
                         <div class="flex-1 w-full space-y-4">
                             <input type="hidden" id="editEmpId">
 
-                            <div class="flex items-center">
+                            <div class="flex items-center gap-4">
                                 <label class="w-24 text-lg font-bold text-black dark:text-white">이름</label>
-                                <span id="modalName"
-                                    class="text-2xl font-bold text-black dark:text-white text-primary"></span>
+                                <input type="text" id="editName"
+                                    class="flex-1 rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary outline-none dark:text-white">
                             </div>
 
-                            <!-- !!!직급 데이터 받아와서 뿌려야 함!!!!! 아직 거기까진 수정 못했음 -->
+                            <div class="flex items-center gap-4">
+                                <label class="w-24 font-medium text-gray-600">부서</label>
+                                <select id="editDept"
+                                    class="flex-1 rounded border border-stroke bg-transparent py-2 px-4 outline-none focus:border-primary">
+                                    <option th:each="dept : ${depts}" th:value="${dept.deptId}" th:text="${dept.deptName}">
+                                    </option>
+                                </select>
+                            </div>
+
                             <div class="flex items-center gap-4">
                                 <label class="w-24 font-medium text-gray-600">직급</label>
                                 <select id="editPosition"
                                     class="flex-1 rounded border border-stroke bg-transparent py-2 px-4 outline-none focus:border-primary">
-                                    <option value="사원">사원</option>
-                                    <option value="대리">대리</option>
-                                    <option value="과장">과장</option>
-                                    <option value="팀장">팀장</option>
+                                    <option th:each="pos : ${positions}" th:value="${pos.positionId}"
+                                        th:text="${pos.positionName}"></option>
                                 </select>
                             </div>
 

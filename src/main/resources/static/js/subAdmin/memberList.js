@@ -2,7 +2,8 @@ function fetchMembersByDept() {
     const deptId = document.querySelector('#deptSelect').value;
     const container = document.querySelector('#memberListContainer');
 
-    fetch(`/admin/memberList/filter?deptId=${deptId}`)
+    const query = deptId ? `?deptId=${encodeURIComponent(deptId)}` : '';
+    fetch(`/admin/memberList/filter${query}`)
         .then(response => {
             if (!response.ok) throw new Error('Network response was not ok');
             return response.text();
@@ -23,22 +24,30 @@ document.addEventListener('DOMContentLoaded', () => {
         // 드롭다운 변경 시 비동기 함수 호출
         deptSelect.addEventListener('change', fetchMembersByDept);
     }
+
+    document.addEventListener('click', (event) => {
+        const editButton = event.target.closest('.js-edit-member-btn');
+        if (editButton) {
+            openEditModal(editButton);
+        }
+    });
 });
 
 // 모달 열기 및 데이터 채우기
-wwindow.openEditModal = (id, name, pos, email, phone, birth, hire, img) => {
-    // 1. querySelector를 사용해 각 입력창에 특정 사원의 정보를 넣습니다.
-    document.querySelector('#editEmpId').value = id;
-    document.querySelector('#modalName').innerText = name;
-    document.querySelector('#editPosition').value = pos;
-    document.querySelector('#editEmail').value = email;
-    document.querySelector('#editPhone').value = phone;
-    document.querySelector('#editBirth').value = birth;
-    document.querySelector('#editHire').value = hire;
+window.openEditModal = (button) => {
+    document.querySelector('#editEmpId').value = button.dataset.memberId || '';
+    document.querySelector('#editName').value = button.dataset.memberName || '';
+    document.querySelector('#editDept').value = button.dataset.deptId || '';
+    document.querySelector('#editPosition').value = button.dataset.positionId || '';
+    document.querySelector('#editEmail').value = button.dataset.email || '';
+    document.querySelector('#editPhone').value = button.dataset.phone || '';
+    document.querySelector('#editBirth').value = button.dataset.birth || '';
+    document.querySelector('#editHire').value = button.dataset.hire || '';
 
     // 2. 프로필 이미지 처리
     const modalImg = document.querySelector('#modalProfileImg');
     const defaultSvg = document.querySelector('#modalDefaultSvg');
+    const img = button.dataset.profileImg || '';
 
     if (img && img !== 'null' && img !== '') {
         modalImg.src = img;
@@ -92,7 +101,9 @@ window.updateMember = async () => {
 
     // 데이터를 담을 바구니(FormData) 생성
     const formData = new FormData();
-    formData.append('position', document.querySelector('#editPosition').value);
+    formData.append('name', document.querySelector('#editName').value);
+    formData.append('deptId', document.querySelector('#editDept').value);
+    formData.append('positionId', document.querySelector('#editPosition').value);
     formData.append('email', document.querySelector('#editEmail').value);
     formData.append('phone', document.querySelector('#editPhone').value);
     formData.append('birthDate', document.querySelector('#editBirth').value);
@@ -108,8 +119,8 @@ window.updateMember = async () => {
     const header = document.querySelector('meta[name="_csrf_header"]')?.content;
 
     try {
-        const response = await fetch(`/api/members/${id}`, {
-            method: 'PUT',
+        const response = await fetch(`/api/admin/update/${id}`, {
+            method: 'POST',
             headers: {
                 [header]: token
                 // 주의: FormData를 보낼 때는 'Content-Type' 헤더를 명시하지 않아야 브라우저가 자동으로 설정합니다.
@@ -119,6 +130,7 @@ window.updateMember = async () => {
 
         if (response.ok) {
             alert("정보가 성공적으로 수정되었습니다.");
+            closeEditModal();
             location.reload(); // 변경사항 반영을 위해 페이지 새로고침
         } else {
             const errorText = await response.text();
@@ -132,37 +144,30 @@ window.updateMember = async () => {
 
 
 // 직원 정보 삭제
-((memberId) => {
-    // 1단계: 전역 범위에서 호출할 수 있도록 함수 정의
-    window.deleteMember = async (memberId) => {
-        if (!confirm("정말로 이 직원을 삭제하시겠습니까?")) return;
+window.deleteMember = async (memberId) => {
+    if (!confirm("정말로 이 직원을 퇴사 처리하시겠습니까?")) return;
 
         // 2단계: CSRF 토큰 및 헤더 정보 추출
         const token = document.querySelector('meta[name="_csrf"]')?.content;
         const header = document.querySelector('meta[name="_csrf_header"]')?.content;
 
-        try {
-            // 3단계: Fetch API 호출 (await 사용)
-            const response = await fetch(`/api/members/${memberId}`, {
-                method: 'DELETE',
-                headers: {
-                    [header]: token,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            // 4단계: 결과 처리
-            if (response.ok) {
-                alert("삭제되었습니다.");
-                location.reload();
-            } else {
-                const errorData = await response.json().catch(() => ({}));
-                alert(`삭제 실패: ${errorData.message || '알 수 없는 오류가 발생했습니다.'}`);
+    try {
+        const response = await fetch(`/api/admin/fire/${memberId}`, {
+            method: 'POST',
+            headers: {
+                [header]: token
             }
-        } catch (error) {
-            // 네트워크 오류 등 예외 처리
-            console.error("Error during deletion:", error);
-            alert("서버와 통신 중 오류가 발생했습니다.");
+        });
+
+        if (response.ok) {
+            alert("퇴사 처리되었습니다.");
+            location.reload();
+        } else {
+            const errorText = await response.text();
+            alert(`처리 실패: ${errorText || '알 수 없는 오류가 발생했습니다.'}`);
         }
-    };
-})();
+    } catch (error) {
+        console.error("Error during deletion:", error);
+        alert("서버와 통신 중 오류가 발생했습니다.");
+    }
+};
