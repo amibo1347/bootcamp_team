@@ -1,11 +1,15 @@
 package com.team.intranet.controller.api;
 
+import java.io.IOException;
+
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.SessionAttribute;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.team.intranet.service.MemberService;
 import com.team.intranet.session.MemberSession;
@@ -14,7 +18,7 @@ import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
 @Controller
-@RequestMapping("/api/admin")
+@RequestMapping("/api/subAdmin")
 @RequiredArgsConstructor
 public class AdminApiController {
 
@@ -29,7 +33,7 @@ public class AdminApiController {
             @SessionAttribute("memberSession") MemberSession ms) {
 
         memberService.acceptMember(memberId, ms.getMemberId(), deptId, positionId);
-        return "redirect:/subAdmin/waitingList";
+        return "redirect:/admin/waitingList";
     }
 
     // 가입 반려 (거절)
@@ -39,7 +43,7 @@ public class AdminApiController {
             @SessionAttribute("memberSession") MemberSession ms) {
 
         memberService.rejectMember(memberId, ms.getMemberId());
-        return "redirect:/subAdmin/waitingList";
+        return "redirect:/admin/waitingList";
     }
 
     // 회원 정보 수정 (부서, 직급 변경)
@@ -48,15 +52,16 @@ public class AdminApiController {
             @PathVariable("id") Long memberId,
             @RequestParam Long deptId,
             @RequestParam Long positionId,
-            HttpSession session) {
+            @RequestParam("profileImg") MultipartFile profileImg,
+            HttpSession session) throws IOException {
 
         MemberSession ms = (MemberSession) session.getAttribute("memberSession");
         if (ms == null)
             return "redirect:/member/login";
 
-        memberService.updateMemberInfo(memberId, ms.getMemberId(), deptId, positionId);
+        memberService.updateMemberInfo(memberId, ms.getMemberId(), deptId, positionId, profileImg.isEmpty() ? null : profileImg.getBytes());
 
-        return "redirect:/subAdmin/memberList";
+        return "redirect:/admin/memberList";
     }
 
     // 퇴사 처리
@@ -68,6 +73,6 @@ public class AdminApiController {
 
         memberService.fireMember(memberId, ms.getMemberId());
 
-        return "redirect:/subAdmin/memberList";
+        return "redirect:/admin/memberList";
     }
 }

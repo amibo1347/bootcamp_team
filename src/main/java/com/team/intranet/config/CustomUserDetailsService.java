@@ -1,6 +1,5 @@
 package com.team.intranet.config;
 
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -25,16 +24,14 @@ public class CustomUserDetailsService implements UserDetailsService {
         Member member = memberRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 사용자입니다."));
 
-        // 2. 승인 대기 상태(WAIT) 체크 -> 시큐리티 예외 던지기
-        if (member.getStatus() == Status.WAIT) {
-            throw new DisabledException("승인 대기 중인 계정입니다. 관리자에게 문의하세요.");
-        }
-
         // 3. 시큐리티 전용 User 객체 생성 (아이디, 암호화된 비번, 권한)
         return User.builder()
                 .username(member.getLoginId())
-                .password(member.getPassword())
-                .roles(member.getRole().name()) 
-                .build();
+          .password(member.getPassword())
+          .roles(member.getRole().name())
+          .disabled(member.getStatus() == Status.WAIT)     
+          .accountLocked(member.getStatus() == Status.REJECT) 
+          .accountExpired(member.getStatus() == Status.LEAVE) 
+          .build();
     }
 }

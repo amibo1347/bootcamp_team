@@ -33,6 +33,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         HttpSession session = request.getSession();
         session.setAttribute("memberSession", ms);
 
+
         // 3. 성공 후 메인 페이지로 이동
         response.sendRedirect("/index");
     }

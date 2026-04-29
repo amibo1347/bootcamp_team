@@ -25,19 +25,23 @@ public class MemberController {
 /// 
     @GetMapping("/login")
 public String loginForm(HttpServletRequest request, Model model) {
-    HttpSession session = request.getSession();
-    String errorMsg = (String) session.getAttribute("loginError");
 
-    if (errorMsg != null) {
-        model.addAttribute("errorMessage", errorMsg);
-        session.removeAttribute("loginError"); 
+    HttpSession session = request.getSession();
+    Object loginError = session.getAttribute("loginError");
+
+    if (loginError != null) {
+        // 2. 모델에 담아서 화면으로 넘깁니다.
+        model.addAttribute("errorMessage", loginError.toString());
+        
+        // 3. 사용한 메시지는 세션에서 즉시 삭제합니다. (새로고침 방지)
+        session.removeAttribute("loginError");
     }
 
     return "member/signin";
 }
     
     @GetMapping("/signup")
-public String signupPage(HttpSession session, Model model) {
+    public String signupPage(HttpSession session, Model model) {
     Long companyId = (Long) session.getAttribute("verifiedCompanyId");
     String companyCode = (String) session.getAttribute("verifiedCompanyCode");
     String verifiedLogoPath = (String) session.getAttribute("logoPath");
@@ -51,4 +55,5 @@ public String signupPage(HttpSession session, Model model) {
     model.addAttribute("companyCode", companyCode);
     return "member/signup";
 }
+
 }
