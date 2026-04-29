@@ -49,7 +49,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authProvider) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider) throws Exception {
         http
                 .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/api/**", "/company/**")
@@ -75,7 +75,7 @@ public class SecurityConfig {
                 .failureHandler(loginFailureHandler) // 💡 로그인 실패 시 에러 처리기
                 .permitAll()
                 )
-                .authenticationProvider(authProvider)
+                .authenticationProvider(authenticationProvider)
                 .logout(logout -> logout
                 .logoutUrl("/member/logout") // 💡 HTML에서 호출할 로그아웃 주소
                 .logoutSuccessUrl("/member/login") // 💡 로그아웃 성공 후 이동할 페이지

@@ -13,6 +13,7 @@ import com.team.intranet.enums.member.Status;
 public interface MemberRepository extends JpaRepository<Member, Long>{
     
     Optional<Member> findByLoginId(String loginId);
+    List<Member> findByCompanyCompanyId(Long companyId);
     List<Member> findByStatusAndCompanyCompanyId(Status status, Long companyId);
     boolean existsByLoginId(String loginId);
 

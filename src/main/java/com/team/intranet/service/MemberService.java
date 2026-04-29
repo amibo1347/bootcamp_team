@@ -98,7 +98,7 @@ public class MemberService {
     }
 
     @Transactional
-    public void updateMemberInfo(Long memberId, Long adminId, Long deptId, Long positionId) {
+    public void updateMemberInfo(Long memberId, Long adminId, Long deptId, Long positionId, byte[] profileImg) {
         // 1. 관리자 정보 및 권한 체크
         Member admin = memberRepository.findById(adminId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
@@ -129,7 +129,7 @@ public class MemberService {
         }
 
         // 5. 실제 수정 로직 수행 (Dirty Checking 활용)
-        targetMember.updateInfo(dept, position);
+        targetMember.updateInfo(dept, position, profileImg);
     }
 
     // 아이디 중복 확인
@@ -166,7 +166,11 @@ public class MemberService {
     public List<Member> findRejectMembers(Long companyId) {
         return memberRepository.findByStatusAndCompanyCompanyId(Status.REJECT, companyId);
     }
-    
+
+    public List<Member> findAllMembers(Long companyId) {
+        return memberRepository.findByCompanyCompanyId(companyId);
+    }
+
     public List<Member> findFilteredMembers(Long companyId, Long deptId, Status status, Long positionId) {
         return memberRepository.searchMembers(companyId, deptId, status, positionId);
     }
@@ -197,5 +201,11 @@ public class MemberService {
         }
 
         target.setStatus(Status.LEAVE);
+    }
+
+    public byte[] getProfileImg(Long memberId) {
+        return memberRepository.findById(memberId)
+                .map(Member::getProfileImg)
+                .orElse(null);
     }
 }

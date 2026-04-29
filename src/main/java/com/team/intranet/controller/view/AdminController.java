@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.SessionAttribute;
 
 import lombok.RequiredArgsConstructor;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import com.team.intranet.session.MemberSession;
@@ -70,7 +72,14 @@ public class AdminController {
         }
         Long companyId = ms.getCompanyId();
 
-        List<Member> filteredMembers = memberService.findFilteredMembers(companyId, deptId, status, positionId);
+        List<Member> filteredMembers = new ArrayList<>();
+
+        if(status != status.WAIT && status != null) { 
+            filteredMembers = memberService.findFilteredMembers(companyId, deptId, status, positionId);
+        }
+        else{
+            filteredMembers = memberService.findAllMembers(companyId);
+        }
 
         List<Dept> depts = deptService.findAll(companyId);
         List<Position> positions = positionService.findAll(companyId);

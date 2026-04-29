@@ -6,14 +6,17 @@ import com.team.intranet.dto.MemberDto;
 import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.Status;
 
+import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -80,8 +83,10 @@ public class Member {
     @JoinColumn(name = "position_id")
     private Position position;
 
-    @Column(name = "profile_imgUrl")
-    private String profileImgUrl;
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "profile_img")
+    private byte[] profileImg;
 
 ///////////////////////////////
 /// 함수
@@ -94,7 +99,7 @@ public class Member {
         member.name = dto.getName();
         member.email = dto.getEmail();
         member.phone = dto.getPhone();
-        member.profileImgUrl = dto.getProfileImgUrl();
+        member.profileImg = dto.getProfileImg();
         member.company = company;
         member.status = Status.WAIT;
         member.role = Role.USER;
@@ -111,9 +116,10 @@ public class Member {
     }
 
     // 기존 회원 정보 변경
-    public void updateInfo(Dept dept, Position position) {
+    public void updateInfo(Dept dept, Position position, byte[] profileImg) {
     this.dept = dept;
     this.position = position;
+    this.profileImg = profileImg;
 }
 
 }

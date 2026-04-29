@@ -37,7 +37,7 @@ public class MemberDto {
    private Long companyId;
    private Dept dept;
    private Position position;
-   private String profileImgUrl;
+   private byte[] profileImg;
 
 //////////////////////////////////
 /// 함수
