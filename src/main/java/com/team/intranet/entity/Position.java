@@ -35,6 +35,9 @@ public class Position {
     @JoinColumn(name="company_id")
     private Company company;
 
+    @Column(name="position_level")
+    private int positionLevel;
+
     public static Position createPosition(String positionName, Company company) {
         Position position = new Position();
         position.setPositionName(positionName); 
@@ -42,12 +45,5 @@ public class Position {
         return position;
     }
 
-    public int getPositionLevel() {
-
-    if (getPositionId() == null) {
-        return 0; 
-    }
-
-        return getPositionId().intValue();
-    }
+    
 }

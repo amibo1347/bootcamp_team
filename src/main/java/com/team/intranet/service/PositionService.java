@@ -31,6 +31,13 @@ public class PositionService {
         return positionRepository.findAllByCompanyCompanyId(companyId);
     }
 
+    public List<Position> findAllByCompanyCompanyIdOrderByPositionLevelDESC(Long companyId) {
+        if(companyId == null){
+            throw new BusinessException(ErrorCode.COMPANY_NOT_FOUND);
+        }
+        return positionRepository.findByCompany_CompanyIdOrderByPositionLevelDesc(companyId);
+    }
+
     // 기업 확인
     private Company findCompany(Long companyId) {
         return companyRepository.findById(companyId)
@@ -59,6 +66,7 @@ public class PositionService {
         Company company = findCompany(ms.getCompanyId());
 
         Position position = Position.createPosition(dto.getPositionName(), company);
+        position.setPositionLevel(dto.getPositionLevel());
         positionRepository.save(position);
     }
 
@@ -67,8 +75,9 @@ public class PositionService {
     public void updatePosition(MemberSession ms, PositionDto dto, Long positionId){
         validateAdmin(ms);
         Position position = findPositionAndValidateOwner(ms, positionId);
-        
+
         position.setPositionName(dto.getPositionName());
+        position.setPositionLevel(dto.getPositionLevel());
     }
 
     // 직급 삭제

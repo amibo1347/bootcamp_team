@@ -13,9 +13,9 @@ public class PositionDto {
     private Long positionId;
     private String positionName;
     private Company company;
+    private int positionLevel;
 
     public Position toEntity(){
-        return new Position(null, positionName, company);
+        return new Position(null, positionName, company, positionLevel);
     }
-
 }
