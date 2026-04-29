@@ -1,29 +1,5 @@
-// function fetchMembersByDept() {
-//     const deptId = document.querySelector('#deptSelect').value;
-//     const container = document.querySelector('#memberListContainer');
-
-//     const query = deptId ? `?deptId=${encodeURIComponent(deptId)}` : '';
-//     fetch(`/admin/memberList/filter${query}`)
-//         .then(response => {
-//             if (!response.ok) throw new Error('Network response was not ok');
-//             return response.text();
-//         })
-//         .then(html => {
-//             // 받아온 HTML 조각으로 컨테이너 내용 교체
-//             container.innerHTML = html;
-//         })
-//         .catch(error => {
-//             console.error('필터링 중 오류 발생:', error);
-//         });
-// }
-
 document.addEventListener('DOMContentLoaded', () => {
     const deptSelect = document.querySelector('#deptSelect');
-
-    // if (deptSelect) {
-    //     // 드롭다운 변경 시 비동기 함수 호출
-    //     deptSelect.addEventListener('change', fetchMembersByDept);
-    // }
 
     document.addEventListener('click', (event) => {
         const editButton = event.target.closest('.js-edit-member-btn');
@@ -42,10 +18,6 @@ window.openEditModal = (button) => {
     document.querySelector('#editEmail').value = button.dataset.email || '';
     document.querySelector('#editPhone').value = button.dataset.phone || '';
     document.querySelector('#editBirth').value = button.dataset.birth || '';
-<<<<<<< HEAD
-=======
-
->>>>>>> 2ff88420ee26412a26e9670b805975383d718d06
 
     // 2. 프로필 이미지 처리
     const modalImg = document.querySelector('#modalProfileImg');
@@ -109,11 +81,7 @@ window.updateMember = async () => {
     formData.append('positionId', document.querySelector('#editPosition').value);
     formData.append('email', document.querySelector('#editEmail').value);
     formData.append('phone', document.querySelector('#editPhone').value);
-<<<<<<< HEAD
-    formData.append('birthDay', document.querySelector('#editBirth').value);
-=======
     formData.append('birthDate', document.querySelector('#editBirth').value);
->>>>>>> 2ff88420ee26412a26e9670b805975383d718d06
 
     // 만약 파일이 선택되었다면 파일도 추가
     if (fileInput.files[0]) {
@@ -177,3 +145,53 @@ window.deleteMember = async (memberId) => {
         alert("서버와 통신 중 오류가 발생했습니다.");
     }
 };
+
+/**
+ * 직원 목록을 AJAX로 로드하는 공통 함수
+ */
+function loadMemberList() {
+    const form = document.getElementById('filterForm');
+    if (!form) return;
+
+    // 폼 안의 모든 데이터(deptId, name, sort 등)를 가져옴
+    const formData = new FormData(form);
+    const params = new URLSearchParams(formData);
+    
+    // AJAX 요청 URL 생성
+    const url = `${form.action}?${params.toString()}`;
+
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('네트워크 응답에 문제가 있습니다.');
+        return response.text();
+    })
+    .then(html => {
+        const container = document.getElementById('memberListContainer');
+        if (container) {
+            container.innerHTML = html;
+            // 💡 중요: 목록이 새로 바뀌면 내부의 버튼(수정/삭제 등) 이벤트가 
+            // 끊길 수 있으므로, 여기서 필요한 초기화 함수를 다시 호출해줘야 함
+            // 예: initEditButtons();
+        }
+    })
+    .catch(error => {
+        console.error('AJAX 로드 실패:', error);
+        alert('목록을 불러오는 중 오류가 발생했습니다.');
+    });
+}
+
+/**
+ * 정렬 버튼 클릭 시 호출
+ */
+function submitWithSort(sortValue) {
+    const sortInput = document.getElementById('sortInput');
+    if (sortInput) {
+        sortInput.value = sortValue;
+        loadMemberList(); // 정렬 값 세팅 후 AJAX 호출
+    }
+}

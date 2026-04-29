@@ -46,38 +46,43 @@
             <main>
                 <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
                     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div class="text-2xl text-black font-black">
+                        <div class="text-lg text-black font-black">
                             직원 목록
                         </div>
                     </div>
 
                     <div
                         class="mb-6 rounded-xl border border-stroke bg-white px-5 py-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
-                        <div class="flex w-full flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                        <form action="/admin/memberList" method="get" id="filterForm"
+                            onsubmit="event.preventDefault(); loadMemberList();"
+                            class="flex flex-col sm:flex-row items-end justify-between gap-6">
 
-                            <div class="relative z-20 w-full sm:w-2/3">
-                                <label class="mb-1 block text-xs font-medium text-gray-500">부서별 조회</label>
-                                <select name="deptId" id="deptSelect" onchange="this.form.submit()"
-                                    class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4">
-                                    <option value="">전체 부서</option>
-                                    <option th:each="dept : ${depts}" th:value="${dept.deptId}"
-                                        th:text="${dept.deptName}" th:selected="${dept.deptId == selectedDeptId}">
-                                    </option>
-                                </select>
+                            <input type="hidden" name="sort" id="sortInput" th:value="${currentSort}">
+
+                            <div class="flex items-end gap-4 w-full sm:w-64">
+                                <div class="relative z-20 w-full sm:w-2/3">
+                                    <label class="mb-1 block text-xs font-medium text-gray-500">부서별 조회</label>
+                                    <select name="deptId" id="deptSelect" onchange="loadMemberList()"
+                                        class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white">
+                                        <option value="">전체 부서</option>
+                                        <option th:each="dept : ${depts}" th:value="${dept.deptId}"
+                                            th:text="${dept.deptName}" th:selected="${dept.deptId == selectedDeptId}">
+                                        </option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div class="hidden sm:block h-10 w-[1px] bg-gray-200 dark:bg-strokedark"></div>
 
-                            <form action="/subAdmin/memberList/search" method="get"
-                                class="flex w-full items-end gap-3 sm:w-1/3">
-                                <div class="w-full">
-                                    <label class="mb-1 block text-xs font-medium text-gray-500">직원 이름 검색</label>
+                            <div class="flex w-full items-end gap-3 sm:w-auto">
+                                <div class="w-full sm:w-80"> <label
+                                        class="mb-1 block text-xs font-medium text-gray-500">직원 이름 검색</label>
                                     <input type="text" name="name" th:value="${param.name}" placeholder="이름을 입력하세요"
                                         class="w-full rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white" />
                                 </div>
 
                                 <button type="submit"
-                                    class="flex h-[42px] shrink-0 items-center justify-center whitespace-nowrap rounded bg-blue-500 py-2 px-6 font-medium text-white hover:bg-opacity-90">
+                                    class="flex h-[42px] shrink-0 items-center justify-center rounded bg-blue-500 py-2 px-6 font-medium text-white hover:bg-opacity-90">
                                     검색
                                 </button>
                             </div>
@@ -85,11 +90,31 @@
                     </div>
 
 
-
                     <div id="memberListContainer" class="flex flex-col gap-4">
                         <div th:fragment="memberListFragment"
                             class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
-                            <h3 class="mb-6 text-lg font-semibold text-black dark:text-white">부서 소속 직원 목록</h3>
+
+                            <div class="mb-6 flex items-center justify-between">
+                                <h3 class="text-xl font-semibold text-black dark:text-white">부서 소속 직원 목록</h3>
+
+                                <div class="flex items-center gap-3">
+                                    <div class="flex gap-2">
+                                        <a href="javascript:void(0)" onclick="submitWithSort('asc')"
+                                            th:classappend="${currentSort == 'asc' ? 'text-primary font-bold border-b-2 border-primary' : 'text-gray-400'}"
+                                            class="text-sm transition-all hover:text-primary">
+                                            낮은순
+                                        </a>
+
+                                        <span class="text-gray-300 text-sm">|</span>
+
+                                        <a href="javascript:void(0)" onclick="submitWithSort('desc')"
+                                            th:classappend="${currentSort == 'desc' ? 'text-primary font-bold border-b-2 border-primary' : 'text-gray-400'}"
+                                            class="text-sm transition-all hover:text-primary">
+                                            높은순
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div th:if="${members != null and !#lists.isEmpty(members)}" class="space-y-4">
                                 <div th:each="emp : ${members}"
@@ -125,7 +150,7 @@
                                             <button type="button"
                                                 class="rounded-md bg-blue-100 px-6 py-1 text-sm font-medium text-blue-600 transition hover:bg-blue-200 js-edit-member-btn"
                                                 th:attr="data-member-id=${emp.memberId},
-                                                         data-member-name=${emp.name},  
+                                                         data-member-name=${emp.name},
                                                          data-dept-id=${emp.dept != null ? emp.dept.deptId : ''},
                                                          data-position-id=${emp.position != null ? emp.position.positionId : ''},
                                                          data-email=${emp.email != null ? emp.email : ''},
@@ -155,7 +180,7 @@
 
             <!-- 직원 정보 수정 카드 모달 -->
             <!-- 그러나 아직 특정 직원과 연관짓지 못함............ -->
-            <div id="editModal" class="fixed inset-0 z-[9999] flex items-center justify-center hidden bg-black/50">
+            <div id="editModal" class="fixed inset-0 z-9999 flex items-center justify-center hidden bg-black/50">
                 <div
                     class="w-full max-w-2xl rounded-2xl border border-stroke bg-white p-8 shadow-2xl dark:border-strokedark dark:bg-boxdark mx-4">
                     <h3 class="mb-8 text-2xl font-bold text-black dark:text-white">직원 정보 수정</h3>
@@ -254,7 +279,7 @@
         </div>
         <!-- ===== Page Wrapper End ===== -->
         <script type="module" src="/js/index.js"></script>
-        <script src="/js/subsubAdmin/memberList.js"></script>
+        <script src="/js/subAdmin/memberList.js"></script>
 </body>
 
 </html>
