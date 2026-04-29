@@ -16,11 +16,20 @@ function fetchMembersByDept() {
         });
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    const deptSelect = document.querySelector('#deptSelect');
+
+    if (deptSelect) {
+        // 드롭다운 변경 시 비동기 함수 호출
+        deptSelect.addEventListener('change', fetchMembersByDept);
+    }
+});
+
 // 모달 열기 및 데이터 채우기
 wwindow.openEditModal = (id, name, pos, email, phone, birth, hire, img) => {
     // 1. querySelector를 사용해 각 입력창에 특정 사원의 정보를 넣습니다.
     document.querySelector('#editEmpId').value = id;
-    document.querySelector('#modalName').innerText = name; // '이민혁' 대신 실제 이름 주입!
+    document.querySelector('#modalName').innerText = name;
     document.querySelector('#editPosition').value = pos;
     document.querySelector('#editEmail').value = email;
     document.querySelector('#editPhone').value = phone;
