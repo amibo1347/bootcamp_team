@@ -87,70 +87,6 @@
 
                         <!-- 부서 소속 직원 목록 모델 태워야 함!!!!! -->
                         <!-- 부서 소속 직원 정보(사진, 이름, 직급, 이메일, 연락처, 생년월일, 입사일) 필요!!!!!! -->
-<<<<<<< HEAD
-                        <div class="flex flex-col gap-4">
-                            <div th:each="emp : ${employeeList}"
-                                class="flex flex-wrap items-center justify-between rounded-2xl border border-stroke p-4 transition-hover hover:shadow-md dark:border-strokedark">
-                                <div class="flex items-center gap-5">
-                                    <div
-                                        class="h-20 w-20 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
-                                        <img th:if="${emp.profileImg}" th:src="${emp.profileImg}" alt="profile">
-                                        <svg th:unless="${emp.profileImg}" class="h-12 w-12 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
-                                            <path
-                                                d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
-                                        </svg>
-                                    </div>
-
-                                    <div class="flex flex-col">
-                                        <div class="flex items-end gap-2 mb-1">
-                                            <span class="text-xl font-bold text-black dark:text-white" th:text="${emp.name}"></span>
-                                            <span class="text-sm font-medium text-gray-500" th:text="${emp.position}"></span>
-                                        </div>
-                                        <span class="text-sm text-gray-600" th:text="${emp.email}"></span>
-                                        <span class="text-sm text-gray-600" th:text="${emp.phone}"></span>
-                                    </div>
-                                </div>
-
-                                <div
-                                    class="hidden lg:flex items-center gap-8 border-l border-stroke px-8 dark:border-strokedark">
-                                    <div class="flex flex-col gap-1">
-                                        <p class="text-sm"><span class="text-gray-500 mr-2">생년월일</span> <span th:text="${emp.birthDate}"></span></p>
-                                        <p class="text-sm"><span class="text-gray-500 mr-2">입사일</span> <span th:text="${emp.hireDate}"></span></p>
-                                    </div>
-                                </div>
-
-
-                                <!-- 직원 정보 수정 / 직원 삭제 버튼 -->
-                                <!-- 수정 / 삭제 로직 구현 제대로 안 됨!!!! -->
-                                <div class="flex flex-col gap-2">
-                                    <button
-                                        class="rounded-md bg-blue-100 px-6 py-1 text-sm font-medium text-blue-600 hover:bg-blue-200 transition">수정</button>
-                                    <button th:attr="onclick=|deleteMember('${emp.id}')|"
-                                        class="rounded-md bg-red-100 px-6 py-1 text-sm font-medium text-red-600 hover:bg-red-200 transition">삭제</button>
-                                </div>
-                            </div>
-
-
-                            <!-- 직원이 존재하지 않을 시 -->
-                            <div th:if="${employeeList == null or #lists.isEmpty(employeeList)}" class="py-20 text-center text-gray-500">등록된 직원이 없습니다.</div>
-                        </div>
-                    </div>
-                </div>
-            </main>
-
-            <!-- ===== Main Content End ===== -->
-
-
-
-            <!-- ===== Content Area End ===== -->
-        </div>
-        <!-- ===== Page Wrapper End ===== -->
-        <script type="module" src="/js/index.js"></script>
-        <script src="/js/admin/memberList.js"></script>
-</body>
-
-</html>
-=======
                         <div id="memberListContainer" th:fragment="memberListFragment" class="flex flex-col gap-4">
                             <div
                                 class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
@@ -321,4 +257,3 @@
     </body>
 
     </html>
->>>>>>> b28629f32c27caa383b4d0391f8226bdc39256d2

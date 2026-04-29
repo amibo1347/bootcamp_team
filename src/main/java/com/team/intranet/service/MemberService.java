@@ -166,6 +166,10 @@ public class MemberService {
     public List<Member> findRejectMembers(Long companyId) {
         return memberRepository.findByStatusAndCompanyCompanyId(Status.REJECT, companyId);
     }
+    
+    public List<Member> findFilteredMembers(Long companyId, Long deptId, Status status, Long positionId) {
+        return memberRepository.searchMembers(companyId, deptId, status, positionId);
+    }
 
     // 1. 가입 반려 처리 (WAIT -> REJECT)
     @Transactional

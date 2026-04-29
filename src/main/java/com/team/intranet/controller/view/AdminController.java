@@ -4,6 +4,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.SessionAttribute;
 
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import java.util.List;
 import com.team.intranet.session.MemberSession;
 import com.team.intranet.service.MemberService;
 import com.team.intranet.entity.Member;
+import com.team.intranet.enums.member.Status;
 
 import com.team.intranet.service.DeptService;
 import com.team.intranet.entity.Dept;
@@ -58,6 +60,9 @@ public class AdminController {
 
     @GetMapping("/memberList")
     public String memberList(Model model,
+            @RequestParam(value = "deptId", required = false) Long deptId,
+            @RequestParam(value = "positionId", required = false) Long positionId,
+            @RequestParam(value = "status", required = false) Status status,
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
 
         if (ms == null || ms.getCompanyId() == null) {
@@ -65,14 +70,18 @@ public class AdminController {
         }
         Long companyId = ms.getCompanyId();
 
-        List<Member> joinMembers = memberService.findJoinMembers(companyId);
+        List<Member> filteredMembers = memberService.findFilteredMembers(companyId, deptId, status, positionId);
 
         List<Dept> depts = deptService.findAll(companyId);
         List<Position> positions = positionService.findAll(companyId);
 
-        model.addAttribute("members", joinMembers); // 승인 대기중인 회원
+        model.addAttribute("members", filteredMembers); // 회원 목록
         model.addAttribute("depts", depts); // 부서 목록
         model.addAttribute("positions", positions); // 직급 목록
+
+        model.addAttribute("selectedDeptId", deptId); // 선택된 부서 ID
+        model.addAttribute("selectedPositionId", positionId); // 선택된 직급 ID
+        model.addAttribute("selectedStatus", status); // 선택된 상태
 
         return "subAdmin/memberList";
     }

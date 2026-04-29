@@ -29,7 +29,7 @@ public class AdminApiController {
             @SessionAttribute("memberSession") MemberSession ms) {
 
         memberService.acceptMember(memberId, ms.getMemberId(), deptId, positionId);
-        return "redirect:/subAdmin/waitingList";
+        return "redirect:/admin/waitingList";
     }
 
     // 가입 반려 (거절)
@@ -39,7 +39,7 @@ public class AdminApiController {
             @SessionAttribute("memberSession") MemberSession ms) {
 
         memberService.rejectMember(memberId, ms.getMemberId());
-        return "redirect:/subAdmin/waitingList";
+        return "redirect:/admin/waitingList";
     }
 
     // 회원 정보 수정 (부서, 직급 변경)
@@ -56,7 +56,7 @@ public class AdminApiController {
 
         memberService.updateMemberInfo(memberId, ms.getMemberId(), deptId, positionId);
 
-        return "redirect:/subAdmin/memberList";
+        return "redirect:/admin/memberList";
     }
 
     // 퇴사 처리
@@ -68,6 +68,6 @@ public class AdminApiController {
 
         memberService.fireMember(memberId, ms.getMemberId());
 
-        return "redirect:/subAdmin/memberList";
+        return "redirect:/admin/memberList";
     }
 }

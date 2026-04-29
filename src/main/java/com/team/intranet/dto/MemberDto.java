@@ -58,6 +58,4 @@ public class MemberDto {
     }
     return password.equals(passwordCheck);
 }
-
-   
 }
