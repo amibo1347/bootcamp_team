@@ -6,10 +6,13 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.team.intranet.dto.MemberDto;
+import com.team.intranet.enums.member.MemberType;
 import com.team.intranet.service.MemberService;
 
 import jakarta.servlet.http.HttpSession;
@@ -47,5 +50,24 @@ public class MemberApiController {
             response.put("isVerify", false);
         }
         return response;
+    }
+
+    @PostMapping("/signup") // 회원 가입
+    public String newMember(MemberDto dto) {
+
+        MemberType result = memberService.join(dto);
+
+        switch (result) {
+            case JOIN_SUCCESS:
+                // 회원가입 성공 시 로그인 페이지로 보냅니다.
+                return "redirect:/member/login";
+
+            case NOT_COMPANY:
+            case ALREADY_MEMBER:
+            case NOT_MATCH_PASSWORD:
+            default:
+                // 실패 시 다시 회원가입 폼으로 보냅니다.
+                return "redirect:/member/signup?error=" + result.name();
+        }
     }
 }

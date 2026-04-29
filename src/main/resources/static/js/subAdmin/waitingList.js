@@ -26,7 +26,7 @@
         params.append('positionId', positionId);
 
         try {
-            const response = await fetch(`/admin/accept/${memberId}`, {
+            const response = await fetch(`/api/admin/accept/${memberId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -61,7 +61,7 @@
         const { token, header } = getCsrfToken();
 
         try {
-            const response = await fetch(`/admin/reject/${memberId}`, {
+            const response = await fetch(`/api/admin/reject/${memberId}`, {
                 method: 'POST',
                 headers: {
                     [header]: token

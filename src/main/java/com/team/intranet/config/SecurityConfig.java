@@ -5,6 +5,8 @@ import com.team.intranet.config.LoginSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,17 +25,32 @@ public class SecurityConfig {
     }
 
     @Bean
+    public RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.withDefaultRolePrefix()
+            .role("MASTER").implies("ADMIN")    // MASTER는 ADMIN의 권한을 포함
+            .role("ADMIN").implies("SUB_ADMIN") // ADMIN은 SUB_ADMIN의 권한을 포함
+            .build();
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/api/**", "/company/**")
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/css/**", "/js/**", "/images/**", "/favicon.ico",
-                    "/error", "/index", "/calendar", "/member/**", "/api/**"
-                ).permitAll()
-                .requestMatchers("/admin/**").hasRole("ADMIN") // 💡 관리자 권한 체크 추가
+                // 1. 정적 리소스는 무조건 통과 (가장 먼저)
+                .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
+                        
+                // 2. 권한이 필요한 API/페이지 (까다로운 규칙을 먼저 선언)
+                .requestMatchers("/api/master/**", "/master/**").hasRole("MASTER")
+                .requestMatchers("/api/admin/**", "/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/subAdmin/**", "/subAdmin/**").hasRole("SUB_ADMIN")
+                        
+                // 3. 누구나 접근 가능한 페이지 및 API (나중에 선언)
+                .requestMatchers("/error", "/index", "/calendar", "/member/**", "/api/member/**").permitAll() 
+                        
+                // 4. 그 외 모든 요청은 로그인 필요
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form

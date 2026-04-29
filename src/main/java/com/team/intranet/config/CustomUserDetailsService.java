@@ -1,15 +1,17 @@
 package com.team.intranet.config;
 
-import com.team.intranet.entity.Member;
-import com.team.intranet.enums.member.Status;
-import com.team.intranet.repository.MemberRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
+import com.team.intranet.entity.Member;
+import com.team.intranet.enums.member.Status;
+import com.team.intranet.repository.MemberRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

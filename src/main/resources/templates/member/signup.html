@@ -92,7 +92,7 @@
              ">
             </div>
 
-            <form method="post" action="/member/signup" th:action="@{/member/signup}" id="form-signup" name="form-signup">
+            <form method="post" action="/api/member/signup" th:action="@{/api/member/signup}" id="form-signup" name="form-signup">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                 <input type="hidden" name="companyId" th:value="${companyId}">
                 <input type="hidden" name="companyCode" th:value="${companyCode}">
