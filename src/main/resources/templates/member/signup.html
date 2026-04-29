@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Sign Up | TailAdmin</title>
+    <link rel="stylesheet" href="/css/output.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* [레이아웃 리셋] : 프레임워크 기본 컨테이너 여백/크기 제약 해제 */
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* [입력 필드 공통] : 플레이스홀더 흐리게, focus 시 파란색 ring */
+        input::placeholder {
+            color: #9CA3AF;
+            opacity: 0.85;
+        }
+
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        /* [회원가입 카드 - 정사각형 레이아웃] : 30vw 고정 정사각형, 최소 360px 보장, 강한 그림자, 매우 둥근 모서리 */
+        .signup-card {
+            width: 35vw !important;
+            aspect-ratio: 1 / 1 !important;
+            min-width: 360px;
+            box-sizing: border-box;
+            background-color: #ffffff;
+            border-radius: 3rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* 선택되지 않았을 때(placeholder 상태)의 색상 제어 */
+        .dept-select:invalid {
+            color: #9CA3AF;
+            /* 다른 input의 placeholder 색상과 동일 (#9CA3AF) */
+            opacity: 0.85;
+        }
+
+        /* 옵션 목록 안의 글자색은 다시 진하게 유지 */
+        .dept-select option {
+            color: #1F2937;
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+
+<body data-theme="light" x-data="{ 'loaded': true, 'darkMode': false }" x-init="
+      darkMode = JSON.parse(localStorage.getItem('darkMode'));
+      $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}" style="margin:0; padding:0;">
+
+    <div th:replace="~{partials/preloader}"></div>
+
+    <!-- 최상위 컨테이너: 화면 전체 사용, 카드 정중앙 배치 -->
+    <div style="
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #D1D5DB;
+  ">
+
+        <!-- [회원가입 카드 - 정사각형 레이아웃] : 크기/스타일은 .signup-card 클래스로 일원화 -->
+        <div class="signup-card bg-white dark:bg-gray-800">
+
+            <!-- 로고 이미지: 중앙 정렬 -->
+            <div
+                style="display:flex; justify-content:center; border-bottom: 1px solid #F3F4F6; padding-top: 1.2rem; margin-bottom: 0.2rem;">
+                <img th:if="${logoPath}" th:src="${logoPath}" alt="기업 로고" id="companyLogoImg" style="
+                width: 180px;
+                height: 130px;
+                object-fit: contain;
+                display: block;
+                filter: contrast(105%);
+             ">
+            </div>
+
+            <form method="post" action="/api/member/signup" th:action="@{/api/member/signup}" id="form-signup" name="form-signup">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <input type="hidden" name="companyId" th:value="${companyId}">
+                <input type="hidden" name="companyCode" th:value="${companyCode}">
+                <div style="display:flex; flex-direction:column; gap:0.625rem;">
+
+                    <!-- 아이디 입력 필드 -->
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.625rem;">
+
+                        <label style="font-size: 0.875rem; font-weight: 500; color: #374151;">
+                            아이디
+                        </label>
+
+                        <div style="display: flex; gap: 0.5rem; width: 100%; align-items: center;">
+                            <input type="text" id="loginId" name="loginId" placeholder="아이디를 입력하세요" minlength="4" style="
+        flex: 1;
+        height: 2.75rem;
+        border: none;
+        background-color: #F3F4F6;
+        border-radius: 0.75rem;
+        padding: 0 1rem;
+        font-size: 0.875rem;
+        color: #1F2937;
+        box-sizing: border-box;
+      " required />
+
+                            <button type="button" id="loginIdCheck" name="loginIdCheck" style="
+    /* [레이아웃] */
+    height: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0 1.25rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    /* [회색 테두리 + 흰색 배경 스타일] */
+    background-color: #ffffff !important;
+    border: 1.5px solid #D1D5DB !important;
+    color: #4B5563 !important;
+  " onmouseover="this.style.backgroundColor='#F9FAFB'; this.style.borderColor='#9CA3AF';"
+                                onmouseout="this.style.backgroundColor='#ffffff'; this.style.borderColor='#D1D5DB';">
+                                중복확인
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 비밀번호 입력 필드 (토글 포함) -->
+                    <div>
+                        <label
+                            style="display:block; font-size:0.875rem; font-weight:500; color:#374151; margin-bottom:0.25rem;">
+                            비밀번호
+                        </label>
+                        <div x-data="{ showPassword: false }" style="position:relative;">
+                            <input :type="showPassword ? 'text' : 'password'" id="password" name="password"
+                                minlength="8" placeholder="비밀번호를 입력하세요" style="
+                  width: 100%;
+                  height: 2.75rem;
+                  border: none;
+                  background-color: #F3F4F6;
+                  border-radius: 0.75rem;
+                  padding: 0 2.75rem 0 1rem;
+                  font-size: 0.875rem;
+                  color: #1F2937;
+                  box-sizing: border-box;
+                " required />
+
+                            <!-- 비밀번호 표시/숨기기 토글 -->
+                            <span @click="showPassword = !showPassword"
+                                style="position:absolute; right:1rem; top:50%; transform:translateY(-50%); cursor:pointer; color:#6B7280;">
+                                <svg x-show="!showPassword" class="fill-current" width="20" height="20"
+                                    viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" clip-rule="evenodd"
+                                        d="M10.0002 13.8619C7.23361 13.8619 4.86803 12.1372 3.92328 9.70241C4.86804 7.26761 7.23361 5.54297 10.0002 5.54297C12.7667 5.54297 15.1323 7.26762 16.0771 9.70243C15.1323 12.1372 12.7667 13.8619 10.0002 13.8619ZM10.0002 4.04297C6.48191 4.04297 3.49489 6.30917 2.4155 9.4593C2.3615 9.61687 2.3615 9.78794 2.41549 9.94552C3.49488 13.0957 6.48191 15.3619 10.0002 15.3619C13.5184 15.3619 16.5055 13.0957 17.5849 9.94555C17.6389 9.78797 17.6389 9.6169 17.5849 9.45932C16.5055 6.30919 13.5184 4.04297 10.0002 4.04297ZM9.99151 7.84413C8.96527 7.84413 8.13333 8.67606 8.13333 9.70231C8.13333 10.7286 8.96527 11.5605 9.99151 11.5605H10.0064C11.0326 11.5605 11.8646 10.7286 11.8646 9.70231C11.8646 8.67606 11.0326 7.84413 10.0064 7.84413H9.99151Z"
+                                        fill="#98A2B3" />
+                                </svg>
+                                <svg x-show="showPassword" class="fill-current" width="20" height="20"
+                                    viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" clip-rule="evenodd"
+                                        d="M4.63803 3.57709C4.34513 3.2842 3.87026 3.2842 3.57737 3.57709C3.28447 3.86999 3.28447 4.34486 3.57737 4.63775L4.85323 5.91362C3.74609 6.84199 2.89363 8.06395 2.4155 9.45936C2.3615 9.61694 2.3615 9.78801 2.41549 9.94558C3.49488 13.0957 6.48191 15.3619 10.0002 15.3619C11.255 15.3619 12.4422 15.0737 13.4994 14.5598L15.3625 16.4229C15.6554 16.7158 16.1302 16.7158 16.4231 16.4229C16.716 16.13 16.716 15.6551 16.4231 15.3622L4.63803 3.57709ZM12.3608 13.4212L10.4475 11.5079C10.3061 11.5423 10.1584 11.5606 10.0064 11.5606H9.99151C8.96527 11.5606 8.13333 10.7286 8.13333 9.70237C8.13333 9.5461 8.15262 9.39434 8.18895 9.24933L5.91885 6.97923C5.03505 7.69015 4.34057 8.62704 3.92328 9.70247C4.86803 12.1373 7.23361 13.8619 10.0002 13.8619C10.8326 13.8619 11.6287 13.7058 12.3608 13.4212ZM16.0771 9.70249C15.7843 10.4569 15.3552 11.1432 14.8199 11.7311L15.8813 12.7925C16.6329 11.9813 17.2187 11.0143 17.5849 9.94561C17.6389 9.78803 17.6389 9.61696 17.5849 9.45938C16.5055 6.30925 13.5184 4.04303 10.0002 4.04303C9.13525 4.04303 8.30244 4.17999 7.52218 4.43338L8.75139 5.66259C9.1556 5.58413 9.57311 5.54303 10.0002 5.54303C12.7667 5.54303 15.1323 7.26768 16.0771 9.70249Z"
+                                        fill="#98A2B3" />
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 비밀번호 확인 입력 필드 (토글 포함) -->
+                    <div>
+                        <label
+                            style="display:block; font-size:0.875rem; font-weight:500; color:#374151; margin-bottom:0.25rem;">
+                            비밀번호 확인
+                        </label>
+                        <div x-data="{ showConfirm: false }" style="position:relative;">
+                            <input :type="showConfirm ? 'text' : 'password'" id="passwordCheck" name="passwordCheck"
+                                placeholder="비밀번호를 다시 입력하세요" minlength="8" style="
+                  width: 100%;
+                  height: 2.75rem;
+                  border: none;
+                  background-color: #F3F4F6;
+                  border-radius: 0.75rem;
+                  padding: 0 2.75rem 0 1rem;
+                  font-size: 0.875rem;
+                  color: #1F2937;
+                  box-sizing: border-box;
+                " required />
+                            <!-- 비밀번호 확인 표시/숨기기 토글 -->
+                            <span @click="showConfirm = !showConfirm"
+                                style="position:absolute; right:1rem; top:50%; transform:translateY(-50%); cursor:pointer; color:#6B7280;">
+                                <svg x-show="!showConfirm" class="fill-current" width="20" height="20"
+                                    viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" clip-rule="evenodd"
+                                        d="M10.0002 13.8619C7.23361 13.8619 4.86803 12.1372 3.92328 9.70241C4.86804 7.26761 7.23361 5.54297 10.0002 5.54297C12.7667 5.54297 15.1323 7.26762 16.0771 9.70243C15.1323 12.1372 12.7667 13.8619 10.0002 13.8619ZM10.0002 4.04297C6.48191 4.04297 3.49489 6.30917 2.4155 9.4593C2.3615 9.61687 2.3615 9.78794 2.41549 9.94552C3.49488 13.0957 6.48191 15.3619 10.0002 15.3619C13.5184 15.3619 16.5055 13.0957 17.5849 9.94555C17.6389 9.78797 17.6389 9.6169 17.5849 9.45932C16.5055 6.30919 13.5184 4.04297 10.0002 4.04297ZM9.99151 7.84413C8.96527 7.84413 8.13333 8.67606 8.13333 9.70231C8.13333 10.7286 8.96527 11.5605 9.99151 11.5605H10.0064C11.0326 11.5605 11.8646 10.7286 11.8646 9.70231C11.8646 8.67606 11.0326 7.84413 10.0064 7.84413H9.99151Z"
+                                        fill="#98A2B3" />
+                                </svg>
+                                <svg x-show="showConfirm" class="fill-current" width="20" height="20"
+                                    viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" clip-rule="evenodd"
+                                        d="M4.63803 3.57709C4.34513 3.2842 3.87026 3.2842 3.57737 3.57709C3.28447 3.86999 3.28447 4.34486 3.57737 4.63775L4.85323 5.91362C3.74609 6.84199 2.89363 8.06395 2.4155 9.45936C2.3615 9.61694 2.3615 9.78801 2.41549 9.94558C3.49488 13.0957 6.48191 15.3619 10.0002 15.3619C11.255 15.3619 12.4422 15.0737 13.4994 14.5598L15.3625 16.4229C15.6554 16.7158 16.1302 16.7158 16.4231 16.4229C16.716 16.13 16.716 15.6551 16.4231 15.3622L4.63803 3.57709ZM12.3608 13.4212L10.4475 11.5079C10.3061 11.5423 10.1584 11.5606 10.0064 11.5606H9.99151C8.96527 11.5606 8.13333 10.7286 8.13333 9.70237C8.13333 9.5461 8.15262 9.39434 8.18895 9.24933L5.91885 6.97923C5.03505 7.69015 4.34057 8.62704 3.92328 9.70247C4.86803 12.1373 7.23361 13.8619 10.0002 13.8619C10.8326 13.8619 11.6287 13.7058 12.3608 13.4212ZM16.0771 9.70249C15.7843 10.4569 15.3552 11.1432 14.8199 11.7311L15.8813 12.7925C16.6329 11.9813 17.2187 11.0143 17.5849 9.94561C17.6389 9.78803 17.6389 9.61696 17.5849 9.45938C16.5055 6.30925 13.5184 4.04303 10.0002 4.04303C9.13525 4.04303 8.30244 4.17999 7.52218 4.43338L8.75139 5.66259C9.1556 5.58413 9.57311 5.54303 10.0002 5.54303C12.7667 5.54303 15.1323 7.26768 16.0771 9.70249Z"
+                                        fill="#98A2B3" />
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 이름 입력 필드 -->
+                    <div>
+                        <label
+                            style="display:block; font-size:0.875rem; font-weight:500; color:#374151; margin-bottom:0.25rem;">
+                            이름
+                        </label>
+                        <input type="text" name="name" placeholder="이름을 입력하세요" style="
+                width: 100%;
+                height: 2.75rem;
+                border: none;
+                background-color: #F3F4F6;
+                border-radius: 0.75rem;
+                padding: 0 1rem;
+                font-size: 0.875rem;
+                color: #1F2937;
+                box-sizing: border-box;
+              " required />
+                    </div>
+
+                    <!-- 이메일 입력 필드 -->
+                    <div>
+                        <label
+                            style="display:block; font-size:0.875rem; font-weight:500; color:#374151; margin-bottom:0.25rem;">
+                            이메일
+                        </label>
+                        <input type="email" name="email" placeholder="이메일을 입력하세요" style="
+                width: 100%;
+                height: 2.75rem;
+                border: none;
+                background-color: #F3F4F6;
+                border-radius: 0.75rem;
+                padding: 0 1rem;
+                font-size: 0.875rem;
+                color: #1F2937;
+                box-sizing: border-box;
+              " required />
+                    </div>
+
+                    <!-- 생년월일 입력 필드 -->
+                    <div style="margin-bottom: 0.625rem;">
+                        <label
+                            style="display:block; font-size:0.875rem; font-weight:500; color:#374151; margin-bottom:0.25rem;">
+                            생년월일
+                        </label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="number" name="birthYear" placeholder="년(4자)" min="1900" max="2026" style="
+            flex: 1.5; height: 2.75rem; border: none; background-color: #F3F4F6;
+            border-radius: 0.75rem; padding: 0 1rem; font-size: 0.875rem; color: #1F2937; box-sizing: border-box;
+        " required />
+
+                            <select name="birthMonth" style="
+            flex: 1; height: 2.75rem; border: none; background-color: #F3F4F6;
+            border-radius: 0.75rem; padding: 0 0.5rem; font-size: 0.875rem; color: #1F2937; cursor: pointer;
+        " required>
+                                <option value="" disabled selected>월</option>
+                                <option th:each="m : ${months}" th:value="${m}" th:text="${m + '월'}"></option>
+                                <th:block th:if="${months == null or #lists.isEmpty(months)}">
+                                    <option value="1">1월</option>
+                                    <option value="2">2월</option>
+                                    <option value="3">3월</option>
+                                    <option value="4">4월</option>
+                                    <option value="5">5월</option>
+                                    <option value="6">6월</option>
+                                    <option value="7">7월</option>
+                                    <option value="8">8월</option>
+                                    <option value="9">9월</option>
+                                    <option value="10">10월</option>
+                                    <option value="11">11월</option>
+                                    <option value="12">12월</option>
+                                </th:block>
+                            </select>
+
+                            <input type="number" name="birthDay" placeholder="일" min="1" max="31" style="
+            flex: 1; height: 2.75rem; border: none; background-color: #F3F4F6;
+            border-radius: 0.75rem; padding: 0 1rem; font-size: 0.875rem; color: #1F2937; box-sizing: border-box;
+        " required />
+                        </div>
+                    </div>
+
+                    <!-- 성별 선택 필드 -->
+                    <div style="margin-bottom: 0.625rem;">
+                        <label
+                            style="display:block; font-size:0.875rem; font-weight:500; color:#374151; margin-bottom:0.25rem;">
+                            성별
+                        </label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <label style="flex: 1; cursor: pointer;">
+                                <input type="radio" name="gender" value="MALE" class="hidden peer" required>
+                                <div
+                                    class="flex items-center justify-center h-11 bg-gray-100 rounded-xl text-sm text-gray-500 peer-checked:bg-indigo-100 peer-checked:text-indigo-600 peer-checked:ring-1 peer-checked:ring-indigo-400 transition-all">
+                                    남자
+                                </div>
+                            </label>
+                            <label style="flex: 1; cursor: pointer;">
+                                <input type="radio" name="gender" value="FEMALE" class="hidden peer">
+                                <div
+                                    class="flex items-center justify-center h-11 bg-gray-100 rounded-xl text-sm text-gray-500 peer-checked:bg-pink-100 peer-checked:text-pink-600 peer-checked:ring-1 peer-checked:ring-pink-400 transition-all">
+                                    여자
+                                </div>
+                            </label>
+                            <label style="flex: 1; cursor: pointer;">
+                                <input type="radio" name="gender" value="NONE" class="hidden peer">
+                                <div
+                                    class="flex items-center justify-center h-11 bg-gray-100 rounded-xl text-sm text-gray-500 peer-checked:bg-gray-200 peer-checked:text-gray-700 transition-all">
+                                    선택안함
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+
+                    <!-- 부서 선택 드롭다운 -->
+                    <div style="margin-bottom: 0.625rem; position: relative;"
+                        x-data="{ open: false, selected: '부서를 선택하세요' }">
+                        <label
+                            style="display:block; font-size:0.875rem; font-weight:500; color:#374151; margin-bottom:0.25rem;">
+                            부서
+                        </label>
+
+                        <div style="position: relative; width: 100%;">
+                            <div @click="open = !open" @click.away="open = false" style="
+        width: 100%; height: 2.75rem; background-color: #F3F4F6;
+        border-radius: 0.75rem; padding: 0 1rem; font-size: 0.875rem;
+        display: flex; align-items: center; justify-content: space-between;
+        cursor: pointer; box-sizing: border-box;
+      ">
+                                <span x-text="selected"
+                                    :style="selected === '부서를 선택하세요' ? 'color: #9CA3AF;' : 'color: #1F2937;'"></span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                    fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+
+                            <ul x-show="open" x-transition:enter="transition ease-out duration-100"
+                                x-transition:enter-start="opacity-0 transform scale-95"
+                                x-transition:enter-end="opacity-100 transform scale-100" style="
+        position: absolute;
+        top: calc(100% + 5px);
+        left: 0;
+        width: 100%;
+        background-color: white;
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+        border: 1px solid #E5E7EB;
+        z-index: 9999;
+        padding: 0.5rem 0;
+        margin: 0;
+        list-style: none;
+      ">
+                                <!-- <li @click="selected = 'IT 개발팀'; open = false"
+                                    style="padding: 0.75rem 1rem; font-size: 0.875rem; color: #1F2937; cursor: pointer;"
+                                    onmouseover="this.style.backgroundColor='#F3F4F6'"
+                                    onmouseout="this.style.backgroundColor='transparent'">IT 개발팀</li>   -->
+                            </ul>
+                        </div>
+                        <input type="hidden" name="dept" :value="selected === '부서를 선택하세요' ? '' : selected">
+                    </div>
+
+                    <!-- 연락처 입력 필드 -->
+                    <div style="margin-bottom: 0.875rem;">
+                        <label
+                            style="display:block; font-size:0.875rem; font-weight:500; color:#374151; margin-bottom:0.25rem;">
+                            연락처
+                        </label>
+                        <input type="text" name="phone" placeholder="전화번호를 입력하세요" style="
+      width: 100%;
+      height: 2.75rem;
+      border: none;
+      background-color: #F3F4F6;
+      border-radius: 0.75rem;
+      padding: 0 1rem;
+      font-size: 0.875rem;
+      color: #1F2937;
+      box-sizing: border-box;
+    " required />
+                    </div>
+
+                    <!-- 버튼 영역: 가입하기(블루그레이)와 로그인으로(outline) 가로 1:1 배치 -->
+                    <div style="display:flex; gap:0.75rem; margin-top:0.875rem;">
+                        <!-- 로그인으로 버튼: outline 스타일 -->
+                        <a href="/member/login" style="
+                flex: 1;
+                height: 3rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 1.5px solid #9CA3AF;
+                border-radius: 0.75rem;
+                background-color: transparent;
+                color: #6B7280;
+                font-size: 0.875rem;
+                font-weight: 500;
+                text-decoration: none;
+                transition: border-color 0.2s, color 0.2s;
+              " onmouseover="this.style.borderColor='#A6B2C9'; this.style.color='#A6B2C9'"
+                            onmouseout="this.style.borderColor='#9CA3AF'; this.style.color='#6B7280'">
+                            취소
+                        </a>
+                        <!-- 가입하기 버튼: 연한 블루그레이 강조 -->
+                        <button type="submit" style="
+                flex: 1;
+                height: 3rem;
+                border: none;
+                border-radius: 0.75rem;
+                background-color: #A6B2C9;
+                color: #ffffff;
+                font-size: 0.875rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background-color 0.2s;
+              " onmouseover="this.style.backgroundColor='#8f9db5'" onmouseout="this.style.backgroundColor='#A6B2C9'">
+                            가입 신청
+                        </button>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="/js/index.js"></script>
+    <script src="/js/member/signup.js"></script>
+</body>
+
+</html>

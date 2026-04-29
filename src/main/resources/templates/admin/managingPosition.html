@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+
+    <!-- csrf 일단 뺐음 -->
+
+    <title>
+        Managing Positions
+    </title>
+    <link rel="stylesheet" href="/css/output.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body
+    x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-init="
+         darkMode = JSON.parse(localStorage.getItem('darkMode'));
+         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}">
+    <!-- ===== 로딩 화면 ===== -->
+    <div th:replace="~{partials/preloader}"></div>
+    <!-- ===== Preloader End ===== -->
+
+    <!-- ===== Page Wrapper Start ===== -->
+    <div class="flex h-screen overflow-hidden">
+        <!-- ===== 사이드바 ===== -->
+        <div th:replace="~{partials/sidebar}"></div>
+        <!-- ===== Sidebar End ===== -->
+
+        <!-- ===== Content Area Start ===== -->
+        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+            <!-- Small Device Overlay Start -->
+            <div th:replace="~{partials/overlay}"></div>
+            <!-- Small Device Overlay End -->
+
+            <!-- ===== Header Start ===== -->
+            <div th:replace="~{partials/header}"></div>
+            <!-- ===== Header End ===== -->
+
+            <!-- ===== Main Content Start ===== -->
+
+            <main class="p-8 space-y-8">
+                <h1 class="text-3xl font-black text-gray-900 ml-2">직급 관리</h1>
+
+                <section
+                    class="p-10 border border-gray-300 rounded-[32px] bg-white shadow-sm flex items-center space-x-8">
+                    <h2 class="text-2xl font-black text-gray-900">직급 추가 생성</h2>
+
+                    <div class="flex items-center space-x-3">
+                        <input type="text" placeholder="직급명"
+                            class="w-64 h-12 px-4 border border-gray-400 outline-none focus:ring-2 focus:ring-indigo-300 transition-all">
+                        <button type="button"
+                            class="px-6 py-3 bg-indigo-400 text-white font-black rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm">
+                            생성
+                        </button>
+                    </div>
+                </section>
+
+                <section class="p-10 border border-gray-300 rounded-[32px] bg-white shadow-sm">
+                    <h2 class="text-2xl font-black text-gray-900 mb-8">기존 직급 목록</h2>
+
+                    <div class="border border-gray-400 overflow-hidden min-h-[400px] flex flex-col">
+                        <div class="flex-1">
+                            <div th:each="pos : ${positions}"
+                                class="flex items-center justify-between p-5 border-b border-gray-400 last:border-b-0 hover:bg-gray-50 transition-colors">
+                                <span class="text-xl font-bold text-gray-900 ml-4" th:text="${pos.positionName}"></span>
+
+                                <div class="flex items-center space-x-3 mr-4">
+                                    <button type="button"
+                                        class="px-8 py-2.5 bg-indigo-300 text-white font-black rounded-xl hover:bg-indigo-400 transition-all shadow-sm">
+                                        수정
+                                    </button>
+                                    <button type="button"
+                                        class="px-8 py-2.5 bg-rose-300 text-white font-black rounded-xl hover:bg-rose-400 transition-all shadow-sm">
+                                        삭제
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div th:if="${positions == null or #lists.isEmpty(positions)}" class="p-20 text-center text-gray-400 font-bold">등록된 직급이 없습니다.</div>
+                        </div>
+                        <div class="bg-white flex-1"></div>
+                    </div>
+                </section>
+            </main>
+
+
+            <!-- ===== Main Content End ===== -->
+
+
+
+            <!-- ===== Content Area End ===== -->
+        </div>
+        <!-- ===== Page Wrapper End ===== -->
+        <script type="module" src="/js/index.js"></script>
+</body>
+
+</html>

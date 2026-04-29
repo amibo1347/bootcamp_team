@@ -1,104 +1,197 @@
 package com.team.intranet.service;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.team.intranet.repository.MemberRepository;
-import com.team.intranet.repository.CompanyRepository;
-import com.team.intranet.repository.DeptRepository;
-import com.team.intranet.repository.PositionRepository;
-import com.team.intranet.entity.Member;
+import com.team.intranet.dto.MemberDto;
 import com.team.intranet.entity.Company;
 import com.team.intranet.entity.Dept;
+import com.team.intranet.entity.Member;
 import com.team.intranet.entity.Position;
-
-import jakarta.transaction.Transactional;
-import java.util.Optional;
-
-import com.team.intranet.dto.MemberDto;
+import com.team.intranet.enums.ErrorCode;
 import com.team.intranet.enums.member.MemberType;
 import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.Status;
+import com.team.intranet.exception.BusinessException;
+import com.team.intranet.repository.CompanyRepository;
+import com.team.intranet.repository.DeptRepository;
+import com.team.intranet.repository.MemberRepository;
+import com.team.intranet.repository.PositionRepository;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class MemberService {
 
-    //////////////////////////////////
-/// 의존성 주입
     private final MemberRepository memberRepository;
     private final CompanyRepository companyRepository;
     private final DeptRepository deptRepository;
     private final PositionRepository positionRepository;
     private final PasswordEncoder passwordEncoder;
 
-    //////////////////////////////////
-/// 메소드
-
-    // 회원가입 
+    // 회원가입
     @Transactional
     public MemberType join(MemberDto dto) {
         Optional<Member> foundMember = memberRepository.findByLoginId(dto.getLoginId());
-        Company company = companyRepository.findByCompanyCode(dto.getCompany().getCompanyCode()).orElse(null);
+
+        if (foundMember.isPresent()) {
+            return MemberType.ALREADY_MEMBER;
+        }
 
         if (!dto.is_Password_Match()) {
             return MemberType.NOT_MATCH_PASSWORD;
         }
-        String encodedPassword = passwordEncoder.encode(dto.getPassword());
 
-        if (foundMember.isPresent()) { // 회원 유무
-            return MemberType.ALEADY_MEMBER; // 회원이 있을 경우 ALEADY_MEMBER 반환
+        // 기업 코드 보안 검증
+        if (dto.getCompanyCode() == null || dto.getCompanyCode().isEmpty()) {
+            return MemberType.NOT_COMPANY;
+        }
+        Company company = companyRepository.findByCompanyCodeIgnoreCase(dto.getCompanyCode()).orElse(null);
+        if (company == null) {
+            return MemberType.NOT_COMPANY;
         }
 
+        String encodedPassword = passwordEncoder.encode(dto.getPassword());
         Member member = Member.createPendingMember(dto, encodedPassword, company);
-        memberRepository.save(member); // 회원 정보 저장
+        memberRepository.save(member);
 
-        return MemberType.JOIN_SUCCESS; // 가입 성공 반환
+        return MemberType.JOIN_SUCCESS;
     }
 
-    // 가입 승인
     @Transactional
-    public void acceptMember(Long memberId, String adminLoginId, Long deptId, Long positionId) {
-        Member admin = memberRepository.findByLoginId(adminLoginId)
-                .orElseThrow(() -> new IllegalArgumentException("관리자 정보가 없습니다."));
+    public void acceptMember(Long memberId, Long adminId, Long deptId, Long positionId) {
+        // 1. 관리자 정보 및 권한 체크
+        Member admin = memberRepository.findById(adminId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
         if (admin.getRole() != Role.ADMIN) {
-            throw new RuntimeException("승인 권한이 없습니다");
+            throw new BusinessException(ErrorCode.NOT_ADMIN_ROLE);
         }
 
+        // 2. 대상 회원 조회
         Member targetMember = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 회원이 없습니다"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
+        // 3. 같은 회사인지 철저히 검증 (보안의 핵심)
+        if (!targetMember.getCompany().getCompanyId().equals(admin.getCompany().getCompanyId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        if (targetMember.getStatus() != Status.WAIT) {
+            throw new BusinessException(ErrorCode.ALREADY_JOIN_MEMBER);
+        }
+
+        // 4. 부서 및 직급 조회 (Fetch Join 등을 고려하면 더 좋음)
         Dept dept = deptRepository.findById(deptId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 부서가 없습니다"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.DEPT_NOT_FOUND));
 
         Position position = positionRepository.findById(positionId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 직급이 없습니다"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.POSITION_NOT_FOUND));
 
-        if (targetMember.getStatus() == Status.PENDING) {
-            targetMember.accept(dept, position);
-        }
+        // 5. 도메인 모델에 승인 로직 위임
+        targetMember.accept(dept, position);
     }
 
     @Transactional
-    public Member login(String loginId, String password) {
+    public void updateMemberInfo(Long memberId, Long adminId, Long deptId, Long positionId) {
+        // 1. 관리자 정보 및 권한 체크
+        Member admin = memberRepository.findById(adminId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
-        // 1. 아이디로 회원 조회
-        Member member = memberRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
-
-        // 2. 비밀번호 일치 확인
-        if (!passwordEncoder.matches(password, member.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        if (admin.getRole() != Role.ADMIN) {
+            throw new BusinessException(ErrorCode.NOT_ADMIN_ROLE);
         }
 
-        // 3. 가입 승인 상태 확인
-        if (member.getStatus() == Status.PENDING) {
-            throw new RuntimeException("관리자의 승인을 기다리는 중입니다.");
+        // 2. 수정 대상 회원 조회
+        Member targetMember = memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+        // 3. 보안 체크: 같은 회사 소속인지 확인
+        if (!targetMember.getCompany().getCompanyId().equals(admin.getCompany().getCompanyId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
 
-        return member; 
+        // 4. 부서 및 직급 조회 및 회사 일치 확인
+        Dept dept = deptRepository.findById(deptId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.DEPT_NOT_FOUND));
+
+        Position position = positionRepository.findById(positionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.POSITION_NOT_FOUND));
+
+        if (!dept.getCompany().getCompanyId().equals(admin.getCompany().getCompanyId()) ||
+                !position.getCompany().getCompanyId().equals(admin.getCompany().getCompanyId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        // 5. 실제 수정 로직 수행 (Dirty Checking 활용)
+        targetMember.updateInfo(dept, position);
+    }
+
+    // 아이디 중복 확인
+    public boolean isDuplicateId(String loginId) {
+        return memberRepository.existsByLoginId(loginId);
+    }
+
+    // 기업 로고
+    public String getLogoPath(Long companyId) {
+        Company company = companyRepository.findById(companyId).orElse(null);
+
+        return (company != null) ? company.getLogoPath() : null;
+    }
+
+    // 기업 코드 인증
+    public Long getVerifyCompanyId(String companyCode) {
+        return companyRepository.findByCompanyCodeIgnoreCase(companyCode)
+                .map(Company::getCompanyId)
+                .orElse(null);
+    }
+
+    public List<Member> findWaitMembers(Long companyId) {
+        return memberRepository.findByStatusAndCompanyCompanyId(Status.WAIT, companyId);
+    }
+
+    public List<Member> findJoinMembers(Long companyId) {
+        return memberRepository.findByStatusAndCompanyCompanyId(Status.JOIN, companyId);
+    }
+
+    public List<Member> findFireMembers(Long companyId) {
+        return memberRepository.findByStatusAndCompanyCompanyId(Status.LEAVE, companyId);
+    }
+
+    public List<Member> findRejectMembers(Long companyId) {
+        return memberRepository.findByStatusAndCompanyCompanyId(Status.REJECT, companyId);
+    }
+
+    // 1. 가입 반려 처리 (WAIT -> REJECT)
+    @Transactional
+    public void rejectMember(Long memberId, Long adminId) {
+        Member admin = memberRepository.findById(adminId).orElseThrow();
+        Member target = memberRepository.findById(memberId).orElseThrow();
+
+        // 보안 체크: 같은 회사인지 확인
+        if (!admin.getCompany().getCompanyId().equals(target.getCompany().getCompanyId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        target.setStatus(Status.REJECT); // Dirty Checking으로 자동 업데이트
+    }
+
+    // 2. 퇴사 처리 (JOIN -> LEAVE)
+    @Transactional
+    public void fireMember(Long memberId, Long adminId) {
+        Member admin = memberRepository.findById(adminId).orElseThrow();
+        Member target = memberRepository.findById(memberId).orElseThrow();
+
+        // 보안 체크
+        if (!admin.getCompany().getCompanyId().equals(target.getCompany().getCompanyId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        target.setStatus(Status.LEAVE);
     }
 }
