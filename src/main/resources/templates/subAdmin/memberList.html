@@ -53,12 +53,13 @@
 
                     <div
                         class="mb-6 rounded-xl border border-stroke bg-white px-5 py-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
-                        <div class="flex flex-col sm:flex-row items-center justify-end gap-6">
+                        <form action="/admin/memberList" method="get"
+                            class="flex flex-col sm:flex-row items-end justify-end gap-6">
 
                             <div class="relative z-20 w-full sm:w-48">
                                 <label class="mb-1 block text-xs font-medium text-gray-500">부서별 조회</label>
-                                <select id="deptSelect"
-                                    class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark">
+                                <select name="deptId" id="deptSelect" onchange="this.form.submit()"
+                                    class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4">
                                     <option value="">전체 부서</option>
                                     <option th:each="dept : ${depts}" th:value="${dept.deptId}"
                                         th:text="${dept.deptName}" th:selected="${dept.deptId == selectedDeptId}">
@@ -68,19 +69,19 @@
 
                             <div class="hidden sm:block h-10 w-[1px] bg-gray-200 dark:bg-strokedark"></div>
 
-                            <form action="/admin/memberList/search" method="get"
-                                class="flex items-end gap-3 w-full sm:w-auto">
+                            <div class="flex items-end gap-3 w-full sm:w-auto">
                                 <div class="w-full sm:w-64">
                                     <label class="mb-1 block text-xs font-medium text-gray-500">직원 이름 검색</label>
-                                    <input type="text" name="name" placeholder="이름을 입력하세요"
+                                    <input type="text" name="name" th:value="${param.name}" placeholder="이름을 입력하세요"
                                         class="w-full rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white" />
                                 </div>
+
                                 <button type="submit"
                                     class="flex h-[42px] items-center justify-center rounded bg-blue-500 py-2 px-6 font-medium text-white hover:bg-opacity-90">
                                     검색
                                 </button>
-                            </form>
-                        </div>
+                            </div>
+                        </form>
                     </div>
 
 
@@ -124,7 +125,7 @@
                                             <button type="button"
                                                 class="rounded-md bg-blue-100 px-6 py-1 text-sm font-medium text-blue-600 transition hover:bg-blue-200 js-edit-member-btn"
                                                 th:attr="data-member-id=${emp.memberId},
-                                                         data-member-name=${emp.name},
+                                                         data-member-name=${emp.name},  
                                                          data-dept-id=${emp.dept != null ? emp.dept.deptId : ''},
                                                          data-position-id=${emp.position != null ? emp.position.positionId : ''},
                                                          data-email=${emp.email != null ? emp.email : ''},
@@ -133,8 +134,7 @@
                                                          data-profile-img=@{/api/member/{id}/profileImg(id=${emp.memberId})}">
                                                 수정
                                             </button>
-                                            <button type="button"
-                                                th:attr="onclick=|deleteMember(${emp.memberId})|"
+                                            <button type="button" th:attr="onclick=|deleteMember(${emp.memberId})|"
                                                 class="rounded-md bg-red-100 px-6 py-1 text-sm font-medium text-red-600 transition hover:bg-red-200">
                                                 퇴사
                                             </button>
@@ -180,7 +180,7 @@
                             <button type="button" onclick="document.querySelector('#profileImgInput').click()"
                                 class="absolute bottom-2 right-2 rounded-full bg-white p-2 shadow-md border border-stroke hover:bg-gray-50 transition">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    viewBox="0 0 24 24" stroke="currentColor" name="profileImg">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -194,22 +194,23 @@
 
                             <div class="flex items-center gap-4">
                                 <label class="w-24 text-lg font-bold text-black dark:text-white">이름</label>
-                                <input type="text" id="editName"
+                                <input type="text" id="editName" name="name"
                                     class="flex-1 rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary outline-none dark:text-white">
                             </div>
 
                             <div class="flex items-center gap-4">
                                 <label class="w-24 font-medium text-gray-600">부서</label>
-                                <select id="editDept"
+                                <select id="editDept" name="deptId"
                                     class="flex-1 rounded border border-stroke bg-transparent py-2 px-4 outline-none focus:border-primary">
-                                    <option th:each="dept : ${depts}" th:value="${dept.deptId}" th:text="${dept.deptName}">
+                                    <option th:each="dept : ${depts}" th:value="${dept.deptId}"
+                                        th:text="${dept.deptName}">
                                     </option>
                                 </select>
                             </div>
 
                             <div class="flex items-center gap-4">
                                 <label class="w-24 font-medium text-gray-600">직급</label>
-                                <select id="editPosition"
+                                <select id="editPosition" name="positionId"
                                     class="flex-1 rounded border border-stroke bg-transparent py-2 px-4 outline-none focus:border-primary">
                                     <option th:each="pos : ${positions}" th:value="${pos.positionId}"
                                         th:text="${pos.positionName}"></option>
@@ -218,19 +219,19 @@
 
                             <div class="flex items-center gap-4">
                                 <label class="w-24 font-medium text-gray-600">이메일</label>
-                                <input type="email" id="editEmail"
+                                <input type="email" id="editEmail" name="email"
                                     class="flex-1 rounded border border-stroke bg-gray py-2 px-4 focus:border-primary outline-none">
                             </div>
 
                             <div class="flex items-center gap-4">
                                 <label class="w-24 font-medium text-gray-600">연락처</label>
-                                <input type="text" id="editPhone"
+                                <input type="text" id="editPhone" name="phone"
                                     class="flex-1 rounded border border-stroke bg-gray py-2 px-4 focus:border-primary outline-none">
                             </div>
 
                             <div class="flex items-center gap-4">
                                 <label class="w-24 font-medium text-gray-600">생년월일</label>
-                                <input type="text" id="editBirth"
+                                <input type="text" id="editBirth" name="birth"
                                     class="flex-1 rounded border border-stroke bg-gray py-2 px-4 focus:border-primary outline-none">
                             </div>
                         </div>

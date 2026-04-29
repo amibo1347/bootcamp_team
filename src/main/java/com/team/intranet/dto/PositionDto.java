@@ -17,4 +17,5 @@ public class PositionDto {
     public Position toEntity(){
         return new Position(null, positionName, company);
     }
+
 }

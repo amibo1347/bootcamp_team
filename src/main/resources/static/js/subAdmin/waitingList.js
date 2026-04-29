@@ -13,8 +13,17 @@
         const positionElement = document.getElementById(`position-${memberId}`);
         const positionId = positionElement ? positionElement.value : null;
 
+        // deptId도 가져옴
+        const deptElement = document.getElementById(`dept-${memberId}`);
+        const deptId = deptElement ? deptElement.value : null;
+
         if (!positionId) {
             alert("직급을 선택해주세요.");
+            return;
+        }
+
+        if (!deptId) {
+            alert("부서를 선택해주세요.");
             return;
         }
 
@@ -24,9 +33,9 @@
         const params = new URLSearchParams();
         // 컨트롤러 요구사항에 따라 필요시 추가 (현재 디자인상으론 position만 있음)
         params.append('positionId', positionId);
-
+        params.append('deptId', deptId);
         try {
-            const response = await fetch(`/api/admin/accept/${memberId}`, {
+            const response = await fetch(`/api/subAdmin/accept/${memberId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -61,7 +70,7 @@
         const { token, header } = getCsrfToken();
 
         try {
-            const response = await fetch(`/api/admin/reject/${memberId}`, {
+            const response = await fetch(`/api/subAdmin/reject/${memberId}`, {
                 method: 'POST',
                 headers: {
                     [header]: token

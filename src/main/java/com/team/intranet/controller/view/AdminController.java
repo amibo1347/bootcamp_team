@@ -72,14 +72,7 @@ public class AdminController {
         }
         Long companyId = ms.getCompanyId();
 
-        List<Member> filteredMembers = new ArrayList<>();
-
-        if(status != status.WAIT && status != null) { 
-            filteredMembers = memberService.findFilteredMembers(companyId, deptId, status, positionId);
-        }
-        else{
-            filteredMembers = memberService.findAllMembers(companyId);
-        }
+        List<Member> filteredMembers = memberService.findFilteredMembers(companyId, deptId, status, positionId);
 
         List<Dept> depts = deptService.findAll(companyId);
         List<Position> positions = positionService.findAll(companyId);
