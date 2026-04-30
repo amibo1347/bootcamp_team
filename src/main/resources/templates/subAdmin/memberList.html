@@ -53,14 +53,9 @@
 
                     <div
                         class="mb-6 rounded-xl border border-stroke bg-white px-5 py-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
-<<<<<<< HEAD
-                        <form action="/admin/memberList" method="get"
-                            class="flex flex-col sm:flex-row items-end justify-end gap-6">
-=======
                         <form action="/admin/memberList" method="get" id="filterForm"
                             onsubmit="event.preventDefault(); loadMemberList();"
                             class="flex flex-col sm:flex-row items-end justify-between gap-6">
->>>>>>> 3ec842024e4ebe8c86a04756a11a0365e56c2377
 
                             <input type="hidden" name="sort" id="sortInput" th:value="${currentSort}">
 
@@ -79,15 +74,9 @@
 
                             <div class="hidden sm:block h-10 w-[1px] bg-gray-200 dark:bg-strokedark"></div>
 
-<<<<<<< HEAD
                             <div class="flex items-end gap-3 w-full sm:w-auto">
                                 <div class="w-full sm:w-64">
                                     <label class="mb-1 block text-xs font-medium text-gray-500">직원 이름 검색</label>
-=======
-                            <div class="flex w-full items-end gap-3 sm:w-auto">
-                                <div class="w-full sm:w-80"> <label
-                                        class="mb-1 block text-xs font-medium text-gray-500">직원 이름 검색</label>
->>>>>>> 3ec842024e4ebe8c86a04756a11a0365e56c2377
                                     <input type="text" name="name" th:value="${param.name}" placeholder="이름을 입력하세요"
                                         class="w-full rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white" />
                                 </div>
@@ -207,7 +196,7 @@
                                 <svg id="modalDefaultSvg" class="h-24 w-24 text-slate-300" fill="currentColor"
                                     viewBox="0 0 24 24">
                                     <path
-                                        d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.x002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
                                 </svg>
                             </div>
 
