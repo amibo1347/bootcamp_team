@@ -1,6 +1,8 @@
 package com.team.intranet.controller.api;
 
 import com.team.intranet.dto.DeptDto;
+import com.team.intranet.entity.Dept;
+import com.team.intranet.enums.member.Role;
 import com.team.intranet.service.DeptService;
 import com.team.intranet.session.MemberSession;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.List;
+import org.springframework.ui.Model;
 
 @Controller
 @RequestMapping("/api/admin/dept")
@@ -20,46 +24,46 @@ public class DeptApiController {
 
     // 부서 생성 처리
     @PostMapping("/create")
-    @ResponseBody // JSON 또는 텍스트 응답을 위해 추가
-    public ResponseEntity<?> createDept(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
-            @RequestBody DeptDto deptDto) { // @ModelAttribute 대신 @RequestBody 사용
-
-        try {
-            deptService.createDept(ms, deptDto);
-            return ResponseEntity.ok("부서 생성 완료");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(e.getMessage());
+    public String createDept(@RequestBody DeptDto dto, Model model, @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+        
+        if(ms == null || ms.getCompanyId() == null) {
+            return "redirect:/member/login";
         }
+        if(ms.getRole() == Role.USER) {
+            return "redirect:/member/login";
+        }
+        // 1. 부서 생성 로직 수행
+        deptService.createDept(ms, dto);
+
+        // 2. 갱신된 전체 부서 목록을 다시 조회
+        List<Dept> deptList = deptService.findAll(ms.getCompanyId());
+        model.addAttribute("departments", deptList);
+
+        return "admin/managingDept :: #deptListContainer";
     }
 
     // 부서 수정 처리
     @PostMapping("/update/{deptId}")
     public String updateDept(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
             @PathVariable Long deptId,
-            @ModelAttribute DeptDto deptDto,
-            RedirectAttributes redirectAttributes) {
+            @RequestBody DeptDto deptDto) {
         try {
             deptService.updateDept(ms, deptDto, deptId);
-            redirectAttributes.addFlashAttribute("message", "부서 정보가 수정되었습니다.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/member/login";
         }
-        return "redirect:/admin/dept/list";
+        return "admin/managingDept :: #deptListContainer";
     }
 
     // 부서 삭제 처리
     @PostMapping("/delete/{deptId}")
     public String deleteDept(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
-            @PathVariable Long deptId,
-            RedirectAttributes redirectAttributes) {
+            @PathVariable Long deptId) {
         try {
             deptService.deleteDept(ms, deptId);
-            redirectAttributes.addFlashAttribute("message", "부서가 삭제되었습니다.");
+            return "admin/managingDept :: #deptListContainer";
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/member/login";
         }
-        return "redirect:/admin/dept/list";
     }
 }
