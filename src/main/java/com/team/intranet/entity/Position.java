@@ -41,4 +41,13 @@ public class Position {
         position.setCompany(company);
         return position;
     }
+
+    public int getPositionLevel() {
+
+    if (getPositionId() == null) {
+        return 0; 
+    }
+
+        return getPositionId().intValue();
+    }
 }

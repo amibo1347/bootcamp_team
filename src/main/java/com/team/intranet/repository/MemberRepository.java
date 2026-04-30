@@ -19,9 +19,9 @@ public interface MemberRepository extends JpaRepository<Member, Long>{
 
     @Query("SELECT m FROM Member m " +
            "WHERE m.company.companyId = :companyId " +
-           "AND (:deptId IS NULL OR m.dept.id = :deptId) " +
-           "AND (:status IS NULL OR m.status = :status) " +
-           "AND (:positionId IS NULL OR m.position.id = :positionId)")
+           "AND (:deptId IS NULL OR m.dept.deptId = :deptId) " +
+           "AND ((:status IS NULL AND m.status <> Status.WAIT)OR m.status = :status) " +
+           "AND (:positionId IS NULL OR m.position.positionId = :positionId)")
     List<Member> searchMembers(@Param("companyId") Long companyId, 
                                @Param("deptId") Long deptId, 
                                @Param("status") Status status,

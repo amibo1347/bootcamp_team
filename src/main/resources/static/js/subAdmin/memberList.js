@@ -1,29 +1,29 @@
-function fetchMembersByDept() {
-    const deptId = document.querySelector('#deptSelect').value;
-    const container = document.querySelector('#memberListContainer');
+// function fetchMembersByDept() {
+//     const deptId = document.querySelector('#deptSelect').value;
+//     const container = document.querySelector('#memberListContainer');
 
-    const query = deptId ? `?deptId=${encodeURIComponent(deptId)}` : '';
-    fetch(`/subAdmin/memberList/filter${query}`)
-        .then(response => {
-            if (!response.ok) throw new Error('Network response was not ok');
-            return response.text();
-        })
-        .then(html => {
-            // 받아온 HTML 조각으로 컨테이너 내용 교체
-            container.innerHTML = html;
-        })
-        .catch(error => {
-            console.error('필터링 중 오류 발생:', error);
-        });
-}
+//     const query = deptId ? `?deptId=${encodeURIComponent(deptId)}` : '';
+//     fetch(`/admin/memberList/filter${query}`)
+//         .then(response => {
+//             if (!response.ok) throw new Error('Network response was not ok');
+//             return response.text();
+//         })
+//         .then(html => {
+//             // 받아온 HTML 조각으로 컨테이너 내용 교체
+//             container.innerHTML = html;
+//         })
+//         .catch(error => {
+//             console.error('필터링 중 오류 발생:', error);
+//         });
+// }
 
 document.addEventListener('DOMContentLoaded', () => {
     const deptSelect = document.querySelector('#deptSelect');
 
-    if (deptSelect) {
-        // 드롭다운 변경 시 비동기 함수 호출
-        deptSelect.addEventListener('change', fetchMembersByDept);
-    }
+    // if (deptSelect) {
+    //     // 드롭다운 변경 시 비동기 함수 호출
+    //     deptSelect.addEventListener('change', fetchMembersByDept);
+    // }
 
     document.addEventListener('click', (event) => {
         const editButton = event.target.closest('.js-edit-member-btn');
