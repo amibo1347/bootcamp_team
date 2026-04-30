@@ -9,6 +9,32 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+document.addEventListener("DOMContentLoaded", function () {
+    const profileImages = document.querySelectorAll('.profile-img');
+
+    profileImages.forEach(img => {
+        const realSrc = img.getAttribute('data-src');
+        if (realSrc) {
+            // 1. 새로운 이미지 객체를 만들어 로드 시도
+            const tempImg = new Image();
+            tempImg.src = realSrc;
+
+            tempImg.onload = function () {
+                // 로딩 성공 시 실제 이미지 태그에 주소 넣고 보여줌
+                img.src = realSrc;
+                img.style.display = 'block';
+                img.nextElementSibling.style.display = 'none'; // 아바타 숨김
+            };
+
+            tempImg.onerror = function () {
+                // 로딩 실패(404 등) 시 그냥 아바타 유지
+                img.style.display = 'none';
+            };
+        }
+    });
+});
+
+
 // 모달 열기 및 데이터 채우기
 window.openEditModal = (button) => {
     document.querySelector('#editEmpId').value = button.dataset.memberId || '';
@@ -174,6 +200,21 @@ function loadMemberList() {
             const container = document.getElementById('memberListContainer');
             if (container) {
                 container.innerHTML = html;
+
+                // 2. 제목 업데이트 로직 실행
+                const deptSelect = document.getElementById('deptSelect');
+                if (deptSelect) {
+                    // 현재 드롭다운에서 선택된 글자(예: "인사팀") 가져오기
+                    const selectedText = deptSelect.options[deptSelect.selectedIndex].text;
+
+                    // 새로 갈아끼워진 HTML 내부에서 h3 태그 찾기
+                    const titleElement = container.querySelector('#deptTitle');
+                    if (titleElement) {
+                        titleElement.innerText = `${selectedText} 소속 직원 목록`;
+                    }
+                }
+                // 부서 변경할 때마다 어느 부서 소속인지 명시하기 위해 추가함 (예: 인사과 소속 직원 목록)
+
                 // 💡 중요: 목록이 새로 바뀌면 내부의 버튼(수정/삭제 등) 이벤트가 
                 // 끊길 수 있으므로, 여기서 필요한 초기화 함수를 다시 호출해줘야 함
                 // 예: initEditButtons();

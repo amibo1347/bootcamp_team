@@ -17,14 +17,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MemberDto {
-//////////////////////////////
-/// 변수
+   //////////////////////////////
+   /// 변수
    private Long memberId;
    private String loginId;
    private String password;
-   private String passwordCheck;    
-   private String email;    
-   private LocalDateTime createdAt; 
+   private String passwordCheck;
+   private String email;
+   private LocalDateTime createdAt;
    private LocalDateTime acceptedAt;
    private String name;
    private Integer birthYear;
@@ -33,29 +33,31 @@ public class MemberDto {
    private Role role;
    private String phone;
    private Status status;
-   private String companyCode; 
+   private String companyCode;
    private Long companyId;
    private Dept dept;
    private Position position;
    private byte[] profileImg;
 
-//////////////////////////////////
-/// 함수
+   //////////////////////////////////
+   /// 함수
 
    // 생년월일을 LocalDateTime으로 반환하는 메서드
    public LocalDateTime getFullBirthDate() {
-        return LocalDateTime.of(birthYear, birthMonth, birthDay, 0, 0);
-    }
+      return LocalDateTime.of(birthYear, birthMonth, birthDay, 0, 0);
+   }
+
    // 저장
-   public Member toEntity(){
-      return new Member(null, this.loginId, this.password, this.email, LocalDateTime.now(), this.acceptedAt, this.name, getFullBirthDate(), Role.USER, this.phone, Status.WAIT, null, null, null, null);
+   public Member toEntity() {
+      return new Member(null, this.loginId, this.password, this.email, LocalDateTime.now(), this.acceptedAt, this.name,
+            getFullBirthDate(), Role.USER, this.phone, Status.WAIT, null, null, null, null);
    }
 
    // 비밀번호 비교
    public boolean is_Password_Match() {
-    if (password == null || passwordCheck == null) {
-        return false;
-    }
-    return password.equals(passwordCheck);
-}
+      if (password == null || passwordCheck == null) {
+         return false;
+      }
+      return password.equals(passwordCheck);
+   }
 }

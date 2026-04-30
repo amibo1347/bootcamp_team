@@ -72,19 +72,19 @@ public class MemberApiController {
                 return "redirect:/member/signup?error=" + result.name();
         }
     }
-    
+
     // 프로필 사진 조회
     @GetMapping("/{id}/profileImg")
     @ResponseBody
-    public ResponseEntity<byte[]> getProfileImg(@PathVariable Long id) {
+    public ResponseEntity<byte[]> getProfileImg(@PathVariable("id") Long id) {
         byte[] profileImg = memberService.getProfileImg(id);
         if (profileImg != null && profileImg.length > 0) {
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_TYPE, "image/jpeg") 
-                .body(profileImg);
-    } else {
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, "image/jpeg")
+                    .body(profileImg);
+        } else {
 
-        return ResponseEntity.notFound().build();
+            return ResponseEntity.notFound().build();
+        }
     }
-}
 }

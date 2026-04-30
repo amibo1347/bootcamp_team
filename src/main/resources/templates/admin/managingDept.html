@@ -45,7 +45,7 @@
             <!-- ===== Main Content Start ===== -->
 
             <main class="p-8 space-y-8">
-                <h1 class="text-2xl font-black text-gray-900 ml-2">부서 관리</h1>
+                <h2 class="text-2xl font-black text-gray-900 ml-2">부서 관리</h2>
 
                 <section
                     class="p-10 border border-gray-300 rounded-[32px] bg-white shadow-sm flex items-center space-x-8">
@@ -68,7 +68,8 @@
                         <div class="flex-1">
                             <div th:each="dept : ${departments}"
                                 class="flex items-center justify-between p-5 border-b border-gray-400 last:border-b-0 hover:bg-gray-50 transition-colors">
-                                <span class="text-lg font-semibold text-gray-900 ml-4" th:text="${dept.deptName}"></span>
+                                <span class="text-lg font-semibold text-gray-900 ml-4"
+                                    th:text="${dept.deptName}"></span>
 
                                 <div class="flex items-center space-x-3 mr-4">
                                     <button type="button"
@@ -82,7 +83,8 @@
                                 </div>
                             </div>
 
-                            <div th:if="${departments == null or #lists.isEmpty(departments)}" class="p-20 text-center text-gray-400">등록된 부서가 없습니다.</div>
+                            <div th:if="${departments == null or #lists.isEmpty(departments)}"
+                                class="p-20 text-center text-gray-400">등록된 부서가 없습니다.</div>
                         </div>
                         <div class="bg-white flex-1"></div>
                     </div>
