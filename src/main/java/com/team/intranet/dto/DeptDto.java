@@ -13,9 +13,6 @@ public class DeptDto {
     private Long deptId;
     private String deptName;
     private String deptCode;
-    private Company company;
+    private Long companyId;
 
-    public Dept toEntity(){
-        return new Dept(null, deptName, deptCode, company);
-    }
 }
