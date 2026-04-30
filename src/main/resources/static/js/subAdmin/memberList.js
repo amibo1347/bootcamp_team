@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+
 // 모달 열기 및 데이터 채우기
 window.openEditModal = (button) => {
     document.querySelector('#editEmpId').value = button.dataset.memberId || '';
@@ -121,9 +122,9 @@ window.updateMember = async () => {
 window.deleteMember = async (memberId) => {
     if (!confirm("정말로 이 직원을 퇴사 처리하시겠습니까?")) return;
 
-        // 2단계: CSRF 토큰 및 헤더 정보 추출
-        const token = document.querySelector('meta[name="_csrf"]')?.content;
-        const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+    // 2단계: CSRF 토큰 및 헤더 정보 추출
+    const token = document.querySelector('meta[name="_csrf"]')?.content;
+    const header = document.querySelector('meta[name="_csrf_header"]')?.content;
 
     try {
         const response = await fetch(`/api/subAdmin/fire/${memberId}`, {
@@ -156,7 +157,7 @@ function loadMemberList() {
     // 폼 안의 모든 데이터(deptId, name, sort 등)를 가져옴
     const formData = new FormData(form);
     const params = new URLSearchParams(formData);
-    
+
     // AJAX 요청 URL 생성
     const url = `${form.action}?${params.toString()}`;
 
@@ -166,23 +167,38 @@ function loadMemberList() {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(response => {
-        if (!response.ok) throw new Error('네트워크 응답에 문제가 있습니다.');
-        return response.text();
-    })
-    .then(html => {
-        const container = document.getElementById('memberListContainer');
-        if (container) {
-            container.innerHTML = html;
-            // 💡 중요: 목록이 새로 바뀌면 내부의 버튼(수정/삭제 등) 이벤트가 
-            // 끊길 수 있으므로, 여기서 필요한 초기화 함수를 다시 호출해줘야 함
-            // 예: initEditButtons();
-        }
-    })
-    .catch(error => {
-        console.error('AJAX 로드 실패:', error);
-        alert('목록을 불러오는 중 오류가 발생했습니다.');
-    });
+        .then(response => {
+            if (!response.ok) throw new Error('네트워크 응답에 문제가 있습니다.');
+            return response.text();
+        })
+        .then(html => {
+            const container = document.getElementById('memberListContainer');
+            if (container) {
+                container.innerHTML = html;
+
+                // 2. 제목 업데이트 로직 실행
+                const deptSelect = document.getElementById('deptSelect');
+                if (deptSelect) {
+                    // 현재 드롭다운에서 선택된 글자(예: "인사팀") 가져오기
+                    const selectedText = deptSelect.options[deptSelect.selectedIndex].text;
+
+                    // 새로 갈아끼워진 HTML 내부에서 h3 태그 찾기
+                    const titleElement = container.querySelector('#deptTitle');
+                    if (titleElement) {
+                        titleElement.innerText = `${selectedText} 소속 직원 목록`;
+                    }
+                }
+                // 부서 변경할 때마다 어느 부서 소속인지 명시하기 위해 추가함 (예: 인사과 소속 직원 목록)
+
+                // 💡 중요: 목록이 새로 바뀌면 내부의 버튼(수정/삭제 등) 이벤트가 
+                // 끊길 수 있으므로, 여기서 필요한 초기화 함수를 다시 호출해줘야 함
+                // 예: initEditButtons();
+            }
+        })
+        .catch(error => {
+            console.error('AJAX 로드 실패:', error);
+            alert('목록을 불러오는 중 오류가 발생했습니다.');
+        });
 }
 
 /**

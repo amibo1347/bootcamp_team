@@ -35,8 +35,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Member {
 
-//////////////////////////////////
-/// 컬럼
+    //////////////////////////////////
+    /// 컬럼
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "member_id")
@@ -56,7 +56,7 @@ public class Member {
 
     @Column(name = "accepted_at", updatable = true)
     private LocalDateTime acceptedAt; // 승인 날짜
-    
+
     @Column(name = "name")
     private String name;
 
@@ -64,7 +64,7 @@ public class Member {
     @DateTimeFormat(pattern = "yyyyMMdd")
     private LocalDate birthDay;
 
-    @Enumerated(EnumType.STRING)    
+    @Enumerated(EnumType.STRING)
     @Column(name = "role")
     private Role role;
 
@@ -92,10 +92,10 @@ public class Member {
     @Column(name = "profile_img")
     private byte[] profileImg;
 
-///////////////////////////////
-/// 함수
+    ///////////////////////////////
+    /// 함수
 
-     // 승인 대기 상태의 회원 생성
+    // 승인 대기 상태의 회원 생성
     public static Member createPendingMember(MemberDto dto, String encodedPassword, Company company) {
         Member member = new Member();
         member.loginId = dto.getLoginId();
@@ -118,7 +118,7 @@ public class Member {
         this.status = Status.JOIN;
         this.dept = dept;
         this.position = position;
-        this.acceptedAt = LocalDateTime.now(); 
+        this.acceptedAt = LocalDateTime.now();
     }
 
     // 기존 회원 정보 변경

@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.team.intranet.session.MemberSession;
 
@@ -21,6 +22,7 @@ import com.team.intranet.entity.Member;
 import com.team.intranet.enums.member.Status;
 
 import com.team.intranet.service.DeptService;
+import com.team.intranet.dto.MemberDto;
 import com.team.intranet.entity.Dept;
 
 import com.team.intranet.service.PositionService;
@@ -93,9 +95,9 @@ public class AdminController {
 
         String requestedWith = request.getHeader("X-Requested-With");
         if ("XMLHttpRequest".equals(requestedWith)) {
-        // 해당 html 파일 내의 fragment 경로만 리턴
-        return "subAdmin/memberList :: memberListFragment";
-    }
+            // 해당 html 파일 내의 fragment 경로만 리턴
+            return "subAdmin/memberList :: memberListFragment";
+        }
 
         return "subAdmin/memberList";
     }
