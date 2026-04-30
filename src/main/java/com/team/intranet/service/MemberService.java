@@ -1,6 +1,6 @@
 package com.team.intranet.service;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -102,7 +102,7 @@ public class MemberService {
     }
 
     @Transactional
-    public void updateMemberInfo(Long memberId, Long adminId, Long deptId, Long positionId, byte[] profileImg, String phone, String email, String name, LocalDate birthDay) {
+    public void updateMemberInfo(Long memberId, Long adminId, Long deptId, Long positionId, byte[] profileImg, String phone, String email, String name, LocalDateTime birthDay) {
         // 1. 관리자 정보 및 권한 체크
         Member admin = memberRepository.findById(adminId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));

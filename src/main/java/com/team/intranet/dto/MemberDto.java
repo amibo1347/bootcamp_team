@@ -44,8 +44,8 @@ public class MemberDto {
    /// 함수
 
    // 생년월일을 LocalDateTime으로 반환하는 메서드
-   public LocalDate getFullBirthDate() {
-        return LocalDate.of(birthYear, birthMonth, birthDay);
+   public LocalDateTime getFullBirthDate() {
+        return LocalDateTime.of(birthYear, birthMonth, birthDay, 0, 0);
     }
    // 저장
    public Member toEntity() {

@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.team.intranet.dto.MemberDto;
 import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.Status;
@@ -61,8 +62,8 @@ public class Member {
     private String name;
 
     @Column(name = "birth_day")
-    @DateTimeFormat(pattern = "yyyyMMdd")
-    private LocalDate birthDay;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyyMMdd", timezone = "Asia/Seoul")
+    private LocalDateTime birthDay;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
@@ -110,6 +111,7 @@ public class Member {
         member.createdAt = LocalDateTime.now();
         member.dept = dto.getDept();
         member.position = dto.getPosition();
+        member.birthDay = dto.getFullBirthDate();
         return member;
     }
 
@@ -122,7 +124,7 @@ public class Member {
     }
 
     // 기존 회원 정보 변경
-    public void updateInfo(Dept dept, Position position, byte[] profileImg, String phone, String email, String name, LocalDate birthDay) {
+    public void updateInfo(Dept dept, Position position, byte[] profileImg, String phone, String email, String name, LocalDateTime birthDay) {
         this.phone = phone;
         this.email = email;
         this.name = name;
