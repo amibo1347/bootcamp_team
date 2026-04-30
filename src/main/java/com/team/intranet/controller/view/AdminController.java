@@ -70,7 +70,7 @@ public class AdminController {
             @RequestParam(value = "deptId", required = false) Long deptId,
             @RequestParam(value = "positionId", required = false) Long positionId,
             @RequestParam(value = "status", required = false) Status status,
-            @RequestParam(value = "sort", defaultValue = "asc") String sort,
+            @RequestParam(value = "sort", defaultValue = "desc") String sort,
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
             HttpServletRequest request) {
 
