@@ -33,8 +33,10 @@
       <!-- Hamburger Toggle BTN -->
 
       <a href="/" class="lg:hidden">
-        <img class="dark:hidden" src="/images/logo/logo.svg" alt="Logo" />
-        <img class="hidden dark:block" src="/images/logo/logo-dark.svg" alt="Logo" />
+        <img class="dark:hidden" th:if="${logoPath != null}" th:src="${logoPath}" alt="기업 로고" 
+          style="width: 100px; height: auto;" />
+        <img class="hidden dark:block" th:if="${logoPath != null}" th:src="${logoPath}" alt="기업 로고" 
+          style="width: 100px; height: auto;" />
       </a>
 
       <!-- Application nav menu button -->

@@ -27,6 +27,8 @@ public class PositionController {
 
         List<Position> positions = positionService.findAllByCompanyCompanyIdOrderByPositionLevelDESC(ms.getCompanyId());
         model.addAttribute("positions", positions);
+        model.addAttribute("companyId", ms.getCompanyId());
+        model.addAttribute("memberRole", ms.getRole());
         return "admin/managingPosition";
     }
 }

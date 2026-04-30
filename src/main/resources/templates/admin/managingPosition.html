@@ -71,8 +71,6 @@
                         <div class="flex-1" id="positionListContainer">
                             <div th:each="pos : ${positions}" th:id="'pos-row-' + ${pos.positionId}"
                                 class="flex items-center justify-between p-5 border-b border-gray-400 last:border-b-0 hover:bg-gray-50 transition-colors">
-                                <input type="hidden" th:id="'pos-code-' + ${pos.positionId}"
-                                    th:value="${pos.positionCode}">
 
                                 <span th:id="'pos-name-text-' + ${pos.positionId}"
                                     class="text-lg font-semibold text-gray-900 ml-4"
@@ -123,6 +121,7 @@
             <!-- ===== Content Area End ===== -->
         </div>
         <!-- ===== Page Wrapper End ===== -->
+         <script src="/js/admin/position.js"></script>
         <script type="module" src="/js/index.js"></script>
 </body>
 
