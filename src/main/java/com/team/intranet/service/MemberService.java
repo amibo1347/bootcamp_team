@@ -220,8 +220,6 @@ public class MemberService {
     }
 
     public byte[] getProfileImg(Long memberId) {
-        return memberRepository.findById(memberId)
-                .map(Member::getProfileImg)
-                .orElse(null);
+        return memberRepository.findProfileImgById(memberId);
     }
 }

@@ -70,7 +70,10 @@ public class AdminApiController {
             @RequestParam String birthDay,
             HttpSession session) throws IOException {
         
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");        
+        LocalDate parsedBirthDay = null;
+    if (birthDay != null && !birthDay.isBlank()) {
+        parsedBirthDay = LocalDate.parse(birthDay); 
+    }  
         MemberSession ms = (MemberSession) session.getAttribute("memberSession");
         if (ms == null || ms.getRole() != Role.ADMIN){
             return "redirect:/member/login";
@@ -78,7 +81,7 @@ public class AdminApiController {
 
         byte[] imgBytes = (profileImg != null && !profileImg.isEmpty()) ? profileImg.getBytes() : null;
         
-        memberService.updateMemberInfo(memberId, ms.getMemberId(), deptId, positionId, imgBytes, phone, email, name, (birthDay == null || birthDay.isBlank()) ? null : LocalDate.parse(birthDay, formatter));
+        memberService.updateMemberInfo(memberId, ms.getMemberId(), deptId, positionId, imgBytes, phone, email, name, parsedBirthDay);
 
         return "redirect:/admin/memberList";
     }
