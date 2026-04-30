@@ -2,6 +2,7 @@ package com.team.intranet.controller.api;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import org.springframework.core.io.ClassPathResource;
@@ -30,6 +31,13 @@ import lombok.RequiredArgsConstructor;
 public class AdminApiController {
 
     private final MemberService memberService;
+
+    private LocalDateTime parseBirthDay(String input) {
+      if (input == null || input.isBlank()) return null;
+      String digits = input.replaceAll("-", "");           // "2024-02-12" → "20240212"
+      LocalDate date = LocalDate.parse(digits, DateTimeFormatter.ofPattern("yyyyMMdd"));
+      return date.atStartOfDay();
+  }
 
     // 가입 승인용 포스트매핑
     @PostMapping("/accept/{id}")
@@ -74,10 +82,6 @@ public class AdminApiController {
             @RequestParam String birthDay,
             HttpSession session) throws IOException {
         
-        LocalDate parsedBirthDay = null;
-    if (birthDay != null && !birthDay.isBlank()) {
-        parsedBirthDay = LocalDate.parse(birthDay); 
-    }  
         MemberSession ms = (MemberSession) session.getAttribute("memberSession");
         if (ms == null || ms.getRole() != Role.ADMIN){
             return "redirect:/member/login";
@@ -85,7 +89,7 @@ public class AdminApiController {
 
         byte[] imgBytes = (profileImg != null && !profileImg.isEmpty()) ? profileImg.getBytes() : null;
         
-        memberService.updateMemberInfo(memberId, ms.getMemberId(), deptId, positionId, imgBytes, phone, email, name, parsedBirthDay);
+        memberService.updateMemberInfo(memberId, ms.getMemberId(), deptId, positionId, imgBytes, phone, email, name, parseBirthDay(birthDay));
 
         return "redirect:/admin/memberList";
     }

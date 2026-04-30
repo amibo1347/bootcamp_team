@@ -82,8 +82,7 @@ window.updateMember = async () => {
     formData.append('positionId', document.querySelector('#editPosition').value);
     formData.append('email', document.querySelector('#editEmail').value);
     formData.append('phone', document.querySelector('#editPhone').value);
-    formData.append('birthDay', document.querySelector('#editBirth').value);
-
+    formData.append('birthDay', document.querySelector('#editBirth').value.replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3'));
     // 만약 파일이 선택되었다면 파일도 추가
     if (fileInput.files[0]) {
         formData.append('profileImg', fileInput.files[0]);
@@ -106,7 +105,7 @@ window.updateMember = async () => {
         if (response.ok) {
             alert("정보가 성공적으로 수정되었습니다.");
             closeEditModal();
-            location.reload(); // 변경사항 반영을 위해 페이지 새로고침
+            loadMemberList(); 
         } else {
             const errorText = await response.text();
             alert(`수정 실패: ${errorText || '서버 오류가 발생했습니다.'}`);
