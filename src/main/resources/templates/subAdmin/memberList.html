@@ -134,13 +134,6 @@
                                                         alt="프로필"
                                                         class="h-16 w-16 rounded-full object-cover border border-stroke dark:border-strokedark" />
                                                 </div>
-
-                                                <div class="flex flex-col gap-1">
-                                                    <div class="flex flex-wrap items-center gap-2">
-                                                        <span class="text-xl font-bold text-black dark:text-white"
-                                                            th:text="${emp.name}">이름</span>
-                                                    </div>
-                                                </div>
                                             </div>
 
                                             <div class="flex flex-col gap-1">
@@ -171,14 +164,11 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div class="flex flex-col gap-2">
-                                <button type="button"
-                                    class="rounded-md bg-blue-100 px-6 py-1 text-sm font-medium text-blue-600 transition hover:bg-blue-200 js-edit-member-btn"
-                                    th:attr="data-member-id=${emp.memberId},
+                                        <div class="flex flex-col gap-2">
+                                            <button type="button"
+                                                class="rounded-md bg-blue-100 px-6 py-1 text-sm font-medium text-blue-600 transition hover:bg-blue-200 js-edit-member-btn"
+                                                th:attr="data-member-id=${emp.memberId},
                                                          data-member-name=${emp.name},
                                                          data-dept-id=${emp.dept != null ? emp.dept.deptId : ''},
                                                          data-position-id=${emp.position != null ? emp.position.positionId : ''},
@@ -186,12 +176,15 @@
                                                          data-phone=${emp.phone != null ? emp.phone : ''},
                                                          data-birth=${emp.birthDay != null ? #temporals.format(emp.birthDay, 'yyyy-MM-dd') : ''},
                                                          data-profile-img=@{/api/member/{id}/profileImg(id=${emp.memberId})}">
-                                    수정
-                                </button>
-                                <button type="button" th:attr="onclick=|deleteMember(${emp.memberId})|"
-                                    class="rounded-md bg-red-100 px-6 py-1 text-sm font-medium text-red-600 transition hover:bg-red-200">
-                                    퇴사
-                                </button>
+                                                수정
+                                            </button>
+                                            <button type="button" th:attr="onclick=|deleteMember(${emp.memberId})|"
+                                                class="rounded-md bg-red-100 px-6 py-1 text-sm font-medium text-red-600 transition hover:bg-red-200">
+                                                퇴사
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
