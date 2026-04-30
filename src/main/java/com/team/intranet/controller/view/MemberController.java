@@ -5,11 +5,16 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import com.team.intranet.entity.Dept;
+import com.team.intranet.entity.Position;
 import com.team.intranet.service.MemberService;
+import com.team.intranet.service.DeptService;
+import com.team.intranet.service.PositionService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import java.util.List;
 
 @Controller
 @RequestMapping("/member") // 전체 매핑에 member 설정
@@ -19,6 +24,8 @@ public class MemberController {
     ////////////////////////////////////////
 /// 의존성 주입
     private final MemberService memberService;
+    private final DeptService deptService;
+    private final PositionService positionService;
 
     ////////////////////////////////////////
 /// 비즈니스 로직
@@ -45,6 +52,8 @@ public String loginForm(HttpServletRequest request, Model model) {
     Long companyId = (Long) session.getAttribute("verifiedCompanyId");
     String companyCode = (String) session.getAttribute("verifiedCompanyCode");
     String verifiedLogoPath = (String) session.getAttribute("logoPath");
+    List<Dept> departments = deptService.findAll(companyId);
+    List<Position> positions = positionService.findAll(companyId);
     if (companyId == null) {
         return "redirect:login"; // 인증 안 했으면 다시 로그인/모달창으로
     }
@@ -53,6 +62,8 @@ public String loginForm(HttpServletRequest request, Model model) {
     }
     model.addAttribute("companyId", companyId);
     model.addAttribute("companyCode", companyCode);
+    model.addAttribute("departments", departments);
+    model.addAttribute("positions", positions);
     return "member/signup";
 }
 

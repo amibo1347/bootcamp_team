@@ -1,5 +1,6 @@
 package com.team.intranet.service;
 
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -95,11 +96,13 @@ public class MemberService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.POSITION_NOT_FOUND));
 
         // 5. 도메인 모델에 승인 로직 위임
+        System.out.println("승인 전 시간: " + targetMember.getAcceptedAt());
         targetMember.accept(dept, position);
+        System.out.println("승인 후 시간: " + targetMember.getAcceptedAt());
     }
 
     @Transactional
-    public void updateMemberInfo(Long memberId, Long adminId, Long deptId, Long positionId, byte[] profileImg) {
+    public void updateMemberInfo(Long memberId, Long adminId, Long deptId, Long positionId, byte[] profileImg, String phone, String email, String name, LocalDate birthDay) {
         // 1. 관리자 정보 및 권한 체크
         Member admin = memberRepository.findById(adminId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
@@ -124,13 +127,13 @@ public class MemberService {
         Position position = positionRepository.findById(positionId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POSITION_NOT_FOUND));
 
-        if (!dept.getCompany().getCompanyId().equals(admin.getCompany().getCompanyId()) ||
-                !position.getCompany().getCompanyId().equals(admin.getCompany().getCompanyId())) {
+        if (!dept.getCompany().getCompanyId().equals(admin.getCompany().getCompanyId())
+                || !position.getCompany().getCompanyId().equals(admin.getCompany().getCompanyId())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
 
         // 5. 실제 수정 로직 수행 (Dirty Checking 활용)
-        targetMember.updateInfo(dept, position, profileImg);
+        targetMember.updateInfo(dept, position, profileImg, phone, email, name, birthDay);
     }
 
     // 아이디 중복 확인
@@ -174,10 +177,10 @@ public class MemberService {
 
     public List<Member> findFilteredMembers(Long companyId, Long deptId, Status status, Long positionId, String sort) {
         List<Member> members = memberRepository.searchMembers(companyId, deptId, status, positionId);
-        
+
         // 💡 정렬 기준 생성 (Position의 Level 기준)
-         Comparator<Member> comparator = Comparator.comparingInt(m -> 
-         m.getPosition() != null ? m.getPosition().getPositionLevel() : 999);
+        Comparator<Member> comparator = Comparator.comparingInt(m
+                -> m.getPosition() != null ? m.getPosition().getPositionLevel() : 999);
 
         // 💡 sort 값이 "desc"면 정렬 순서를 반전시킴
         if ("desc".equalsIgnoreCase(sort)) {

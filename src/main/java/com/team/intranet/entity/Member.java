@@ -1,6 +1,9 @@
 package com.team.intranet.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+
+import org.springframework.format.annotation.DateTimeFormat;
 
 import com.team.intranet.dto.MemberDto;
 import com.team.intranet.enums.member.Role;
@@ -51,14 +54,15 @@ public class Member {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "accepted_at")
+    @Column(name = "accepted_at", updatable = true)
     private LocalDateTime acceptedAt; // 승인 날짜
     
     @Column(name = "name")
     private String name;
 
     @Column(name = "birth_day")
-    private LocalDateTime birthDay;
+    @DateTimeFormat(pattern = "yyyyMMdd")
+    private LocalDate birthDay;
 
     @Enumerated(EnumType.STRING)    
     @Column(name = "role")
@@ -104,6 +108,8 @@ public class Member {
         member.status = Status.WAIT;
         member.role = Role.USER;
         member.createdAt = LocalDateTime.now();
+        member.dept = dto.getDept();
+        member.position = dto.getPosition();
         return member;
     }
 
@@ -116,10 +122,16 @@ public class Member {
     }
 
     // 기존 회원 정보 변경
-    public void updateInfo(Dept dept, Position position, byte[] profileImg) {
+    public void updateInfo(Dept dept, Position position, byte[] profileImg, String phone, String email, String name, LocalDate birthDay) {
+        this.phone = phone;
+        this.email = email;
+        this.name = name;
+        this.birthDay = birthDay;
+        if (profileImg != null) {
+            this.profileImg = profileImg;
+        }
     this.dept = dept;
     this.position = position;
-    this.profileImg = profileImg;
 }
 
 }

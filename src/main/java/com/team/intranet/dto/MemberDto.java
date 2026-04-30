@@ -48,7 +48,7 @@ public class MemberDto {
     }
    // 저장
    public Member toEntity(){
-      return new Member(null, this.loginId, this.password, this.email, LocalDateTime.now(), this.acceptedAt, this.name, getFullBirthDate(), Role.USER, this.phone, Status.WAIT, null, null, null, null);
+      return new Member(null, this.loginId, this.password, this.email, LocalDateTime.now(), this.acceptedAt, this.name, getFullBirthDate().toLocalDate(), Role.USER, this.phone, Status.WAIT, null, null, null, null);
    }
 
    // 비밀번호 비교
