@@ -7,7 +7,9 @@
         content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
 
-    <!-- csrf 일단 뺐음 -->
+    <!-- csrf 다시 넣었음... -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
 
     <title>
         Managing Positions
@@ -52,10 +54,11 @@
                     <h2 class="text-lg font-semibold text-gray-900">직급 추가 생성</h2>
 
                     <div class="flex items-center space-x-3">
-                        <input type="text" placeholder="직급명"
+                        <input type="text" placeholder="직급명" id="positionNameInput"
                             class="w-64 h-12 px-4 border border-gray-400 outline-none focus:ring-2 focus:ring-indigo-300 transition-all">
                         <button type="button"
-                            class="px-6 py-3 bg-indigo-400 text-white font-medium rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm">
+                            class="px-6 py-3 bg-indigo-400 text-white font-medium rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm"
+                            th:attr="onclick=|createPosition('${companyId}')|">
                             생성
                         </button>
                     </div>
@@ -65,20 +68,41 @@
                     <h2 class="text-lg font-semibold text-gray-900 mb-8">기존 직급 목록</h2>
 
                     <div class="border border-gray-400 overflow-hidden min-h-[400px] flex flex-col">
-                        <div class="flex-1">
-                            <div th:each="pos : ${positions}"
+                        <div class="flex-1" id="positionListContainer">
+                            <div th:each="pos : ${positions}" th:id="'pos-row-' + ${pos.positionId}"
                                 class="flex items-center justify-between p-5 border-b border-gray-400 last:border-b-0 hover:bg-gray-50 transition-colors">
-                                <span class="text-lg font-semibold text-gray-900 ml-4"
+                                <input type="hidden" th:id="'pos-code-' + ${pos.positionId}"
+                                    th:value="${pos.positionCode}">
+
+                                <span th:id="'pos-name-text-' + ${pos.positionId}"
+                                    class="text-lg font-semibold text-gray-900 ml-4"
                                     th:text="${pos.positionName}"></span>
 
+                                <input type="text" th:id="'pos-name-input-' + ${pos.positionId}"
+                                    th:value="${pos.positionName}"
+                                    class="hidden ml-4 text-lg font-semibold border-2 border-indigo-300 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500">
+
                                 <div class="flex items-center space-x-3 mr-4">
-                                    <button type="button"
-                                        class="px-8 py-2.5 bg-indigo-300 text-white font-medium rounded-xl hover:bg-indigo-400 transition-all shadow-sm">
+                                    <button type="button" th:id="'btn-edit-' + ${pos.positionId}"
+                                        class="px-8 py-2.5 bg-indigo-300 text-white font-medium rounded-xl hover:bg-indigo-400 transition-all shadow-sm"
+                                        th:attr="onclick=|toggleEditMode('${pos.positionId}', true)|">
                                         수정
                                     </button>
-                                    <button type="button"
-                                        class="px-8 py-2.5 bg-rose-300 text-white font-medium rounded-xl hover:bg-rose-400 transition-all shadow-sm">
+                                    <button type="button" th:id="'btn-save-' + ${pos.positionId}"
+                                        class="hidden px-8 py-2.5 bg-green-400 text-white font-medium rounded-xl hover:bg-green-500 transition-all shadow-sm"
+                                        th:attr="onclick=|savePosition('${pos.positionId}')|">
+                                        저장
+                                    </button>
+
+                                    <button type="button" th:id="'btn-delete-' + ${pos.positionId}"
+                                        class="px-8 py-2.5 bg-rose-300 text-white font-medium rounded-xl hover:bg-rose-400 transition-all shadow-sm"
+                                        th:attr="onclick=|deletePosition('${pos.positionId}')|">
                                         삭제
+                                    </button>
+                                    <button type="button" th:id="'btn-cancel-' + ${pos.positionId}"
+                                        class="hidden px-8 py-2.5 bg-gray-400 text-white font-medium rounded-xl hover:bg-gray-500 transition-all shadow-sm"
+                                        th:attr="onclick=|toggleEditMode('${pos.positionId}', false)|">
+                                        취소
                                     </button>
                                 </div>
                             </div>
