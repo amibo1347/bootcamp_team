@@ -46,24 +46,34 @@ public class DeptApiController {
     @PostMapping("/update/{deptId}")
     public String updateDept(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
             @PathVariable Long deptId,
-            @RequestBody DeptDto deptDto) {
-        try {
-            deptService.updateDept(ms, deptDto, deptId);
-        } catch (Exception e) {
+            @RequestBody DeptDto deptDto, Model model) {
+        if(ms == null || ms.getCompanyId() == null) {
             return "redirect:/member/login";
         }
+        if(ms.getRole() == Role.USER) {
+            return "redirect:/member/login";
+        }
+        deptService.editDept(ms, deptId, deptDto);
+
+        List<Dept> deptList = deptService.findAll(ms.getCompanyId());
+        model.addAttribute("departments", deptList);
         return "admin/managingDept :: #deptListContainer";
     }
 
     // 부서 삭제 처리
     @PostMapping("/delete/{deptId}")
     public String deleteDept(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
-            @PathVariable Long deptId) {
-        try {
-            deptService.deleteDept(ms, deptId);
-            return "admin/managingDept :: #deptListContainer";
-        } catch (Exception e) {
+            @PathVariable Long deptId, Model model) {
+        if(ms == null || ms.getCompanyId() == null) {
             return "redirect:/member/login";
         }
+        if(ms.getRole() == Role.USER) {
+            return "redirect:/member/login";
+        }
+        deptService.deleteDept(ms, deptId);
+
+        List<Dept> deptList = deptService.findAll(ms.getCompanyId());
+        model.addAttribute("departments", deptList);
+        return "admin/managingDept :: #deptListContainer";
     }
 }
