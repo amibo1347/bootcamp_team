@@ -52,10 +52,11 @@
                     <h2 class="text-lg font-semibold text-gray-900">부서 추가 생성</h2>
 
                     <div class="flex items-center space-x-3">
-                        <input type="text" placeholder="부서명"
+                        <input type="text" placeholder="부서명" id="deptNameInput"
                             class="w-64 h-12 px-4 border border-gray-400 outline-none focus:ring-2 focus:ring-indigo-300 transition-all">
                         <button type="button"
-                            class="px-6 py-3 bg-indigo-400 text-white font-medium rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm">
+                            class="px-6 py-3 bg-indigo-400 text-white font-medium rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm"
+                            th:attr="onclick=|createDept('${companyId}')|">
                             생성
                         </button>
                     </div>
@@ -72,11 +73,13 @@
 
                                 <div class="flex items-center space-x-3 mr-4">
                                     <button type="button"
-                                        class="px-8 py-2.5 bg-indigo-300 text-white font-medium rounded-xl hover:bg-indigo-400 transition-all shadow-sm">
+                                        class="px-8 py-2.5 bg-indigo-300 text-white font-medium rounded-xl hover:bg-indigo-400 transition-all shadow-sm"
+                                        th:attr="onclick=|editDept('${dept.deptId}')|">
                                         수정
                                     </button>
                                     <button type="button"
-                                        class="px-8 py-2.5 bg-rose-300 text-white font-medium rounded-xl hover:bg-rose-400 transition-all shadow-sm">
+                                        class="px-8 py-2.5 bg-rose-300 text-white font-medium rounded-xl hover:bg-rose-400 transition-all shadow-sm"
+                                        th:attr="onclick=|deleteDept('${dept.deptId}')|">
                                         삭제
                                     </button>
                                 </div>
@@ -97,6 +100,7 @@
             <!-- ===== Content Area End ===== -->
         </div>
         <!-- ===== Page Wrapper End ===== -->
+         <script src="/js/admin/dept.js"></script>
         <script type="module" src="/js/index.js"></script>
 </body>
 
