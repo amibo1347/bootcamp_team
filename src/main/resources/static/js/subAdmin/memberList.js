@@ -9,31 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-document.addEventListener("DOMContentLoaded", function () {
-    const profileImages = document.querySelectorAll('.profile-img');
-
-    profileImages.forEach(img => {
-        const realSrc = img.getAttribute('data-src');
-        if (realSrc) {
-            // 1. 새로운 이미지 객체를 만들어 로드 시도
-            const tempImg = new Image();
-            tempImg.src = realSrc;
-
-            tempImg.onload = function () {
-                // 로딩 성공 시 실제 이미지 태그에 주소 넣고 보여줌
-                img.src = realSrc;
-                img.style.display = 'block';
-                img.nextElementSibling.style.display = 'none'; // 아바타 숨김
-            };
-
-            tempImg.onerror = function () {
-                // 로딩 실패(404 등) 시 그냥 아바타 유지
-                img.style.display = 'none';
-            };
-        }
-    });
-});
-
 
 // 모달 열기 및 데이터 채우기
 window.openEditModal = (button) => {

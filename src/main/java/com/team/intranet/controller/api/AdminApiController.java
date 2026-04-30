@@ -84,13 +84,8 @@ public class AdminApiController {
         }
 
         byte[] imgBytes = (profileImg != null && !profileImg.isEmpty()) ? profileImg.getBytes() : null;
-<<<<<<< HEAD
-
-        memberService.updateMemberInfo(memberId, ms.getMemberId(), deptId, positionId, imgBytes);
-=======
         
         memberService.updateMemberInfo(memberId, ms.getMemberId(), deptId, positionId, imgBytes, phone, email, name, parsedBirthDay);
->>>>>>> 5c978de8aaae4610e2fb01e71c107b962ac6f021
 
         return "redirect:/admin/memberList";
     }

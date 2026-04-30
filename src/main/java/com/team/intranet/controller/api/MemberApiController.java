@@ -79,19 +79,6 @@ public class MemberApiController {
     // 프로필 사진 조회
     @GetMapping("/{id}/profileImg")
     @ResponseBody
-<<<<<<< HEAD
-    public ResponseEntity<byte[]> getProfileImg(@PathVariable("id") Long id) {
-        byte[] profileImg = memberService.getProfileImg(id);
-        if (profileImg != null && profileImg.length > 0) {
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_TYPE, "image/jpeg")
-                    .body(profileImg);
-        } else {
-
-            return ResponseEntity.notFound().build();
-        }
-    }
-=======
     public ResponseEntity<byte[]> getProfileImg(@PathVariable Long id) {
         try {
             byte[] profileImg = memberService.getProfileImg(id);
@@ -121,5 +108,4 @@ public class MemberApiController {
     }
 
 
->>>>>>> 5c978de8aaae4610e2fb01e71c107b962ac6f021
 }

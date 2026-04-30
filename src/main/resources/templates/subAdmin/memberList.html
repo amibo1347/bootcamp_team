@@ -130,20 +130,9 @@
                                             <!-- 프로필 사진 -->
                                             <div class="flex items-center gap-4">
                                                 <div class="shrink-0">
-                                                    <img data-src=""
-                                                        th:attr="data-src=@{/api/member/{id}/profileImg(id=${emp.memberId})}"
+                                                    <img th:src="@{/api/member/{id}/profileImg(id=${emp.memberId})}"
                                                         alt="프로필"
-                                                        class="profile-img h-16 w-16 rounded-full object-cover border border-stroke dark:border-strokedark"
-                                                        style="display: none;">
-                                                    <div
-                                                        class="default-avatar flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-gray-400 border border-stroke dark:bg-meta-4 dark:border-strokedark">
-                                                        <svg class="h-10 w-10" fill="none" stroke="currentColor"
-                                                            viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="1.5"
-                                                                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                                                        </svg>
-                                                    </div>
+                                                        class="h-16 w-16 rounded-full object-cover border border-stroke dark:border-strokedark" />
                                                 </div>
 
                                                 <div class="flex flex-col gap-1">
@@ -219,7 +208,6 @@
 
 
     <!-- 직원 정보 수정 카드 모달 -->
-    <!-- 그러나 아직 특정 직원과 연관짓지 못함............ -->
     <div id="editModal" class="fixed inset-0 z-9999 flex items-center justify-center hidden bg-black/50">
         <div
             class="w-full max-w-2xl rounded-2xl border border-stroke bg-white p-8 shadow-2xl dark:border-strokedark dark:bg-boxdark mx-4">

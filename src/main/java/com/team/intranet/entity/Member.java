@@ -122,13 +122,6 @@ public class Member {
     }
 
     // 기존 회원 정보 변경
-<<<<<<< HEAD
-    public void updateInfo(Dept dept, Position position, byte[] profileImg) {
-        this.dept = dept;
-        this.position = position;
-        this.profileImg = profileImg;
-    }
-=======
     public void updateInfo(Dept dept, Position position, byte[] profileImg, String phone, String email, String name, LocalDate birthDay) {
         this.phone = phone;
         this.email = email;
@@ -140,6 +133,5 @@ public class Member {
     this.dept = dept;
     this.position = position;
 }
->>>>>>> 5c978de8aaae4610e2fb01e71c107b962ac6f021
 
 }
