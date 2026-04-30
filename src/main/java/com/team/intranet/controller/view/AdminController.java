@@ -92,7 +92,6 @@ public class AdminController {
         model.addAttribute("selectedPositionId", positionId); // 선택된 직급 ID
         model.addAttribute("selectedStatus", status); // 선택된 상태
         model.addAttribute("currentSort", sort); // 현재 정렬 방식
-
         String requestedWith = request.getHeader("X-Requested-With");
         if ("XMLHttpRequest".equals(requestedWith)) {
             // 해당 html 파일 내의 fragment 경로만 리턴

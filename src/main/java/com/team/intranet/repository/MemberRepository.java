@@ -24,7 +24,7 @@ public interface MemberRepository extends JpaRepository<Member, Long>{
        "WHERE m.company.companyId = :companyId " +
        "AND (:deptId IS NULL OR m.dept.deptId = :deptId) " +
        "AND (:positionId IS NULL OR m.position.positionId = :positionId) " +
-       "AND (:status IS NULL OR m.status = :status) " +
+       "AND (:status IS NULL OR m.status = :status) " + 
        "ORDER BY m.position.positionLevel ASC, m.name ASC")
     List<Member> searchMembers(@Param("companyId") Long companyId, 
                                @Param("deptId") Long deptId, 

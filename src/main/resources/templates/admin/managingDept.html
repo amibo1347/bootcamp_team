@@ -66,7 +66,7 @@
                     <h2 class="text-lg font-semibold text-gray-900 mb-8">기존 부서 목록</h2>
 
                     <div class="border border-gray-400 overflow-hidden min-h-[400px] flex flex-col">
-                        <div class="flex-1">
+                        <div class="flex-1" id="deptListContainer">
                             <div th:each="dept : ${departments}"
                                 class="flex items-center justify-between p-5 border-b border-gray-400 last:border-b-0 hover:bg-gray-50 transition-colors">
                                 <span class="text-lg font-semibold text-gray-900 ml-4"

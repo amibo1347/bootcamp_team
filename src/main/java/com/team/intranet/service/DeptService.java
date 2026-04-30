@@ -93,7 +93,7 @@ public void createDept(MemberSession ms, DeptDto dto) {
 
     // 부서 수정
     @Transactional
-    public void updateDept(MemberSession ms, DeptDto dto, Long deptId){
+    public void editDept(MemberSession ms, Long deptId, DeptDto dto) {
         validateAdmin(ms);
         Dept dept = findDeptAndValidateOwner(ms, deptId);
         
