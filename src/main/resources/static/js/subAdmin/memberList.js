@@ -81,7 +81,7 @@ window.updateMember = async () => {
     formData.append('positionId', document.querySelector('#editPosition').value);
     formData.append('email', document.querySelector('#editEmail').value);
     formData.append('phone', document.querySelector('#editPhone').value);
-    formData.append('birthDate', document.querySelector('#editBirth').value);
+    formData.append('birthDay', document.querySelector('#editBirth').value);
 
     // 만약 파일이 선택되었다면 파일도 추가
     if (fileInput.files[0]) {
