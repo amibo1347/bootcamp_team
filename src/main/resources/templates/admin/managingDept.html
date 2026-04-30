@@ -7,7 +7,9 @@
         content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
 
-    <!-- csrf 일단 뺐음 -->
+    <!-- csrf 다시 넣었음... -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
 
     <title>
         Managing Departure
@@ -67,21 +69,38 @@
 
                     <div class="border border-gray-400 overflow-hidden min-h-[400px] flex flex-col">
                         <div class="flex-1" id="deptListContainer">
-                            <div th:each="dept : ${departments}"
+                            <div th:each="dept : ${departments}" th:id="'dept-row-' + ${dept.deptId}"
                                 class="flex items-center justify-between p-5 border-b border-gray-400 last:border-b-0 hover:bg-gray-50 transition-colors">
-                                <span class="text-lg font-semibold text-gray-900 ml-4"
-                                    th:text="${dept.deptName}"></span>
+                                <input type="hidden" th:id="'dept-code-' + ${dept.deptId}" th:value="${dept.deptCode}">
+
+                                <span th:id="'dept-name-text-' + ${dept.deptId}"
+                                    class="text-lg font-semibold text-gray-900 ml-4" th:text="${dept.deptName}"></span>
+
+                                <input type="text" th:id="'dept-name-input-' + ${dept.deptId}"
+                                    th:value="${dept.deptName}"
+                                    class="hidden ml-4 text-lg font-semibold border-2 border-indigo-300 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500">
 
                                 <div class="flex items-center space-x-3 mr-4">
-                                    <button type="button"
+                                    <button type="button" th:id="'btn-edit-' + ${dept.deptId}"
                                         class="px-8 py-2.5 bg-indigo-300 text-white font-medium rounded-xl hover:bg-indigo-400 transition-all shadow-sm"
-                                        th:attr="onclick=|editDept('${dept.deptId}')|">
+                                        th:attr="onclick=|toggleEditMode('${dept.deptId}', true)|">
                                         수정
                                     </button>
-                                    <button type="button"
+                                    <button type="button" th:id="'btn-save-' + ${dept.deptId}"
+                                        class="hidden px-8 py-2.5 bg-green-400 text-white font-medium rounded-xl hover:bg-green-500 transition-all shadow-sm"
+                                        th:attr="onclick=|saveDept('${dept.deptId}')|">
+                                        저장
+                                    </button>
+
+                                    <button type="button" th:id="'btn-delete-' + ${dept.deptId}"
                                         class="px-8 py-2.5 bg-rose-300 text-white font-medium rounded-xl hover:bg-rose-400 transition-all shadow-sm"
                                         th:attr="onclick=|deleteDept('${dept.deptId}')|">
                                         삭제
+                                    </button>
+                                    <button type="button" th:id="'btn-cancel-' + ${dept.deptId}"
+                                        class="hidden px-8 py-2.5 bg-gray-400 text-white font-medium rounded-xl hover:bg-gray-500 transition-all shadow-sm"
+                                        th:attr="onclick=|toggleEditMode('${dept.deptId}', false)|">
+                                        취소
                                     </button>
                                 </div>
                             </div>
@@ -102,7 +121,7 @@
             <!-- ===== Content Area End ===== -->
         </div>
         <!-- ===== Page Wrapper End ===== -->
-         <script src="/js/admin/dept.js"></script>
+        <script src="/js/admin/dept.js"></script>
         <script type="module" src="/js/index.js"></script>
 </body>
 
