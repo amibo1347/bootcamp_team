@@ -53,11 +53,11 @@ public class AdminController {
 
         List<Member> waitingMembers = memberService.findWaitMembers(companyId);
 
-        // List<Dept> depts = deptService.findAll(companyId);
+        List<Dept> depts = deptService.findAll(companyId);
         List<Position> positions = positionService.findAll(companyId);
 
         model.addAttribute("members", waitingMembers); // 승인 대기중인 회원
-        // model.addAttribute("depts", depts); // 부서 목록
+        model.addAttribute("depts", depts); // 부서 목록
         model.addAttribute("positions", positions); // 직급 목록
 
         // 새로 추가했음 확인!!!!!!

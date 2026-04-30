@@ -1,9 +1,12 @@
 package com.team.intranet.controller.api;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -76,6 +79,7 @@ public class MemberApiController {
     // 프로필 사진 조회
     @GetMapping("/{id}/profileImg")
     @ResponseBody
+<<<<<<< HEAD
     public ResponseEntity<byte[]> getProfileImg(@PathVariable("id") Long id) {
         byte[] profileImg = memberService.getProfileImg(id);
         if (profileImg != null && profileImg.length > 0) {
@@ -87,4 +91,35 @@ public class MemberApiController {
             return ResponseEntity.notFound().build();
         }
     }
+=======
+    public ResponseEntity<byte[]> getProfileImg(@PathVariable Long id) {
+        try {
+            byte[] profileImg = memberService.getProfileImg(id);
+
+            // 1. DB에 이미지가 있는 경우
+            if (profileImg != null && profileImg.length > 0) {
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_TYPE, "image/jpeg")
+                        .body(profileImg);
+            }
+
+            // 2. DB에 없으면 기본 이미지 로드
+            ClassPathResource resource = new ClassPathResource("static/images/user/default_user.jpg");
+
+            if (resource.exists()) {
+                byte[] defaultImg = resource.getInputStream().readAllBytes();
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_TYPE, "image/jpeg") // 파일 확장자에 맞춰 수정
+                        .body(defaultImg);
+            } else {
+                return ResponseEntity.notFound().build(); // 404를 리턴해서 서버가 죽지 않게 함
+            }
+        } catch (Exception e) {
+            e.printStackTrace(); // 어떤 에러인지 콘솔에 상세히 찍음
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+
+>>>>>>> 5c978de8aaae4610e2fb01e71c107b962ac6f021
 }

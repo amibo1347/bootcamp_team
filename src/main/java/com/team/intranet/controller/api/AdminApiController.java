@@ -1,6 +1,8 @@
 package com.team.intranet.controller.api;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
@@ -17,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.team.intranet.service.MemberService;
 import com.team.intranet.session.MemberSession;
+import com.team.intranet.enums.member.Role;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,10 @@ public class AdminApiController {
             @RequestParam Long positionId,
             @SessionAttribute("memberSession") MemberSession ms) {
 
+        if (ms == null || ms.getRole() != Role.ADMIN) {
+            return "redirect:/member/login";
+        }
+
         memberService.acceptMember(memberId, ms.getMemberId(), deptId, positionId);
         return "redirect:/admin/waitingList";
     }
@@ -45,6 +52,10 @@ public class AdminApiController {
     public String rejectMember(
             @PathVariable("id") Long memberId,
             @SessionAttribute("memberSession") MemberSession ms) {
+
+        if (ms == null || ms.getRole() != Role.ADMIN) {
+            return "redirect:/member/login";
+        }
 
         memberService.rejectMember(memberId, ms.getMemberId());
         return "redirect:/admin/waitingList";
@@ -57,15 +68,29 @@ public class AdminApiController {
             @RequestParam Long deptId,
             @RequestParam Long positionId,
             @RequestParam(value = "profileImg", required = false) MultipartFile profileImg,
+            @RequestParam String name,
+            @RequestParam String email,
+            @RequestParam String phone,
+            @RequestParam String birthDay,
             HttpSession session) throws IOException {
-
+        
+        LocalDate parsedBirthDay = null;
+    if (birthDay != null && !birthDay.isBlank()) {
+        parsedBirthDay = LocalDate.parse(birthDay); 
+    }  
         MemberSession ms = (MemberSession) session.getAttribute("memberSession");
-        if (ms == null)
+        if (ms == null || ms.getRole() != Role.ADMIN){
             return "redirect:/member/login";
+        }
 
         byte[] imgBytes = (profileImg != null && !profileImg.isEmpty()) ? profileImg.getBytes() : null;
+<<<<<<< HEAD
 
         memberService.updateMemberInfo(memberId, ms.getMemberId(), deptId, positionId, imgBytes);
+=======
+        
+        memberService.updateMemberInfo(memberId, ms.getMemberId(), deptId, positionId, imgBytes, phone, email, name, parsedBirthDay);
+>>>>>>> 5c978de8aaae4610e2fb01e71c107b962ac6f021
 
         return "redirect:/admin/memberList";
     }
@@ -74,8 +99,9 @@ public class AdminApiController {
     @PostMapping("/fire/{id}")
     public String fireMember(@PathVariable("id") Long memberId, HttpSession session) {
         MemberSession ms = (MemberSession) session.getAttribute("memberSession");
-        if (ms == null)
+        if (ms == null || ms.getRole() != Role.ADMIN){
             return "redirect:/member/login";
+        }
 
         memberService.fireMember(memberId, ms.getMemberId());
 

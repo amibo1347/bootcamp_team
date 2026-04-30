@@ -1,5 +1,6 @@
 package com.team.intranet.dto;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.team.intranet.entity.Company;
@@ -43,10 +44,16 @@ public class MemberDto {
    /// 함수
 
    // 생년월일을 LocalDateTime으로 반환하는 메서드
+<<<<<<< HEAD
    public LocalDateTime getFullBirthDate() {
       return LocalDateTime.of(birthYear, birthMonth, birthDay, 0, 0);
    }
 
+=======
+   public LocalDate getFullBirthDate() {
+        return LocalDate.of(birthYear, birthMonth, birthDay);
+    }
+>>>>>>> 5c978de8aaae4610e2fb01e71c107b962ac6f021
    // 저장
    public Member toEntity() {
       return new Member(null, this.loginId, this.password, this.email, LocalDateTime.now(), this.acceptedAt, this.name,
