@@ -13,6 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.team.intranet.session.MemberSession;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import com.team.intranet.service.MemberService;
 import com.team.intranet.entity.Member;
 import com.team.intranet.enums.member.Status;
@@ -65,14 +68,16 @@ public class AdminController {
             @RequestParam(value = "deptId", required = false) Long deptId,
             @RequestParam(value = "positionId", required = false) Long positionId,
             @RequestParam(value = "status", required = false) Status status,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+            @RequestParam(value = "sort", defaultValue = "asc") String sort,
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+            HttpServletRequest request) {
 
         if (ms == null || ms.getCompanyId() == null) {
             return "redirect:/member/login";
         }
         Long companyId = ms.getCompanyId();
 
-        List<Member> filteredMembers = memberService.findFilteredMembers(companyId, deptId, status, positionId);
+        List<Member> filteredMembers = memberService.findFilteredMembers(companyId, deptId, status, positionId, sort);
 
         List<Dept> depts = deptService.findAll(companyId);
         List<Position> positions = positionService.findAll(companyId);
@@ -84,6 +89,13 @@ public class AdminController {
         model.addAttribute("selectedDeptId", deptId); // 선택된 부서 ID
         model.addAttribute("selectedPositionId", positionId); // 선택된 직급 ID
         model.addAttribute("selectedStatus", status); // 선택된 상태
+        model.addAttribute("currentSort", sort); // 현재 정렬 방식
+
+        String requestedWith = request.getHeader("X-Requested-With");
+        if ("XMLHttpRequest".equals(requestedWith)) {
+        // 해당 html 파일 내의 fragment 경로만 리턴
+        return "subAdmin/memberList :: memberListFragment";
+    }
 
         return "subAdmin/memberList";
     }

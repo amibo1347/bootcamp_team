@@ -25,7 +25,7 @@ public class PositionController {
                                Model model) {
         if (ms == null) return "redirect:/member/login";
 
-        List<Position> positions = positionService.findAll(ms.getCompanyId());
+        List<Position> positions = positionService.findAllByCompanyCompanyIdOrderByPositionLevelDESC(ms.getCompanyId());
         model.addAttribute("positions", positions);
         return "admin/managingPosition";
     }

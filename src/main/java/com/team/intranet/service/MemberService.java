@@ -1,5 +1,6 @@
 package com.team.intranet.service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -171,8 +172,20 @@ public class MemberService {
         return memberRepository.findByCompanyCompanyId(companyId);
     }
 
-    public List<Member> findFilteredMembers(Long companyId, Long deptId, Status status, Long positionId) {
-        return memberRepository.searchMembers(companyId, deptId, status, positionId);
+    public List<Member> findFilteredMembers(Long companyId, Long deptId, Status status, Long positionId, String sort) {
+        List<Member> members = memberRepository.searchMembers(companyId, deptId, status, positionId);
+        
+        // 💡 정렬 기준 생성 (Position의 Level 기준)
+         Comparator<Member> comparator = Comparator.comparingInt(m -> 
+         m.getPosition() != null ? m.getPosition().getPositionLevel() : 999);
+
+        // 💡 sort 값이 "desc"면 정렬 순서를 반전시킴
+        if ("desc".equalsIgnoreCase(sort)) {
+            comparator = comparator.reversed();
+        }
+
+        members.sort(comparator.thenComparing(Member::getName)); // 직급 같으면 이름순
+        return members;
     }
 
     // 1. 가입 반려 처리 (WAIT -> REJECT)
