@@ -52,14 +52,16 @@ public class AdminApiController {
             @PathVariable("id") Long memberId,
             @RequestParam Long deptId,
             @RequestParam Long positionId,
-            @RequestParam("profileImg") MultipartFile profileImg,
+            @RequestParam(value = "profileImg", required = false) MultipartFile profileImg,
             HttpSession session) throws IOException {
 
         MemberSession ms = (MemberSession) session.getAttribute("memberSession");
         if (ms == null)
             return "redirect:/member/login";
 
-        memberService.updateMemberInfo(memberId, ms.getMemberId(), deptId, positionId, profileImg.isEmpty() ? null : profileImg.getBytes());
+        byte[] imgBytes = (profileImg != null && !profileImg.isEmpty()) ? profileImg.getBytes() : null;
+        
+        memberService.updateMemberInfo(memberId, ms.getMemberId(), deptId, positionId, imgBytes);
 
         return "redirect:/admin/memberList";
     }
