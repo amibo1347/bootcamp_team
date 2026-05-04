@@ -10,7 +10,7 @@
     <title>
       테마형 인트라넷
     </title>
-  <link rel="stylesheet" href="/css/output.css" />
+  <link rel="stylesheet" th:href="@{/css/output.css}" />
   </head>
   <body
     x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"

@@ -178,6 +178,34 @@ layer(base);
   }
 }
 
+@layer components {
+  /* 메뉴 아이템 기본 스타일 (Inactive) */
+  /* 기본 상태: 회색 */
+.menu-item {
+  @apply flex items-center gap-3 px-4 py-3 text-gray-500 transition-all;
+}
+
+/* 1. 마우스 오버 시 스타일 (선택되지 않았어도 마우스 대면 변화) */
+.menu-item:hover {
+  @apply bg-gray-100 text-indigo-600;
+}
+
+/* 2. 클릭하여 선택된 상태 (Active) - 파란색 배경 */
+.menu-item-active {
+  @apply bg-indigo-600! text-white!;
+}
+
+/* 하위 메뉴(Dropdown) 스타일 분리 */
+.menu-dropdown-item {
+  @apply py-2 px-4 text-sm text-gray-500 hover:text-indigo-600 transition-colors;
+}
+
+/* 하위 메뉴가 실제로 선택되었을 때만 파란 글씨/배경 */
+.menu-dropdown-item-active {
+  @apply text-indigo-600 font-bold bg-indigo-50 rounded-md;
+}
+}
+
 @utility menu-item {
   @apply text-theme-sm relative flex items-center gap-3 rounded-lg px-3 py-2 font-medium;
 }

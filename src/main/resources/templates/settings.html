@@ -11,7 +11,7 @@
     />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>설정 | 인트라넷</title>
-    <link rel="stylesheet" href="/css/output.css" />
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
   </head>
   <body
     x-data="{ page: 'settings', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"

@@ -8,7 +8,7 @@
     />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>Profile | TailAdmin - Tailwind CSS Admin Dashboard Template</title>
-    <link rel="stylesheet" href="/css/output.css" />
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
   </head>
   <body
     x-data="{ page: 'profile', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false, 'isProfileInfoModal': false, 'isProfileAddressModal': false }"
