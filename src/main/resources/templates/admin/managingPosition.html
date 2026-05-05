@@ -59,6 +59,9 @@
                         <label for="isAdminCheck" class="text-gray-700">관리자</label>
                         <input type="checkbox" id="isAdminCheck"
                             class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                        <label for="positionLevelInput" class="text-gray-700">레벨</label>
+                        <input type="number" id="positionLevelInput" min="0" placeholder="0"
+                            class="w-20 h-12 px-3 border border-gray-400 outline-none focus:ring-2 focus:ring-indigo-300 transition-all">
                         <button type="button"
                             class="px-6 py-3 bg-indigo-400 text-white font-medium rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm"
                             th:attr="onclick=|createPosition('${companyId}')|">
@@ -85,6 +88,12 @@
                                     <input type="checkbox" th:id="'pos-isAdmin-' + ${pos.positionId}"
                                         class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                                         th:checked="${pos.isAdmin}" disabled>
+                                    <span th:id="'pos-level-text-' + ${pos.positionId}"
+                                        class="text-base text-gray-700"
+                                        th:text="${pos.positionLevel}"></span>
+                                    <input type="number" th:id="'pos-level-input-' + ${pos.positionId}"
+                                        th:value="${pos.positionLevel}" min="0"
+                                        class="hidden w-20 h-9 px-2 border-2 border-indigo-300 rounded-lg focus:outline-none focus:border-indigo-500">
                                     <div class="flex items-center space-x-3 mr-4">
                                         <button type="button" th:id="'btn-edit-' + ${pos.positionId}"
                                             class="px-8 py-2.5 bg-indigo-300 text-white font-medium rounded-xl hover:bg-indigo-400 transition-all shadow-sm"

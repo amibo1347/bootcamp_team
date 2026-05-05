@@ -10,13 +10,15 @@ async function createPosition(companyId) {
     const positionName = positionNameInput.value;
     const isAdminCheckbox = document.getElementById('isAdminCheck');
     const isAdmin = isAdminCheckbox.checked;
+    const positionLevelInput = document.getElementById('positionLevelInput');
+    const positionLevel = parseInt(positionLevelInput.value, 10) || 0;
 
     if (!positionName.trim()) {
         alert("직급명을 입력해주세요.");
         return;
     }
 
-    const data = { companyId: companyId, positionName: positionName, isAdmin: isAdmin };
+    const data = { companyId: companyId, positionName: positionName, isAdmin: isAdmin, positionLevel: positionLevel };
     const { token, header } = getCsrfToken();
 
     try {
@@ -36,6 +38,8 @@ async function createPosition(companyId) {
             document.getElementById('positionListContainer').innerHTML = htmlChunk;
 
             positionNameInput.value = ''; // 입력창만 비우기
+            positionLevelInput.value = '';
+            isAdminCheckbox.checked = false;
             alert("직급이 생성되었습니다.");
         } else {
             alert("생성 실패");
@@ -50,6 +54,8 @@ function toggleEditMode(positionId, isEdit) {
     const textSpan = document.getElementById(`pos-name-text-${positionId}`);
     const inputField = document.getElementById(`pos-name-input-${positionId}`);
     const adminCheckbox = document.getElementById(`pos-isAdmin-${positionId}`);
+    const levelTextSpan = document.getElementById(`pos-level-text-${positionId}`);
+    const levelInputField = document.getElementById(`pos-level-input-${positionId}`);
 
     const editBtn = document.getElementById(`btn-edit-${positionId}`);
     const saveBtn = document.getElementById(`btn-save-${positionId}`);
@@ -72,6 +78,11 @@ function toggleEditMode(positionId, isEdit) {
             adminCheckbox.checked = textSpan.dataset.isAdmin === 'true'; // 체크박스 상태 반영
         }
 
+        if (levelTextSpan && levelInputField) {
+            levelTextSpan.classList.add('hidden');
+            levelInputField.classList.remove('hidden');
+        }
+
     } else {
         // 일반 모드로 복귀 (취소 시)
         textSpan.classList.remove('hidden');
@@ -81,6 +92,12 @@ function toggleEditMode(positionId, isEdit) {
         if (adminCheckbox && textSpan) {
             adminCheckbox.setAttribute('disabled', 'disabled'); // 체크박스 비활성화
             adminCheckbox.checked = textSpan.dataset.isAdmin === 'true';
+        }
+
+        if (levelTextSpan && levelInputField) {
+            levelTextSpan.classList.remove('hidden');
+            levelInputField.classList.add('hidden');
+            levelInputField.value = levelTextSpan.innerText; // 입력값 원복
         }
 
         editBtn.classList.remove('hidden');
@@ -96,6 +113,8 @@ async function savePosition(positionId) {
     const newPositionName = inputField.value.trim();
     const adminCheckbox = document.getElementById(`pos-isAdmin-${positionId}`);
     const isAdmin = adminCheckbox ? adminCheckbox.checked : false;
+    const levelInputField = document.getElementById(`pos-level-input-${positionId}`);
+    const positionLevel = levelInputField ? (parseInt(levelInputField.value, 10) || 0) : 0;
 
     if (newPositionName === "") {
         alert("직급명을 입력해주세요.");
@@ -113,7 +132,8 @@ async function savePosition(positionId) {
             },
             body: JSON.stringify({
                 positionName: newPositionName,
-                isAdmin: isAdmin
+                isAdmin: isAdmin,
+                positionLevel: positionLevel
             })
         });
 

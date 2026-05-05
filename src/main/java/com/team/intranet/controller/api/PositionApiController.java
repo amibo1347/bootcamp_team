@@ -30,7 +30,7 @@ public class PositionApiController {
         }
         positionService.createPosition(ms, dto);
 
-        List<PositionDto> positionList = positionService.findAll(ms.getCompanyId())
+        List<PositionDto> positionList = positionService.findAllByCompanyCompanyIdOrderByPositionLevelDESC(ms.getCompanyId())
                 .stream().map(PositionDto::fromEntity)
                 .toList();
         model.addAttribute("positions", positionList);
@@ -52,7 +52,7 @@ public class PositionApiController {
 
         positionService.updatePosition(ms, positionDto, positionId);
         
-        List<PositionDto> positionList = positionService.findAll(ms.getCompanyId())
+        List<PositionDto> positionList = positionService.findAllByCompanyCompanyIdOrderByPositionLevelDESC(ms.getCompanyId())
             .stream().map(PositionDto::fromEntity)
              .toList();
 
@@ -74,7 +74,7 @@ public class PositionApiController {
 
         positionService.deletePosition(ms, positionId);
 
-        List<PositionDto> positionList = positionService.findAll(ms.getCompanyId())
+        List<PositionDto> positionList = positionService.findAllByCompanyCompanyIdOrderByPositionLevelDESC(ms.getCompanyId())
             .stream().map(PositionDto::fromEntity)
             .toList();
         model.addAttribute("positions", positionList);
