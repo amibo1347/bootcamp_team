@@ -67,6 +67,7 @@ public class PositionService {
 
         Position position = Position.createPosition(dto.getPositionName(), company);
         position.setPositionLevel(dto.getPositionLevel());
+        position.setRole(dto.isAdmin() ? Role.SUB_ADMIN : Role.USER);
         positionRepository.save(position);
     }
 
@@ -78,6 +79,8 @@ public class PositionService {
 
         position.setPositionName(dto.getPositionName());
         position.setPositionLevel(dto.getPositionLevel());
+        position.setRole(dto.isAdmin() ? Role.SUB_ADMIN : Role.USER);
+        positionRepository.save(position);
     }
 
     // 직급 삭제

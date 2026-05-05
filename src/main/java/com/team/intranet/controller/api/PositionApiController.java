@@ -1,12 +1,13 @@
 package com.team.intranet.controller.api;
 
 import com.team.intranet.dto.PositionDto;
+import com.team.intranet.enums.member.Role;
 import com.team.intranet.service.PositionService;
 import com.team.intranet.session.MemberSession;
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import java.util.List;
+import org.springframework.ui.Model;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,44 +20,64 @@ public class PositionApiController {
 
     // 직급 생성 처리
     @PostMapping("/create")
-    @ResponseBody // JSON 또는 텍스트 응답을 위해 추가
-    public ResponseEntity<?> createPosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
-                                 @RequestBody PositionDto positionDto) {
-        try {
-            positionService.createPosition(ms, positionDto);
-            return ResponseEntity.ok("직급이 성공적으로 생성되었습니다.");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("직급 생성 실패: " + e.getMessage());
+    public String createPosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+            @RequestBody PositionDto dto, Model model) {
+        if (ms == null || ms.getCompanyId() == null) {
+            return "redirect:/member/login";
         }
+        if (ms.getRole() == Role.USER) {
+            return "redirect:/member/login";
+        }
+        positionService.createPosition(ms, dto);
+
+        List<PositionDto> positionList = positionService.findAll(ms.getCompanyId())
+                .stream().map(PositionDto::fromEntity)
+                .toList();
+        model.addAttribute("positions", positionList);
+        return "admin/managingPosition :: positionListContainer";
     }
 
     // 직급 수정 처리
     @PostMapping("/update/{positionId}")
-    @ResponseBody
-    public ResponseEntity<?> updatePosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
-                                 @PathVariable Long positionId,
-                                 @RequestBody PositionDto positionDto) {
-        try {
-            positionService.updatePosition(ms, positionDto, positionId);
-            return ResponseEntity.ok("직급 정보가 수정되었습니다.");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("직급 수정 실패: " + e.getMessage());
-        }
-    }
+    public String updatePosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+            @PathVariable Long positionId,
+            @RequestBody PositionDto positionDto, Model model) {
 
-    // 직급 삭제 처리
-    @PostMapping("/delete/{positionId}")
-    @ResponseBody
-    public ResponseEntity<?> deletePosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
-                                 @PathVariable Long positionId) {
-        try {
-            positionService.deletePosition(ms, positionId);
-            return ResponseEntity.ok("직급이 삭제되었습니다.");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("직급 삭제 실패: " + e.getMessage());
+        if (ms == null || ms.getCompanyId() == null) {
+            return "redirect:/member/login";
+        }
+        if (ms.getRole() == Role.USER) {
+            return "redirect:/member/login";
+        }
+
+        positionService.updatePosition(ms, positionDto, positionId);
+        
+        List<PositionDto> positionList = positionService.findAll(ms.getCompanyId())
+            .stream().map(PositionDto::fromEntity)
+             .toList();
+
+        model.addAttribute("positions", positionList);
+        return "admin/managingPosition :: positionListContainer";
+        
+        }
+
+        @PostMapping("/delete/{positionId}")
+        public String deletePosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+            @PathVariable Long positionId, Model model) {
+            
+        if(ms == null || ms.getCompanyId() == null) {
+            return "redirect:/member/login";
+        }
+        if(ms.getRole() == Role.USER) {
+            return "redirect:/member/login";
+        }
+
+        positionService.deletePosition(ms, positionId);
+
+        List<PositionDto> positionList = positionService.findAll(ms.getCompanyId())
+            .stream().map(PositionDto::fromEntity)
+            .toList();
+        model.addAttribute("positions", positionList);
+        return "admin/managingPosition :: positionListContainer";
         }
     }
-}

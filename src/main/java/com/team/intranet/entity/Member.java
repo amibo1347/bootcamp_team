@@ -121,6 +121,7 @@ public class Member {
         this.dept = dept;
         this.position = position;
         this.acceptedAt = LocalDateTime.now();
+        this.role = position.getRole();
     }
 
     // 기존 회원 정보 변경
@@ -132,8 +133,9 @@ public class Member {
         if (profileImg != null) {
             this.profileImg = profileImg;
         }
-    this.dept = dept;
-    this.position = position;
-}
+        this.dept = dept;
+        this.position = position;
+        this.role = position.getRole();
+    }
 
 }

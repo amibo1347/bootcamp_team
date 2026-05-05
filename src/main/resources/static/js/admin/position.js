@@ -8,18 +8,24 @@ function getCsrfToken() {
 async function createPosition(companyId) {
     const positionNameInput = document.getElementById('positionNameInput');
     const positionName = positionNameInput.value;
+    const isAdminCheckbox = document.getElementById('isAdminCheck');
+    const isAdmin = isAdminCheckbox.checked;
 
     if (!positionName.trim()) {
         alert("직급명을 입력해주세요.");
         return;
     }
 
-    const data = { companyId: companyId, positionName: positionName };
+    const data = { companyId: companyId, positionName: positionName, isAdmin: isAdmin };
+    const { token, header } = getCsrfToken();
 
     try {
         const response = await fetch('/api/admin/position/create', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                [header]: token
+            },
             body: JSON.stringify(data)
         });
 
@@ -43,6 +49,7 @@ async function createPosition(companyId) {
 function toggleEditMode(positionId, isEdit) {
     const textSpan = document.getElementById(`pos-name-text-${positionId}`);
     const inputField = document.getElementById(`pos-name-input-${positionId}`);
+    const adminCheckbox = document.getElementById(`pos-isAdmin-${positionId}`);
 
     const editBtn = document.getElementById(`btn-edit-${positionId}`);
     const saveBtn = document.getElementById(`btn-save-${positionId}`);
@@ -59,11 +66,22 @@ function toggleEditMode(positionId, isEdit) {
         saveBtn.classList.remove('hidden');
         deleteBtn.classList.add('hidden');
         cancelBtn.classList.remove('hidden');
+
+        if(adminCheckbox && textSpan) {
+            adminCheckbox.removeAttribute('disabled'); // 체크박스 활성화
+            adminCheckbox.checked = textSpan.dataset.isAdmin === 'true'; // 체크박스 상태 반영
+        }
+
     } else {
         // 일반 모드로 복귀 (취소 시)
         textSpan.classList.remove('hidden');
         inputField.classList.add('hidden');
         inputField.value = textSpan.innerText; // 입력값 초기화
+
+        if (adminCheckbox && textSpan) {
+            adminCheckbox.setAttribute('disabled', 'disabled'); // 체크박스 비활성화
+            adminCheckbox.checked = textSpan.dataset.isAdmin === 'true';
+        }
 
         editBtn.classList.remove('hidden');
         saveBtn.classList.add('hidden');
@@ -76,9 +94,8 @@ function toggleEditMode(positionId, isEdit) {
 async function savePosition(positionId) {
     const inputField = document.getElementById(`pos-name-input-${positionId}`);
     const newPositionName = inputField.value.trim();
-
-    // 💡 숨겨둔 posCode 가져오기
-    const posCode = document.getElementById(`pos-code-${positionId}`)?.value;
+    const adminCheckbox = document.getElementById(`pos-isAdmin-${positionId}`);
+    const isAdmin = adminCheckbox ? adminCheckbox.checked : false;
 
     if (newPositionName === "") {
         alert("직급명을 입력해주세요.");
@@ -96,7 +113,7 @@ async function savePosition(positionId) {
             },
             body: JSON.stringify({
                 positionName: newPositionName,
-                posCode: posCode
+                isAdmin: isAdmin
             })
         });
 
@@ -125,7 +142,10 @@ async function deletePosition(positionId) {
     if (!confirm("정말로 이 직급을 삭제하시겠습니까?")) return;
     try {
         const response = await fetch(`/api/admin/position/delete/${positionId}`, {
-            method: 'POST'
+            method: 'POST',
+            headers: {
+                [getCsrfToken().header]: getCsrfToken().token
+            }
         });
         if (response.ok) {
             const htmlChunk = await response.text();

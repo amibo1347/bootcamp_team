@@ -16,8 +16,9 @@ public interface MemberRepository extends JpaRepository<Member, Long>{
     List<Member> findByCompanyCompanyId(Long companyId);
     List<Member> findByStatusAndCompanyCompanyId(Status status, Long companyId);
     boolean existsByLoginId(String loginId);
+    
 
-    @Query("SELECT m.profileImg FROM Member m WHERE m.memberId = :id")
+   @Query("SELECT m.profileImg FROM Member m WHERE m.memberId = :id")
    byte[] findProfileImgById(@Param("id") Long id);
 
     @Query("SELECT m FROM Member m " +
