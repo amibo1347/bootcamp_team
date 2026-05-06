@@ -47,6 +47,7 @@ public class BoardService {
             .orElseThrow(() -> new EntityNotFoundException("직급을 찾을 수 없습니다."));
     }
 
+    // 게시판 전체 조회 (관리자용)
     public List<Board> findAll(Long companyId) {
         if (companyId == null) {
             throw new BusinessException(ErrorCode.COMPANY_NOT_FOUND);
@@ -73,4 +74,29 @@ public Board createBoard(MemberSession ms, BoardDto dto) {
     
     return boardRepository.save(board);
 }
+
+// 게시판 조회 - 로그인한 사용자가 볼 수 있는 게시판만
+public List<BoardDto> findVisibleBoards(MemberSession ms) {
+        return boardRepository.findAllByCompany_CompanyId(ms.getCompanyId())
+            .stream()
+            .filter(Board::getIsActive)            // 활성만
+            .filter(board -> canRead(ms, board))   // 권한 있는 것만
+            .map(BoardDto::from)
+            .toList();
+    }
+
+    private boolean canRead(MemberSession ms, Board board) {
+    return switch (board.getReadScope()) {
+        case ALL -> true;
+        case DEPARTMENT -> 
+            ms.getDeptId() != null
+            && board.getDept() != null
+            && ms.getDeptId().equals(board.getDept().getDeptId());
+        case POSITION -> 
+            ms.getPositionId() != null
+            && board.getPosition() != null
+            && ms.getPositionId().equals(board.getPosition().getPositionId());
+    };
+}
+
 }
