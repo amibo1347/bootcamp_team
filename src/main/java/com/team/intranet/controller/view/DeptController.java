@@ -23,7 +23,9 @@ public class DeptController {
     @GetMapping("/list")
     public String deptList(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
                            Model model) {
-        if (ms == null) return "redirect:/member/login";
+        if (ms == null || ms.getCompanyId() == null) {
+            return "redirect:/member/login";
+        }
 
         List<Dept> depts = deptService.findAll(ms.getCompanyId());
         model.addAttribute("departments", depts);

@@ -1,5 +1,7 @@
 package com.team.intranet.controller.view;
 
+import java.util.List;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -7,31 +9,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.SessionAttribute;
 
-import lombok.RequiredArgsConstructor;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import com.team.intranet.entity.Dept;
+import com.team.intranet.entity.Member;
+import com.team.intranet.entity.Position;
+import com.team.intranet.enums.member.Status;
+import com.team.intranet.service.DeptService;
+import com.team.intranet.service.MemberService;
+import com.team.intranet.service.PositionService;
 import com.team.intranet.session.MemberSession;
 
 import jakarta.servlet.http.HttpServletRequest;
-
-import com.team.intranet.service.MemberService;
-import com.team.intranet.entity.Member;
-import com.team.intranet.enums.member.Status;
-
-import com.team.intranet.service.DeptService;
-import com.team.intranet.dto.MemberDto;
-import com.team.intranet.entity.Dept;
-
-import com.team.intranet.service.PositionService;
-import com.team.intranet.entity.Position;
+import lombok.RequiredArgsConstructor;
 
 @Controller
 @RequestMapping("/admin")
 @RequiredArgsConstructor
-public class AdminController {
+public class SubAdminController {
 
     /////////////////////////////////////
     /// 의존성 주입
