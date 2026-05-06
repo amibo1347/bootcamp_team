@@ -28,6 +28,7 @@ public class GlobalModelAdvice {
         return memberService.getLogoPath(ms.getCompanyId());
     }
     
+    // 게시판 사용자
     @ModelAttribute("boardList")
     public List<BoardDto> boardList(
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {

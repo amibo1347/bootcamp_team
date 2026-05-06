@@ -23,6 +23,7 @@ public class BoardController {
     private final DeptService deptService;
     private final PositionService positionService;
 
+    // 게시판 관리 메인 페이지 (목록 조회)
     @GetMapping("/list")
     public String manageBoard(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
             Model model) {

@@ -57,7 +57,7 @@ public class BoardService {
 
     // 게시판 생성
     @Transactional
-public Board createBoard(MemberSession ms, BoardDto dto) {
+    public Board createBoard(MemberSession ms, BoardDto dto) {
     
     Company company = findCompany(ms.getCompanyId());
     Dept dept = findDept(dto.getDeptId());
@@ -75,8 +75,8 @@ public Board createBoard(MemberSession ms, BoardDto dto) {
     return boardRepository.save(board);
 }
 
-// 게시판 조회 - 로그인한 사용자가 볼 수 있는 게시판만
-public List<BoardDto> findVisibleBoards(MemberSession ms) {
+    // 게시판 조회 - 로그인한 사용자가 볼 수 있는 게시판만
+    public List<BoardDto> findVisibleBoards(MemberSession ms) {
         return boardRepository.findAllByCompany_CompanyId(ms.getCompanyId())
             .stream()
             .filter(Board::getIsActive)            // 활성만
@@ -88,15 +88,34 @@ public List<BoardDto> findVisibleBoards(MemberSession ms) {
     private boolean canRead(MemberSession ms, Board board) {
     return switch (board.getReadScope()) {
         case ALL -> true;
-        case DEPARTMENT -> 
-            ms.getDeptId() != null
-            && board.getDept() != null
-            && ms.getDeptId().equals(board.getDept().getDeptId());
-        case POSITION -> 
-            ms.getPositionId() != null
-            && board.getPosition() != null
-            && ms.getPositionId().equals(board.getPosition().getPositionId());
+        case RESTRICTED -> 
+            (board.getDept() == null || board.getDept().getDeptId().equals(ms.getDeptId())) &&
+            (board.getPosition() == null || board.getPosition().getPositionId().equals(ms.getPositionId()));
     };
 }
 
+    // 게시판 수정
+    @Transactional
+    public void updateBoard(MemberSession ms, Long boardId, BoardDto dto) {
+        Board board = boardRepository.findById(boardId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
+
+        // 2. 관리자 권한 체크
+        if (ms.getRole() != com.team.intranet.enums.member.Role.ADMIN) {
+            throw new BusinessException(ErrorCode.NOT_ADMIN_ROLE);
+        }
+    }
+
+    // 게시판 삭제
+    @Transactional
+    public void deleteBoard(MemberSession ms, Long boardId) {
+        // 1. 게시판 존재 여부 체크
+         Board board = boardRepository.findById(boardId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
+        // 2. 관리자 권한 체크
+        if (ms.getRole() != com.team.intranet.enums.member.Role.ADMIN) {
+            throw new BusinessException(ErrorCode.NOT_ADMIN_ROLE);
+        }
+        boardRepository.delete(board);
+    }   
 }
