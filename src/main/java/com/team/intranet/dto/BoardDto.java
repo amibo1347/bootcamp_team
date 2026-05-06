@@ -10,6 +10,7 @@ import com.team.intranet.enums.board.ReadScope;
 import com.team.intranet.enums.board.ViewType;
 import com.team.intranet.enums.board.WriteScope;
 import com.team.intranet.enums.board.BoardType;
+import com.team.intranet.entity.Board;
 
 @Data
 @NoArgsConstructor
@@ -30,4 +31,22 @@ public class BoardDto {
     
     private Boolean isActive;
     private Boolean isAiUse;
+
+    public static BoardDto from(Board board) {
+    return new BoardDto(
+        board.getBoardId(),
+        board.getBoardName(),
+        board.getCompany() != null ? board.getCompany().getCompanyId() : null,
+        board.getDept() != null ? board.getDept().getDeptId() : null,
+        board.getPosition() != null ? board.getPosition().getPositionId() : null,
+        board.getBoardType(),
+        board.getViewType(),
+        board.getReadScope(),
+        board.getWriteScope(),
+        board.getCommentScope(),
+        board.getAnonymousType(),
+        board.getIsActive(),
+        board.getIsAiUse()
+    );
+}
 }

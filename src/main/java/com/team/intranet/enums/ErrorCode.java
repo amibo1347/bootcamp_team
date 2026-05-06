@@ -2,6 +2,7 @@ package com.team.intranet.enums;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+
 @Getter
 @AllArgsConstructor
 public enum ErrorCode {
@@ -24,7 +25,8 @@ public enum ErrorCode {
     ALREADY_JOIN_MEMBER(400, "이미 승인된 회원입니다"),
     ACCESS_DENIED(403, "해당 데이터에 관한 권한이 없습니다"),
     WAITING_ACCEPT(403, "관리자의 승인을 기다리는 중입니다 "),
-    NOT_ADMIN_ROLE(403, "관리자 권한이 없습니다");
+    NOT_ADMIN_ROLE(403, "관리자 권한이 없습니다"),
+    NOT_BOARD_FOUND(404, "해당 게시판을 찾을 수 없습니다");
 
     // 2. 변수 정의
     private final int status;

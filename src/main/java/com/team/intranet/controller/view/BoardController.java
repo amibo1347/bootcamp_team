@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.SessionAttribute;
 import java.util.List;
 
 import com.team.intranet.service.BoardService;
+import com.team.intranet.service.DeptService;
+import com.team.intranet.service.PositionService;
 import com.team.intranet.session.MemberSession;
 import com.team.intranet.entity.Board;
 
@@ -18,6 +20,8 @@ import com.team.intranet.entity.Board;
 public class BoardController {
     
     private final BoardService boardService;
+    private final DeptService deptService;
+    private final PositionService positionService;
 
     @GetMapping("/list")
     public String manageBoard(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
@@ -29,7 +33,9 @@ public class BoardController {
 
         List<Board> boards = boardService.findAll(ms.getCompanyId());
         model.addAttribute("boards", boards);
-        model.addAttribute("companyId", ms.getCompanyId());       
+        model.addAttribute("companyId", ms.getCompanyId());   
+        model.addAttribute("positions", positionService.findAll(ms.getCompanyId()));
+        model.addAttribute("departments", deptService.findAll(ms.getCompanyId()));
         return "admin/managingBoard";
     }
 }

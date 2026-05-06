@@ -4,9 +4,12 @@
     import com.team.intranet.entity.Company;
     import com.team.intranet.enums.member.Role;
     import java.io.Serializable;
-    import lombok.Getter;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
     @Getter
+    @AllArgsConstructor
     public class MemberSession implements Serializable {
         private static final long serialVersionUID = 1L; // 직렬화 버전 체크용
 
@@ -17,6 +20,10 @@
         private final Role role;            // 권한
         private final Long companyId;       // 기업 id
         private final String companyName;   // 기업 이름
+        private final String positionName;   // 직급 이름
+        private final Long positionId;       // 직급 id
+        private final Integer positionLevel;    // 직급 레벨 (추가)
+        private final Long deptId;          // 부서 id (추가)
 
         // 엔티티를 세션 객체로 변환하는 생성자
         public MemberSession(Member member) {
@@ -27,5 +34,9 @@
             this.role = member.getRole();
             this.companyId = member.getCompany().getCompanyId();
             this.companyName = member.getCompany().getCompanyName();
+            this.positionId = member.getPosition().getPositionId();
+            this.positionName = member.getPosition().getPositionName();
+            this.positionLevel = member.getPosition().getPositionLevel();
+            this.deptId = member.getDept() != null ? member.getDept().getDeptId() : null;
         }
     }
