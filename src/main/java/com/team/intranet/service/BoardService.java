@@ -10,8 +10,11 @@ import com.team.intranet.repository.CompanyRepository;
 import com.team.intranet.repository.PositionRepository;
 
 import jakarta.persistence.EntityNotFoundException;
+import com.team.intranet.exception.BusinessException;
+import com.team.intranet.enums.ErrorCode;
 
 import com.team.intranet.repository.DeptRepository;
+import java.util.List;
 
 import com.team.intranet.entity.Board;
 import com.team.intranet.entity.Company;
@@ -44,9 +47,11 @@ public class BoardService {
             .orElseThrow(() -> new EntityNotFoundException("직급을 찾을 수 없습니다."));
     }
 
-    private Board findAll(Long boardId) {
-        return boardRepository.findById(boardId)
-            .orElseThrow(() -> new EntityNotFoundException("게시판을 찾을 수 없습니다."));
+    public List<Board> findAll(Long companyId) {
+        if (companyId == null) {
+            throw new BusinessException(ErrorCode.COMPANY_NOT_FOUND);
+        }
+        return boardRepository.findAllByCompany_CompanyId(companyId);
     }
 
     // 게시판 생성

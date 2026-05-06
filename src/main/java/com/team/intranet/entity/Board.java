@@ -46,15 +46,15 @@ public class Board {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id")
-    private Company companyId;
+    private Company company;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dept_id")
-    private Dept deptId;
+    private Dept dept;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "position_id")
-    private Position positionId;
+    private Position position;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "view_type")
@@ -93,9 +93,9 @@ public class Board {
         Board board = new Board();
         board.boardName = boardName;
         board.boardType = boardType;
-        board.companyId = company;
-        board.deptId = dept;
-        board.positionId = position;
+        board.company = company;
+        board.dept = dept;
+        board.position = position;
         board.viewType = viewType;
         board.readScope = readScope;
         board.writeScope = writeScope;
