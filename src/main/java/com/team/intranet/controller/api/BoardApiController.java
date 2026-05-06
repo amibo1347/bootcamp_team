@@ -20,7 +20,7 @@ import java.util.List;
 @RequestMapping("/api/admin/board")
 @RequiredArgsConstructor
 public class BoardApiController {
-    
+
     private final BoardService boardService;
 
     // 게시판 생성 처리
