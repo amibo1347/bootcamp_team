@@ -58,7 +58,7 @@
                             <div class="relative z-20 w-full"> <label
                                     class="mb-1 block text-xs font-medium text-gray-500">부서별 조회</label>
                                 <select name="deptId" id="deptSelect" onchange="loadMemberList()"
-                                    class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white">
+                                    class="js-custom-select relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white">
                                     <option value="">전체 부서</option>
                                     <option th:each="dept : ${depts}" th:value="${dept.deptId}"
                                         th:text="${dept.deptName}" th:selected="${dept.deptId == selectedDeptId}">
@@ -241,7 +241,7 @@
                     <div class="flex items-center gap-4">
                         <label class="w-24 font-medium text-gray-600">부서</label>
                         <select id="editDept" name="deptId"
-                            class="flex-1 rounded border border-stroke bg-transparent py-2 px-4 outline-none focus:border-primary">
+                            class="js-custom-select flex-1 rounded border border-stroke bg-transparent py-2 px-4 outline-none focus:border-primary">
                             <option th:each="dept : ${depts}" th:value="${dept.deptId}" th:text="${dept.deptName}">
                             </option>
                         </select>
@@ -250,7 +250,7 @@
                     <div class="flex items-center gap-4">
                         <label class="w-24 font-medium text-gray-600">직급</label>
                         <select id="editPosition" name="positionId"
-                            class="flex-1 rounded border border-stroke bg-transparent py-2 px-4 outline-none focus:border-primary">
+                            class="js-custom-select flex-1 rounded border border-stroke bg-transparent py-2 px-4 outline-none focus:border-primary">
                             <option th:each="pos : ${positions}" th:value="${pos.positionId}"
                                 th:text="${pos.positionName}"></option>
                         </select>

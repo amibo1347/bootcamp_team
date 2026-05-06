@@ -39,10 +39,10 @@
                             <input id="boardName" type="text" required
                                 class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                         </div>
-                        <div>
+                        <div class="relative z-20">
                             <label class="block text-sm text-gray-600 mb-1">게시판 타입</label>
                             <select id="boardType"
-                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                                class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
                                 <option value="NOTICE">공지사항</option>
                                 <option value="POLICY">사내정책</option>
                                 <option value="FREE">자유게시판</option>
@@ -52,38 +52,38 @@
                             </select>
                         </div>
 
-                        <div>
+                        <div class="relative z-20">
                             <label class="block text-sm text-gray-600 mb-1">부서</label>
                             <select id="deptId" required
-                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                                class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
                                 <option value="" disabled selected>부서를 선택하세요</option>
                                 <option th:each="dept : ${departments}" th:value="${dept.deptId}"
                                     th:text="${dept.deptName}"></option>
                             </select>
                         </div>
-                        <div>
+                        <div class="relative z-20">
                             <label class="block text-sm text-gray-600 mb-1">직급</label>
                             <select id="positionId" required
-                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                                class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
                                 <option value="" disabled selected>직급을 선택하세요</option>
                                 <option th:each="pos : ${positions}" th:value="${pos.positionId}"
                                     th:text="${pos.positionName}"></option>
                             </select>
                         </div>
 
-                        <div>
+                        <div class="relative z-20">
                             <label class="block text-sm text-gray-600 mb-1">뷰 타입</label>
                             <select id="viewType"
-                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                                class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
                                 <option value="LIST">목록</option>
                                 <option value="ALBUM">앨범</option>
                                 <option value="CARD">카드</option>
                             </select>
                         </div>
-                        <div>
+                        <div class="relative z-20">
                             <label class="block text-sm text-gray-600 mb-1">읽기 권한</label>
                             <select id="readScope"
-                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                                class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
                                 <option value="ALL">전체</option>
                                 <option value="COMPANY">회사 전체</option>
                                 <option value="DEPARTMENT">부서</option>
@@ -91,20 +91,20 @@
                             </select>
                         </div>
 
-                        <div>
+                        <div class="relative z-20">
                             <label class="block text-sm text-gray-600 mb-1">쓰기 권한</label>
                             <select id="writeScope"
-                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                                class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
                                 <option value="ALL">전체</option>
                                 <option value="COMPANY">회사 전체</option>
                                 <option value="DEPARTMENT">부서</option>
                                 <option value="POSITION">직급</option>
                             </select>
                         </div>
-                        <div>
+                        <div class="relative z-20">
                             <label class="block text-sm text-gray-600 mb-1">댓글 권한</label>
                             <select id="commentScope"
-                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                                class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
                                 <option value="ALL">전체</option>
                                 <option value="COMPANY">회사 전체</option>
                                 <option value="DEPARTMENT">부서</option>
@@ -112,11 +112,11 @@
                             </select>
                         </div>
 
-                        <div>
+                        <div class="relative z-20">
                             <label class="block text-sm text-gray-600 mb-1">익명 여부</label>
                             <select id="anonymousType"
-                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
-                                <option value="NAME">이름</option>
+                                class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                                <option value="NAME">실명</option>
                                 <option value="ANONYMOUS">익명</option>
                             </select>
                         </div>
@@ -212,9 +212,10 @@
                     <input id="editBoardName" type="text" required
                         class="w-full rounded-lg border border-gray-300 px-4 py-2.5" />
                 </div>
-                <div>
+                <div class="relative z-20">
                     <label class="block text-sm text-gray-600 mb-1">게시판 타입</label>
-                    <select id="editBoardType" class="w-full rounded-lg border border-gray-300 px-4 py-2.5">
+                    <select id="editBoardType"
+                        class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5">
                         <option value="NOTICE">공지사항</option>
                         <option value="POLICY">사내정책</option>
                         <option value="FREE">자유게시판</option>
@@ -223,17 +224,19 @@
                         <option value="ARCHIVE">보관함</option>
                     </select>
                 </div>
-                <div>
+                <div class="relative z-20">
                     <label class="block text-sm text-gray-600 mb-1">부서</label>
-                    <select id="editDeptId" required class="w-full rounded-lg border border-gray-300 px-4 py-2.5">
+                    <select id="editDeptId" required
+                        class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5">
                         <option value="" disabled>부서를 선택하세요</option>
                         <option th:each="dept : ${departments}" th:value="${dept.deptId}" th:text="${dept.deptName}">
                         </option>
                     </select>
                 </div>
-                <div>
+                <div class="relative z-20">
                     <label class="block text-sm text-gray-600 mb-1">직급</label>
-                    <select id="editPositionId" required class="w-full rounded-lg border border-gray-300 px-4 py-2.5">
+                    <select id="editPositionId" required
+                        class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5">
                         <option value="" disabled>직급을 선택하세요</option>
                         <option th:each="pos : ${positions}" th:value="${pos.positionId}" th:text="${pos.positionName}">
                         </option>

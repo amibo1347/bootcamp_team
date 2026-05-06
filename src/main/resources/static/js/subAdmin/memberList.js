@@ -1,5 +1,104 @@
+const customSelectMap = new Map();
+
+function closeAllCustomSelects() {
+    customSelectMap.forEach(({ menu, trigger, container }) => {
+        menu.classList.add('hidden');
+        trigger.setAttribute('aria-expanded', 'false');
+        if (container) {
+            container.style.zIndex = '';
+        }
+    });
+}
+
+function syncCustomSelect(selectId) {
+    const ui = customSelectMap.get(selectId);
+    if (!ui) return;
+
+    const { select, triggerText, menu } = ui;
+    const selectedOption = select.options[select.selectedIndex];
+    triggerText.textContent = selectedOption ? selectedOption.textContent : '선택하세요';
+
+    menu.querySelectorAll('button[data-value]').forEach((button) => {
+        const isSelected = button.dataset.value === select.value;
+        button.classList.toggle('bg-indigo-50', isSelected);
+        button.classList.toggle('text-indigo-700', isSelected);
+        button.classList.toggle('font-semibold', isSelected);
+    });
+}
+
+function createCustomSelect(select) {
+    if (!select || select.dataset.customized === 'true') return;
+
+    const container = select.parentElement;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'relative';
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className =
+        'w-full rounded border border-stroke bg-white py-2.5 px-4 text-left text-black focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-form-strokedark dark:bg-meta-4 dark:text-white';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    const triggerInner = document.createElement('div');
+    triggerInner.className = 'flex items-center justify-between';
+    const triggerText = document.createElement('span');
+    triggerText.className = 'truncate';
+    const arrow = document.createElement('span');
+    arrow.className = 'ml-2 text-gray-500';
+    arrow.textContent = '▾';
+    triggerInner.appendChild(triggerText);
+    triggerInner.appendChild(arrow);
+    trigger.appendChild(triggerInner);
+
+    const menu = document.createElement('div');
+    menu.className = 'absolute left-0 top-full z-[10001] mt-1 hidden max-h-64 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg';
+    menu.setAttribute('role', 'listbox');
+
+    Array.from(select.options).forEach((option) => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.dataset.value = option.value;
+        item.disabled = option.disabled;
+        item.className = 'block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-300';
+        item.textContent = option.textContent;
+        item.addEventListener('click', () => {
+            select.value = option.value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            closeAllCustomSelects();
+        });
+        menu.appendChild(item);
+    });
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = !menu.classList.contains('hidden');
+        closeAllCustomSelects();
+        if (!isOpen) {
+            if (container) container.style.zIndex = '9999';
+            menu.classList.remove('hidden');
+            trigger.setAttribute('aria-expanded', 'true');
+        }
+    });
+
+    select.classList.add('hidden');
+    select.insertAdjacentElement('afterend', wrapper);
+    wrapper.appendChild(trigger);
+    wrapper.appendChild(menu);
+    select.dataset.customized = 'true';
+
+    customSelectMap.set(select.id, { select, trigger, triggerText, menu, container });
+    select.addEventListener('change', () => syncCustomSelect(select.id));
+    syncCustomSelect(select.id);
+}
+
+function initCustomSelects() {
+    document.querySelectorAll('.js-custom-select').forEach((select) => createCustomSelect(select));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    const deptSelect = document.querySelector('#deptSelect');
+    initCustomSelects();
+    document.addEventListener('click', () => closeAllCustomSelects());
 
     document.addEventListener('click', (event) => {
         const editButton = event.target.closest('.js-edit-member-btn');
@@ -16,6 +115,8 @@ window.openEditModal = (button) => {
     document.querySelector('#editName').value = button.dataset.memberName || '';
     document.querySelector('#editDept').value = button.dataset.deptId || '';
     document.querySelector('#editPosition').value = button.dataset.positionId || '';
+    document.querySelector('#editDept').dispatchEvent(new Event('change', { bubbles: true }));
+    document.querySelector('#editPosition').dispatchEvent(new Event('change', { bubbles: true }));
     document.querySelector('#editEmail').value = button.dataset.email || '';
     document.querySelector('#editPhone').value = button.dataset.phone || '';
     document.querySelector('#editBirth').value = button.dataset.birth || '';
@@ -174,6 +275,7 @@ function loadMemberList() {
             const container = document.getElementById('memberListContainer');
             if (container) {
                 container.innerHTML = html;
+                initCustomSelects();
 
                 // 2. 제목 업데이트 로직 실행
                 const deptSelect = document.getElementById('deptSelect');
