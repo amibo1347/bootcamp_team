@@ -128,15 +128,156 @@
 
   function initCustomSelects() {
     document
-      .querySelectorAll('#createBoardForm select, #editBoardForm select')
+      .querySelectorAll('#createBoardForm select:not([multiple]), #editBoardForm select:not([multiple])')
       .forEach((select) => createCustomSelect(select));
 
     document.addEventListener('click', () => closeAllCustomSelects());
   }
 
+  function getCheckedRadioValue(name) {
+    return document.querySelector(`input[name="${name}"]:checked`)?.value;
+  }
+
+  function getSelectedNumberValues(id) {
+    return Array.from(document.querySelectorAll(`input[data-multi-group="${id}"]:checked`))
+      .map((checkbox) => Number(checkbox.value))
+      .filter((value) => Number.isFinite(value) && value > 0);
+  }
+
+  function getFirstAvailableGroupValue(id) {
+    const firstCheckbox = document.querySelector(`input[data-multi-group="${id}"]`);
+    const value = Number(firstCheckbox?.value || 0);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }
+
+  function initPermissionPanelToggles() {
+    document.querySelectorAll('button[data-toggle-target]').forEach((button) => {
+      const panelId = button.getAttribute('data-toggle-target');
+      const panel = panelId ? document.getElementById(panelId) : null;
+      const arrow = button.querySelector('[data-toggle-arrow]');
+      if (!panel) return;
+
+      button.addEventListener('click', () => {
+        const willOpen = panel.classList.contains('hidden');
+        panel.classList.toggle('hidden', !willOpen);
+        if (arrow) {
+          arrow.textContent = willOpen ? '▴' : '▾';
+        }
+      });
+    });
+  }
+
+  function initCreatePermissionControls() {
+    const readScope = document.getElementById('readScope');
+    const writeScope = document.getElementById('writeScope');
+    const commentScope = document.getElementById('commentScope');
+    const readLimitedOptions = document.getElementById('readLimitedOptions');
+    const writeLimitedOptions = document.getElementById('writeLimitedOptions');
+    const commentLimitedOptions = document.getElementById('commentLimitedOptions');
+    const deptSelect = document.getElementById('deptId');
+    const positionSelect = document.getElementById('positionId');
+
+    if (!readScope || !writeScope || !commentScope) {
+      return;
+    }
+
+    const syncReadScope = () => {
+      const option = getCheckedRadioValue('readScopeOption') || 'ALL';
+      const isLimited = option === 'DEPARTMENT';
+      readScope.value = option;
+      readLimitedOptions?.classList.toggle('hidden', !isLimited);
+    };
+
+    const syncWriteScope = () => {
+      const option = getCheckedRadioValue('writeScopeOption') || 'ALL';
+      const isLimited = option === 'LIMITED';
+
+      writeLimitedOptions?.classList.toggle('hidden', !isLimited);
+      writeScope.value = isLimited ? 'DEPARTMENT' : 'ALL';
+    };
+
+    const syncCommentScope = () => {
+      const option = getCheckedRadioValue('commentScopeOption') || 'ALL';
+      commentLimitedOptions?.classList.toggle('hidden', option !== 'DEPARTMENT');
+      commentScope.value = option === 'DISABLED' ? 'ALL' : option;
+    };
+
+    document
+      .querySelectorAll('input[name="readScopeOption"]')
+      .forEach((radio) => radio.addEventListener('change', syncReadScope));
+    document
+      .querySelectorAll('input[name="writeScopeOption"]')
+      .forEach((radio) => radio.addEventListener('change', syncWriteScope));
+    document
+      .querySelectorAll('input[name="commentScopeOption"]')
+      .forEach((radio) => radio.addEventListener('change', syncCommentScope));
+
+    syncReadScope();
+    syncWriteScope();
+    syncCommentScope();
+  }
+
   async function onCreateSubmit(e) {
     e.preventDefault();
     const payload = getPayload('');
+    const readScopeOption = getCheckedRadioValue('readScopeOption') || 'ALL';
+    const writeScopeOption = getCheckedRadioValue('writeScopeOption') || 'ALL';
+    const commentScopeOption = getCheckedRadioValue('commentScopeOption') || 'ALL';
+    const readDeptIds = getSelectedNumberValues('deptId');
+    const readPositionIds = getSelectedNumberValues('positionId');
+    const writeDeptIds = getSelectedNumberValues('writeDeptId');
+    const writePositionIds = getSelectedNumberValues('writePositionId');
+    const commentDeptIds = getSelectedNumberValues('commentDeptId');
+    const commentPositionIds = getSelectedNumberValues('commentPositionId');
+    const limitedSelections = [];
+
+    if (readScopeOption === 'DEPARTMENT') {
+      if (!readDeptIds.length || !readPositionIds.length) {
+        alert('읽기 권한 제한을 선택한 경우 부서와 직급을 모두 선택해주세요.');
+        return;
+      }
+      limitedSelections.push({ deptId: readDeptIds[0], positionId: readPositionIds[0], source: '읽기 권한' });
+    }
+
+    if (writeScopeOption === 'LIMITED') {
+      if (!writeDeptIds.length || !writePositionIds.length) {
+        alert('쓰기 권한 제한을 선택한 경우 부서와 직급을 모두 선택해주세요.');
+        return;
+      }
+      limitedSelections.push({ deptId: writeDeptIds[0], positionId: writePositionIds[0], source: '쓰기 권한' });
+    }
+
+    if (commentScopeOption === 'DEPARTMENT') {
+      if (!commentDeptIds.length || !commentPositionIds.length) {
+        alert('댓글 권한 제한을 선택한 경우 부서와 직급을 모두 선택해주세요.');
+        return;
+      }
+      limitedSelections.push({ deptId: commentDeptIds[0], positionId: commentPositionIds[0], source: '댓글 권한' });
+    }
+
+    if (limitedSelections.length > 1) {
+      const first = limitedSelections[0];
+      const hasMismatch = limitedSelections.slice(1).some(
+        (selection) => selection.deptId !== first.deptId || selection.positionId !== first.positionId,
+      );
+      if (hasMismatch) {
+        alert('현재 시스템은 권한별 부서/직급을 따로 저장하지 않습니다. 제한 권한들의 부서/직급을 동일하게 선택해주세요.');
+        return;
+      }
+    }
+
+    if (limitedSelections.length > 0) {
+      payload.deptId = limitedSelections[0].deptId;
+      payload.positionId = limitedSelections[0].positionId;
+    } else {
+      payload.deptId = getFirstAvailableGroupValue('deptId');
+      payload.positionId = getFirstAvailableGroupValue('positionId');
+    }
+
+    if (!payload.deptId || !payload.positionId) {
+      alert('부서와 직급 정보를 확인해주세요.');
+      return;
+    }
 
     try {
       const response = await fetch('/api/admin/board/create', {
@@ -239,6 +380,8 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     initCustomSelects();
+    initPermissionPanelToggles();
+    initCreatePermissionControls();
     document.getElementById('createBoardForm')?.addEventListener('submit', onCreateSubmit);
     document.getElementById('editBoardForm')?.addEventListener('submit', onEditSubmit);
   });

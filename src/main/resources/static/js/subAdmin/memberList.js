@@ -97,6 +97,11 @@ function initCustomSelects() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const editModal = document.querySelector('#editModal');
+    if (editModal && editModal.parentElement !== document.body) {
+        document.body.appendChild(editModal);
+    }
+
     initCustomSelects();
     document.addEventListener('click', () => closeAllCustomSelects());
 
