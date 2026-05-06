@@ -45,77 +45,80 @@
 
 
             <!-- 승인 대기 목록 타이틀 -->
-            <div class="flex items-center mx-4 my-5">
-                <h2 class="text-2xl text-black font-black">
-                    승인 대기 목록
-                </h2>
+            <main class="p-8 space-y-8">
+                <div class="flex items-center">
+                    <h2 class="text-2xl font-black text-gray-900 ml-2">
+                        승인 대기 목록
+                    </h2>
 
-                <span th:if="${count}" class="ml-3 px-4 py-1 text-sm font-medium text-white bg-rose-200 rounded-full">
-                    <span th:text="${count}"></span>명
-                </span>
-            </div>
+                    <span th:if="${count}"
+                        class="ml-3 px-4 py-1 text-sm font-medium text-white bg-rose-200 rounded-full">
+                        <span th:text="${count}"></span>명
+                    </span>
+                </div>
 
-            <div th:each="member : ${members}"
-                class="flex items-center justify-between p-6 mx-4 mb-4 bg-white border border-gray-200 rounded-3xl shadow-sm">
+                <div th:each="member : ${members}"
+                    class="flex items-center justify-between p-6 mx-4 mb-4 bg-white border border-gray-200 rounded-3xl shadow-sm">
 
-                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-4">
 
-                    <!-- 가입 신청 직원 사진 -->
-                    <div class="w-20 h-20 bg-gray-100 rounded-full flex-shrink-0"></div>
+                        <!-- 가입 신청 직원 사진 -->
+                        <div class="w-20 h-20 bg-gray-100 rounded-full flex-shrink-0"></div>
 
-                    <!-- 가입 신청 직원 이름 & 부서 -->
+                        <!-- 가입 신청 직원 이름 & 부서 -->
 
-                    <div class="flex flex-col min-w-[100px]">
-                        <div class="text-base font-bold text-gray-900" th:text="${member.name}"></div>
-                        <div class="text-sm font-semibold text-gray-400">
-                            <span th:if="${member.dept}" th:text="${member.dept.deptName}"></span>
-                            <span th:unless="${member.dept}">소속 없음</span>
+                        <div class="flex flex-col min-w-[100px]">
+                            <div class="text-base font-bold text-gray-900" th:text="${member.name}"></div>
+                            <div class="text-sm font-semibold text-gray-400">
+                                <span th:if="${member.dept}" th:text="${member.dept.deptName}"></span>
+                                <span th:unless="${member.dept}">소속 없음</span>
+                            </div>
+
+                            <input type="hidden" th:id="'dept-' + ${member.memberId}"
+                                th:value="${member.dept != null ? member.dept.deptId : ''}">
                         </div>
 
-                        <input type="hidden" th:id="'dept-' + ${member.memberId}"
-                            th:value="${member.dept != null ? member.dept.deptId : ''}">
+
+                        <!-- 가입 신청 직원 직급 선택 드롭다운 -->
+                        <div x-data="{ open: false, selectedName: '직급 선택', selectedId: '' }" class="relative w-40">
+
+                            <input type="hidden" th:id="'position-' + ${member.memberId}" name="positionId"
+                                :value="selectedId">
+                            <button @click="open = !open" type="button"
+                                class="w-full h-8 px-4 text-left border-2 border-gray-200 rounded-xl bg-white focus:border-blue-400 flex justify-between items-center">
+                                <span x-text="selectedName"></span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+
+                            <div x-show="open" @click.away="open = false"
+                                class="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
+
+                                <button th:each="pos : ${positions}" type="button"
+                                    th:data-pos-name="${pos.positionName}" th:data-pos-id="${pos.positionId}"
+                                    @click="selectedName = $el.dataset.posName; selectedId = $el.dataset.posId; open = false"
+                                    class="w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors text-gray-700"
+                                    th:text="${pos.positionName}">
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-
-                    <!-- 가입 신청 직원 직급 선택 드롭다운 -->
-                    <div x-data="{ open: false, selectedName: '직급 선택', selectedId: '' }" class="relative w-40">
-
-                        <input type="hidden" th:id="'position-' + ${member.memberId}" name="positionId"
-                            :value="selectedId">
-                        <button @click="open = !open" type="button"
-                            class="w-full h-8 px-4 text-left border-2 border-gray-200 rounded-xl bg-white focus:border-blue-400 flex justify-between items-center">
-                            <span x-text="selectedName"></span>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path d="M19 9l-7 7-7-7"></path>
-                            </svg>
+                    <!-- 가입 신청 직원 승인 & 거절 버튼 -->
+                    <div class="flex items-center space-x-3">
+                        <button type="button" th:attr="onclick=|approveMember(${member.memberId})|"
+                            class="h-8 px-8 text-base font-bold text-indigo-700 bg-indigo-200 hover:bg-indigo-300 rounded-xl transition-all shadow-md active:scale-95">
+                            승인
                         </button>
 
-                        <div x-show="open" @click.away="open = false"
-                            class="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
-
-                            <button th:each="pos : ${positions}" type="button" th:data-pos-name="${pos.positionName}"
-                                th:data-pos-id="${pos.positionId}"
-                                @click="selectedName = $el.dataset.posName; selectedId = $el.dataset.posId; open = false"
-                                class="w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors text-gray-700"
-                                th:text="${pos.positionName}">
-                            </button>
-                        </div>
+                        <button type="button" th:attr="onclick=|rejectMember(${member.memberId})|"
+                            class="h-8 px-8 text-base font-bold text-rose-500 bg-rose-100 hover:bg-red-200 rounded-xl transition-all shadow-md active:scale-95">
+                            거절
+                        </button>
                     </div>
                 </div>
-
-                <!-- 가입 신청 직원 승인 & 거절 버튼 -->
-                <div class="flex items-center space-x-3">
-                    <button type="button" th:attr="onclick=|approveMember(${member.memberId})|"
-                        class="h-8 px-8 text-base font-bold text-white bg-blue-400 hover:bg-blue-600 rounded-xl transition-all shadow-md active:scale-95">
-                        승인
-                    </button>
-
-                    <button type="button" th:attr="onclick=|rejectMember(${member.memberId})|"
-                        class="h-8 px-8 text-base font-bold text-white bg-rose-400 hover:bg-red-600 rounded-xl transition-all shadow-md active:scale-95">
-                        거절
-                    </button>
-                </div>
-            </div>
+            </main>
             <!-- ===== Main Content End ===== -->
 
 

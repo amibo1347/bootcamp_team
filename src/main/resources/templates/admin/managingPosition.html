@@ -50,71 +50,89 @@
                 <h2 class="text-2xl font-black text-gray-900 ml-2">직급 관리</h2>
 
                 <section
-                    class="p-10 border border-gray-300 rounded-[32px] bg-white shadow-sm flex items-center space-x-8">
-                    <h2 class="text-lg font-semibold text-gray-900">직급 추가 생성</h2>
+                    class="p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark flex items-center space-x-12">
+                    <h2 class="text-xl font-semibold text-gray-900 flex-shrink-0">직급 추가 생성</h2>
 
-                    <div class="flex items-center space-x-3">
-                        <input type="text" placeholder="직급명" id="positionNameInput"
-                            class="w-64 h-12 px-4 border border-gray-400 outline-none focus:ring-2 focus:ring-indigo-300 transition-all">
-                        <label for="isAdminCheck" class="text-gray-700">관리자</label>
-                        <input type="checkbox" id="isAdminCheck"
-                            class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                        <label for="positionLevelInput" class="text-gray-700">레벨</label>
-                        <input type="number" id="positionLevelInput" min="0" placeholder="0"
-                            class="w-20 h-12 px-3 border border-gray-400 outline-none focus:ring-2 focus:ring-indigo-300 transition-all">
+                    <div class="hidden sm:block h-10 w-[1px] bg-gray-200"></div>
+
+                    <div class="flex items-center space-x-12 ml-2">
+
+                        <div class="flex items-center space-x-8">
+                            <input type="text" placeholder="직급명" id="positionNameInput"
+                                class="w-80 h-12 px-4 border border-gray-400 outline-none focus:ring-2 focus:ring-indigo-300 transition-all rounded-lg">
+
+                            <div class="flex items-center space-x-3">
+                                <label for="positionLevelInput" class="text-gray-700">레벨</label>
+                                <input type="number" id="positionLevelInput" min="0" placeholder="0"
+                                    class="w-16 h-12 px-3 border border-gray-400 outline-none focus:ring-2 focus:ring-indigo-300 transition-all text-center rounded-lg">
+                            </div>
+
+                            <div class="flex items-center space-x-3">
+                                <label for="isAdminCheck" class="text-gray-700">관리자</label>
+                                <input type="checkbox" id="isAdminCheck"
+                                    class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer">
+                            </div>
+                        </div>
+
                         <button type="button"
-                            class="px-6 py-3 bg-indigo-400 text-white font-medium rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm"
+                            class="px-8 py-3 bg-indigo-400 text-white font-medium rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm flex-shrink-0"
                             th:attr="onclick=|createPosition('${companyId}')|">
                             생성
                         </button>
                     </div>
                 </section>
 
-                <section class="p-10 border border-gray-300 rounded-[32px] bg-white shadow-sm">
-                    <h2 class="text-lg font-semibold text-gray-900 mb-8">기존 직급 목록</h2>
+                <section
+                    class="p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <h2 class="text-xl font-semibold ttext-black dark:text-white mb-6">기존 직급 목록</h2>
 
-                    <div class="border border-gray-400 overflow-hidden min-h-[400px] flex flex-col">
+                    <div class="border border-gray-400 rounded-xl overflow-hidden min-h-[400px] flex flex-col">
                         <div class="flex-1" id="positionListContainer">
                             <th:block th:fragment="positionListContainer">
 
                                 <div th:each="pos : ${positions}" th:id="'pos-row-' + ${pos.positionId}"
-                                    class="flex items-center justify-between p-5 border-b border-gray-400 last:border-b-0 hover:bg-gray-50 transition-colors">
-                                    <span th:id="'pos-name-text-' + ${pos.positionId}"
-                                        class="text-lg font-semibold text-gray-900 ml-4" th:text="${pos.positionName}"
-                                        th:attr="data-is-admin=${pos.isAdmin}"></span>
-                                    <input type="text" th:id="'pos-name-input-' + ${pos.positionId}"
-                                        th:value="${pos.positionName}"
-                                        class="hidden ml-4 text-lg font-semibold border-2 border-indigo-300 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500">
-                                    <input type="checkbox" th:id="'pos-isAdmin-' + ${pos.positionId}"
-                                        class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                                        th:checked="${pos.isAdmin}" disabled>
-                                    <span th:id="'pos-level-text-' + ${pos.positionId}"
-                                        class="text-base text-gray-700"
-                                        th:text="${pos.positionLevel}"></span>
-                                    <input type="number" th:id="'pos-level-input-' + ${pos.positionId}"
-                                        th:value="${pos.positionLevel}" min="0"
-                                        class="hidden w-20 h-9 px-2 border-2 border-indigo-300 rounded-lg focus:outline-none focus:border-indigo-500">
-                                    <div class="flex items-center space-x-3 mr-4">
+                                    class="flex items-center p-5 border-b border-gray-400 last:border-b-0 hover:bg-gray-50 transition-colors ">
+
+                                    <div class="w-80 ml-4 flex-shrink-0">
+                                        <span th:id="'pos-name-text-' + ${pos.positionId}"
+                                            class="text-lg font-semibold text-gray-900" th:text="${pos.positionName}"
+                                            th:attr="data-is-admin=${pos.isAdmin}"></span>
+                                        <input type="text" th:id="'pos-name-input-' + ${pos.positionId}"
+                                            th:value="${pos.positionName}"
+                                            class="hidden w-64 text-lg font-semibold border-2 border-indigo-300 rounded-lg py-1 focus:outline-none focus:border-indigo-500">
+                                    </div>
+
+                                    <div class="w-40 flex justify-center items-center flex-shrink-0 space-x-2">
+                                        <span class="text-xs text-gray-400">레벨</span>
+                                        <div class="flex items-center">
+                                            <span th:id="'pos-level-text-' + ${pos.positionId}"
+                                                class="text-base text-gray-700" th:text="${pos.positionLevel}"></span>
+                                            <input type="number" th:id="'pos-level-input-' + ${pos.positionId}"
+                                                th:value="${pos.positionLevel}" min="0"
+                                                class="hidden w-16 h-9 px-2 border-2 border-indigo-300 rounded-lg text-center">
+                                        </div>
+                                    </div>
+
+                                    <div class="w-32 flex justify-center items-center flex-shrink-0 space-x-2">
+                                        <span class="text-xs text-gray-400">관리자</span> <input type="checkbox"
+                                            th:id="'pos-isAdmin-' + ${pos.positionId}"
+                                            class="h-5 w-5 text-indigo-600 border-gray-300 rounded"
+                                            th:checked="${pos.isAdmin}" disabled>
+                                    </div>
+
+                                    <div class="flex-1 flex items-center justify-end space-x-3 mr-4">
                                         <button type="button" th:id="'btn-edit-' + ${pos.positionId}"
-                                            class="px-8 py-2.5 bg-indigo-300 text-white font-medium rounded-xl hover:bg-indigo-400 transition-all shadow-sm"
-                                            th:attr="onclick=|toggleEditMode('${pos.positionId}', true)|">
-                                            수정
-                                        </button>
+                                            class="px-8 py-2.5 bg-indigo-200 text-indigo-700 font-medium rounded-xl hover:bg-indigo-300 transition-all shadow-sm"
+                                            th:attr="onclick=|toggleEditMode('${pos.positionId}', true)|">수정</button>
                                         <button type="button" th:id="'btn-save-' + ${pos.positionId}"
-                                            class="hidden px-8 py-2.5 bg-green-400 text-white font-medium rounded-xl hover:bg-green-500 transition-all shadow-sm"
-                                            th:attr="onclick=|savePosition('${pos.positionId}')|">
-                                            저장
-                                        </button>
+                                            class="hidden px-8 py-2.5 bg-indigo-200 text-indigo-700 font-medium rounded-xl hover:bg-indigo-300 transition-all shadow-sm"
+                                            th:attr="onclick=|savePosition('${pos.positionId}')|">저장</button>
                                         <button type="button" th:id="'btn-delete-' + ${pos.positionId}"
-                                            class="px-8 py-2.5 bg-rose-300 text-white font-medium rounded-xl hover:bg-rose-400 transition-all shadow-sm"
-                                            th:attr="onclick=|deletePosition('${pos.positionId}')|">
-                                            삭제
-                                        </button>
+                                            class="px-8 py-2.5 bg-rose-100 text-rose-500 font-medium rounded-xl hover:bg-rose-200 transition-all shadow-sm"
+                                            th:attr="onclick=|deletePosition('${pos.positionId}')|">삭제</button>
                                         <button type="button" th:id="'btn-cancel-' + ${pos.positionId}"
-                                            class="hidden px-8 py-2.5 bg-gray-400 text-white font-medium rounded-xl hover:bg-gray-500 transition-all shadow-sm"
-                                            th:attr="onclick=|toggleEditMode('${pos.positionId}', false)|">
-                                            취소
-                                        </button>
+                                            class="hidden px-8 py-2.5 bg-gray-200 text-gray-500 font-medium rounded-xl hover:bg-gray-300 transition-all shadow-sm"
+                                            th:attr="onclick=|toggleEditMode('${pos.positionId}', false)|">취소</button>
                                     </div>
                                 </div>
                                 <div th:if="${positions == null or #lists.isEmpty(positions)}"
