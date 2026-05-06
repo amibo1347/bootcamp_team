@@ -16,7 +16,7 @@ public class PositionDto {
     private Long positionId;
     private String positionName;
     private Company company;
-    private int positionLevel;
+    private Integer positionLevel;
 
     @JsonProperty("isAdmin")
     private boolean isAdmin;
