@@ -2,6 +2,6 @@ package com.team.intranet.enums.board;
 
 public enum CommentScope {
     ALL,            // 전체
-    DEPARTMENT,     // 부서
-    POSITION       // 직급
+    RESTRICTED,     // 제한
+    NONE            // 댓글 허용 안함
 }
