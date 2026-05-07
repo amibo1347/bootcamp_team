@@ -1,10 +1,10 @@
 (() => {
   const csrfToken = document.querySelector('meta[name="_csrf"]')?.content || '';
   const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || 'X-CSRF-TOKEN';
+  let editor = null;
 
   function getHeaders() {
     return {
-      'Content-Type': 'application/json',
       [csrfHeader]: csrfToken,
     };
   }
@@ -13,23 +13,51 @@
     return document.getElementById(id)?.value?.trim() || '';
   }
 
-  function parseTags(rawTags) {
-    return rawTags
-      .split(',')
-      .map((tag) => tag.trim())
-      .filter((tag) => tag.length > 0);
+  function syncEditorContentToTextarea() {
+    if (!editor) return;
+    const contentElement = document.getElementById('content');
+    if (!contentElement) return;
+    contentElement.value = editor.getMarkdown().trim();
+  }
+
+  function initEditor() {
+    const editorRoot = document.getElementById('contentEditor');
+    if (!editorRoot || !window.toastui?.Editor) return;
+
+    editor = new window.toastui.Editor({
+      el: editorRoot,
+      height: '420px',
+      initialEditType: 'wysiwyg',
+      previewStyle: 'vertical',
+      language: 'ko-KR',
+      placeholder: '게시글 내용을 입력하세요',
+    });
+
+    editor.on('change', syncEditorContentToTextarea);
+    syncEditorContentToTextarea();
   }
 
   function buildPayload() {
+    syncEditorContentToTextarea();
     const boardId = Number(document.getElementById('boardId')?.value || 0);
     return {
       boardId: Number.isFinite(boardId) && boardId > 0 ? boardId : null,
       title: getTrimmedValue('title'),
-      summary: getTrimmedValue('summary'),
       content: getTrimmedValue('content'),
-      authorName: getTrimmedValue('authorName'),
-      tags: parseTags(getTrimmedValue('tags')),
     };
+  }
+
+  function buildFormData(payload) {
+    const formData = new FormData();
+    formData.append('payload', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+
+    const files = document.getElementById('attachments')?.files;
+    if (files && files.length > 0) {
+      Array.from(files).forEach((file) => {
+        formData.append('attachments', file);
+      });
+    }
+    return formData;
   }
 
   function validate(payload) {
@@ -61,10 +89,11 @@
 
     try {
       if (submitButton) submitButton.disabled = true;
+      const formData = buildFormData(payload);
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -73,6 +102,10 @@
 
       alert('게시글이 등록되었습니다.');
       event.currentTarget.reset();
+      if (editor) {
+        editor.setMarkdown('');
+        syncEditorContentToTextarea();
+      }
     } catch (error) {
       alert(error?.message || '요청 처리 중 오류가 발생했습니다.');
     } finally {
@@ -81,6 +114,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    initEditor();
     document.getElementById('postCreateForm')?.addEventListener('submit', submitPost);
   });
 })();

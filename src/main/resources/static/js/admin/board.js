@@ -347,75 +347,6 @@
     const writeScopeOption = getCheckedRadioValue('writeScopeOption') || 'ALL';
     const commentScopeOption = getCheckedRadioValue('commentScopeOption') || 'ALL';
 
-<<<<<<< HEAD
-    if (readScopeOption === 'RESTRICTED') {
-      if (!readDeptIds.length && !readPositionIds.length) {
-        alert('읽기 권한 제한을 선택한 경우 부서 또는 직급을 선택해주세요.');
-        return;
-      }
-      limitedSelections.push({
-        deptId: readDeptIds[0] || null,
-        positionId: readPositionIds[0] || null,
-        source: '읽기 권한',
-      });
-    }
-
-    if (writeScopeOption === 'RESTRICTED') {
-      if (!writeDeptIds.length && !writePositionIds.length) {
-        alert('쓰기 권한 제한을 선택한 경우 부서 또는 직급을 선택해주세요.');
-        return;
-      }
-      limitedSelections.push({
-        deptId: writeDeptIds[0] || null,
-        positionId: writePositionIds[0] || null,
-        source: '쓰기 권한',
-      });
-    }
-
-    if (commentScopeOption === 'RESTRICTED') {
-      if (!commentDeptIds.length && !commentPositionIds.length) {
-        alert('댓글 권한 제한을 선택한 경우 부서 또는 직급을 선택해주세요.');
-        return;
-      }
-      limitedSelections.push({
-        deptId: commentDeptIds[0] || null,
-        positionId: commentPositionIds[0] || null,
-        source: '댓글 권한',
-      });
-    }
-
-    if (limitedSelections.length > 0) {
-      const deptCandidates = limitedSelections.map((selection) => selection.deptId).filter(Boolean);
-      const positionCandidates = limitedSelections.map((selection) => selection.positionId).filter(Boolean);
-      const resolvedDeptId = deptCandidates[0] || null;
-      const resolvedPositionId = positionCandidates[0] || null;
-      const hasDeptMismatch = deptCandidates.some((deptId) => deptId !== resolvedDeptId);
-      const hasPositionMismatch = positionCandidates.some((positionId) => positionId !== resolvedPositionId);
-
-      if (hasDeptMismatch || hasPositionMismatch) {
-        alert('현재 시스템은 권한별 부서/직급을 따로 저장하지 않습니다. 제한 권한들의 부서/직급을 동일하게 선택해주세요.');
-        return;
-      }
-
-      payload.deptId = resolvedDeptId;
-      payload.positionId = resolvedPositionId;
-    } else {
-      payload.deptId = getFirstAvailableGroupValue('deptId');
-      payload.positionId = getFirstAvailableGroupValue('positionId');
-    }
-
-    if (!payload.deptId) {
-      payload.deptId = getFirstAvailableGroupValue('deptId');
-    }
-    if (!payload.positionId) {
-      payload.positionId = getFirstAvailableGroupValue('positionId');
-    }
-
-    if (!payload.deptId || !payload.positionId) {
-      alert('부서와 직급 정보를 확인해주세요.');
-      return;
-    }
-=======
     // 라디오가 "제한"이 아닌 경우엔 빈 배열 → 백엔드는 ALL로 인식
     payload.readDeptIds = readScopeOption === 'DEPARTMENT' ? getSelectedNumberValues('deptId') : [];
     payload.readPositionIds = readScopeOption === 'DEPARTMENT' ? getSelectedNumberValues('positionId') : [];
@@ -423,7 +354,6 @@
     payload.writePositionIds = writeScopeOption === 'LIMITED' ? getSelectedNumberValues('writePositionId') : [];
     payload.commentDeptIds = commentScopeOption === 'DEPARTMENT' ? getSelectedNumberValues('commentDeptId') : [];
     payload.commentPositionIds = commentScopeOption === 'DEPARTMENT' ? getSelectedNumberValues('commentPositionId') : [];
->>>>>>> b9ca142fdd642b07b81fb50dac7103e4d0de923d
 
     try {
       const response = await fetch('/api/admin/board/create', {
@@ -571,11 +501,7 @@
     }
 
     try {
-<<<<<<< HEAD
-      const response = await fetch(`/api/admin/board/update/${payload.boardId}`, {
-=======
       const response = await fetch('/api/admin/board/update', {
->>>>>>> b9ca142fdd642b07b81fb50dac7103e4d0de923d
         method: 'POST',
         headers: headers(),
         body: JSON.stringify(payload),
@@ -623,11 +549,7 @@
     initCustomSelects();
     initPermissionPanelToggles();
     initCreatePermissionControls();
-<<<<<<< HEAD
-    initEditPermissionControls();
-=======
     initSelectAllControls();
->>>>>>> b9ca142fdd642b07b81fb50dac7103e4d0de923d
     document.getElementById('createBoardForm')?.addEventListener('submit', onCreateSubmit);
     document.getElementById('editBoardForm')?.addEventListener('submit', onEditSubmit);
   });

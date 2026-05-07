@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title th:text="${board.boardName} + ' - 앨범형'">게시판 앨범형</title>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body
+    x-data="{ page: 'board', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
+    x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{ 'dark bg-gray-900': darkMode === true }">
+
+    <div th:replace="~{partials/preloader}"></div>
+
+    <div class="flex h-screen overflow-hidden">
+        <div th:replace="~{partials/sidebar}"></div>
+
+        <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+            <div th:replace="~{partials/overlay}"></div>
+            <div th:replace="~{partials/header}"></div>
+
+            <main class="space-y-6 p-8">
+                <section class="flex flex-wrap items-center justify-between gap-3">
+                    <h2 class="text-2xl font-black text-gray-900 dark:text-white" th:text="${board.boardName}">게시판</h2>
+                    <a th:href="@{/board/{id}/posts/create(id=${board.boardId})}"
+                        class="rounded-xl bg-indigo-400 px-6 py-2.5 font-medium text-white hover:bg-indigo-500">
+                        글쓰기
+                    </a>
+                </section>
+
+                <section th:if="${posts != null and !#lists.isEmpty(posts)}"
+                    class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    <article th:each="post : ${posts}"
+                        class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                        <img th:if="${post.thumbnailUrl != null and !#strings.isEmpty(post.thumbnailUrl)}" th:src="${post.thumbnailUrl}"
+                            alt="thumbnail" class="h-48 w-full object-cover" />
+                        <div th:unless="${post.thumbnailUrl != null and !#strings.isEmpty(post.thumbnailUrl)}"
+                            class="flex h-48 items-center justify-center bg-gray-100 text-sm text-gray-400 dark:bg-meta-4/60">
+                            이미지 없음
+                        </div>
+                        <div class="space-y-2 p-4">
+                            <h3 class="line-clamp-1 text-base font-semibold text-gray-900 dark:text-white"
+                                th:text="${post.title}">제목</h3>
+                            <p class="line-clamp-2 text-sm text-gray-600 dark:text-gray-300" th:text="${post.summary}">요약</p>
+                            <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                                <span th:text="${post.authorName}">작성자</span>
+                                <span th:text="${post.createdAt}">2026-05-07</span>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <section th:if="${posts == null or #lists.isEmpty(posts)}"
+                    class="rounded-xl border border-dashed border-gray-300 px-5 py-16 text-center text-gray-500 dark:border-strokedark dark:text-gray-400">
+                    등록된 게시글이 없습니다.
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script type="module" src="/js/index.js"></script>
+</body>
+
+</html>

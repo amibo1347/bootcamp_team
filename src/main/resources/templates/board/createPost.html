@@ -10,6 +10,7 @@
     <meta name="_csrf_header" th:content="${_csrf.headerName}" />
     <title>게시글 작성</title>
     <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css" />
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
@@ -39,15 +40,6 @@
                         <input id="apiEndpoint" type="hidden" value="/api/board/post/create" />
                         <input id="boardId" type="hidden" th:value="${boardId}" />
 
-                        <div class="grid grid-cols-1 gap-4">
-                            <div>
-                                <label for="authorName" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">작성자</label>
-                                <input id="authorName" type="text" placeholder="이름"
-                                    th:value="${session.memberSession?.name}"
-                                    class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-                            </div>
-                        </div>
-
                         <div>
                             <label for="title" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">제목</label>
                             <input id="title" type="text" maxlength="120" required placeholder="제목을 입력하세요"
@@ -55,21 +47,15 @@
                         </div>
 
                         <div>
-                            <label for="summary" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">요약</label>
-                            <input id="summary" type="text" maxlength="180" placeholder="목록/카드 뷰에서 보여줄 짧은 설명"
-                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-                        </div>
-
-                        <div>
                             <label for="content" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">본문</label>
-                            <textarea id="content" rows="12" required placeholder="게시글 내용을 입력하세요"
-                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
+                            <div id="contentEditor" class="rounded-lg border border-gray-300"></div>
+                            <textarea id="content" required class="hidden"></textarea>
                         </div>
 
                         <div>
-                            <label for="tags" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">태그 (쉼표 구분)</label>
-                            <input id="tags" type="text" placeholder="공지, 인사, 복지"
-                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                            <label for="attachments" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">첨부파일</label>
+                            <input id="attachments" type="file" multiple
+                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                         </div>
 
                         <div class="flex flex-wrap items-center gap-3 pt-2">
@@ -89,6 +75,7 @@
     </div>
 
     <script type="module" src="/js/index.js"></script>
+    <script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
     <script src="/js/board/create.js"></script>
 </body>
 
