@@ -48,10 +48,14 @@ public class Board {
     @JoinColumn(name = "company_id")
     private Company company;
 
+    /** @deprecated 다중 권한으로 이전됨. 새 게시판 저장 시 사용 안 함. 기존 데이터/HTML 호환용 */
+    @Deprecated
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dept_id")
     private Dept dept;
 
+    /** @deprecated 다중 권한으로 이전됨. 새 게시판 저장 시 사용 안 함. 기존 데이터/HTML 호환용 */
+    @Deprecated
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "position_id")
     private Position position;
@@ -86,16 +90,14 @@ public class Board {
     @Column(name = "created_at")
     private String createdAt;
 
-    public static Board createBoard
-    (String boardName, BoardType boardType, Company company, Dept dept, Position position, 
-        ViewType viewType, ReadScope readScope, WriteScope writeScope, CommentScope commentScope, Boolean isActive, 
-        Boolean isAiUse, AnonymousType anonymousType) {
+    public static Board createBoard(
+            String boardName, BoardType boardType, Company company,
+            ViewType viewType, ReadScope readScope, WriteScope writeScope, CommentScope commentScope,
+            Boolean isActive, Boolean isAiUse, AnonymousType anonymousType) {
         Board board = new Board();
         board.boardName = boardName;
         board.boardType = boardType;
         board.company = company;
-        board.dept = dept;
-        board.position = position;
         board.viewType = viewType;
         board.readScope = readScope;
         board.writeScope = writeScope;
@@ -107,13 +109,12 @@ public class Board {
         return board;
     }
 
-    public void updateFromDto(String boardName, BoardType boardType, Dept dept, Position position, 
-        ViewType viewType, ReadScope readScope, WriteScope writeScope, CommentScope commentScope, Boolean isActive, 
-        Boolean isAiUse, AnonymousType anonymousType) {
+    public void updateFromDto(
+            String boardName, BoardType boardType,
+            ViewType viewType, ReadScope readScope, WriteScope writeScope, CommentScope commentScope,
+            Boolean isActive, Boolean isAiUse, AnonymousType anonymousType) {
         this.boardName = boardName;
         this.boardType = boardType;
-        this.dept = dept;
-        this.position = position;
         this.viewType = viewType;
         this.readScope = readScope;
         this.writeScope = writeScope;
@@ -121,6 +122,5 @@ public class Board {
         this.isActive = isActive;
         this.isAiUse = isAiUse;
         this.anonymousType = anonymousType;
-
     }
 }

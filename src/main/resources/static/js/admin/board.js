@@ -34,8 +34,6 @@
       boardId: Number(getValue(idFor('boardId')) || 0) || null,
       boardName: (getValue(idFor('boardName')) || '').trim(),
       boardType: getValue(idFor('boardType')),
-      deptId: Number(getValue(idFor('deptId'))),
-      positionId: Number(getValue(idFor('positionId'))),
       viewType: getValue(idFor('viewType')) || 'LIST',
       readScope: getValue(idFor('readScope')) || 'ALL',
       writeScope: getValue(idFor('writeScope')) || 'ALL',
@@ -183,6 +181,36 @@
   }
 
   /**
+   * "전체 선택" 체크박스 ↔ 같은 그룹의 개별 체크박스 연동
+   * - 전체 선택 체크: 개별 체크박스 모두 disable + uncheck → 제출 시 빈 배열 → 백엔드 ALL
+   * - 전체 선택 해제: 개별 체크박스 enable (사용자가 직접 선택)
+   * - 사용자가 개별 체크박스를 직접 켜면 전체 선택은 자동 해제
+   */
+  function initSelectAllControls() {
+    document.querySelectorAll('input[data-select-all]').forEach((selectAll) => {
+      const group = selectAll.dataset.selectAll;
+      const individuals = document.querySelectorAll(`input[data-multi-group="${group}"]`);
+
+      const applyState = () => {
+        individuals.forEach((cb) => {
+          cb.disabled = selectAll.checked;
+          if (selectAll.checked) cb.checked = false;
+        });
+      };
+
+      applyState(); // 초기 상태 적용
+
+      selectAll.addEventListener('change', applyState);
+
+      individuals.forEach((cb) => {
+        cb.addEventListener('change', () => {
+          if (cb.checked) selectAll.checked = false;
+        });
+      });
+    });
+  }
+
+  /**
    * data-toggle-target 으로 연결된 패널 표시/숨김 (권한 설정·기타 설정·부서/직급 접기 등)
    * data-toggle-arrow 에 rotate-180 으로 열림 상태 표시
    */
@@ -304,8 +332,8 @@
 
   /**
    * 게시판 생성 제출
-   * 백엔드는 Board 한 건에 deptId·positionId 하나만 저장하므로,
-   * 여러 권한을 제한으로 켠 경우 부서/직급이 모두 동일한지 검사 후 첫 쌍만 전송
+   * 권한별로 부서/직급을 다중 선택 가능. 0개 선택 = 전체 허용.
+   * 권한 라디오가 "제한"이어도 부서/직급이 비어있으면 백엔드가 ALL로 저장한다.
    */
   async function onCreateSubmit(e) {
     e.preventDefault();
@@ -318,14 +346,8 @@
     const readScopeOption = getCheckedRadioValue('readScopeOption') || 'ALL';
     const writeScopeOption = getCheckedRadioValue('writeScopeOption') || 'ALL';
     const commentScopeOption = getCheckedRadioValue('commentScopeOption') || 'ALL';
-    const readDeptIds = getSelectedNumberValues('deptId');
-    const readPositionIds = getSelectedNumberValues('positionId');
-    const writeDeptIds = getSelectedNumberValues('writeDeptId');
-    const writePositionIds = getSelectedNumberValues('writePositionId');
-    const commentDeptIds = getSelectedNumberValues('commentDeptId');
-    const commentPositionIds = getSelectedNumberValues('commentPositionId');
-    const limitedSelections = [];
 
+<<<<<<< HEAD
     if (readScopeOption === 'RESTRICTED') {
       if (!readDeptIds.length && !readPositionIds.length) {
         alert('읽기 권한 제한을 선택한 경우 부서 또는 직급을 선택해주세요.');
@@ -393,6 +415,15 @@
       alert('부서와 직급 정보를 확인해주세요.');
       return;
     }
+=======
+    // 라디오가 "제한"이 아닌 경우엔 빈 배열 → 백엔드는 ALL로 인식
+    payload.readDeptIds = readScopeOption === 'DEPARTMENT' ? getSelectedNumberValues('deptId') : [];
+    payload.readPositionIds = readScopeOption === 'DEPARTMENT' ? getSelectedNumberValues('positionId') : [];
+    payload.writeDeptIds = writeScopeOption === 'LIMITED' ? getSelectedNumberValues('writeDeptId') : [];
+    payload.writePositionIds = writeScopeOption === 'LIMITED' ? getSelectedNumberValues('writePositionId') : [];
+    payload.commentDeptIds = commentScopeOption === 'DEPARTMENT' ? getSelectedNumberValues('commentDeptId') : [];
+    payload.commentPositionIds = commentScopeOption === 'DEPARTMENT' ? getSelectedNumberValues('commentPositionId') : [];
+>>>>>>> b9ca142fdd642b07b81fb50dac7103e4d0de923d
 
     try {
       const response = await fetch('/api/admin/board/create', {
@@ -540,7 +571,11 @@
     }
 
     try {
+<<<<<<< HEAD
       const response = await fetch(`/api/admin/board/update/${payload.boardId}`, {
+=======
+      const response = await fetch('/api/admin/board/update', {
+>>>>>>> b9ca142fdd642b07b81fb50dac7103e4d0de923d
         method: 'POST',
         headers: headers(),
         body: JSON.stringify(payload),
@@ -588,7 +623,11 @@
     initCustomSelects();
     initPermissionPanelToggles();
     initCreatePermissionControls();
+<<<<<<< HEAD
     initEditPermissionControls();
+=======
+    initSelectAllControls();
+>>>>>>> b9ca142fdd642b07b81fb50dac7103e4d0de923d
     document.getElementById('createBoardForm')?.addEventListener('submit', onCreateSubmit);
     document.getElementById('editBoardForm')?.addEventListener('submit', onEditSubmit);
   });
