@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <title>게시글 작성</title>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body
+    x-data="{ page: 'board', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
+    x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{ 'dark bg-gray-900': darkMode === true }">
+
+    <div th:replace="~{partials/preloader}"></div>
+
+    <div class="flex h-screen overflow-hidden">
+        <div th:replace="~{partials/sidebar}"></div>
+
+        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+            <div th:replace="~{partials/overlay}"></div>
+            <div th:replace="~{partials/header}"></div>
+
+            <main class="p-8 space-y-8">
+                <section class="space-y-2">
+                    <h2 class="text-2xl font-black text-gray-900 dark:text-white">게시글 작성</h2>
+                    <!-- 게시글 생성(Create) 화면. 목록/앨범/카드 읽기 화면은 이후 단계에서 확장 -->
+                </section>
+
+                <section
+                    class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <form id="postCreateForm" class="space-y-6">
+                        <input id="apiEndpoint" type="hidden" value="/api/board/post/create" />
+                        <input id="boardId" type="hidden" th:value="${boardId}" />
+
+                        <div class="grid grid-cols-1 gap-4">
+                            <div>
+                                <label for="authorName" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">작성자</label>
+                                <input id="authorName" type="text" placeholder="이름"
+                                    th:value="${session.memberSession?.name}"
+                                    class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="title" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">제목</label>
+                            <input id="title" type="text" maxlength="120" required placeholder="제목을 입력하세요"
+                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                        </div>
+
+                        <div>
+                            <label for="summary" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">요약</label>
+                            <input id="summary" type="text" maxlength="180" placeholder="목록/카드 뷰에서 보여줄 짧은 설명"
+                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                        </div>
+
+                        <div>
+                            <label for="content" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">본문</label>
+                            <textarea id="content" rows="12" required placeholder="게시글 내용을 입력하세요"
+                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
+                        </div>
+
+                        <div>
+                            <label for="tags" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">태그 (쉼표 구분)</label>
+                            <input id="tags" type="text" placeholder="공지, 인사, 복지"
+                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-3 pt-2">
+                            <button type="submit"
+                                class="rounded-xl bg-indigo-400 px-8 py-3 font-medium text-white hover:bg-indigo-500">
+                                게시글 등록
+                            </button>
+                            <a href="/admin/board"
+                                class="rounded-xl bg-gray-100 px-8 py-3 font-medium text-gray-700 hover:bg-gray-200">
+                                취소
+                            </a>
+                        </div>
+                    </form>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script type="module" src="/js/index.js"></script>
+    <script src="/js/board/create.js"></script>
+</body>
+
+</html>

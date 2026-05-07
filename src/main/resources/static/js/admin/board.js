@@ -28,23 +28,6 @@
   function getPayload(prefix = '') {
     const getValue = (id) => document.getElementById(id)?.value;
     const getChecked = (id) => Boolean(document.getElementById(id)?.checked);
-<<<<<<< HEAD
-    const fieldId = (name) => (prefix ? `${prefix}${name}` : `${name.charAt(0).toLowerCase()}${name.slice(1)}`);
-
-    return {
-      boardId: Number(getValue(fieldId('BoardId')) || 0) || null,
-      boardName: (getValue(fieldId('BoardName')) || '').trim(),
-      boardType: getValue(fieldId('BoardType')),
-      deptId: Number(getValue(fieldId('DeptId'))),
-      positionId: Number(getValue(fieldId('PositionId'))),
-      viewType: getValue(fieldId('ViewType')) || 'LIST',
-      readScope: getValue(fieldId('ReadScope')) || 'ALL',
-      writeScope: getValue(fieldId('WriteScope')) || 'ALL',
-      commentScope: getValue(fieldId('CommentScope')) || 'ALL',
-      anonymousType: getValue(fieldId('AnonymousType')) || 'NAME',
-      isActive: getChecked(fieldId('IsActive')),
-      isAiUse: getChecked(fieldId('IsAiUse')),
-=======
     const idFor = (name) => prefix ? `${prefix}${name[0].toUpperCase()}${name.slice(1)}` : name;
 
     return {
@@ -60,7 +43,6 @@
       anonymousType: getValue(idFor('anonymousType')) || 'NAME',
       isActive: getChecked(idFor('isActive')),
       isAiUse: getChecked(idFor('isAiUse')),
->>>>>>> 5296d4b52c55a3ee2a2b9af11d492cf683510ec0
     };
   }
 
@@ -193,6 +175,13 @@
     return Number.isFinite(value) && value > 0 ? value : null;
   }
 
+  function setSingleGroupSelection(id, rawValue) {
+    const value = String(rawValue || '');
+    document.querySelectorAll(`input[data-multi-group="${id}"]`).forEach((checkbox) => {
+      checkbox.checked = value !== '' && checkbox.value === value;
+    });
+  }
+
   /**
    * data-toggle-target 으로 연결된 패널 표시/숨김 (권한 설정·기타 설정·부서/직급 접기 등)
    * data-toggle-arrow 에 rotate-180 으로 열림 상태 표시
@@ -268,6 +257,51 @@
     syncCommentScope();
   }
 
+  function initEditPermissionControls() {
+    const readScope = document.getElementById('editReadScope');
+    const writeScope = document.getElementById('editWriteScope');
+    const commentScope = document.getElementById('editCommentScope');
+    const readLimitedOptions = document.getElementById('editReadLimitedOptions');
+    const writeLimitedOptions = document.getElementById('editWriteLimitedOptions');
+    const commentLimitedOptions = document.getElementById('editCommentLimitedOptions');
+
+    if (!readScope || !writeScope || !commentScope) {
+      return;
+    }
+
+    const syncReadScope = () => {
+      const option = getCheckedRadioValue('editReadScopeOption') || 'ALL';
+      readScope.value = option;
+      readLimitedOptions?.classList.toggle('hidden', option !== 'RESTRICTED');
+    };
+
+    const syncWriteScope = () => {
+      const option = getCheckedRadioValue('editWriteScopeOption') || 'ALL';
+      writeScope.value = option;
+      writeLimitedOptions?.classList.toggle('hidden', option !== 'RESTRICTED');
+    };
+
+    const syncCommentScope = () => {
+      const option = getCheckedRadioValue('editCommentScopeOption') || 'ALL';
+      commentScope.value = option === 'NONE' ? 'ALL' : option;
+      commentLimitedOptions?.classList.toggle('hidden', option !== 'RESTRICTED');
+    };
+
+    document
+      .querySelectorAll('input[name="editReadScopeOption"]')
+      .forEach((radio) => radio.addEventListener('change', syncReadScope));
+    document
+      .querySelectorAll('input[name="editWriteScopeOption"]')
+      .forEach((radio) => radio.addEventListener('change', syncWriteScope));
+    document
+      .querySelectorAll('input[name="editCommentScopeOption"]')
+      .forEach((radio) => radio.addEventListener('change', syncCommentScope));
+
+    syncReadScope();
+    syncWriteScope();
+    syncCommentScope();
+  }
+
   /**
    * 게시판 생성 제출
    * 백엔드는 Board 한 건에 deptId·positionId 하나만 저장하므로,
@@ -293,45 +327,65 @@
     const limitedSelections = [];
 
     if (readScopeOption === 'RESTRICTED') {
-      if (!readDeptIds.length || !readPositionIds.length) {
-        alert('읽기 권한 제한을 선택한 경우 부서와 직급을 모두 선택해주세요.');
+      if (!readDeptIds.length && !readPositionIds.length) {
+        alert('읽기 권한 제한을 선택한 경우 부서 또는 직급을 선택해주세요.');
         return;
       }
-      limitedSelections.push({ deptId: readDeptIds[0], positionId: readPositionIds[0], source: '읽기 권한' });
+      limitedSelections.push({
+        deptId: readDeptIds[0] || null,
+        positionId: readPositionIds[0] || null,
+        source: '읽기 권한',
+      });
     }
 
     if (writeScopeOption === 'RESTRICTED') {
-      if (!writeDeptIds.length || !writePositionIds.length) {
-        alert('쓰기 권한 제한을 선택한 경우 부서와 직급을 모두 선택해주세요.');
+      if (!writeDeptIds.length && !writePositionIds.length) {
+        alert('쓰기 권한 제한을 선택한 경우 부서 또는 직급을 선택해주세요.');
         return;
       }
-      limitedSelections.push({ deptId: writeDeptIds[0], positionId: writePositionIds[0], source: '쓰기 권한' });
+      limitedSelections.push({
+        deptId: writeDeptIds[0] || null,
+        positionId: writePositionIds[0] || null,
+        source: '쓰기 권한',
+      });
     }
 
     if (commentScopeOption === 'RESTRICTED') {
-      if (!commentDeptIds.length || !commentPositionIds.length) {
-        alert('댓글 권한 제한을 선택한 경우 부서와 직급을 모두 선택해주세요.');
+      if (!commentDeptIds.length && !commentPositionIds.length) {
+        alert('댓글 권한 제한을 선택한 경우 부서 또는 직급을 선택해주세요.');
         return;
       }
-      limitedSelections.push({ deptId: commentDeptIds[0], positionId: commentPositionIds[0], source: '댓글 권한' });
-    }
-
-    if (limitedSelections.length > 1) {
-      const first = limitedSelections[0];
-      const hasMismatch = limitedSelections.slice(1).some(
-        (selection) => selection.deptId !== first.deptId || selection.positionId !== first.positionId,
-      );
-      if (hasMismatch) {
-        alert('현재 시스템은 권한별 부서/직급을 따로 저장하지 않습니다. 제한 권한들의 부서/직급을 동일하게 선택해주세요.');
-        return;
-      }
+      limitedSelections.push({
+        deptId: commentDeptIds[0] || null,
+        positionId: commentPositionIds[0] || null,
+        source: '댓글 권한',
+      });
     }
 
     if (limitedSelections.length > 0) {
-      payload.deptId = limitedSelections[0].deptId;
-      payload.positionId = limitedSelections[0].positionId;
+      const deptCandidates = limitedSelections.map((selection) => selection.deptId).filter(Boolean);
+      const positionCandidates = limitedSelections.map((selection) => selection.positionId).filter(Boolean);
+      const resolvedDeptId = deptCandidates[0] || null;
+      const resolvedPositionId = positionCandidates[0] || null;
+      const hasDeptMismatch = deptCandidates.some((deptId) => deptId !== resolvedDeptId);
+      const hasPositionMismatch = positionCandidates.some((positionId) => positionId !== resolvedPositionId);
+
+      if (hasDeptMismatch || hasPositionMismatch) {
+        alert('현재 시스템은 권한별 부서/직급을 따로 저장하지 않습니다. 제한 권한들의 부서/직급을 동일하게 선택해주세요.');
+        return;
+      }
+
+      payload.deptId = resolvedDeptId;
+      payload.positionId = resolvedPositionId;
     } else {
       payload.deptId = getFirstAvailableGroupValue('deptId');
+      payload.positionId = getFirstAvailableGroupValue('positionId');
+    }
+
+    if (!payload.deptId) {
+      payload.deptId = getFirstAvailableGroupValue('deptId');
+    }
+    if (!payload.positionId) {
       payload.positionId = getFirstAvailableGroupValue('positionId');
     }
 
@@ -364,11 +418,32 @@
     document.getElementById('editBoardId').value = d.boardId || '';
     document.getElementById('editBoardName').value = d.boardName || '';
     document.getElementById('editBoardType').value = d.boardType || 'NOTICE';
-    document.getElementById('editDeptId').value = d.deptId || '';
-    document.getElementById('editPositionId').value = d.positionId || '';
+    document.getElementById('editViewType').value = d.viewType || 'LIST';
+    document.getElementById('editAnonymousType').value = d.anonymousType || 'NAME';
+
+    const readScope = d.readScope || 'ALL';
+    const writeScope = d.writeScope || 'ALL';
+    const commentScope = d.commentScope || 'ALL';
+    const readRadio = document.querySelector(`input[name="editReadScopeOption"][value="${readScope}"]`);
+    const writeRadio = document.querySelector(`input[name="editWriteScopeOption"][value="${writeScope}"]`);
+    const commentRadio = document.querySelector(`input[name="editCommentScopeOption"][value="${commentScope}"]`);
+    if (readRadio) readRadio.checked = true;
+    if (writeRadio) writeRadio.checked = true;
+    if (commentRadio) commentRadio.checked = true;
+
+    setSingleGroupSelection('editDeptId', d.deptId);
+    setSingleGroupSelection('editPositionId', d.positionId);
+    setSingleGroupSelection('editWriteDeptId', d.deptId);
+    setSingleGroupSelection('editWritePositionId', d.positionId);
+    setSingleGroupSelection('editCommentDeptId', d.deptId);
+    setSingleGroupSelection('editCommentPositionId', d.positionId);
+
     document.getElementById('editBoardType').dispatchEvent(new Event('change', { bubbles: true }));
-    document.getElementById('editDeptId').dispatchEvent(new Event('change', { bubbles: true }));
-    document.getElementById('editPositionId').dispatchEvent(new Event('change', { bubbles: true }));
+    document.getElementById('editViewType').dispatchEvent(new Event('change', { bubbles: true }));
+    document.getElementById('editAnonymousType').dispatchEvent(new Event('change', { bubbles: true }));
+    readRadio?.dispatchEvent(new Event('change', { bubbles: true }));
+    writeRadio?.dispatchEvent(new Event('change', { bubbles: true }));
+    commentRadio?.dispatchEvent(new Event('change', { bubbles: true }));
     document.getElementById('editIsActive').checked = d.isActive === 'true';
     document.getElementById('editIsAiUse').checked = d.isAiUse === 'true';
 
@@ -383,21 +458,86 @@
     modal.classList.remove('flex');
   }
 
-  /**
-   * 수정 저장 — 현재 폼에서 가져온 값 외에 뷰/권한/익명은 코드상 고정값으로 덮어 API 스펙에 맞춤
-   * (백엔드 구현 상태에 따라 일부 필드는 서버에서 무시될 수 있음)
-   */
   async function onEditSubmit(e) {
     e.preventDefault();
 
-    const payload = {
-      ...getPayload('edit'),
-      viewType: 'LIST',
-      readScope: 'ALL',
-      writeScope: 'ALL',
-      commentScope: 'ALL',
-      anonymousType: 'NAME',
-    };
+    const payload = getPayload('edit');
+    const readScopeOption = getCheckedRadioValue('editReadScopeOption') || 'ALL';
+    const writeScopeOption = getCheckedRadioValue('editWriteScopeOption') || 'ALL';
+    const commentScopeOption = getCheckedRadioValue('editCommentScopeOption') || 'ALL';
+    const readDeptIds = getSelectedNumberValues('editDeptId');
+    const readPositionIds = getSelectedNumberValues('editPositionId');
+    const writeDeptIds = getSelectedNumberValues('editWriteDeptId');
+    const writePositionIds = getSelectedNumberValues('editWritePositionId');
+    const commentDeptIds = getSelectedNumberValues('editCommentDeptId');
+    const commentPositionIds = getSelectedNumberValues('editCommentPositionId');
+    const limitedSelections = [];
+
+    if (!payload.boardName) {
+      alert('게시판명을 입력해주세요.');
+      document.getElementById('editBoardName')?.focus();
+      return;
+    }
+
+    if (readScopeOption === 'RESTRICTED') {
+      if (!readDeptIds.length && !readPositionIds.length) {
+        alert('읽기 권한 제한을 선택한 경우 부서 또는 직급을 선택해주세요.');
+        return;
+      }
+      limitedSelections.push({ deptId: readDeptIds[0] || null, positionId: readPositionIds[0] || null });
+    }
+
+    if (writeScopeOption === 'RESTRICTED') {
+      if (!writeDeptIds.length && !writePositionIds.length) {
+        alert('쓰기 권한 제한을 선택한 경우 부서 또는 직급을 선택해주세요.');
+        return;
+      }
+      limitedSelections.push({ deptId: writeDeptIds[0] || null, positionId: writePositionIds[0] || null });
+    }
+
+    if (commentScopeOption === 'RESTRICTED') {
+      if (!commentDeptIds.length && !commentPositionIds.length) {
+        alert('댓글 권한 제한을 선택한 경우 부서 또는 직급을 선택해주세요.');
+        return;
+      }
+      limitedSelections.push({ deptId: commentDeptIds[0] || null, positionId: commentPositionIds[0] || null });
+    }
+
+    if (limitedSelections.length > 1) {
+      const deptCandidates = limitedSelections.map((selection) => selection.deptId).filter(Boolean);
+      const positionCandidates = limitedSelections.map((selection) => selection.positionId).filter(Boolean);
+      const resolvedDeptId = deptCandidates[0] || null;
+      const resolvedPositionId = positionCandidates[0] || null;
+      const hasDeptMismatch = deptCandidates.some((deptId) => deptId !== resolvedDeptId);
+      const hasPositionMismatch = positionCandidates.some((positionId) => positionId !== resolvedPositionId);
+
+      if (hasDeptMismatch || hasPositionMismatch) {
+        alert('현재 시스템은 권한별 부서/직급을 따로 저장하지 않습니다. 제한 권한들의 부서/직급을 동일하게 선택해주세요.');
+        return;
+      }
+    }
+
+    if (limitedSelections.length > 0) {
+      const deptCandidates = limitedSelections.map((selection) => selection.deptId).filter(Boolean);
+      const positionCandidates = limitedSelections.map((selection) => selection.positionId).filter(Boolean);
+      payload.deptId = deptCandidates[0] || null;
+      payload.positionId = positionCandidates[0] || null;
+    } else {
+      payload.deptId = getFirstAvailableGroupValue('editDeptId');
+      payload.positionId = getFirstAvailableGroupValue('editPositionId');
+    }
+
+    if (!payload.deptId) {
+      payload.deptId = getFirstAvailableGroupValue('editDeptId');
+    }
+    if (!payload.positionId) {
+      payload.positionId = getFirstAvailableGroupValue('editPositionId');
+    }
+
+    if (!payload.deptId || !payload.positionId) {
+      alert('부서와 직급 정보를 확인해주세요.');
+      return;
+    }
 
     try {
       const response = await fetch(`/api/admin/board/update/${payload.boardId}`, {
@@ -448,6 +588,7 @@
     initCustomSelects();
     initPermissionPanelToggles();
     initCreatePermissionControls();
+    initEditPermissionControls();
     document.getElementById('createBoardForm')?.addEventListener('submit', onCreateSubmit);
     document.getElementById('editBoardForm')?.addEventListener('submit', onEditSubmit);
   });
