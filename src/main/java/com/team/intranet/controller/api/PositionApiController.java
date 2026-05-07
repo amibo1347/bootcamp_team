@@ -1,7 +1,6 @@
 package com.team.intranet.controller.api;
 
 import com.team.intranet.dto.PositionDto;
-import com.team.intranet.enums.member.Role;
 import com.team.intranet.service.PositionService;
 import com.team.intranet.session.MemberSession;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +9,7 @@ import java.util.List;
 import org.springframework.ui.Model;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @Controller
 @RequestMapping("/api/admin/position")
@@ -20,17 +20,13 @@ public class PositionApiController {
 
     // 직급 생성 처리
     @PostMapping("/create")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
     public String createPosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
             @RequestBody PositionDto dto, Model model) {
-        if (ms == null || ms.getCompanyId() == null) {
-            return "redirect:/member/login";
-        }
-        if (ms.getRole() == Role.USER) {
-            return "redirect:/member/login";
-        }
+
         positionService.createPosition(ms, dto);
 
-        List<PositionDto> positionList = positionService.findAllByCompanyCompanyIdOrderByPositionLevelDESC(ms.getCompanyId())
+        List<PositionDto> positionList = positionService.findAllLevelDesc(ms.getCompanyId())
                 .stream().map(PositionDto::fromEntity)
                 .toList();
         model.addAttribute("positions", positionList);
@@ -39,20 +35,16 @@ public class PositionApiController {
 
     // 직급 수정 처리
     @PostMapping("/update/{positionId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
     public String updatePosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
             @PathVariable Long positionId,
             @RequestBody PositionDto positionDto, Model model) {
 
-        if (ms == null || ms.getCompanyId() == null) {
-            return "redirect:/member/login";
-        }
-        if (ms.getRole() == Role.USER) {
-            return "redirect:/member/login";
-        }
+
 
         positionService.updatePosition(ms, positionDto, positionId);
         
-        List<PositionDto> positionList = positionService.findAllByCompanyCompanyIdOrderByPositionLevelDESC(ms.getCompanyId())
+        List<PositionDto> positionList = positionService.findAllLevelDesc(ms.getCompanyId())
             .stream().map(PositionDto::fromEntity)
              .toList();
 
@@ -61,20 +53,14 @@ public class PositionApiController {
         
         }
 
-        @PostMapping("/delete/{positionId}")
+    @PostMapping("/delete/{positionId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
         public String deletePosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
             @PathVariable Long positionId, Model model) {
-            
-        if(ms == null || ms.getCompanyId() == null) {
-            return "redirect:/member/login";
-        }
-        if(ms.getRole() == Role.USER) {
-            return "redirect:/member/login";
-        }
 
         positionService.deletePosition(ms, positionId);
 
-        List<PositionDto> positionList = positionService.findAllByCompanyCompanyIdOrderByPositionLevelDESC(ms.getCompanyId())
+        List<PositionDto> positionList = positionService.findAllLevelDesc(ms.getCompanyId())
             .stream().map(PositionDto::fromEntity)
             .toList();
         model.addAttribute("positions", positionList);

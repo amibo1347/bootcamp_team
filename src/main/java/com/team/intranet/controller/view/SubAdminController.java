@@ -20,7 +20,7 @@ import com.team.intranet.session.MemberSession;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-
+import org.springframework.security.access.prepost.PreAuthorize;
 @Controller
 @RequestMapping("/admin")
 @RequiredArgsConstructor
@@ -36,15 +36,13 @@ public class SubAdminController {
     /// 컨트롤러
 
     @GetMapping("/waitingList")
+    @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
     public String joinList(Model model,
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
 
-        if (ms == null || ms.getCompanyId() == null) {
-            return "redirect:/member/login";
-        }
         Long companyId = ms.getCompanyId();
 
-        List<Member> waitingMembers = memberService.findWaitMembers(companyId);
+        List<Member> waitingMembers = memberService.findWaitingMembers(companyId);
 
         List<Dept> depts = deptService.findAll(companyId);
         List<Position> positions = positionService.findAll(companyId);
@@ -59,20 +57,21 @@ public class SubAdminController {
     }
 
     @GetMapping("/memberList")
+    @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
     public String memberList(Model model,
             @RequestParam(value = "deptId", required = false) Long deptId,
+            @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "positionId", required = false) Long positionId,
             @RequestParam(value = "status", required = false) Status status,
             @RequestParam(value = "sort", defaultValue = "desc") String sort,
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
             HttpServletRequest request) {
 
-        if (ms == null || ms.getCompanyId() == null) {
-            return "redirect:/member/login";
-        }
         Long companyId = ms.getCompanyId();
 
-        List<Member> filteredMembers = memberService.findFilteredMembers(companyId, deptId, status, positionId, sort);
+        List<Member> filteredMembers = memberService.findFilteredMembers(
+        companyId, keyword, deptId, status, positionId, sort
+    );
 
         List<Dept> depts = deptService.findAll(companyId);
         List<Position> positions = positionService.findAll(companyId);
@@ -80,7 +79,7 @@ public class SubAdminController {
         model.addAttribute("members", filteredMembers); // 회원 목록
         model.addAttribute("depts", depts); // 부서 목록
         model.addAttribute("positions", positions); // 직급 목록
-
+        model.addAttribute("keyword", keyword); // 검색 키워드
         model.addAttribute("selectedDeptId", deptId); // 선택된 부서 ID
         model.addAttribute("selectedPositionId", positionId); // 선택된 직급 ID
         model.addAttribute("selectedStatus", status); // 선택된 상태

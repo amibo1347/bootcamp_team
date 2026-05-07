@@ -138,4 +138,12 @@ public class Member {
         this.role = position.getRole();
     }
 
+    public void reject() {
+        this.status = Status.REJECT;
+    }
+
+    public void fire() {
+        this.status = Status.LEAVE;
+    }
+
 }

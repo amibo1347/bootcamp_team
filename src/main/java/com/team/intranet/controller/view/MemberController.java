@@ -3,10 +3,15 @@ package com.team.intranet.controller.view;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import com.team.intranet.dto.MemberDto;
+import com.team.intranet.dto.MemberDto;
 import com.team.intranet.entity.Dept;
 import com.team.intranet.entity.Position;
+
+import com.team.intranet.enums.member.MemberType;
 import com.team.intranet.service.MemberService;
 import com.team.intranet.service.DeptService;
 import com.team.intranet.service.PositionService;
@@ -46,20 +51,41 @@ public String loginForm(HttpServletRequest request, Model model) {
 
     return "member/signin";
 }
+
+@PostMapping("/signup") // 회원 가입
+    public String newMember(MemberDto dto) {
+
+        MemberType result = memberService.join(dto);
+
+        switch (result) {
+            case JOIN_SUCCESS:
+                // 회원가입 성공 시 로그인 페이지로 보냅니다.
+                return "redirect:/member/login";
+
+            case NOT_COMPANY:
+            case ALREADY_MEMBER:
+            case NOT_MATCH_PASSWORD:
+            default:
+                // 실패 시 다시 회원가입 폼으로 보냅니다.
+                return "redirect:/member/signup?error=" + result.name();
+        }
+    }
     
     @GetMapping("/signup")
     public String signupPage(HttpSession session, Model model) {
     Long companyId = (Long) session.getAttribute("verifiedCompanyId");
     String companyCode = (String) session.getAttribute("verifiedCompanyCode");
     String verifiedLogoPath = (String) session.getAttribute("logoPath");
-    List<Dept> departments = deptService.findAll(companyId);
-    List<Position> positions = positionService.findAll(companyId);
+    
     if (companyId == null) {
-        return "redirect:login"; // 인증 안 했으면 다시 로그인/모달창으로
+        return "redirect:/member/login"; // 인증 안 했으면 다시 로그인/모달창으로
     }
     if (verifiedLogoPath != null) {
         model.addAttribute("logoPath", verifiedLogoPath);
     }
+    List<Dept> departments = deptService.findAll(companyId);
+    List<Position> positions = positionService.findAll(companyId);
+
     model.addAttribute("companyId", companyId);
     model.addAttribute("companyCode", companyCode);
     model.addAttribute("departments", departments);

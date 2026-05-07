@@ -15,6 +15,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+import com.team.intranet.dto.DeptDto;
 
 @Entity
 @Table(name="tbl_dept")
@@ -45,6 +46,10 @@ public class Dept {
         dept.setDeptCode(deptCode);
         dept.setCompany(company);
         return dept;
+    }
+
+    public void updateFromDto(DeptDto dto) {
+        this.deptName = dto.getDeptName();
     }
 
 }
