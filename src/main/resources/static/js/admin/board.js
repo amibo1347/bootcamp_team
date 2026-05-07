@@ -28,20 +28,21 @@
   function getPayload(prefix = '') {
     const getValue = (id) => document.getElementById(id)?.value;
     const getChecked = (id) => Boolean(document.getElementById(id)?.checked);
+    const fieldId = (name) => (prefix ? `${prefix}${name}` : `${name.charAt(0).toLowerCase()}${name.slice(1)}`);
 
     return {
-      boardId: Number(getValue(`${prefix}BoardId`) || 0) || null,
-      boardName: (getValue(`${prefix}BoardName`) || '').trim(),
-      boardType: getValue(`${prefix}BoardType`),
-      deptId: Number(getValue(`${prefix}DeptId`)),
-      positionId: Number(getValue(`${prefix}PositionId`)),
-      viewType: getValue(`${prefix}ViewType`) || 'LIST',
-      readScope: getValue(`${prefix}ReadScope`) || 'ALL',
-      writeScope: getValue(`${prefix}WriteScope`) || 'ALL',
-      commentScope: getValue(`${prefix}CommentScope`) || 'ALL',
-      anonymousType: getValue(`${prefix}AnonymousType`) || 'NAME',
-      isActive: getChecked(`${prefix}IsActive`),
-      isAiUse: getChecked(`${prefix}IsAiUse`),
+      boardId: Number(getValue(fieldId('BoardId')) || 0) || null,
+      boardName: (getValue(fieldId('BoardName')) || '').trim(),
+      boardType: getValue(fieldId('BoardType')),
+      deptId: Number(getValue(fieldId('DeptId'))),
+      positionId: Number(getValue(fieldId('PositionId'))),
+      viewType: getValue(fieldId('ViewType')) || 'LIST',
+      readScope: getValue(fieldId('ReadScope')) || 'ALL',
+      writeScope: getValue(fieldId('WriteScope')) || 'ALL',
+      commentScope: getValue(fieldId('CommentScope')) || 'ALL',
+      anonymousType: getValue(fieldId('AnonymousType')) || 'NAME',
+      isActive: getChecked(fieldId('IsActive')),
+      isAiUse: getChecked(fieldId('IsAiUse')),
     };
   }
 
@@ -198,9 +199,8 @@
 
   /**
    * 생성 폼: 라디오 선택 ↔ 숨김 input(readScope / writeScope / commentScope) 및 제한 시 부서·직급 블록 표시
-   * - 읽기: DEPARTMENT 선택 시에만 readLimitedOptions 표시
-   * - 쓰기: LIMITED → 내부값 DEPARTMENT 로 매핑 후 제한 UI
-   * - 댓글: DEPARTMENT 일 때만 제한 UI; DISABLED 는 서버 제약상 숨김 필드에 ALL 로 넣음 (HTML 안내와 동일)
+   * - 읽기/쓰기: RESTRICTED 선택 시 제한 UI 표시
+   * - 댓글: RESTRICTED 일 때만 제한 UI 표시, NONE 은 댓글 비활성
    */
   function initCreatePermissionControls() {
     const readScope = document.getElementById('readScope');
@@ -216,23 +216,23 @@
 
     const syncReadScope = () => {
       const option = getCheckedRadioValue('readScopeOption') || 'ALL';
-      const isLimited = option === 'DEPARTMENT';
+      const isLimited = option === 'RESTRICTED';
       readScope.value = option;
       readLimitedOptions?.classList.toggle('hidden', !isLimited);
     };
 
     const syncWriteScope = () => {
       const option = getCheckedRadioValue('writeScopeOption') || 'ALL';
-      const isLimited = option === 'LIMITED';
-
+      const isLimited = option === 'RESTRICTED';
       writeLimitedOptions?.classList.toggle('hidden', !isLimited);
-      writeScope.value = isLimited ? 'DEPARTMENT' : 'ALL';
+      writeScope.value = option;
     };
 
     const syncCommentScope = () => {
       const option = getCheckedRadioValue('commentScopeOption') || 'ALL';
-      commentLimitedOptions?.classList.toggle('hidden', option !== 'DEPARTMENT');
-      commentScope.value = option === 'DISABLED' ? 'ALL' : option;
+      commentLimitedOptions?.classList.toggle('hidden', option !== 'RESTRICTED');
+      // 현재 DB 체크 제약조건과의 호환을 위해 댓글 비활성(NONE)은 ALL로 저장
+      commentScope.value = option === 'NONE' ? 'ALL' : option;
     };
 
     document
@@ -258,6 +258,11 @@
   async function onCreateSubmit(e) {
     e.preventDefault();
     const payload = getPayload('');
+    if (!payload.boardName) {
+      alert('게시판명을 입력해주세요.');
+      document.getElementById('boardName')?.focus();
+      return;
+    }
     const readScopeOption = getCheckedRadioValue('readScopeOption') || 'ALL';
     const writeScopeOption = getCheckedRadioValue('writeScopeOption') || 'ALL';
     const commentScopeOption = getCheckedRadioValue('commentScopeOption') || 'ALL';
@@ -269,7 +274,7 @@
     const commentPositionIds = getSelectedNumberValues('commentPositionId');
     const limitedSelections = [];
 
-    if (readScopeOption === 'DEPARTMENT') {
+    if (readScopeOption === 'RESTRICTED') {
       if (!readDeptIds.length || !readPositionIds.length) {
         alert('읽기 권한 제한을 선택한 경우 부서와 직급을 모두 선택해주세요.');
         return;
@@ -277,7 +282,7 @@
       limitedSelections.push({ deptId: readDeptIds[0], positionId: readPositionIds[0], source: '읽기 권한' });
     }
 
-    if (writeScopeOption === 'LIMITED') {
+    if (writeScopeOption === 'RESTRICTED') {
       if (!writeDeptIds.length || !writePositionIds.length) {
         alert('쓰기 권한 제한을 선택한 경우 부서와 직급을 모두 선택해주세요.');
         return;
@@ -285,7 +290,7 @@
       limitedSelections.push({ deptId: writeDeptIds[0], positionId: writePositionIds[0], source: '쓰기 권한' });
     }
 
-    if (commentScopeOption === 'DEPARTMENT') {
+    if (commentScopeOption === 'RESTRICTED') {
       if (!commentDeptIds.length || !commentPositionIds.length) {
         alert('댓글 권한 제한을 선택한 경우 부서와 직급을 모두 선택해주세요.');
         return;
@@ -377,8 +382,8 @@
     };
 
     try {
-      const response = await fetch('/api/admin/board/update', {
-        method: 'PUT',
+      const response = await fetch(`/api/admin/board/update/${payload.boardId}`, {
+        method: 'POST',
         headers: headers(),
         body: JSON.stringify(payload),
       });
@@ -401,7 +406,7 @@
 
     try {
       const response = await fetch(`/api/admin/board/delete/${boardId}`, {
-        method: 'DELETE',
+        method: 'POST',
         headers: headers(),
       });
 

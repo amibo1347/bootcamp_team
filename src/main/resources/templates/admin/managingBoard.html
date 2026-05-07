@@ -67,8 +67,8 @@
                             </div>
                         </div>
 
-                        <button type="button" data-toggle-target="permissionSettingsPanel"
-                            aria-expanded="false" aria-controls="permissionSettingsPanel"
+                        <button type="button" data-toggle-target="permissionSettingsPanel" aria-expanded="false"
+                            aria-controls="permissionSettingsPanel"
                             class="group flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white px-4 py-3.5 text-left shadow-sm transition hover:border-indigo-200 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:border-strokedark dark:from-meta-4 dark:to-boxdark dark:hover:border-indigo-500/50">
                             <span class="flex min-w-0 items-center gap-3">
                                 <span
@@ -83,7 +83,8 @@
                                 </span>
                                 <span class="min-w-0">
                                     <span class="block text-sm font-semibold text-gray-900 dark:text-white">권한 설정</span>
-                                    <span class="block truncate text-xs font-normal text-gray-500 dark:text-gray-400">읽기 · 쓰기 · 댓글 접근 범위</span>
+                                    <span class="block truncate text-xs font-normal text-gray-500 dark:text-gray-400">읽기
+                                        · 쓰기 · 댓글 접근 범위</span>
                                 </span>
                             </span>
                             <span data-toggle-arrow
@@ -104,11 +105,12 @@
                                 <p class="text-sm font-semibold text-gray-700 mb-3">읽기 권한</p>
                                 <div class="flex items-center gap-6 text-sm mb-3">
                                     <label class="inline-flex items-center gap-2">
-                                        <input type="radio" name="readScopeOption" value="ALL" checked class="h-4 w-4" />
+                                        <input type="radio" name="readScopeOption" value="ALL" checked
+                                            class="h-4 w-4" />
                                         <span>전체</span>
                                     </label>
                                     <label class="inline-flex items-center gap-2">
-                                        <input type="radio" name="readScopeOption" value="DEPARTMENT" class="h-4 w-4" />
+                                        <input type="radio" name="readScopeOption" value="RESTRICTED" class="h-4 w-4" />
                                         <span>제한</span>
                                     </label>
                                 </div>
@@ -122,8 +124,8 @@
                                             <span data-toggle-arrow
                                                 class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-500"
                                                 aria-hidden="true">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                                                    class="h-4 w-4">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                    fill="currentColor" class="h-4 w-4">
                                                     <path fill-rule="evenodd"
                                                         d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
                                                         clip-rule="evenodd" />
@@ -134,8 +136,8 @@
                                             class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3">
                                             <label th:each="dept : ${departments}"
                                                 class="flex items-center gap-2 py-1 text-sm text-gray-700">
-                                                <input type="checkbox" data-multi-group="deptId" th:value="${dept.deptId}"
-                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <input type="checkbox" data-multi-group="deptId"
+                                                    th:value="${dept.deptId}" class="h-4 w-4 rounded border-gray-300" />
                                                 <span th:text="${dept.deptName}"></span>
                                             </label>
                                         </div>
@@ -149,8 +151,8 @@
                                             <span data-toggle-arrow
                                                 class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-500"
                                                 aria-hidden="true">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                                                    class="h-4 w-4">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                    fill="currentColor" class="h-4 w-4">
                                                     <path fill-rule="evenodd"
                                                         d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
                                                         clip-rule="evenodd" />
@@ -161,7 +163,8 @@
                                             class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3">
                                             <label th:each="pos : ${positions}"
                                                 class="flex items-center gap-2 py-1 text-sm text-gray-700">
-                                                <input type="checkbox" data-multi-group="positionId" th:value="${pos.positionId}"
+                                                <input type="checkbox" data-multi-group="positionId"
+                                                    th:value="${pos.positionId}"
                                                     class="h-4 w-4 rounded border-gray-300" />
                                                 <span th:text="${pos.positionName}"></span>
                                             </label>
@@ -174,11 +177,12 @@
                                 <p class="text-sm font-semibold text-gray-700 mb-3">쓰기 권한</p>
                                 <div class="flex items-center gap-6 text-sm mb-3">
                                     <label class="inline-flex items-center gap-2">
-                                        <input type="radio" name="writeScopeOption" value="ALL" checked class="h-4 w-4" />
+                                        <input type="radio" name="writeScopeOption" value="ALL" checked
+                                            class="h-4 w-4" />
                                         <span>전체</span>
                                     </label>
                                     <label class="inline-flex items-center gap-2">
-                                        <input type="radio" name="writeScopeOption" value="LIMITED" class="h-4 w-4" />
+                                        <input type="radio" name="writeScopeOption" value="RESTRICTED" class="h-4 w-4" />
                                         <span>제한</span>
                                     </label>
                                 </div>
@@ -192,8 +196,8 @@
                                             <span data-toggle-arrow
                                                 class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-500"
                                                 aria-hidden="true">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                                                    class="h-4 w-4">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                    fill="currentColor" class="h-4 w-4">
                                                     <path fill-rule="evenodd"
                                                         d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
                                                         clip-rule="evenodd" />
@@ -204,8 +208,8 @@
                                             class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3">
                                             <label th:each="dept : ${departments}"
                                                 class="flex items-center gap-2 py-1 text-sm text-gray-700">
-                                                <input type="checkbox" data-multi-group="writeDeptId" th:value="${dept.deptId}"
-                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <input type="checkbox" data-multi-group="writeDeptId"
+                                                    th:value="${dept.deptId}" class="h-4 w-4 rounded border-gray-300" />
                                                 <span th:text="${dept.deptName}"></span>
                                             </label>
                                         </div>
@@ -219,8 +223,8 @@
                                             <span data-toggle-arrow
                                                 class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-500"
                                                 aria-hidden="true">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                                                    class="h-4 w-4">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                    fill="currentColor" class="h-4 w-4">
                                                     <path fill-rule="evenodd"
                                                         d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
                                                         clip-rule="evenodd" />
@@ -231,7 +235,8 @@
                                             class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3">
                                             <label th:each="pos : ${positions}"
                                                 class="flex items-center gap-2 py-1 text-sm text-gray-700">
-                                                <input type="checkbox" data-multi-group="writePositionId" th:value="${pos.positionId}"
+                                                <input type="checkbox" data-multi-group="writePositionId"
+                                                    th:value="${pos.positionId}"
                                                     class="h-4 w-4 rounded border-gray-300" />
                                                 <span th:text="${pos.positionName}"></span>
                                             </label>
@@ -244,15 +249,18 @@
                                 <p class="text-sm font-semibold text-gray-700 mb-3">댓글 권한</p>
                                 <div class="flex items-center gap-6 text-sm">
                                     <label class="inline-flex items-center gap-2">
-                                        <input type="radio" name="commentScopeOption" value="ALL" checked class="h-4 w-4" />
+                                        <input type="radio" name="commentScopeOption" value="ALL" checked
+                                            class="h-4 w-4" />
                                         <span>전체</span>
                                     </label>
                                     <label class="inline-flex items-center gap-2">
-                                        <input type="radio" name="commentScopeOption" value="DEPARTMENT" class="h-4 w-4" />
+                                        <input type="radio" name="commentScopeOption" value="RESTRICTED"
+                                            class="h-4 w-4" />
                                         <span>제한</span>
                                     </label>
                                     <label class="inline-flex items-center gap-2">
-                                        <input type="radio" name="commentScopeOption" value="DISABLED" class="h-4 w-4" />
+                                        <input type="radio" name="commentScopeOption" value="NONE"
+                                            class="h-4 w-4" />
                                         <span>비활성</span>
                                     </label>
                                 </div>
@@ -266,8 +274,8 @@
                                             <span data-toggle-arrow
                                                 class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-500"
                                                 aria-hidden="true">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                                                    class="h-4 w-4">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                    fill="currentColor" class="h-4 w-4">
                                                     <path fill-rule="evenodd"
                                                         d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
                                                         clip-rule="evenodd" />
@@ -278,8 +286,8 @@
                                             class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3">
                                             <label th:each="dept : ${departments}"
                                                 class="flex items-center gap-2 py-1 text-sm text-gray-700">
-                                                <input type="checkbox" data-multi-group="commentDeptId" th:value="${dept.deptId}"
-                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <input type="checkbox" data-multi-group="commentDeptId"
+                                                    th:value="${dept.deptId}" class="h-4 w-4 rounded border-gray-300" />
                                                 <span th:text="${dept.deptName}"></span>
                                             </label>
                                         </div>
@@ -293,8 +301,8 @@
                                             <span data-toggle-arrow
                                                 class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-500"
                                                 aria-hidden="true">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                                                    class="h-4 w-4">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                    fill="currentColor" class="h-4 w-4">
                                                     <path fill-rule="evenodd"
                                                         d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
                                                         clip-rule="evenodd" />
@@ -306,7 +314,8 @@
                                             <label th:each="pos : ${positions}"
                                                 class="flex items-center gap-2 py-1 text-sm text-gray-700">
                                                 <input type="checkbox" data-multi-group="commentPositionId"
-                                                    th:value="${pos.positionId}" class="h-4 w-4 rounded border-gray-300" />
+                                                    th:value="${pos.positionId}"
+                                                    class="h-4 w-4 rounded border-gray-300" />
                                                 <span th:text="${pos.positionName}"></span>
                                             </label>
                                         </div>
@@ -331,7 +340,8 @@
                                 </span>
                                 <span class="min-w-0">
                                     <span class="block text-sm font-semibold text-gray-900 dark:text-white">기타 설정</span>
-                                    <span class="block truncate text-xs font-normal text-gray-500 dark:text-gray-400">익명 표시 · 활성화 · AI 옵션</span>
+                                    <span class="block truncate text-xs font-normal text-gray-500 dark:text-gray-400">익명
+                                        표시 · 활성화 · AI 옵션</span>
                                 </span>
                             </span>
                             <span data-toggle-arrow
@@ -368,8 +378,6 @@
                             </div>
                         </div>
 
-                        <p class="text-xs text-gray-500 -mt-3">댓글 권한의 "비활성"은 현재 서버 스펙상 임시로 전체 권한으로 저장됩니다.</p>
-
                         <div class="pt-2">
                             <button type="submit"
                                 class="rounded-xl bg-indigo-400 text-white px-8 py-3 font-medium hover:bg-indigo-500">
@@ -384,35 +392,17 @@
                     <div class="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                         <div>
                             <h3 class="text-xl font-semibold text-black dark:text-white">게시판 목록</h3>
-                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">생성 폼과 동일한 항목을 한눈에 확인합니다. 가로 스크롤로 전체 열을 볼 수 있습니다.</p>
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto rounded-xl border border-gray-200 shadow-sm ring-1 ring-black/5 dark:border-strokedark dark:ring-white/5">
-                        <table class="w-full min-w-[1100px] text-sm">
-                            <thead class="border-b border-gray-200 bg-gray-50/90 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
-                                <tr>
-                                    <th scope="col" class="whitespace-nowrap px-3 py-3">게시판명</th>
-                                    <th scope="col" class="whitespace-nowrap px-3 py-3">타입</th>
-                                    <th scope="col" class="whitespace-nowrap px-3 py-3">뷰 타입</th>
-                                    <th scope="col" class="min-w-[12rem] px-3 py-3">읽기 권한</th>
-                                    <th scope="col" class="min-w-[12rem] px-3 py-3">쓰기 권한</th>
-                                    <th scope="col" class="min-w-[13rem] px-3 py-3">댓글 권한</th>
-                                    <th scope="col" class="whitespace-nowrap px-3 py-3">익명</th>
-                                    <th scope="col" class="whitespace-nowrap px-3 py-3">활성</th>
-                                    <th scope="col" class="whitespace-nowrap px-3 py-3">AI</th>
-                                    <th scope="col"
-                                        class="sticky right-0 z-20 whitespace-nowrap border-l border-gray-200 bg-gray-50 px-3 py-3 text-right shadow-[inset_1px_0_0_rgba(0,0,0,0.06)] dark:border-strokedark dark:bg-meta-4">
-                                        관리</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200 dark:divide-strokedark">
-                                <tr th:each="board : ${boards}"
-                                    class="group bg-white hover:bg-gray-50/80 dark:bg-boxdark dark:hover:bg-meta-4/60">
-                                    <td class="px-3 py-3 align-top">
-                                        <div class="font-semibold text-gray-900 dark:text-white" th:text="${board.boardName}">이름</div>
-                                    </td>
-                                    <td class="px-3 py-3 align-top whitespace-nowrap text-gray-800 dark:text-gray-200"
+                    <div class="space-y-4">
+                        <article th:each="board : ${boards}"
+                            class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
+                            <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                <div>
+                                    <h4 class="text-base font-semibold text-gray-900 dark:text-white"
+                                        th:text="${board.boardName}">게시판명</h4>
+                                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300"
                                         th:switch="${board.boardType.name()}">
                                         <span th:case="'NOTICE'">공지사항</span>
                                         <span th:case="'POLICY'">사내정책</span>
@@ -421,71 +411,129 @@
                                         <span th:case="'ANONYMOUS'">익명게시판</span>
                                         <span th:case="'ARCHIVE'">보관함</span>
                                         <span th:case="*" th:text="${board.boardType}">-</span>
-                                    </td>
-                                    <td class="px-3 py-3 align-top whitespace-nowrap text-gray-800 dark:text-gray-200"
+                                    </p>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <button type="button"
+                                        class="rounded-lg bg-indigo-100 px-3 py-1.5 text-sm text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-200 dark:hover:bg-indigo-900/60"
+                                        th:attr="data-board-id=${board.boardId},
+                                                 data-board-name=${board.boardName},
+                                                 data-board-type=${board.boardType},
+                                                 data-dept-id=${board.dept != null ? board.dept.deptId : ''},
+                                                 data-position-id=${board.position != null ? board.position.positionId : ''},
+                                                 data-view-type=${board.viewType},
+                                                 data-read-scope=${board.readScope},
+                                                 data-write-scope=${board.writeScope},
+                                                 data-comment-scope=${board.commentScope},
+                                                 data-anonymous-type=${board.anonymousType},
+                                                 data-is-active=${board.isActive},
+                                                 data-is-ai-use=${board.isAiUse}" onclick="openEditModal(this)">
+                                        수정
+                                    </button>
+                                    <button type="button"
+                                        class="rounded-lg bg-rose-100 px-3 py-1.5 text-sm text-rose-600 hover:bg-rose-200 dark:bg-rose-900/40 dark:text-rose-200 dark:hover:bg-rose-900/60"
+                                        th:attr="onclick=|deleteBoard(${board.boardId})|">
+                                        삭제
+                                    </button>
+                                </div>
+                            </div>
+
+                            <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 xl:grid-cols-3">
+                                <div class="rounded-lg bg-gray-50 px-3 py-2 dark:bg-meta-4/60">
+                                    <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400">뷰 타입</dt>
+                                    <dd class="mt-1 text-gray-800 dark:text-gray-200"
                                         th:switch="${board.viewType.name()}">
                                         <span th:case="'LIST'">목록</span>
                                         <span th:case="'ALBUM'">앨범</span>
                                         <span th:case="'CARD'">카드</span>
                                         <span th:case="*" th:text="${board.viewType}">-</span>
-                                    </td>
-                                    <td class="max-w-[14rem] px-3 py-3 align-top text-gray-800 dark:text-gray-200">
-                                        <th:block th:if="${board.readScope.name() == 'ALL'}">
-                                            <span class="text-gray-800 dark:text-gray-200">전체</span>
-                                        </th:block>
+                                    </dd>
+                                </div>
+
+                                <div class="rounded-lg bg-gray-50 px-3 py-2 dark:bg-meta-4/60">
+                                    <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400">익명 여부</dt>
+                                    <dd class="mt-1 text-gray-800 dark:text-gray-200"
+                                        th:switch="${board.anonymousType.name()}">
+                                        <span th:case="'NAME'">이름</span>
+                                        <span th:case="'ANONYMOUS'">익명</span>
+                                        <span th:case="*" th:text="${board.anonymousType}">-</span>
+                                    </dd>
+                                </div>
+
+                                <div class="rounded-lg bg-gray-50 px-3 py-2 dark:bg-meta-4/60">
+                                    <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400">활성 / AI</dt>
+                                    <dd class="mt-1 flex flex-wrap gap-2">
+                                        <span th:if="${board.isActive}"
+                                            class="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">활성</span>
+                                        <span th:unless="${board.isActive}"
+                                            class="inline-flex rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-600 dark:text-gray-100">비활성</span>
+                                        <span th:if="${board.isAiUse}"
+                                            class="inline-flex rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200">AI
+                                            사용</span>
+                                        <span th:unless="${board.isAiUse}"
+                                            class="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-300">AI
+                                            미사용</span>
+                                    </dd>
+                                </div>
+
+                                <div class="rounded-lg bg-gray-50 px-3 py-2 dark:bg-meta-4/60">
+                                    <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400">읽기 권한</dt>
+                                    <dd class="mt-1 text-gray-800 dark:text-gray-200">
+                                        <th:block th:if="${board.readScope.name() == 'ALL'}">전체</th:block>
                                         <th:block th:if="${board.readScope.name() == 'RESTRICTED'}">
-                                            <div class="space-y-1.5">
+                                            <div class="space-y-1">
                                                 <span
                                                     class="inline-flex rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">제한</span>
                                                 <p class="text-xs leading-relaxed text-gray-600 dark:text-gray-300">
-                                                    <span th:if="${board.dept != null}"><span class="text-gray-500 dark:text-gray-400">부서</span>
-                                                        <span th:text="${board.dept.deptName}">-</span></span>
-                                                    <span th:if="${board.dept != null and board.position != null}"> · </span>
-                                                    <span th:if="${board.position != null}"><span class="text-gray-500 dark:text-gray-400">직급</span>
-                                                        <span th:text="${board.position.positionName}">-</span></span>
+                                                    <span th:if="${board.dept != null}">부서 <span
+                                                            th:text="${board.dept.deptName}">-</span></span>
+                                                    <span th:if="${board.dept != null and board.position != null}"> ·
+                                                    </span>
+                                                    <span th:if="${board.position != null}">직급 <span
+                                                            th:text="${board.position.positionName}">-</span></span>
                                                 </p>
-                                                <p th:if="${board.dept == null and board.position == null}"
-                                                    class="text-xs text-amber-700 dark:text-amber-300">저장된 부서·직급 없음</p>
                                             </div>
                                         </th:block>
-                                    </td>
-                                    <td class="max-w-[14rem] px-3 py-3 align-top text-gray-800 dark:text-gray-200">
-                                        <th:block th:if="${board.writeScope.name() == 'ALL'}">
-                                            <span class="text-gray-800 dark:text-gray-200">전체</span>
-                                        </th:block>
+                                    </dd>
+                                </div>
+
+                                <div class="rounded-lg bg-gray-50 px-3 py-2 dark:bg-meta-4/60">
+                                    <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400">쓰기 권한</dt>
+                                    <dd class="mt-1 text-gray-800 dark:text-gray-200">
+                                        <th:block th:if="${board.writeScope.name() == 'ALL'}">전체</th:block>
                                         <th:block th:if="${board.writeScope.name() == 'RESTRICTED'}">
-                                            <div class="space-y-1.5">
+                                            <div class="space-y-1">
                                                 <span
                                                     class="inline-flex rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">제한</span>
                                                 <p class="text-xs leading-relaxed text-gray-600 dark:text-gray-300">
-                                                    <span th:if="${board.dept != null}"><span class="text-gray-500 dark:text-gray-400">부서</span>
-                                                        <span th:text="${board.dept.deptName}">-</span></span>
-                                                    <span th:if="${board.dept != null and board.position != null}"> · </span>
-                                                    <span th:if="${board.position != null}"><span class="text-gray-500 dark:text-gray-400">직급</span>
-                                                        <span th:text="${board.position.positionName}">-</span></span>
+                                                    <span th:if="${board.dept != null}">부서 <span
+                                                            th:text="${board.dept.deptName}">-</span></span>
+                                                    <span th:if="${board.dept != null and board.position != null}"> ·
+                                                    </span>
+                                                    <span th:if="${board.position != null}">직급 <span
+                                                            th:text="${board.position.positionName}">-</span></span>
                                                 </p>
-                                                <p th:if="${board.dept == null and board.position == null}"
-                                                    class="text-xs text-amber-700 dark:text-amber-300">저장된 부서·직급 없음</p>
                                             </div>
                                         </th:block>
-                                    </td>
-                                    <td class="max-w-[15rem] px-3 py-3 align-top text-gray-800 dark:text-gray-200">
-                                        <th:block th:if="${board.commentScope.name() == 'ALL'}">
-                                            <span class="text-gray-800 dark:text-gray-200">전체</span>
-                                        </th:block>
+                                    </dd>
+                                </div>
+
+                                <div class="rounded-lg bg-gray-50 px-3 py-2 dark:bg-meta-4/60">
+                                    <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400">댓글 권한</dt>
+                                    <dd class="mt-1 text-gray-800 dark:text-gray-200">
+                                        <th:block th:if="${board.commentScope.name() == 'ALL'}">전체</th:block>
                                         <th:block th:if="${board.commentScope.name() == 'RESTRICTED'}">
-                                            <div class="space-y-1.5">
+                                            <div class="space-y-1">
                                                 <span
                                                     class="inline-flex rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">제한</span>
                                                 <p class="text-xs leading-relaxed text-gray-600 dark:text-gray-300">
-                                                    <span th:if="${board.dept != null}"><span class="text-gray-500 dark:text-gray-400">부서</span>
-                                                        <span th:text="${board.dept.deptName}">-</span></span>
-                                                    <span th:if="${board.dept != null and board.position != null}"> · </span>
-                                                    <span th:if="${board.position != null}"><span class="text-gray-500 dark:text-gray-400">직급</span>
-                                                        <span th:text="${board.position.positionName}">-</span></span>
+                                                    <span th:if="${board.dept != null}">부서 <span
+                                                            th:text="${board.dept.deptName}">-</span></span>
+                                                    <span th:if="${board.dept != null and board.position != null}"> ·
+                                                    </span>
+                                                    <span th:if="${board.position != null}">직급 <span
+                                                            th:text="${board.position.positionName}">-</span></span>
                                                 </p>
-                                                <p th:if="${board.dept == null and board.position == null}"
-                                                    class="text-xs text-amber-700 dark:text-amber-300">저장된 부서·직급 없음</p>
                                             </div>
                                         </th:block>
                                         <th:block th:if="${board.commentScope.name() == 'NONE'}">
@@ -495,58 +543,15 @@
                                                 <p class="text-xs text-gray-500 dark:text-gray-400">댓글 작성 불가</p>
                                             </div>
                                         </th:block>
-                                    </td>
-                                    <td class="px-3 py-3 align-top whitespace-nowrap text-gray-800 dark:text-gray-200"
-                                        th:switch="${board.anonymousType.name()}">
-                                        <span th:case="'NAME'">이름</span>
-                                        <span th:case="'ANONYMOUS'">익명</span>
-                                        <span th:case="*" th:text="${board.anonymousType}">-</span>
-                                    </td>
-                                    <td class="px-3 py-3 align-top whitespace-nowrap">
-                                        <span th:if="${board.isActive}"
-                                            class="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">활성</span>
-                                        <span th:unless="${board.isActive}"
-                                            class="inline-flex rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-600 dark:text-gray-100">비활성</span>
-                                    </td>
-                                    <td class="px-3 py-3 align-top whitespace-nowrap">
-                                        <span th:if="${board.isAiUse}"
-                                            class="inline-flex rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200">사용</span>
-                                        <span th:unless="${board.isAiUse}"
-                                            class="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-300">미사용</span>
-                                    </td>
-                                    <td
-                                        class="sticky right-0 z-10 whitespace-nowrap border-l border-gray-200 bg-white px-3 py-3 text-right shadow-[inset_1px_0_0_rgba(0,0,0,0.06)] group-hover:bg-gray-50/80 dark:border-strokedark dark:bg-boxdark dark:group-hover:bg-meta-4/60">
-                                        <div class="inline-flex flex-wrap items-center justify-end gap-2">
-                                            <button type="button"
-                                                class="rounded-lg bg-indigo-100 px-3 py-1.5 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-200 dark:hover:bg-indigo-900/60"
-                                                th:attr="data-board-id=${board.boardId},
-                                                         data-board-name=${board.boardName},
-                                                         data-board-type=${board.boardType},
-                                                         data-dept-id=${board.dept != null ? board.dept.deptId : ''},
-                                                         data-position-id=${board.position != null ? board.position.positionId : ''},
-                                                         data-view-type=${board.viewType},
-                                                         data-read-scope=${board.readScope},
-                                                         data-write-scope=${board.writeScope},
-                                                         data-comment-scope=${board.commentScope},
-                                                         data-anonymous-type=${board.anonymousType},
-                                                         data-is-active=${board.isActive},
-                                                         data-is-ai-use=${board.isAiUse}"
-                                                onclick="openEditModal(this)">
-                                                수정
-                                            </button>
-                                            <button type="button"
-                                                class="rounded-lg bg-rose-100 px-3 py-1.5 text-rose-600 hover:bg-rose-200 dark:bg-rose-900/40 dark:text-rose-200 dark:hover:bg-rose-900/60"
-                                                th:attr="onclick=|deleteBoard(${board.boardId})|">
-                                                삭제
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr th:if="${boards == null or #lists.isEmpty(boards)}">
-                                    <td colspan="10" class="px-4 py-12 text-center text-gray-500 dark:text-gray-400">등록된 게시판이 없습니다.</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                    </dd>
+                                </div>
+                            </dl>
+                        </article>
+
+                        <div th:if="${boards == null or #lists.isEmpty(boards)}"
+                            class="rounded-xl border border-dashed border-gray-300 px-4 py-12 text-center text-gray-500 dark:border-strokedark dark:text-gray-400">
+                            등록된 게시판이 없습니다.
+                        </div>
                     </div>
                 </section>
             </main>
