@@ -34,8 +34,6 @@
       boardId: Number(getValue(idFor('boardId')) || 0) || null,
       boardName: (getValue(idFor('boardName')) || '').trim(),
       boardType: getValue(idFor('boardType')),
-      deptId: Number(getValue(idFor('deptId'))),
-      positionId: Number(getValue(idFor('positionId'))),
       viewType: getValue(idFor('viewType')) || 'LIST',
       readScope: getValue(idFor('readScope')) || 'ALL',
       writeScope: getValue(idFor('writeScope')) || 'ALL',
@@ -176,6 +174,36 @@
   }
 
   /**
+   * "전체 선택" 체크박스 ↔ 같은 그룹의 개별 체크박스 연동
+   * - 전체 선택 체크: 개별 체크박스 모두 disable + uncheck → 제출 시 빈 배열 → 백엔드 ALL
+   * - 전체 선택 해제: 개별 체크박스 enable (사용자가 직접 선택)
+   * - 사용자가 개별 체크박스를 직접 켜면 전체 선택은 자동 해제
+   */
+  function initSelectAllControls() {
+    document.querySelectorAll('input[data-select-all]').forEach((selectAll) => {
+      const group = selectAll.dataset.selectAll;
+      const individuals = document.querySelectorAll(`input[data-multi-group="${group}"]`);
+
+      const applyState = () => {
+        individuals.forEach((cb) => {
+          cb.disabled = selectAll.checked;
+          if (selectAll.checked) cb.checked = false;
+        });
+      };
+
+      applyState(); // 초기 상태 적용
+
+      selectAll.addEventListener('change', applyState);
+
+      individuals.forEach((cb) => {
+        cb.addEventListener('change', () => {
+          if (cb.checked) selectAll.checked = false;
+        });
+      });
+    });
+  }
+
+  /**
    * data-toggle-target 으로 연결된 패널 표시/숨김 (권한 설정·기타 설정·부서/직급 접기 등)
    * data-toggle-arrow 에 rotate-180 으로 열림 상태 표시
    */
@@ -253,8 +281,8 @@
 
   /**
    * 게시판 생성 제출
-   * 백엔드는 Board 한 건에 deptId·positionId 하나만 저장하므로,
-   * 여러 권한을 제한으로 켠 경우 부서/직급이 모두 동일한지 검사 후 첫 쌍만 전송
+   * 권한별로 부서/직급을 다중 선택 가능. 0개 선택 = 전체 허용.
+   * 권한 라디오가 "제한"이어도 부서/직급이 비어있으면 백엔드가 ALL로 저장한다.
    */
   async function onCreateSubmit(e) {
     e.preventDefault();
@@ -262,61 +290,14 @@
     const readScopeOption = getCheckedRadioValue('readScopeOption') || 'ALL';
     const writeScopeOption = getCheckedRadioValue('writeScopeOption') || 'ALL';
     const commentScopeOption = getCheckedRadioValue('commentScopeOption') || 'ALL';
-    const readDeptIds = getSelectedNumberValues('deptId');
-    const readPositionIds = getSelectedNumberValues('positionId');
-    const writeDeptIds = getSelectedNumberValues('writeDeptId');
-    const writePositionIds = getSelectedNumberValues('writePositionId');
-    const commentDeptIds = getSelectedNumberValues('commentDeptId');
-    const commentPositionIds = getSelectedNumberValues('commentPositionId');
-    const limitedSelections = [];
 
-    if (readScopeOption === 'DEPARTMENT') {
-      if (!readDeptIds.length || !readPositionIds.length) {
-        alert('읽기 권한 제한을 선택한 경우 부서와 직급을 모두 선택해주세요.');
-        return;
-      }
-      limitedSelections.push({ deptId: readDeptIds[0], positionId: readPositionIds[0], source: '읽기 권한' });
-    }
-
-    if (writeScopeOption === 'LIMITED') {
-      if (!writeDeptIds.length || !writePositionIds.length) {
-        alert('쓰기 권한 제한을 선택한 경우 부서와 직급을 모두 선택해주세요.');
-        return;
-      }
-      limitedSelections.push({ deptId: writeDeptIds[0], positionId: writePositionIds[0], source: '쓰기 권한' });
-    }
-
-    if (commentScopeOption === 'DEPARTMENT') {
-      if (!commentDeptIds.length || !commentPositionIds.length) {
-        alert('댓글 권한 제한을 선택한 경우 부서와 직급을 모두 선택해주세요.');
-        return;
-      }
-      limitedSelections.push({ deptId: commentDeptIds[0], positionId: commentPositionIds[0], source: '댓글 권한' });
-    }
-
-    if (limitedSelections.length > 1) {
-      const first = limitedSelections[0];
-      const hasMismatch = limitedSelections.slice(1).some(
-        (selection) => selection.deptId !== first.deptId || selection.positionId !== first.positionId,
-      );
-      if (hasMismatch) {
-        alert('현재 시스템은 권한별 부서/직급을 따로 저장하지 않습니다. 제한 권한들의 부서/직급을 동일하게 선택해주세요.');
-        return;
-      }
-    }
-
-    if (limitedSelections.length > 0) {
-      payload.deptId = limitedSelections[0].deptId;
-      payload.positionId = limitedSelections[0].positionId;
-    } else {
-      payload.deptId = getFirstAvailableGroupValue('deptId');
-      payload.positionId = getFirstAvailableGroupValue('positionId');
-    }
-
-    if (!payload.deptId || !payload.positionId) {
-      alert('부서와 직급 정보를 확인해주세요.');
-      return;
-    }
+    // 라디오가 "제한"이 아닌 경우엔 빈 배열 → 백엔드는 ALL로 인식
+    payload.readDeptIds = readScopeOption === 'DEPARTMENT' ? getSelectedNumberValues('deptId') : [];
+    payload.readPositionIds = readScopeOption === 'DEPARTMENT' ? getSelectedNumberValues('positionId') : [];
+    payload.writeDeptIds = writeScopeOption === 'LIMITED' ? getSelectedNumberValues('writeDeptId') : [];
+    payload.writePositionIds = writeScopeOption === 'LIMITED' ? getSelectedNumberValues('writePositionId') : [];
+    payload.commentDeptIds = commentScopeOption === 'DEPARTMENT' ? getSelectedNumberValues('commentDeptId') : [];
+    payload.commentPositionIds = commentScopeOption === 'DEPARTMENT' ? getSelectedNumberValues('commentPositionId') : [];
 
     try {
       const response = await fetch('/api/admin/board/create', {
@@ -379,7 +360,7 @@
 
     try {
       const response = await fetch('/api/admin/board/update', {
-        method: 'PUT',
+        method: 'POST',
         headers: headers(),
         body: JSON.stringify(payload),
       });
@@ -402,7 +383,7 @@
 
     try {
       const response = await fetch(`/api/admin/board/delete/${boardId}`, {
-        method: 'DELETE',
+        method: 'POST',
         headers: headers(),
       });
 
@@ -426,6 +407,7 @@
     initCustomSelects();
     initPermissionPanelToggles();
     initCreatePermissionControls();
+    initSelectAllControls();
     document.getElementById('createBoardForm')?.addEventListener('submit', onCreateSubmit);
     document.getElementById('editBoardForm')?.addEventListener('submit', onEditSubmit);
   });

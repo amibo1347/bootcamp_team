@@ -14,16 +14,14 @@ import com.team.intranet.service.BoardService;
 @Controller
 @RequestMapping("/board")
 @RequiredArgsConstructor
-public class BoardController {
-      private final BoardService boardService;
-    @GetMapping("/{id}")
+public class ArticleController {
+    
+    private final BoardService boardService;
+
+    @GetMapping("/{id}/articles")
     public String viewBoard(@PathVariable Long id, MemberSession ms, Model model) {
-        BoardDto board = boardService.findVisibleBoardById(ms, id);
-        model.addAttribute("board", board);
-        return switch (board.getViewType()) {
-            case LIST -> "/board/list";
-            case ALBUM -> "/board/album";
-            case CARD -> "/board/card";
-        };
-}
+    BoardDto board = boardService.findVisibleBoardById(ms, id);
+    model.addAttribute("board", board);
+    return "board/detail";
+    }
 }

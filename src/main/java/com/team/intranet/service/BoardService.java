@@ -1,21 +1,31 @@
 package com.team.intranet.service;
 
+import java.util.Collections;
 import java.util.List;
+
 import org.springframework.stereotype.Service;
-import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.team.intranet.dto.BoardDto;
 import com.team.intranet.entity.Board;
+import com.team.intranet.entity.BoardScopeRule;
 import com.team.intranet.entity.Company;
 import com.team.intranet.entity.Dept;
 import com.team.intranet.entity.Position;
 import com.team.intranet.enums.ErrorCode;
+import com.team.intranet.enums.board.CommentScope;
+import com.team.intranet.enums.board.ReadScope;
+import com.team.intranet.enums.board.ScopeType;
+import com.team.intranet.enums.board.WriteScope;
 import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.BoardRepository;
+import com.team.intranet.repository.BoardscopeRuleRepository;
 import com.team.intranet.repository.CompanyRepository;
 import com.team.intranet.repository.DeptRepository;
 import com.team.intranet.repository.PositionRepository;
 import com.team.intranet.session.MemberSession;
-import org.springframework.transaction.annotation.Transactional; 
+
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -23,12 +33,13 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class BoardService {
-    
+
     private final BoardRepository boardRepository;
     private final CompanyRepository companyRepository;
     private final DeptRepository deptRepository;
     private final PositionRepository positionRepository;
-    
+    private final BoardscopeRuleRepository scopeRuleRepository;
+
     /**
      * 게시판 전체 조회 (관리자용 - 비활성 포함)
      */
@@ -38,162 +49,239 @@ public class BoardService {
         }
         return boardRepository.findAllByCompany_CompanyId(companyId);
     }
-    
+
     /**
      * 게시판 조회 - 로그인한 사용자가 볼 수 있는 게시판만
      */
     public List<BoardDto> findVisibleBoards(MemberSession ms) {
         List<BoardDto> result = boardRepository.findAllByCompany_CompanyId(ms.getCompanyId())
-            .stream()
-            .filter(Board::getIsActive)
-            .filter(board -> canRead(ms, board))
-            .map(BoardDto::from)
-            .toList();
+                .stream()
+                .filter(Board::getIsActive)
+                .filter(board -> canRead(ms, board))
+                .map(BoardDto::from)
+                .toList();
         log.info("findVisibleBoards size={}, items={}", result.size(), result);
         return result;
     }
 
-    @Transactional(readOnly = true)
     public BoardDto findVisibleBoardById(MemberSession ms, Long boardId) {
-    // 1. 게시판 조회
-    Board board = boardRepository.findById(boardId)
-        .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
-    
-    // 2. 멀티테넌시 검증 (다른 회사 게시판 차단)
-    if (!board.getCompany().getCompanyId().equals(ms.getCompanyId())) {
-        throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
+
+        validateSameCompany(board.getCompany().getCompanyId(), ms.getCompanyId());
+
+        if (!board.getIsActive()) {
+            throw new BusinessException(ErrorCode.BOARD_NOT_FOUND);
+        }
+        if (!canRead(ms, board)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+        return BoardDto.from(board);
     }
-    
-    // 3. 활성 상태 체크
-    if (!board.getIsActive()) {
-        throw new BusinessException(ErrorCode.BOARD_NOT_FOUND);
-    }
-    
-    // 4. 읽기 권한 체크
-    if (!canRead(ms, board)) {
-        throw new BusinessException(ErrorCode.ACCESS_DENIED);
-    }
-    
-    // 5. DTO로 변환해서 반환
-    return BoardDto.from(board);
-}
-    
+
     /**
-     * 게시판 생성
+     * 게시판 생성 — 권한별 다중 부서/직급 규칙 저장
+     * 각 scope: 선택 항목이 0개면 ALL, 있으면 RESTRICTED + 카르테시안 곱으로 규칙 생성
      */
     @Transactional
     public Board createBoard(MemberSession ms, BoardDto dto) {
         Company company = findCompany(ms.getCompanyId());
-        
-        // 멀티테넌시 체크: 부서/직급도 같은 회사 소속인지 확인
-        Dept dept = null;
-        if (dto.getDeptId() != null) {
-            dept = findDept(dto.getDeptId());
-            validateSameCompany(dept.getCompany().getCompanyId(), ms.getCompanyId());
-        }
-        
-        Position position = null;
-        if (dto.getPositionId() != null) {
-            position = findPosition(dto.getPositionId());
-            validateSameCompany(position.getCompany().getCompanyId(), ms.getCompanyId());
-        }
-        
+
         Board board = Board.createBoard(
-            dto.getBoardName(), dto.getBoardType(),
-            company, dept, position,
-            dto.getViewType(), dto.getReadScope(),
-            dto.getWriteScope(), dto.getCommentScope(),
-            dto.getIsActive(), dto.getIsAiUse(),
-            dto.getAnonymousType()
+                dto.getBoardName(), dto.getBoardType(), company,
+                dto.getViewType(),
+                resolveReadScope(dto),
+                resolveWriteScope(dto),
+                resolveCommentScope(dto),
+                dto.getIsActive(), dto.getIsAiUse(),
+                dto.getAnonymousType()
         );
-        
-        return boardRepository.save(board);
+        Board saved = boardRepository.save(board);
+
+        saveScopeRules(saved, ScopeType.READ, dto.getReadDeptIds(), dto.getReadPositionIds());
+        saveScopeRules(saved, ScopeType.WRITE, dto.getWriteDeptIds(), dto.getWritePositionIds());
+        saveScopeRules(saved, ScopeType.COMMENT, dto.getCommentDeptIds(), dto.getCommentPositionIds());
+
+        return saved;
     }
-    
+
     /**
-     * 게시판 수정
+     * 게시판 수정 — 기존 규칙 모두 지우고 다시 생성
      */
     @Transactional
     public void updateBoard(MemberSession ms, Long boardId, BoardDto dto) {
         Board board = boardRepository.findById(boardId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
-        
-        // 멀티테넌시 체크
+                .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
         validateSameCompany(board.getCompany().getCompanyId(), ms.getCompanyId());
-        
-        // 부서/직급도 같은 회사 소속인지 확인
-        Dept dept = null;
-        if (dto.getDeptId() != null) {
-            dept = findDept(dto.getDeptId());
-            validateSameCompany(dept.getCompany().getCompanyId(), ms.getCompanyId());
-        }
-        
-        Position position = null;
-        if (dto.getPositionId() != null) {
-            position = findPosition(dto.getPositionId());
-            validateSameCompany(position.getCompany().getCompanyId(), ms.getCompanyId());
-        }
-        
-        // ⭐ 실제 수정 로직 (Entity의 update 메서드 호출)
+
         board.updateFromDto(
-            dto.getBoardName(), dto.getBoardType(),
-            dept, position,
-            dto.getViewType(), dto.getReadScope(),
-            dto.getWriteScope(), dto.getCommentScope(),
-            dto.getIsActive(), dto.getIsAiUse(),
-            dto.getAnonymousType()
+                dto.getBoardName(), dto.getBoardType(),
+                dto.getViewType(),
+                resolveReadScope(dto),
+                resolveWriteScope(dto),
+                resolveCommentScope(dto),
+                dto.getIsActive(), dto.getIsAiUse(),
+                dto.getAnonymousType()
         );
-        // JPA 변경 감지(Dirty Checking)로 자동 저장됨
+
+        scopeRuleRepository.deleteByBoardBoardId(boardId);
+        saveScopeRules(board, ScopeType.READ, dto.getReadDeptIds(), dto.getReadPositionIds());
+        saveScopeRules(board, ScopeType.WRITE, dto.getWriteDeptIds(), dto.getWritePositionIds());
+        saveScopeRules(board, ScopeType.COMMENT, dto.getCommentDeptIds(), dto.getCommentPositionIds());
     }
-    
+
     /**
-     * 게시판 삭제
+     * 게시판 삭제 — 규칙도 함께 정리
      */
     @Transactional
     public void deleteBoard(MemberSession ms, Long boardId) {
         Board board = boardRepository.findById(boardId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
-        
-        // 멀티테넌시 체크
+                .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
         validateSameCompany(board.getCompany().getCompanyId(), ms.getCompanyId());
-        
+
+        scopeRuleRepository.deleteByBoardBoardId(boardId);
         boardRepository.delete(board);
     }
-    
-    /**
-     * 권한 체크 - 사용자가 게시판을 읽을 수 있는지
-     */
-    private boolean canRead(MemberSession ms, Board board) {
+
+    // ===== 권한 체크 =====
+
+    public boolean canRead(MemberSession ms, Board board) {
         return switch (board.getReadScope()) {
             case ALL -> true;
-            case RESTRICTED -> 
-                (board.getDept() == null || board.getDept().getDeptId().equals(ms.getDeptId())) &&
-                (board.getPosition() == null || board.getPosition().getPositionId().equals(ms.getPositionId()));
+            case RESTRICTED -> matchesAnyRule(ms, board.getBoardId(), ScopeType.READ);
         };
     }
-    
+
+    public boolean canWrite(MemberSession ms, Board board) {
+        return switch (board.getWriteScope()) {
+            case ALL -> true;
+            case RESTRICTED -> matchesAnyRule(ms, board.getBoardId(), ScopeType.WRITE);
+        };
+    }
+
+    public boolean canComment(MemberSession ms, Board board) {
+        return switch (board.getCommentScope()) {
+            case ALL -> true;
+            case RESTRICTED -> matchesAnyRule(ms, board.getBoardId(), ScopeType.COMMENT);
+            case NONE -> false;
+        };
+    }
+
     /**
-     * 멀티테넌시 검증 - 같은 회사 데이터인지 확인
+     * 해당 scope의 규칙 중 사용자에게 매칭되는 게 하나라도 있는지.
+     * 규칙이 0건이면 = "전체"로 간주하여 통과.
      */
+    private boolean matchesAnyRule(MemberSession ms, Long boardId, ScopeType scopeType) {
+        List<BoardScopeRule> rules = scopeRuleRepository.findByBoardBoardIdAndScopeType(boardId, scopeType);
+        if (rules.isEmpty()) {
+            return true;
+        }
+        return rules.stream().anyMatch(rule -> matchesRestriction(ms, rule));
+    }
+
+    /**
+     * 단일 규칙이 사용자 부서/직급과 매칭되는지.
+     * rule.dept == null → 모든 부서 허용
+     * rule.position == null → 모든 직급 허용
+     * 둘 다 만족(AND)해야 통과
+     */
+    private boolean matchesRestriction(MemberSession ms, BoardScopeRule rule) {
+        boolean deptOk = rule.getDept() == null
+                || rule.getDept().getDeptId().equals(ms.getDeptId());
+
+        boolean positionOk = rule.getPosition() == null
+                || rule.getPosition().getPositionId().equals(ms.getPositionId());
+
+        return deptOk && positionOk;
+    }
+
+    // ===== scope 결정 헬퍼 (선택 0개 → ALL, 1개 이상 → RESTRICTED) =====
+
+    private ReadScope resolveReadScope(BoardDto dto) {
+        return hasAnySelection(dto.getReadDeptIds(), dto.getReadPositionIds())
+                ? ReadScope.RESTRICTED : ReadScope.ALL;
+    }
+
+    private WriteScope resolveWriteScope(BoardDto dto) {
+        return hasAnySelection(dto.getWriteDeptIds(), dto.getWritePositionIds())
+                ? WriteScope.RESTRICTED : WriteScope.ALL;
+    }
+
+    private CommentScope resolveCommentScope(BoardDto dto) {
+        if (dto.getCommentScope() == CommentScope.NONE) {
+            return CommentScope.NONE;
+        }
+        return hasAnySelection(dto.getCommentDeptIds(), dto.getCommentPositionIds())
+                ? CommentScope.RESTRICTED : CommentScope.ALL;
+    }
+
+    private boolean hasAnySelection(List<Long> deptIds, List<Long> positionIds) {
+        boolean d = deptIds != null && !deptIds.isEmpty();
+        boolean p = positionIds != null && !positionIds.isEmpty();
+        return d || p;
+    }
+
+    // ===== 규칙 저장 =====
+
+    /**
+     * 부서 N개 × 직급 M개 = N*M 개 규칙을 저장.
+     * 한쪽 축이 비어있으면 그 축은 null(전체)로 표현.
+     * 둘 다 비어있으면 아무것도 저장하지 않음 (= 전체 허용).
+     */
+    private void saveScopeRules(Board board, ScopeType scopeType, List<Long> deptIds, List<Long> positionIds) {
+        boolean hasDept = deptIds != null && !deptIds.isEmpty();
+        boolean hasPosition = positionIds != null && !positionIds.isEmpty();
+
+        if (!hasDept && !hasPosition) {
+            return; // 규칙 없음 = 전체
+        }
+
+        Long companyId = board.getCompany().getCompanyId();
+        List<Long> dIds = hasDept ? deptIds : Collections.singletonList(null);
+        List<Long> pIds = hasPosition ? positionIds : Collections.singletonList(null);
+
+        for (Long dId : dIds) {
+            Dept dept = null;
+            if (dId != null) {
+                dept = findDept(dId);
+                validateSameCompany(dept.getCompany().getCompanyId(), companyId);
+            }
+            for (Long pId : pIds) {
+                Position position = null;
+                if (pId != null) {
+                    position = findPosition(pId);
+                    validateSameCompany(position.getCompany().getCompanyId(), companyId);
+                }
+                BoardScopeRule rule = new BoardScopeRule();
+                rule.setBoard(board);
+                rule.setScopeType(scopeType);
+                rule.setDept(dept);
+                rule.setPosition(position);
+                scopeRuleRepository.save(rule);
+            }
+        }
+    }
+
+    // ===== 공통 헬퍼 =====
+
     private void validateSameCompany(Long entityCompanyId, Long userCompanyId) {
         if (!entityCompanyId.equals(userCompanyId)) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
     }
-    
-    // 헬퍼 메서드들
+
     private Company findCompany(Long companyId) {
         return companyRepository.findById(companyId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.COMPANY_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.COMPANY_NOT_FOUND));
     }
-    
+
     private Dept findDept(Long deptId) {
         return deptRepository.findById(deptId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.DEPT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.DEPT_NOT_FOUND));
     }
-    
+
     private Position findPosition(Long positionId) {
         return positionRepository.findById(positionId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.POSITION_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.POSITION_NOT_FOUND));
     }
 }

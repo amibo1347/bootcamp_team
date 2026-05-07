@@ -132,6 +132,11 @@
                                         </button>
                                         <div id="readDeptPanel"
                                             class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3">
+                                            <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2">
+                                                <input type="checkbox" data-select-all="deptId" checked
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span>전체 선택</span>
+                                            </label>
                                             <label th:each="dept : ${departments}"
                                                 class="flex items-center gap-2 py-1 text-sm text-gray-700">
                                                 <input type="checkbox" data-multi-group="deptId" th:value="${dept.deptId}"
@@ -159,6 +164,11 @@
                                         </button>
                                         <div id="readPositionPanel"
                                             class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3">
+                                            <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2">
+                                                <input type="checkbox" data-select-all="positionId" checked
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span>전체 선택</span>
+                                            </label>
                                             <label th:each="pos : ${positions}"
                                                 class="flex items-center gap-2 py-1 text-sm text-gray-700">
                                                 <input type="checkbox" data-multi-group="positionId" th:value="${pos.positionId}"
@@ -202,6 +212,11 @@
                                         </button>
                                         <div id="writeDeptPanel"
                                             class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3">
+                                            <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2">
+                                                <input type="checkbox" data-select-all="writeDeptId" checked
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span>전체 선택</span>
+                                            </label>
                                             <label th:each="dept : ${departments}"
                                                 class="flex items-center gap-2 py-1 text-sm text-gray-700">
                                                 <input type="checkbox" data-multi-group="writeDeptId" th:value="${dept.deptId}"
@@ -229,6 +244,11 @@
                                         </button>
                                         <div id="writePositionPanel"
                                             class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3">
+                                            <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2">
+                                                <input type="checkbox" data-select-all="writePositionId" checked
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span>전체 선택</span>
+                                            </label>
                                             <label th:each="pos : ${positions}"
                                                 class="flex items-center gap-2 py-1 text-sm text-gray-700">
                                                 <input type="checkbox" data-multi-group="writePositionId" th:value="${pos.positionId}"
@@ -276,6 +296,11 @@
                                         </button>
                                         <div id="commentDeptPanel"
                                             class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3">
+                                            <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2">
+                                                <input type="checkbox" data-select-all="commentDeptId" checked
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span>전체 선택</span>
+                                            </label>
                                             <label th:each="dept : ${departments}"
                                                 class="flex items-center gap-2 py-1 text-sm text-gray-700">
                                                 <input type="checkbox" data-multi-group="commentDeptId" th:value="${dept.deptId}"
@@ -303,6 +328,11 @@
                                         </button>
                                         <div id="commentPositionPanel"
                                             class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3">
+                                            <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2">
+                                                <input type="checkbox" data-select-all="commentPositionId" checked
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span>전체 선택</span>
+                                            </label>
                                             <label th:each="pos : ${positions}"
                                                 class="flex items-center gap-2 py-1 text-sm text-gray-700">
                                                 <input type="checkbox" data-multi-group="commentPositionId"
