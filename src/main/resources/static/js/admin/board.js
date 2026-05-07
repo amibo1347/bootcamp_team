@@ -28,20 +28,21 @@
   function getPayload(prefix = '') {
     const getValue = (id) => document.getElementById(id)?.value;
     const getChecked = (id) => Boolean(document.getElementById(id)?.checked);
+    const idFor = (name) => prefix ? `${prefix}${name[0].toUpperCase()}${name.slice(1)}` : name;
 
     return {
-      boardId: Number(getValue(`${prefix}BoardId`) || 0) || null,
-      boardName: (getValue(`${prefix}BoardName`) || '').trim(),
-      boardType: getValue(`${prefix}BoardType`),
-      deptId: Number(getValue(`${prefix}DeptId`)),
-      positionId: Number(getValue(`${prefix}PositionId`)),
-      viewType: getValue(`${prefix}ViewType`) || 'LIST',
-      readScope: getValue(`${prefix}ReadScope`) || 'ALL',
-      writeScope: getValue(`${prefix}WriteScope`) || 'ALL',
-      commentScope: getValue(`${prefix}CommentScope`) || 'ALL',
-      anonymousType: getValue(`${prefix}AnonymousType`) || 'NAME',
-      isActive: getChecked(`${prefix}IsActive`),
-      isAiUse: getChecked(`${prefix}IsAiUse`),
+      boardId: Number(getValue(idFor('boardId')) || 0) || null,
+      boardName: (getValue(idFor('boardName')) || '').trim(),
+      boardType: getValue(idFor('boardType')),
+      deptId: Number(getValue(idFor('deptId'))),
+      positionId: Number(getValue(idFor('positionId'))),
+      viewType: getValue(idFor('viewType')) || 'LIST',
+      readScope: getValue(idFor('readScope')) || 'ALL',
+      writeScope: getValue(idFor('writeScope')) || 'ALL',
+      commentScope: getValue(idFor('commentScope')) || 'ALL',
+      anonymousType: getValue(idFor('anonymousType')) || 'NAME',
+      isActive: getChecked(idFor('isActive')),
+      isAiUse: getChecked(idFor('isAiUse')),
     };
   }
 

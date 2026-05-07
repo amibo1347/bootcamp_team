@@ -324,11 +324,208 @@
                         </div>
                         <!-- Dropdown Menu End -->
                     </li>
-                    <!-- Menu Item Pages -->
-                </ul>
-            </div>
+                    <!-- Menu Item Board: 공지사항 -->
+                    <th:block th:with="notices=${boardList.?[#this.boardType != null and #this.boardType.name() == 'NOTICE']}">
+                        <li th:if="${not #lists.isEmpty(notices)}">
+                            <a th:href="@{/}" @click.prevent="selected = (selected === 'BoardNotice' ? '' : 'BoardNotice')"
+                                class="menu-item group"
+                                :class="selected === 'BoardNotice' ? 'menu-item-active' : 'menu-item-inactive'">
+                                <span class="w-6 text-center text-lg">📌</span>
+                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">공지사항</span>
+                                <svg class="menu-item-arrow"
+                                    :class="[(selected === 'BoardNotice') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive', sidebarToggle ? 'lg:hidden' : '' ]"
+                                    width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4.79175 7.39584L10.0001 12.6042L15.2084 7.39585" stroke="currentColor"
+                                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </a>
+                            <div class="overflow-hidden" :class="(selected === 'BoardNotice') ? 'block' : 'hidden'">
+                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
+                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+                                    <li th:each="board : ${notices}">
+                                        <a th:href="@{/board/{id}(id=${board.boardId})}"
+                                            th:data-board-id="${board.boardId}"
+                                            class="menu-dropdown-item group"
+                                            :class="page === ('board-' + $el.dataset.boardId) ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                                            @click="page = 'board-' + $el.dataset.boardId"
+                                            th:text="${board.boardName}">게시판 이름</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                    </th:block>
 
-        </nav>
-        <!-- Sidebar Menu -->
+                    <!-- Menu Item Board: 사내정책 -->
+                    <th:block th:with="policies=${boardList.?[#this.boardType != null and #this.boardType.name() == 'POLICY']}">
+                        <li th:if="${not #lists.isEmpty(policies)}">
+                            <a th:href="@{/}" @click.prevent="selected = (selected === 'BoardPolicy' ? '' : 'BoardPolicy')"
+                                class="menu-item group"
+                                :class="selected === 'BoardPolicy' ? 'menu-item-active' : 'menu-item-inactive'">
+                                <span class="w-6 text-center text-lg">📋</span>
+                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">사내정책</span>
+                                <svg class="menu-item-arrow"
+                                    :class="[(selected === 'BoardPolicy') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive', sidebarToggle ? 'lg:hidden' : '' ]"
+                                    width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4.79175 7.39584L10.0001 12.6042L15.2084 7.39585" stroke="currentColor"
+                                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </a>
+                            <div class="overflow-hidden" :class="(selected === 'BoardPolicy') ? 'block' : 'hidden'">
+                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
+                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+                                    <li th:each="board : ${policies}">
+                                        <a th:href="@{/board/{id}(id=${board.boardId})}"
+                                            th:data-board-id="${board.boardId}"
+                                            class="menu-dropdown-item group"
+                                            :class="page === ('board-' + $el.dataset.boardId) ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                                            @click="page = 'board-' + $el.dataset.boardId"
+                                            th:text="${board.boardName}">게시판 이름</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                    </th:block>
+
+                    <!-- Menu Item Board: 자유게시판 -->
+                    <th:block th:with="freeBoards=${boardList.?[#this.boardType != null and #this.boardType.name() == 'FREE']}">
+                        <li th:if="${not #lists.isEmpty(freeBoards)}">
+                            <a th:href="@{/}" @click.prevent="selected = (selected === 'BoardFree' ? '' : 'BoardFree')"
+                                class="menu-item group"
+                                :class="selected === 'BoardFree' ? 'menu-item-active' : 'menu-item-inactive'">
+                                <span class="w-6 text-center text-lg">💬</span>
+                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">자유게시판</span>
+                                <svg class="menu-item-arrow"
+                                    :class="[(selected === 'BoardFree') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive', sidebarToggle ? 'lg:hidden' : '' ]"
+                                    width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4.79175 7.39584L10.0001 12.6042L15.2084 7.39585" stroke="currentColor"
+                                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </a>
+                            <div class="overflow-hidden" :class="(selected === 'BoardFree') ? 'block' : 'hidden'">
+                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
+                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+                                    <li th:each="board : ${freeBoards}">
+                                        <a th:href="@{/board/{id}(id=${board.boardId})}"
+                                            th:data-board-id="${board.boardId}"
+                                            class="menu-dropdown-item group"
+                                            :class="page === ('board-' + $el.dataset.boardId) ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                                            @click="page = 'board-' + $el.dataset.boardId"
+                                            th:text="${board.boardName}">게시판 이름</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                    </th:block>
+
+                    <!-- Menu Item Board: Q&A 게시판 -->
+                    <th:block th:with="qnas=${boardList.?[#this.boardType != null and #this.boardType.name() == 'QNA']}">
+                        <li th:if="${not #lists.isEmpty(qnas)}">
+                            <a th:href="@{/}" @click.prevent="selected = (selected === 'BoardQna' ? '' : 'BoardQna')"
+                                class="menu-item group"
+                                :class="selected === 'BoardQna' ? 'menu-item-active' : 'menu-item-inactive'">
+                                <span class="w-6 text-center text-lg">❓</span>
+                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Q&amp;A 게시판</span>
+                                <svg class="menu-item-arrow"
+                                    :class="[(selected === 'BoardQna') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive', sidebarToggle ? 'lg:hidden' : '' ]"
+                                    width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4.79175 7.39584L10.0001 12.6042L15.2084 7.39585" stroke="currentColor"
+                                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </a>
+                            <div class="overflow-hidden" :class="(selected === 'BoardQna') ? 'block' : 'hidden'">
+                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
+                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+                                    <li th:each="board : ${qnas}">
+                                        <a th:href="@{/board/{id}(id=${board.boardId})}"
+                                            th:data-board-id="${board.boardId}"
+                                            class="menu-dropdown-item group"
+                                            :class="page === ('board-' + $el.dataset.boardId) ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                                            @click="page = 'board-' + $el.dataset.boardId"
+                                            th:text="${board.boardName}">게시판 이름</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                    </th:block>
+
+                    <!-- Menu Item Board: 익명게시판 -->
+                    <th:block th:with="anonymous=${boardList.?[#this.boardType != null and #this.boardType.name() == 'ANONYMOUS']}">
+                        <li th:if="${not #lists.isEmpty(anonymous)}">
+                            <a th:href="@{/}" @click.prevent="selected = (selected === 'BoardAnonymous' ? '' : 'BoardAnonymous')"
+                                class="menu-item group"
+                                :class="selected === 'BoardAnonymous' ? 'menu-item-active' : 'menu-item-inactive'">
+                                <span class="w-6 text-center text-lg">👤</span>
+                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">익명게시판</span>
+                                <svg class="menu-item-arrow"
+                                    :class="[(selected === 'BoardAnonymous') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive', sidebarToggle ? 'lg:hidden' : '' ]"
+                                    width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4.79175 7.39584L10.0001 12.6042L15.2084 7.39585" stroke="currentColor"
+                                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </a>
+                            <div class="overflow-hidden" :class="(selected === 'BoardAnonymous') ? 'block' : 'hidden'">
+                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
+                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+                                    <li th:each="board : ${anonymous}">
+                                        <a th:href="@{/board/{id}(id=${board.boardId})}"
+                                            th:data-board-id="${board.boardId}"
+                                            class="menu-dropdown-item group"
+                                            :class="page === ('board-' + $el.dataset.boardId) ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                                            @click="page = 'board-' + $el.dataset.boardId"
+                                            th:text="${board.boardName}">게시판 이름</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                    </th:block>
+
+                    <!-- Menu Item Board: 기타 -->
+                    <th:block th:with="etcBoards=${boardList.?[#this.boardType != null and #this.boardType.name() == 'ETC']}">
+                        <li th:if="${not #lists.isEmpty(etcBoards)}">
+                            <a th:href="@{/}" @click.prevent="selected = (selected === 'BoardEtc' ? '' : 'BoardEtc')"
+                                class="menu-item group"
+                                :class="selected === 'BoardEtc' ? 'menu-item-active' : 'menu-item-inactive'">
+                                <span class="w-6 text-center text-lg">📁</span>
+                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">기타</span>
+                                <svg class="menu-item-arrow"
+                                    :class="[(selected === 'BoardEtc') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive', sidebarToggle ? 'lg:hidden' : '' ]"
+                                    width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4.79175 7.39584L10.0001 12.6042L15.2084 7.39585" stroke="currentColor"
+                                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </a>
+                            <div class="overflow-hidden" :class="(selected === 'BoardEtc') ? 'block' : 'hidden'">
+                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
+                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+                                    <li th:each="board : ${etcBoards}">
+                                        <a th:href="@{/board/{id}(id=${board.boardId})}"
+                                            th:data-board-id="${board.boardId}"
+                                            class="menu-dropdown-item group"
+                                            :class="page === ('board-' + $el.dataset.boardId) ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                                            @click="page = 'board-' + $el.dataset.boardId"
+                                            th:text="${board.boardName}">게시판 이름</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                    </th:block>
+
+                    <!-- 게시판 자체가 없을 때 -->
+                    <li th:if="${#lists.isEmpty(boardList)}" class="px-4 py-2 text-center text-sm text-gray-400">
+                        게시판이 없습니다
+                    </li>
+
+            <!-- Menu Item Pages -->
+            </ul>
+    </div>
+
+    </nav>
+    <!-- Sidebar Menu -->
     </div>
 </aside>

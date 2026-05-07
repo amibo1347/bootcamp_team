@@ -16,7 +16,9 @@ import com.team.intranet.repository.DeptRepository;
 import com.team.intranet.repository.PositionRepository;
 import com.team.intranet.session.MemberSession;
 import org.springframework.transaction.annotation.Transactional; 
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -41,13 +43,40 @@ public class BoardService {
      * 게시판 조회 - 로그인한 사용자가 볼 수 있는 게시판만
      */
     public List<BoardDto> findVisibleBoards(MemberSession ms) {
-        return boardRepository.findAllByCompany_CompanyId(ms.getCompanyId())
+        List<BoardDto> result = boardRepository.findAllByCompany_CompanyId(ms.getCompanyId())
             .stream()
             .filter(Board::getIsActive)
             .filter(board -> canRead(ms, board))
             .map(BoardDto::from)
             .toList();
+        log.info("findVisibleBoards size={}, items={}", result.size(), result);
+        return result;
     }
+
+    @Transactional(readOnly = true)
+    public BoardDto findVisibleBoardById(MemberSession ms, Long boardId) {
+    // 1. 게시판 조회
+    Board board = boardRepository.findById(boardId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
+    
+    // 2. 멀티테넌시 검증 (다른 회사 게시판 차단)
+    if (!board.getCompany().getCompanyId().equals(ms.getCompanyId())) {
+        throw new BusinessException(ErrorCode.ACCESS_DENIED);
+    }
+    
+    // 3. 활성 상태 체크
+    if (!board.getIsActive()) {
+        throw new BusinessException(ErrorCode.BOARD_NOT_FOUND);
+    }
+    
+    // 4. 읽기 권한 체크
+    if (!canRead(ms, board)) {
+        throw new BusinessException(ErrorCode.ACCESS_DENIED);
+    }
+    
+    // 5. DTO로 변환해서 반환
+    return BoardDto.from(board);
+}
     
     /**
      * 게시판 생성
