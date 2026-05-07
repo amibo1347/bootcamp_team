@@ -1,8 +1,19 @@
+/**
+ * admin/managingBoard.html — 게시판 생성·수정·삭제용 스크립트
+ *
+ * - 생성 폼: 숨김 필드(readScope 등) + 라디오/체크박스 UI 동기화 후 POST /api/admin/board/create
+ * - 수정 모달: 목록의 data-* 로 폼 채움 후 PUT /api/admin/board/update
+ * - 삭제: DELETE /api/admin/board/delete/{id}
+ * - native select는 버튼+드롭다운 형태의 커스텀 셀렉트로 교체 (Tailwind 스타일용)
+ */
 (() => {
+  /** 페이지 메타의 CSRF 토큰·헤더명 (Spring Security) */
   const csrfToken = document.querySelector('meta[name="_csrf"]')?.content || '';
   const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || 'X-CSRF-TOKEN';
+  /** select id → 트리거·메뉴 등 DOM 참조 (커스텀 셀렉트용) */
   const customSelectMap = new Map();
 
+  /** JSON 요청 시 공통 헤더 (CSRF 포함) */
   function headers() {
     return {
       'Content-Type': 'application/json',
@@ -10,6 +21,10 @@
     };
   }
 
+  /**
+   * 생성/수정 폼에서 서버로 보낼 본문 객체 생성
+   * @param {string} prefix '' 이면 생성 폼(boardName 등), 'edit' 이면 수정 폼(editBoardName 등)
+   */
   function getPayload(prefix = '') {
     const getValue = (id) => document.getElementById(id)?.value;
     const getChecked = (id) => Boolean(document.getElementById(id)?.checked);
@@ -30,6 +45,7 @@
     };
   }
 
+  /** 열려 있는 모든 커스텀 셀렉트 드롭다운 닫기 + z-index 복구 */
   function closeAllCustomSelects() {
     customSelectMap.forEach(({ menu, trigger, container }) => {
       menu.classList.add('hidden');
@@ -40,6 +56,7 @@
     });
   }
 
+  /** 네이티브 select 값 변경 후 트리거 라벨·메뉴 항목 하이라이트 동기화 */
   function syncCustomSelect(selectId) {
     const ui = customSelectMap.get(selectId);
     if (!ui) return;
@@ -56,6 +73,10 @@
     });
   }
 
+  /**
+   * 단일 native select를 숨기고, 버튼 + 목록으로 동일 동작의 커스텀 UI 생성
+   * (실제 값은 숨겨진 select에 유지 → 폼/겟Payload와 호환)
+   */
   function createCustomSelect(select) {
     const container = select.parentElement;
     const wrapper = document.createElement('div');
@@ -107,7 +128,7 @@
       const isOpen = !menu.classList.contains('hidden');
       closeAllCustomSelects();
       if (!isOpen) {
-        // Bring this field above its siblings while open
+        // 형제 필드 위에 겹치도록 열 때만 부모 z-index 상승
         if (container) {
           container.style.zIndex = '9999';
         }
@@ -126,6 +147,7 @@
     syncCustomSelect(select.id);
   }
 
+  /** 생성·수정 폼 내 모든 단일 select에 커스텀 UI 적용; 문서 클릭 시 드롭다운 닫기 */
   function initCustomSelects() {
     document
       .querySelectorAll('#createBoardForm select:not([multiple]), #editBoardForm select:not([multiple])')
@@ -138,18 +160,24 @@
     return document.querySelector(`input[name="${name}"]:checked`)?.value;
   }
 
+  /** data-multi-group 체크박스 중 선택된 값들을 숫자 배열로 (부서/직급 다중 선택용) */
   function getSelectedNumberValues(id) {
     return Array.from(document.querySelectorAll(`input[data-multi-group="${id}"]:checked`))
       .map((checkbox) => Number(checkbox.value))
       .filter((value) => Number.isFinite(value) && value > 0);
   }
 
+  /** 해당 그룹의 첫 체크박스 value — 제한 미선택 시 API용 기본 부서/직급 후보 */
   function getFirstAvailableGroupValue(id) {
     const firstCheckbox = document.querySelector(`input[data-multi-group="${id}"]`);
     const value = Number(firstCheckbox?.value || 0);
     return Number.isFinite(value) && value > 0 ? value : null;
   }
 
+  /**
+   * data-toggle-target 으로 연결된 패널 표시/숨김 (권한 설정·기타 설정·부서/직급 접기 등)
+   * data-toggle-arrow 에 rotate-180 으로 열림 상태 표시
+   */
   function initPermissionPanelToggles() {
     document.querySelectorAll('button[data-toggle-target]').forEach((button) => {
       const panelId = button.getAttribute('data-toggle-target');
@@ -160,13 +188,20 @@
       button.addEventListener('click', () => {
         const willOpen = panel.classList.contains('hidden');
         panel.classList.toggle('hidden', !willOpen);
+        button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
         if (arrow) {
-          arrow.textContent = willOpen ? '▴' : '▾';
+          arrow.classList.toggle('rotate-180', willOpen);
         }
       });
     });
   }
 
+  /**
+   * 생성 폼: 라디오 선택 ↔ 숨김 input(readScope / writeScope / commentScope) 및 제한 시 부서·직급 블록 표시
+   * - 읽기: DEPARTMENT 선택 시에만 readLimitedOptions 표시
+   * - 쓰기: LIMITED → 내부값 DEPARTMENT 로 매핑 후 제한 UI
+   * - 댓글: DEPARTMENT 일 때만 제한 UI; DISABLED 는 서버 제약상 숨김 필드에 ALL 로 넣음 (HTML 안내와 동일)
+   */
   function initCreatePermissionControls() {
     const readScope = document.getElementById('readScope');
     const writeScope = document.getElementById('writeScope');
@@ -174,8 +209,6 @@
     const readLimitedOptions = document.getElementById('readLimitedOptions');
     const writeLimitedOptions = document.getElementById('writeLimitedOptions');
     const commentLimitedOptions = document.getElementById('commentLimitedOptions');
-    const deptSelect = document.getElementById('deptId');
-    const positionSelect = document.getElementById('positionId');
 
     if (!readScope || !writeScope || !commentScope) {
       return;
@@ -217,6 +250,11 @@
     syncCommentScope();
   }
 
+  /**
+   * 게시판 생성 제출
+   * 백엔드는 Board 한 건에 deptId·positionId 하나만 저장하므로,
+   * 여러 권한을 제한으로 켠 경우 부서/직급이 모두 동일한지 검사 후 첫 쌍만 전송
+   */
   async function onCreateSubmit(e) {
     e.preventDefault();
     const payload = getPayload('');
@@ -297,6 +335,7 @@
     }
   }
 
+  /** 목록 행 버튼의 data-* 로 수정 모달 필드를 채우고 표시 */
   function openEditModal(button) {
     const d = button?.dataset || {};
     document.getElementById('editBoardId').value = d.boardId || '';
@@ -321,6 +360,10 @@
     modal.classList.remove('flex');
   }
 
+  /**
+   * 수정 저장 — 현재 폼에서 가져온 값 외에 뷰/권한/익명은 코드상 고정값으로 덮어 API 스펙에 맞춤
+   * (백엔드 구현 상태에 따라 일부 필드는 서버에서 무시될 수 있음)
+   */
   async function onEditSubmit(e) {
     e.preventDefault();
 
@@ -373,7 +416,7 @@
     }
   }
 
-  // expose for inline onclick + thymeleaf attr usage
+  // Thymeleaf onclick / th:attr 로 호출
   window.openEditModal = openEditModal;
   window.closeEditModal = closeEditModal;
   window.deleteBoard = deleteBoard;
@@ -386,4 +429,3 @@
     document.getElementById('editBoardForm')?.addEventListener('submit', onEditSubmit);
   });
 })();
-
