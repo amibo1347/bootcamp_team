@@ -107,4 +107,20 @@ public class Board {
         return board;
     }
 
+    public void updateFromDto(String boardName, BoardType boardType, Dept dept, Position position, 
+        ViewType viewType, ReadScope readScope, WriteScope writeScope, CommentScope commentScope, Boolean isActive, 
+        Boolean isAiUse, AnonymousType anonymousType) {
+        this.boardName = boardName;
+        this.boardType = boardType;
+        this.dept = dept;
+        this.position = position;
+        this.viewType = viewType;
+        this.readScope = readScope;
+        this.writeScope = writeScope;
+        this.commentScope = commentScope;
+        this.isActive = isActive;
+        this.isAiUse = isAiUse;
+        this.anonymousType = anonymousType;
+
+    }
 }

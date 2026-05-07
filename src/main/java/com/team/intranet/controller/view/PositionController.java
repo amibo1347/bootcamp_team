@@ -25,7 +25,7 @@ public class PositionController {
                                Model model) {
         if (ms == null) return "redirect:/member/login";
 
-        List<PositionDto> positions = positionService.findAllByCompanyCompanyIdOrderByPositionLevelDESC(ms.getCompanyId())
+        List<PositionDto> positions = positionService.findAllLevelDesc(ms.getCompanyId())
             .stream().map(PositionDto::fromEntity)
             .toList();
         model.addAttribute("companyId", ms.getCompanyId());

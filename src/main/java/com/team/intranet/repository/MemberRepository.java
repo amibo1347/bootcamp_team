@@ -3,6 +3,7 @@ package com.team.intranet.repository;
 import java.util.Optional;
 import java.util.List;
 
+import org.antlr.v4.runtime.atn.SemanticContext.OR;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,15 +22,20 @@ public interface MemberRepository extends JpaRepository<Member, Long>{
    @Query("SELECT m.profileImg FROM Member m WHERE m.memberId = :id")
    byte[] findProfileImgById(@Param("id") Long id);
 
-    @Query("SELECT m FROM Member m " +
+   @Query("SELECT m FROM Member m " +
        "WHERE m.company.companyId = :companyId " +
+       "AND (:keyword IS NULL OR :keyword = '' " +
+       "     OR LOWER(m.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
        "AND (:deptId IS NULL OR m.dept.deptId = :deptId) " +
        "AND (:positionId IS NULL OR m.position.positionId = :positionId) " +
-       "AND (:status IS NULL OR m.status = :status) " + 
+       "AND (:status IS NULL OR m.status = :status) " +
        "ORDER BY m.position.positionLevel ASC, m.name ASC")
-    List<Member> searchMembers(@Param("companyId") Long companyId, 
-                               @Param("deptId") Long deptId, 
-                               @Param("status") Status status,
-                               @Param("positionId") Long positionId);
+List<Member> searchMembers(
+    @Param("companyId") Long companyId,
+    @Param("keyword") String keyword,
+    @Param("deptId") Long deptId,
+    @Param("status") Status status,
+    @Param("positionId") Long positionId
+);
 
 }

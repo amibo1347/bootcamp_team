@@ -10,4 +10,10 @@ public interface  PositionRepository extends JpaRepository<Position, Long> {
     List<Position> findAllByCompanyCompanyId(Long companyId);
     List<Position> findByCompany_CompanyIdOrderByPositionLevelAsc(Long companyId);
     List<Position> findByCompany_CompanyIdOrderByPositionLevelDesc(Long companyId);
+
+    boolean existsByCompanyCompanyIdAndPositionLevelAndPositionIdNot(
+        Long companyId, 
+        Integer positionLevel, 
+        Long positionId
+    );
 }

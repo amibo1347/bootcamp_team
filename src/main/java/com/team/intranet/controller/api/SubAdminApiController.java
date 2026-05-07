@@ -13,12 +13,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.team.intranet.enums.member.Role;
 import com.team.intranet.service.MemberService;
 import com.team.intranet.session.MemberSession;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @Controller
 @RequestMapping("/api/subAdmin")
@@ -36,36 +36,32 @@ public class SubAdminApiController {
 
     // 가입 승인용 포스트매핑
     @PostMapping("/accept/{id}")
+    @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
     public String approveMember(
             @PathVariable("id") Long memberId,
             @RequestParam Long deptId,
             @RequestParam Long positionId,
             @SessionAttribute("memberSession") MemberSession ms) {
 
-        if (ms == null || ms.getRole() != Role.ADMIN) {
-            return "redirect:/member/login";
-        }
 
-        memberService.acceptMember(memberId, ms.getMemberId(), deptId, positionId);
+        memberService.acceptMember(ms, memberId, deptId, positionId);
         return "redirect:/admin/waitingList";
     }
 
     // 가입 반려 (거절)
     @PostMapping("/reject/{id}")
+    @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
     public String rejectMember(
             @PathVariable("id") Long memberId,
             @SessionAttribute("memberSession") MemberSession ms) {
 
-        if (ms == null || ms.getRole() != Role.ADMIN) {
-            return "redirect:/member/login";
-        }
-
-        memberService.rejectMember(memberId, ms.getMemberId());
+        memberService.rejectMember(ms, memberId);
         return "redirect:/admin/waitingList";
     }
 
     // 회원 정보 수정 (부서, 직급 변경)
     @PostMapping("/update/{id}")
+    @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
     public String updateMember(
             @PathVariable("id") Long memberId,
             @RequestParam Long deptId,
@@ -78,26 +74,21 @@ public class SubAdminApiController {
             HttpSession session) throws IOException {
         
         MemberSession ms = (MemberSession) session.getAttribute("memberSession");
-        if (ms == null || ms.getRole() != Role.ADMIN){
-            return "redirect:/member/login";
-        }
 
         byte[] imgBytes = (profileImg != null && !profileImg.isEmpty()) ? profileImg.getBytes() : null;
         
-        memberService.updateMemberInfo(memberId, ms.getMemberId(), deptId, positionId, imgBytes, phone, email, name, parseBirthDay(birthDay));
+        memberService.updateMemberInfo(ms, memberId, deptId, positionId, imgBytes, phone, email, name, parseBirthDay(birthDay));
 
         return "redirect:/admin/memberList";
     }
 
     // 퇴사 처리
     @PostMapping("/fire/{id}")
+    @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
     public String fireMember(@PathVariable("id") Long memberId, HttpSession session) {
         MemberSession ms = (MemberSession) session.getAttribute("memberSession");
-        if (ms == null || ms.getRole() != Role.ADMIN){
-            return "redirect:/member/login";
-        }
 
-        memberService.fireMember(memberId, ms.getMemberId());
+        memberService.fireMember(ms, memberId);
 
         return "redirect:/admin/memberList";
     }

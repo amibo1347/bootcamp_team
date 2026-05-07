@@ -17,6 +17,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 import com.team.intranet.enums.member.Role;
 @Entity
 @Table(name="tbl_position")
@@ -39,7 +41,7 @@ public class Position {
     private Company company;
 
     @Column(name="position_level")
-    private int positionLevel;
+    private Integer positionLevel;
 
     @Column(name="role")
     @Enumerated(EnumType.STRING)
@@ -49,14 +51,19 @@ public class Position {
         return this.role == Role.SUB_ADMIN;
     }
 
-    public static Position createPosition(String positionName, Company company) {
+    public static Position createPosition(String positionName, Company company, Integer positionLevel, Role role) {
         Position position = new Position();
         position.setPositionName(positionName); 
         position.setCompany(company);
-        position.setRole(Role.USER); // 기본적으로 일반 사용자 권한 부여
-        position.setPositionLevel(1); // 기본 직급 레벨 설정
+        position.setRole(role);
+        position.setPositionLevel(positionLevel);
         return position;
     }
 
+    public void update(String positionName, Integer positionLevel, Role role) {
+        this.positionName = positionName;
+        this.positionLevel = positionLevel;
+        this.role = role;
+    }
     
 }
