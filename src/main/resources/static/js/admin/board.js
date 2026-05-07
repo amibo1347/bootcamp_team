@@ -28,6 +28,7 @@
   function getPayload(prefix = '') {
     const getValue = (id) => document.getElementById(id)?.value;
     const getChecked = (id) => Boolean(document.getElementById(id)?.checked);
+<<<<<<< HEAD
     const fieldId = (name) => (prefix ? `${prefix}${name}` : `${name.charAt(0).toLowerCase()}${name.slice(1)}`);
 
     return {
@@ -43,6 +44,23 @@
       anonymousType: getValue(fieldId('AnonymousType')) || 'NAME',
       isActive: getChecked(fieldId('IsActive')),
       isAiUse: getChecked(fieldId('IsAiUse')),
+=======
+    const idFor = (name) => prefix ? `${prefix}${name[0].toUpperCase()}${name.slice(1)}` : name;
+
+    return {
+      boardId: Number(getValue(idFor('boardId')) || 0) || null,
+      boardName: (getValue(idFor('boardName')) || '').trim(),
+      boardType: getValue(idFor('boardType')),
+      deptId: Number(getValue(idFor('deptId'))),
+      positionId: Number(getValue(idFor('positionId'))),
+      viewType: getValue(idFor('viewType')) || 'LIST',
+      readScope: getValue(idFor('readScope')) || 'ALL',
+      writeScope: getValue(idFor('writeScope')) || 'ALL',
+      commentScope: getValue(idFor('commentScope')) || 'ALL',
+      anonymousType: getValue(idFor('anonymousType')) || 'NAME',
+      isActive: getChecked(idFor('isActive')),
+      isAiUse: getChecked(idFor('isAiUse')),
+>>>>>>> 5296d4b52c55a3ee2a2b9af11d492cf683510ec0
     };
   }
 

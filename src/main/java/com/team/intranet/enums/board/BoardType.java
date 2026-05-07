@@ -6,6 +6,6 @@ public enum BoardType {
     FREE,           // 자유게시판
     QNA,            // Q&A 게시판
     ANONYMOUS,        // 익명게시판
-    ARCHIVE          // 보관함
+    ETC          // 기타
 
 }

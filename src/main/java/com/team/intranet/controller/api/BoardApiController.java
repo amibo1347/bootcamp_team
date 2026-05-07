@@ -30,7 +30,7 @@ public class BoardApiController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')") 
     public String createBoard(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
             @RequestBody BoardDto dto) {
-
+         System.out.println("=== 받은 dto: " + dto);  // ⭐ 이 줄 추가        
 
         // 1. 게시판 생성 로직 수행
         boardService.createBoard(ms, dto);

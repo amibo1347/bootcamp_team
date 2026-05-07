@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
 
@@ -38,6 +39,13 @@ public class GlobalExceptionHandler {
      * - 사용자에게는 일반적인 메시지만 노출
      * - 상세 내용은 서버 로그에만 남김 (보안상 중요)
      */
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Void> handleNoResourceFound(NoResourceFoundException e) {
+        // 로그도 안 남김 (너무 자주 발생)
+        return ResponseEntity.notFound().build();
+    }
+    
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleException(Exception e) {
         log.error("Unhandled exception", e);
