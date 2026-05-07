@@ -60,6 +60,36 @@
     return formData;
   }
 
+  function toTextPreview(markdown) {
+    return (markdown || '')
+      .replace(/!\[[^\]]*\]\([^)]+\)/g, ' ')
+      .replace(/\[[^\]]*\]\([^)]+\)/g, ' ')
+      .replace(/[#>*`~\-\[\]]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function savePostToLocalBoardFeed(payload) {
+    if (!payload?.boardId) return;
+    const key = `boardPosts:${payload.boardId}`;
+    const previous = JSON.parse(localStorage.getItem(key) || '[]');
+    const nowIso = new Date().toISOString();
+    const summary = toTextPreview(payload.content).slice(0, 140);
+    const record = {
+      id: `${Date.now()}`,
+      title: payload.title,
+      content: payload.content,
+      summary,
+      thumbnailUrl: null,
+      authorName: '나',
+      createdAt: nowIso,
+      viewCount: 0,
+      tags: [],
+    };
+    previous.unshift(record);
+    localStorage.setItem(key, JSON.stringify(previous));
+  }
+
   function validate(payload) {
     if (!payload.boardId) {
       alert('게시판 정보가 없습니다. 올바른 경로로 다시 접근해주세요.');
@@ -100,6 +130,7 @@
         throw new Error('게시글 생성 요청에 실패했습니다. API 경로를 확인해주세요.');
       }
 
+      savePostToLocalBoardFeed(payload);
       alert('게시글이 등록되었습니다.');
       event.currentTarget.reset();
       if (editor) {

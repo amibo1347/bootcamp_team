@@ -12,6 +12,7 @@
 </head>
 
 <body
+    th:attr="data-board-id=${board.boardId}"
     x-data="{ page: 'board', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
     x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
     :class="{ 'dark bg-gray-900': darkMode === true }">
@@ -34,29 +35,9 @@
                     </a>
                 </section>
 
-                <section th:if="${posts != null and !#lists.isEmpty(posts)}"
-                    class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                    <article th:each="post : ${posts}"
-                        class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
-                        <img th:if="${post.thumbnailUrl != null and !#strings.isEmpty(post.thumbnailUrl)}" th:src="${post.thumbnailUrl}"
-                            alt="thumbnail" class="h-48 w-full object-cover" />
-                        <div th:unless="${post.thumbnailUrl != null and !#strings.isEmpty(post.thumbnailUrl)}"
-                            class="flex h-48 items-center justify-center bg-gray-100 text-sm text-gray-400 dark:bg-meta-4/60">
-                            이미지 없음
-                        </div>
-                        <div class="space-y-2 p-4">
-                            <h3 class="line-clamp-1 text-base font-semibold text-gray-900 dark:text-white"
-                                th:text="${post.title}">제목</h3>
-                            <p class="line-clamp-2 text-sm text-gray-600 dark:text-gray-300" th:text="${post.summary}">요약</p>
-                            <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                                <span th:text="${post.authorName}">작성자</span>
-                                <span th:text="${post.createdAt}">2026-05-07</span>
-                            </div>
-                        </div>
-                    </article>
-                </section>
+                <section id="postAlbumGrid" class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"></section>
 
-                <section th:if="${posts == null or #lists.isEmpty(posts)}"
+                <section id="postAlbumEmpty"
                     class="rounded-xl border border-dashed border-gray-300 px-5 py-16 text-center text-gray-500 dark:border-strokedark dark:text-gray-400">
                     등록된 게시글이 없습니다.
                 </section>
@@ -65,6 +46,7 @@
     </div>
 
     <script type="module" src="/js/index.js"></script>
+    <script src="/js/board/view.js"></script>
 </body>
 
 </html>

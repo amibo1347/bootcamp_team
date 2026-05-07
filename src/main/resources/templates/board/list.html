@@ -12,6 +12,7 @@
 </head>
 
 <body
+    th:attr="data-board-id=${board.boardId}"
     x-data="{ page: 'board', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
     x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
     :class="{ 'dark bg-gray-900': darkMode === true }">
@@ -46,22 +47,11 @@
                                     <th class="px-5 py-3 font-semibold">조회수</th>
                                 </tr>
                             </thead>
-                            <tbody th:if="${posts != null and !#lists.isEmpty(posts)}">
-                                <tr th:each="post, stat : ${posts}"
-                                    class="border-t border-gray-100 text-gray-700 dark:border-strokedark dark:text-gray-200">
-                                    <td class="px-5 py-3" th:text="${stat.count}">1</td>
-                                    <td class="px-5 py-3">
-                                        <a href="#" class="hover:text-indigo-500" th:text="${post.title}">제목</a>
-                                    </td>
-                                    <td class="px-5 py-3" th:text="${post.authorName}">작성자</td>
-                                    <td class="px-5 py-3" th:text="${post.createdAt}">2026-05-07</td>
-                                    <td class="px-5 py-3" th:text="${post.viewCount}">0</td>
-                                </tr>
-                            </tbody>
+                            <tbody id="postListBody"></tbody>
                         </table>
                     </div>
 
-                    <div th:if="${posts == null or #lists.isEmpty(posts)}"
+                    <div id="postListEmpty"
                         class="px-5 py-16 text-center text-gray-500 dark:text-gray-400">
                         등록된 게시글이 없습니다.
                     </div>
@@ -71,6 +61,7 @@
     </div>
 
     <script type="module" src="/js/index.js"></script>
+    <script src="/js/board/view.js"></script>
 </body>
 
 </html>

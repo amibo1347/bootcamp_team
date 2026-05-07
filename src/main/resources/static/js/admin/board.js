@@ -501,7 +501,7 @@
     }
 
     try {
-      const response = await fetch('/api/admin/board/update', {
+      const response = await fetch(`/api/admin/board/update/${payload.boardId}`, {
         method: 'POST',
         headers: headers(),
         body: JSON.stringify(payload),
