@@ -37,7 +37,6 @@
                 <section
                     class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
                     <form id="postCreateForm" class="space-y-6">
-                        <input id="apiEndpoint" type="hidden" value="/api/board/post/create" />
                         <input id="boardId" type="hidden" th:value="${boardId}" />
 
                         <div>
@@ -52,18 +51,12 @@
                             <textarea id="content" required class="hidden"></textarea>
                         </div>
 
-                        <div>
-                            <label for="attachments" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">첨부파일</label>
-                            <input id="attachments" type="file" multiple
-                                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-                        </div>
-
                         <div class="flex flex-wrap items-center gap-3 pt-2">
                             <button type="submit"
                                 class="rounded-xl bg-indigo-400 px-8 py-3 font-medium text-white hover:bg-indigo-500">
                                 게시글 등록
                             </button>
-                            <a href="/admin/board"
+                            <a th:href="@{/board/{id}(id=${boardId})}"
                                 class="rounded-xl bg-gray-100 px-8 py-3 font-medium text-gray-700 hover:bg-gray-200">
                                 취소
                             </a>

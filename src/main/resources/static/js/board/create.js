@@ -48,49 +48,6 @@
     };
   }
 
-  function buildFormData(payload) {
-    const formData = new FormData();
-    formData.append('payload', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-
-    const files = document.getElementById('attachments')?.files;
-    if (files && files.length > 0) {
-      Array.from(files).forEach((file) => {
-        formData.append('attachments', file);
-      });
-    }
-    return formData;
-  }
-
-  function toTextPreview(markdown) {
-    return (markdown || '')
-      .replace(/!\[[^\]]*\]\([^)]+\)/g, ' ')
-      .replace(/\[[^\]]*\]\([^)]+\)/g, ' ')
-      .replace(/[#>*`~\-\[\]]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  function savePostToLocalBoardFeed(payload) {
-    if (!payload?.boardId) return;
-    const key = `boardPosts:${payload.boardId}`;
-    const previous = JSON.parse(localStorage.getItem(key) || '[]');
-    const nowIso = new Date().toISOString();
-    const summary = toTextPreview(payload.content).slice(0, 140);
-    const record = {
-      id: `${Date.now()}`,
-      title: payload.title,
-      content: payload.content,
-      summary,
-      thumbnailUrl: null,
-      authorName: '나',
-      createdAt: nowIso,
-      viewCount: 0,
-      tags: [],
-    };
-    previous.unshift(record);
-    localStorage.setItem(key, JSON.stringify(previous));
-  }
-
   function validate(payload) {
     if (!payload.boardId) {
       alert('게시판 정보가 없습니다. 올바른 경로로 다시 접근해주세요.');
@@ -115,29 +72,31 @@
     const payload = buildPayload();
     if (!validate(payload)) return;
 
-    const endpoint = getTrimmedValue('apiEndpoint') || '/api/board/post/create';
+    const endpoint = `/api/board/${payload.boardId}/articles/new`;
     const submitButton = event.currentTarget.querySelector('button[type="submit"]');
 
     try {
       if (submitButton) submitButton.disabled = true;
-      const formData = buildFormData(payload);
+      // 현재 백엔드 시그니처에 맞춰 form-urlencoded 로 전송한다.
+      const body = new URLSearchParams({
+        title: payload.title,
+        content: payload.content,
+      });
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: getHeaders(),
-        body: formData,
+        headers: {
+          ...getHeaders(),
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+        },
+        body,
       });
 
       if (!response.ok) {
-        throw new Error('게시글 생성 요청에 실패했습니다. API 경로를 확인해주세요.');
+        throw new Error('게시글 생성 요청에 실패했습니다.');
       }
 
-      savePostToLocalBoardFeed(payload);
       alert('게시글이 등록되었습니다.');
-      event.currentTarget.reset();
-      if (editor) {
-        editor.setMarkdown('');
-        syncEditorContentToTextarea();
-      }
+      window.location.href = `/board/${payload.boardId}/articles`;
     } catch (error) {
       alert(error?.message || '요청 처리 중 오류가 발생했습니다.');
     } finally {
