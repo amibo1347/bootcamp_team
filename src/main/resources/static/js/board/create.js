@@ -31,6 +31,7 @@
       previewStyle: 'vertical',
       language: 'ko-KR',
       placeholder: '게시글 내용을 입력하세요',
+      hideModeSwitch: true,
     });
 
     editor.on('change', syncEditorContentToTextarea);
