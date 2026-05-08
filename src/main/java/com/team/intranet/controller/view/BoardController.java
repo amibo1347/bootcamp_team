@@ -4,6 +4,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.ui.Model;
 import lombok.RequiredArgsConstructor;
 
@@ -19,7 +20,7 @@ public class BoardController {
       private final BoardService boardService;
 
     @GetMapping("/{id}")
-    public String viewBoard(@PathVariable Long id, MemberSession ms, Model model) {
+    public String viewBoard(@PathVariable Long id, @SessionAttribute(name = "memberSession", required = false) MemberSession ms, Model model) {
         BoardDto board = boardService.findVisibleBoardById(ms, id);
         model.addAttribute("board", board);
         return switch (board.getViewType() != null ? board.getViewType() : ViewType.LIST) {
@@ -29,11 +30,4 @@ public class BoardController {
         };
     }
 
-    @GetMapping("/{id}/posts/create")
-    public String createPostPage(@PathVariable Long id, MemberSession ms, Model model) {
-        BoardDto board = boardService.findVisibleBoardById(ms, id);
-        model.addAttribute("board", board);
-        model.addAttribute("boardId", board.getBoardId());
-        return "/board/createPost";
-    }
 }

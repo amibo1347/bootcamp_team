@@ -15,10 +15,24 @@
       .replaceAll("'", '&#39;');
   }
 
-  function loadPosts(boardId) {
+  async function loadPosts(boardId) {
     if (!boardId) return [];
-    return JSON.parse(localStorage.getItem(`boardPosts:${boardId}`) || '[]');
+    const res = await fetch(`/board/${boardId}/articles`, {
+      headers: { 'Accept': 'application/json' },
+      credentials: 'same-origin',
+    });
+    if (!res.ok) return [];
+    return res.json();
   }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const boardId = Number(document.body.dataset.boardId || 0);
+    if (!boardId) return;
+    const posts = await loadPosts(boardId);
+    renderList(posts);
+    renderAlbum(posts);
+    renderCard(posts);
+  });
 
   function renderList(posts) {
     const body = document.getElementById('postListBody');

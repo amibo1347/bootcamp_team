@@ -81,6 +81,7 @@
       const body = new URLSearchParams({
         title: payload.title,
         content: payload.content,
+        boardId: payload.boardId
       });
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -96,7 +97,7 @@
       }
 
       alert('게시글이 등록되었습니다.');
-      window.location.href = `/board/${payload.boardId}/articles`;
+      window.location.href = `/board/${payload.boardId}`;
     } catch (error) {
       alert(error?.message || '요청 처리 중 오류가 발생했습니다.');
     } finally {
