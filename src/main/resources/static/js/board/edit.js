@@ -134,7 +134,7 @@
     const payload = buildPayload();
     if (!validate(payload)) return;
 
-    const endpoint = `/api/board/${payload.boardId}/articles/${payload.articleId}`;
+    const endpoint = `/api/board/${payload.boardId}/articles/${payload.articleId}/edit`;
     const submitButton = event.currentTarget.querySelector('button[type="submit"]');
 
     try {

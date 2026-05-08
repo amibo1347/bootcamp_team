@@ -178,7 +178,7 @@
    * @returns {Promise<void>}
    */
   async function deletePost(boardId, articleId) {
-    const response = await fetch(`/api/board/${boardId}/articles/${articleId}`, {
+    const response = await fetch(`/api/board/${boardId}/articles/${articleId}/delete`, {
       method: 'POST',
       headers: {
         ...getHeaders(),
