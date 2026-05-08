@@ -236,7 +236,7 @@
                     <!-- Menu Item Forms -->
 
                     <!-- Menu Item Tables -->
-                    <li>
+                    <li th:if="${isAdmin}">
                         <a th:href="@{/}" @click.prevent="selected = (selected === 'Tables' ? '':'Tables')"
                             class="menu-item group"
                             :class="(selected === 'Tables') || (page === 'basicTables' || page === 'dataTables') ? 'menu-item-active' : 'menu-item-inactive'">
