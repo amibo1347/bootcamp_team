@@ -2,60 +2,49 @@
   let contentViewer = null;
 
   /**
-   * 상세 화면의 첨부파일 영역을 렌더링한다.
-   * - 백엔드 응답 형태가 확정되지 않았을 수 있어, 아래 형태를 모두 지원한다.
-   *   1) post.attachmentUrl: string (단일 첨부파일 URL)
-   *   2) post.attachments: [{ name, url, size }] (다중 첨부파일 배열)
-   * @param {Object|null} post 게시글 정보
+   * 글에 연결된 첨부파일 목록 API를 호출한다.
+   * @param {number} articleId 게시글 ID
+   * @returns {Promise<Array<{id:number, filename:string, size:number|null, downloadUrl:string}>>}
    */
-  function renderAttachments(post) {
+  async function fetchAttachments(articleId) {
+    const response = await fetch(`/api/article-attachment?articleId=${articleId}`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  }
+
+  /**
+   * 상세 화면의 첨부파일 영역을 렌더링한다.
+   * - 응답 형태: [{ id, filename, size, downloadUrl }]
+   * @param {Array<{id:number, filename:string, size:number|null, downloadUrl:string}>} attachments 첨부파일 목록
+   */
+  function renderAttachments(attachments) {
     const sectionElement = document.getElementById('attachmentSection');
     const listElement = document.getElementById('attachmentList');
     if (!sectionElement || !listElement) return;
 
-    // ----- 첨부파일 데이터 정규화 시작 -----
-    const normalized = [];
-
-    // (1) 단일 attachmentUrl 지원
-    if (post?.attachmentUrl && typeof post.attachmentUrl === 'string') {
-      normalized.push({
-        name: post.attachmentName || '첨부파일',
-        url: post.attachmentUrl,
-        size: post.attachmentSize || null,
-      });
-    }
-
-    // (2) 다중 attachments[] 지원
-    if (Array.isArray(post?.attachments)) {
-      post.attachments.forEach((item, index) => {
-        if (!item?.url) return;
-        normalized.push({
-          name: item.name || `첨부파일 ${index + 1}`,
-          url: item.url,
-          size: item.size ?? null,
-        });
-      });
-    }
-    // ----- 첨부파일 데이터 정규화 끝 -----
-
-    if (!normalized.length) {
+    if (!attachments?.length) {
       sectionElement.classList.add('hidden');
       listElement.innerHTML = '';
       return;
     }
 
     sectionElement.classList.remove('hidden');
-    listElement.innerHTML = normalized
+    listElement.innerHTML = attachments
       .map((file) => {
         const sizeText = Number.isFinite(Number(file.size))
-          ? ` <span class="text-xs text-gray-500 dark:text-gray-400">(${Math.ceil(Number(file.size) / 1024)} KB)</span>`
-          : '';
+          ? `<span class="text-xs text-gray-500 dark:text-gray-400">(${Math.ceil(Number(file.size) / 1024)} KB)</span>`
+          : '<span class="text-xs text-gray-500 dark:text-gray-400"></span>';
 
-        // 다운로드 UX: 새 탭/다운로드 모두 가능하도록 기본 링크 제공
         return `
           <li class="flex items-center justify-between gap-3">
-            <a href="${file.url}" class="truncate text-indigo-600 hover:underline dark:text-indigo-300" target="_blank" rel="noopener noreferrer">
-              ${file.name}
+            <a href="${file.downloadUrl}" class="truncate text-indigo-600 hover:underline dark:text-indigo-300">
+              ${file.filename || '첨부파일'}
             </a>
             <span class="shrink-0">${sizeText}</span>
           </li>
@@ -122,7 +111,7 @@
       dateElement.textContent = '-';
       viewsElement.textContent = '0';
       contentElement.textContent = '요청한 게시글이 없거나 열람 권한이 없습니다.';
-      renderAttachments(null);
+      renderAttachments([]);
       return;
     }
 
@@ -130,10 +119,8 @@
     authorElement.textContent = post.authorName || '-';
     dateElement.textContent = formatDate(post.createdAt);
     viewsElement.textContent = String(Number(post.viewCount || 0));
-<<<<<<< HEAD
     contentElement.innerHTML = ''; // 플레이스홀더 텍스트 제거
     contentViewer = null;
-    renderAttachments(post);
 
     if (window.toastui?.Editor?.factory) {
       // Markdown 본문을 Viewer로 렌더링해 이미지/링크를 정상 표시한다.
@@ -142,54 +129,57 @@
         viewer: true,
         initialValue: post.content || '',
       });
+      // Viewer 렌더링이 DOM에 반영된 뒤 유튜브 링크 변환을 적용한다.
+      requestAnimationFrame(() => upgradeYouTubeLinks(contentElement));
       return;
     }
 
     // 라이브러리 로딩 실패 폴백
     contentElement.textContent = post.content || '';
-=======
-    contentElement.innerHTML = '';                       // 플레이스홀더 텍스트 제거
-      if (window.toastui?.Editor?.factory) {
-          window.toastui.Editor.factory({
-              el: contentElement,
-              viewer: true,
-              initialValue: post.content || '',
-          });
-      } else {
-          // 라이브러리 로딩 실패 폴백
-          contentElement.textContent = post.content || '';
-      }
-       upgradeYouTubeLinks(contentElement);
+    upgradeYouTubeLinks(contentElement);
   }
 
+  /**
+   * 유튜브 링크에서 영상 ID를 추출한다.
+   * @param {string|null} url 링크 URL
+   * @returns {string|null}
+   */
   function getYouTubeId(url) {
-      try {
-          const m = String(url).match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{11})/);
-          return m ? m[1] : null;
-      } catch { return null; }
+    try {
+      const m = String(url).match(
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{11})/
+      );
+      return m ? m[1] : null;
+    } catch {
+      return null;
+    }
   }
 
+  /**
+   * 본문 내 유튜브 링크를 iframe 임베드로 교체한다.
+   * @param {HTMLElement} root 본문 root 요소
+   */
   function upgradeYouTubeLinks(root) {
-      root.querySelectorAll('a').forEach((a) => {
-          const id = getYouTubeId(a.getAttribute('href'));
-          if (!id) return;
+    if (!root) return;
+    root.querySelectorAll('a').forEach((a) => {
+      const id = getYouTubeId(a.getAttribute('href'));
+      if (!id) return;
 
-          const wrapper = document.createElement('div');
-          wrapper.className = 'my-4 w-full max-w-2xl';
-          wrapper.style.aspectRatio = '16 / 9';
-          wrapper.innerHTML = `
-              <iframe
-                  src="https://www.youtube.com/embed/${id}"
-                  class="h-full w-full rounded-lg border border-gray-200 dark:border-strokedark"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen
-                  referrerpolicy="strict-origin-when-cross-origin"
-                  loading="lazy">
-              </iframe>
-          `;
-          a.replaceWith(wrapper);
-      });
->>>>>>> 9f5cc350b995142c2d698a099d21bc9d00a39a14
+      const wrapper = document.createElement('div');
+      wrapper.className = 'my-4 w-full max-w-2xl';
+      wrapper.style.aspectRatio = '16 / 9';
+      wrapper.innerHTML = `
+        <iframe
+          src="https://www.youtube.com/embed/${id}"
+          class="h-full w-full rounded-lg border border-gray-200 dark:border-strokedark"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          referrerpolicy="strict-origin-when-cross-origin"
+          loading="lazy">
+        </iframe>
+      `;
+      a.replaceWith(wrapper);
+    });
   }
   
   /**
@@ -202,6 +192,8 @@
     try {
       const post = await fetchPost(boardId, articleId);
       renderPost(post);
+      const attachments = await fetchAttachments(articleId);
+      renderAttachments(attachments);
     } catch (error) {
       console.error(error);
       renderPost(null);
