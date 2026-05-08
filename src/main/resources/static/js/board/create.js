@@ -4,6 +4,13 @@
   const MAX_ATTACHMENTS = 5;
   const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
   let editor = null;
+  let isUploadingAttachments = false;
+
+  /**
+   * 업로드 완료된 첨부파일 메타를 보관한다.
+   * @type {Array<{id:number, filename:string, size:number|null, downloadUrl?:string}>}
+   */
+  let uploadedAttachments = [];
 
   /**
    * 공통 요청 헤더를 반환한다.
@@ -45,35 +52,106 @@
   }
 
   /**
-   * 선택된 첨부파일 목록을 화면에 렌더링한다.
-   * @param {File[]} files 선택된 첨부파일 배열
+   * 업로드 완료된 첨부파일 id들을 hidden input으로 동기화한다.
+   * - 서버의 @ModelAttribute List<Long> attachmentIds 바인딩을 위해
+   *   `attachmentIds=1&attachmentIds=2...` 형태로 전송되도록 구성한다.
    */
-  function renderSelectedAttachments(files) {
-    const listElement = document.getElementById('selectedAttachmentList');
-    if (!listElement) return;
+  function syncAttachmentIdFields() {
+    const container = document.getElementById('attachmentIdFields');
+    if (!container) return;
 
-    if (!files.length) {
-      listElement.innerHTML = '<li class="text-gray-400">선택된 파일이 없습니다.</li>';
-      return;
-    }
-
-    listElement.innerHTML = files
-      .map((file) => `<li>${file.name} (${Math.ceil(file.size / 1024)} KB)</li>`)
+    container.innerHTML = uploadedAttachments
+      .map((att) => `<input type="hidden" name="attachmentIds" value="${att.id}" />`)
       .join('');
   }
 
   /**
-   * 첨부파일 선택 변경 시 개수/용량을 검증하고 목록을 갱신한다.
+   * 업로드된 첨부파일 목록을 화면에 렌더링한다.
+   */
+  function renderUploadedAttachments() {
+    const listElement = document.getElementById('selectedAttachmentList');
+    if (!listElement) return;
+
+    if (!uploadedAttachments.length) {
+      listElement.innerHTML = '<li class="text-gray-400">선택된 파일이 없습니다.</li>';
+      return;
+    }
+
+    listElement.innerHTML = uploadedAttachments
+      .map((att, index) => {
+        const sizeText = Number.isFinite(Number(att.size))
+          ? `${Math.ceil(Number(att.size) / 1024)} KB`
+          : '-';
+
+        return `
+          <li class="flex items-center justify-between gap-3">
+            <span class="min-w-0 truncate">${att.filename} (${sizeText})</span>
+            <button
+              type="button"
+              data-attachment-index="${index}"
+              class="shrink-0 rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15">
+              제거
+            </button>
+          </li>
+        `;
+      })
+      .join('');
+  }
+
+  /**
+   * 업로드 진행 중 상태를 렌더링한다.
+   * @param {string} message 상태 메시지
+   */
+  function renderUploadingState(message) {
+    const listElement = document.getElementById('selectedAttachmentList');
+    if (!listElement) return;
+    listElement.innerHTML = `<li class="text-gray-400">${message}</li>`;
+  }
+
+  /**
+   * 첨부파일 1개를 업로드한다.
+   * @param {File} file 업로드 파일
+   * @returns {Promise<{id:number, filename:string, size:number|null}>}
+   */
+  async function uploadAttachment(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/article-attachment', {
+      method: 'POST',
+      headers: getHeaders(), // FormData 사용 시 Content-Type은 브라우저가 자동 설정
+      body: formData,
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      if (response.status === 413) throw new Error('첨부파일 용량이 너무 큽니다.');
+      throw new Error('첨부파일 업로드에 실패했습니다.');
+    }
+
+    const data = await response.json();
+    if (!data?.id) throw new Error('첨부파일 ID를 받지 못했습니다.');
+    return {
+      id: Number(data.id),
+      filename: data.filename || file.name,
+      size: data.size ?? file.size,
+    };
+  }
+
+  /**
+   * 첨부파일 선택 변경 시 개수/용량을 검증하고, 업로드까지 수행한다.
    * @param {Event} event 파일 input change 이벤트
    */
-  function handleAttachmentChange(event) {
+  async function handleAttachmentChange(event) {
     const input = event.currentTarget;
     const files = Array.from(input?.files || []);
 
     if (files.length > MAX_ATTACHMENTS) {
       alert(`첨부파일은 최대 ${MAX_ATTACHMENTS}개까지 선택할 수 있습니다.`);
       input.value = '';
-      renderSelectedAttachments([]);
+      uploadedAttachments = [];
+      syncAttachmentIdFields();
+      renderUploadedAttachments();
       return;
     }
 
@@ -81,28 +159,84 @@
     if (hasOversizedFile) {
       alert('파일당 최대 10MB까지 업로드할 수 있습니다.');
       input.value = '';
-      renderSelectedAttachments([]);
+      uploadedAttachments = [];
+      syncAttachmentIdFields();
+      renderUploadedAttachments();
       return;
     }
 
-    renderSelectedAttachments(files);
+    if (!files.length) {
+      uploadedAttachments = [];
+      syncAttachmentIdFields();
+      renderUploadedAttachments();
+      return;
+    }
+
+    // 이미 업로드된 목록은 새 선택으로 교체한다(단순/직관 UX).
+    uploadedAttachments = [];
+    syncAttachmentIdFields();
+
+    try {
+      isUploadingAttachments = true;
+      input.disabled = true;
+      renderUploadingState('첨부파일 업로드 중...');
+
+      const results = [];
+      for (const file of files) {
+        // eslint-disable-next-line no-await-in-loop
+        const uploaded = await uploadAttachment(file);
+        results.push(uploaded);
+      }
+
+      uploadedAttachments = results;
+      syncAttachmentIdFields();
+      renderUploadedAttachments();
+    } catch (error) {
+      uploadedAttachments = [];
+      syncAttachmentIdFields();
+      renderUploadedAttachments();
+      alert(error?.message || '첨부파일 업로드 중 오류가 발생했습니다.');
+    } finally {
+      isUploadingAttachments = false;
+      input.disabled = false;
+    }
   }
 
   /**
-   * 현재 선택된 첨부파일 유효성을 검증한다.
+   * 현재 첨부파일 업로드/선택 상태를 검증한다.
    * @returns {boolean}
    */
   function validateAttachments() {
-    const files = getSelectedAttachments();
-    if (files.length > MAX_ATTACHMENTS) {
-      alert(`첨부파일은 최대 ${MAX_ATTACHMENTS}개까지 선택할 수 있습니다.`);
+    // 업로드 중 submit 방지
+    if (isUploadingAttachments) {
+      alert('첨부파일 업로드가 완료될 때까지 잠시만 기다려주세요.');
       return false;
     }
-    if (files.some((file) => file.size > MAX_ATTACHMENT_SIZE)) {
-      alert('파일당 최대 10MB까지 업로드할 수 있습니다.');
+
+    // 파일을 선택했는데 업로드 결과가 없는 케이스 방지(업로드 실패/차단)
+    const selectedFiles = getSelectedAttachments();
+    if (selectedFiles.length && !uploadedAttachments.length) {
+      alert('첨부파일 업로드가 완료되지 않았습니다. 다시 선택해주세요.');
       return false;
     }
+
     return true;
+  }
+
+  /**
+   * 첨부파일 제거 버튼 클릭을 처리한다(클라이언트에서 연결 대상에서 제외).
+   * @param {MouseEvent} event 클릭 이벤트
+   */
+  function handleRemoveAttachmentClick(event) {
+    const button = event.target?.closest?.('button[data-attachment-index]');
+    if (!button) return;
+
+    const index = Number(button.dataset.attachmentIndex);
+    if (!Number.isFinite(index)) return;
+
+    uploadedAttachments = uploadedAttachments.filter((_, i) => i !== index);
+    syncAttachmentIdFields();
+    renderUploadedAttachments();
   }
 
   /**
@@ -212,10 +346,12 @@
     try {
       if (submitButton) submitButton.disabled = true;
       // 현재 백엔드 시그니처에 맞춰 form-urlencoded 로 전송한다.
-      const body = new URLSearchParams({
-        title: payload.title,
-        content: payload.content,
-        boardId: String(payload.boardId)
+      const body = new URLSearchParams();
+      body.set('title', payload.title);
+      body.set('content', payload.content);
+      body.set('boardId', String(payload.boardId));
+      uploadedAttachments.forEach((att) => {
+        body.append('attachmentIds', String(att.id));
       });
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -241,8 +377,11 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     initEditor();
-    renderSelectedAttachments([]);
+    uploadedAttachments = [];
+    syncAttachmentIdFields();
+    renderUploadedAttachments();
     document.getElementById('attachments')?.addEventListener('change', handleAttachmentChange);
+    document.getElementById('selectedAttachmentList')?.addEventListener('click', handleRemoveAttachmentClick);
     document.getElementById('postCreateForm')?.addEventListener('submit', submitPost);
   });
 })();
