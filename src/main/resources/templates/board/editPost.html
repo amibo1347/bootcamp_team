@@ -8,83 +8,80 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <meta name="_csrf" th:content="${_csrf.token}" />
     <meta name="_csrf_header" th:content="${_csrf.headerName}" />
-    <title>게시글 작성</title>
+    <title>게시글 수정</title>
     <link rel="stylesheet" th:href="@{/css/output.css}" />
     <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css" />
     <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
 </head>
 
-<body
+<body th:attr="data-board-id=${boardId},data-article-id=${article.articleId}"
     x-data="{ page: 'board', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
     x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
     :class="{ 'dark bg-gray-900': darkMode === true }">
 
+    <!-- Preloader 시작 -->
     <div th:replace="~{partials/preloader}"></div>
+    <!-- Preloader 끝 -->
 
     <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar 시작 -->
         <div th:replace="~{partials/sidebar}"></div>
+        <!-- Sidebar 끝 -->
 
         <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
             <div th:replace="~{partials/overlay}"></div>
             <div th:replace="~{partials/header}"></div>
 
+            <!-- Content 시작 -->
             <main class="p-8 space-y-8">
+                <!-- 페이지 헤더 시작 -->
                 <section class="space-y-2">
-                    <h2 class="text-2xl font-black text-gray-900 dark:text-white">게시글 작성</h2>
-                    <!-- 게시글 생성(Create) 화면. 목록/앨범/카드 읽기 화면은 이후 단계에서 확장 -->
+                    <h2 class="text-2xl font-black text-gray-900 dark:text-white">게시글 수정</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-300">제목과 본문을 수정한 뒤 저장 버튼을 눌러주세요.</p>
                 </section>
+                <!-- 페이지 헤더 끝 -->
 
+                <!-- 수정 폼 시작 -->
                 <section
                     class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
-                    <form id="postCreateForm" class="space-y-6">
+                    <form id="postEditForm" class="space-y-6">
                         <input id="boardId" type="hidden" th:value="${boardId}" />
+                        <input id="articleId" type="hidden" th:value="${article.articleId}" />
 
                         <div>
                             <label for="title" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">제목</label>
-                            <input id="title" type="text" maxlength="120" required placeholder="제목을 입력하세요"
+                            <input id="title" type="text" maxlength="120" required th:value="${article.title}"
+                                placeholder="제목을 입력하세요"
                                 class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                         </div>
 
                         <div>
                             <label for="content" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">본문</label>
                             <div id="contentEditor" class="rounded-lg border border-gray-300"></div>
-                            <textarea id="content" required class="hidden"></textarea>
+                            <textarea id="content" class="hidden" th:text="${article.content}"></textarea>
                         </div>
-
-                        <!-- 첨부파일 업로드 섹션 시작 -->
-                        <div>
-                            <label for="attachments" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">첨부파일</label>
-                            <input id="attachments" type="file" multiple
-                                class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:bg-boxdark dark:text-gray-200" />
-                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                                최대 5개 파일, 파일당 최대 10MB까지 선택할 수 있습니다.
-                            </p>
-                            <ul id="selectedAttachmentList"
-                                class="mt-3 space-y-1 text-sm text-gray-600 dark:text-gray-300"></ul>
-                            <!-- 첨부파일 id들을 서버 전송용으로 보관하는 영역(숨김) -->
-                            <div id="attachmentIdFields" class="hidden"></div>
-                        </div>
-                        <!-- 첨부파일 업로드 섹션 끝 -->
 
                         <div class="flex flex-wrap items-center gap-3 pt-2">
                             <button type="submit"
-                                class="rounded-xl bg-indigo-400 px-8 py-3 font-medium text-white hover:bg-indigo-500">
-                                게시글 등록
+                                class="rounded-xl bg-indigo-200 px-8 py-3 font-medium text-indigo-700 hover:bg-indigo-300">
+                                수정 저장
                             </button>
-                            <a th:href="@{/board/{id}(id=${boardId})}"
+                            <a th:href="@{/board/{boardId}/articles/{articleId}(boardId=${boardId},articleId=${article.articleId})}"
                                 class="rounded-xl bg-gray-200 px-8 py-3 font-medium text-gray-700 hover:bg-gray-300">
                                 취소
                             </a>
                         </div>
                     </form>
                 </section>
+                <!-- 수정 폼 끝 -->
             </main>
+            <!-- Content 끝 -->
         </div>
     </div>
 
     <script type="module" src="/js/index.js"></script>
     <script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
-    <script src="/js/board/create.js"></script>
+    <script src="/js/board/edit.js"></script>
 </body>
 
 </html>

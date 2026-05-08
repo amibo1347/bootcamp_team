@@ -13,6 +13,12 @@
     </title>
     <link rel="stylesheet" th:href="@{/css/output.css}" />
     <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+    <style>
+        /* 삭제/거절 버튼 호버 색상을 고정한다(Tailwind 빌드 여부와 무관하게 적용) */
+        .btn-delete-hover:hover {
+            background-color: #fda4af;
+        }
+    </style>
 </head>
 
 <body
@@ -98,7 +104,7 @@
                         </button>
 
                         <button type="button" th:attr="onclick=|rejectMember(${member.memberId})|"
-                            class="h-8 px-8 text-base font-bold text-rose-500 bg-rose-100 hover:bg-red-200 rounded-xl transition-all shadow-md active:scale-95">
+                            class="btn-delete-hover h-8 px-8 text-base font-bold text-rose-500 bg-rose-200 rounded-xl transition-all shadow-md active:scale-95">
                             거절
                         </button>
                     </div>

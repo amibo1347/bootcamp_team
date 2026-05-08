@@ -277,7 +277,7 @@
         class="rounded-md border px-3 py-1.5 text-sm transition
           ${
             active
-              ? 'border-indigo-500 bg-indigo-500 text-white'
+              ? 'border-indigo-300 bg-indigo-200 font-semibold text-indigo-700 dark:border-indigo-500/60 dark:bg-indigo-500/20 dark:text-indigo-200'
               : 'border-gray-300 bg-white text-gray-700 hover:border-indigo-300 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/60 dark:hover:text-indigo-300'
           }">
         ${label}

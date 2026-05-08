@@ -1,5 +1,18 @@
 (() => {
   let contentViewer = null;
+  const csrfToken = document.querySelector('meta[name="_csrf"]')?.content || '';
+  const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || 'X-CSRF-TOKEN';
+  let currentPost = null;
+
+  /**
+   * 공통 요청 헤더를 반환한다.
+   * @returns {Record<string, string>}
+   */
+  function getHeaders() {
+    return {
+      [csrfHeader]: csrfToken,
+    };
+  }
 
   /**
    * 글에 연결된 첨부파일 목록 API를 호출한다.
@@ -102,6 +115,11 @@
     const dateElement = document.getElementById('postDate');
     const viewsElement = document.getElementById('postViews');
     const contentElement = document.getElementById('postContent');
+    const editButtonElement = document.getElementById('editPostButton');
+    const deleteButtonElement = document.getElementById('deletePostButton');
+    const boardId = Number(document.body.dataset.boardId || 0);
+    const articleId = Number(document.body.dataset.articleId || 0);
+    const currentMemberId = Number(document.body.dataset.currentMemberId || 0);
 
     if (!titleElement || !authorElement || !dateElement || !viewsElement || !contentElement) return;
 
@@ -111,6 +129,8 @@
       dateElement.textContent = '-';
       viewsElement.textContent = '0';
       contentElement.textContent = '요청한 게시글이 없거나 열람 권한이 없습니다.';
+      if (editButtonElement) editButtonElement.classList.add('hidden');
+      if (deleteButtonElement) deleteButtonElement.classList.add('hidden');
       renderAttachments([]);
       return;
     }
@@ -119,6 +139,18 @@
     authorElement.textContent = post.authorName || '-';
     dateElement.textContent = formatDate(post.createdAt);
     viewsElement.textContent = String(Number(post.viewCount || 0));
+    // 작성자 본인인 경우에만 수정 버튼을 노출한다.
+    if (editButtonElement && boardId && articleId) {
+      const isAuthor = Number(post.authorId || 0) === currentMemberId;
+      if (isAuthor) {
+        editButtonElement.href = `/board/${boardId}/articles/${articleId}/edit`;
+        editButtonElement.classList.remove('hidden');
+        if (deleteButtonElement) deleteButtonElement.classList.remove('hidden');
+      } else {
+        editButtonElement.classList.add('hidden');
+        if (deleteButtonElement) deleteButtonElement.classList.add('hidden');
+      }
+    }
     contentElement.innerHTML = ''; // 플레이스홀더 텍스트 제거
     contentViewer = null;
 
@@ -137,6 +169,54 @@
     // 라이브러리 로딩 실패 폴백
     contentElement.textContent = post.content || '';
     upgradeYouTubeLinks(contentElement);
+  }
+
+  /**
+   * 게시글 삭제 API를 호출한다.
+   * @param {number} boardId 게시판 ID
+   * @param {number} articleId 게시글 ID
+   * @returns {Promise<void>}
+   */
+  async function deletePost(boardId, articleId) {
+    const response = await fetch(`/api/board/${boardId}/articles/${articleId}`, {
+      method: 'POST',
+      headers: {
+        ...getHeaders(),
+        Accept: 'application/json, text/plain, */*',
+      },
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('삭제 권한이 없습니다.');
+      }
+      throw new Error('게시글 삭제에 실패했습니다.');
+    }
+  }
+
+  /**
+   * 삭제 버튼 클릭 이벤트를 처리한다.
+   */
+  async function handleDeleteClick() {
+    const boardId = Number(document.body.dataset.boardId || 0);
+    const articleId = Number(document.body.dataset.articleId || 0);
+    const deleteButtonElement = document.getElementById('deletePostButton');
+    if (!boardId || !articleId || !deleteButtonElement || !currentPost) return;
+
+    const ok = window.confirm('정말 이 게시글을 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.');
+    if (!ok) return;
+
+    try {
+      deleteButtonElement.disabled = true;
+      await deletePost(boardId, articleId);
+      alert('게시글이 삭제되었습니다.');
+      window.location.href = `/board/${boardId}`;
+    } catch (error) {
+      alert(error?.message || '요청 처리 중 오류가 발생했습니다.');
+    } finally {
+      deleteButtonElement.disabled = false;
+    }
   }
 
   /**
@@ -191,14 +271,19 @@
     if (!boardId || !articleId) return;
     try {
       const post = await fetchPost(boardId, articleId);
+      currentPost = post;
       renderPost(post);
       const attachments = await fetchAttachments(articleId);
       renderAttachments(attachments);
     } catch (error) {
       console.error(error);
+      currentPost = null;
       renderPost(null);
     }
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('deletePostButton')?.addEventListener('click', handleDeleteClick);
+    init();
+  });
 })();
