@@ -58,12 +58,21 @@ public class ArticleService {
     }
 
     public Page<ArticleDto> findArticlesByBoard(MemberSession ms, Long boardId, Pageable pageable){
-        Board board = boardService.getWritableBoard(ms, boardId);
+        Board board = boardService.getReadableBoard(ms, boardId);
 
       return articleRepository
           .findByBoard_BoardIdAndIsDeletedFalse(boardId, pageable)
           .map(ArticleDto::from);
     }
 
+    public ArticleDto findArticle(MemberSession ms, Long boardId, Long articleId) {
+      // 게시판 read 권한 검증 (회사/활성/scope 다 처리)
+      boardService.getReadableBoard(ms, boardId);
 
+      Article article = articleRepository
+          .findByArticleIdAndBoard_BoardIdAndIsDeletedFalse(articleId, boardId)
+          .orElseThrow(() -> new BusinessException(ErrorCode.ARTICLE_NOT_FOUND));
+
+      return ArticleDto.from(article);
+  }
 }

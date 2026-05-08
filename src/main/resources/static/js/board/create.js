@@ -20,13 +20,23 @@
     contentElement.value = editor.getMarkdown().trim();
   }
 
-  function handleImage(blob, callback) {
-      const reader = new FileReader();
-      reader.onload = () => {
-          callback(reader.result, blob.name || 'image');
-      };
-      reader.onerror = () => alert('이미지를 읽지 못했습니다.');
-      reader.readAsDataURL(blob);
+  async function handleImage(blob, callback) {
+      const formData = new FormData();
+      formData.append('file', blob);
+
+      try {
+          const response = await fetch('/api/article-image', {
+              method: 'POST',
+              headers: getHeaders(),       // CSRF만, Content-Type 설정 X
+              body: formData,
+              credentials: 'same-origin',
+          });
+          if (!response.ok) throw new Error('이미지 업로드에 실패했습니다.');
+          const data = await response.json();
+          callback(data.url, blob.name || 'image');   // 에디터가 ![image](/api/article-image/123) 삽입
+      } catch (err) {
+          alert(err?.message || '이미지 업로드 중 오류가 발생했습니다.');
+      }
   }
 
   function initEditor() {

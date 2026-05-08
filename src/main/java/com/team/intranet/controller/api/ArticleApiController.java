@@ -59,6 +59,18 @@ public class ArticleApiController {
       return ResponseEntity.ok(articleService.findArticlesByBoard(ms, boardId, pageable));
   }
 
+  @GetMapping("/{articleId}")
+  @ResponseBody
+  public ResponseEntity<ArticleDto> getArticle(
+          @PathVariable Long boardId,
+          @PathVariable Long articleId,
+          @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+      if (ms == null) {
+          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+      }
+      return ResponseEntity.ok(articleService.findArticle(ms, boardId, articleId));
+  }
+
     @PutMapping("/{articleId}")
     public String updateArticle(@PathVariable Long boardId, @PathVariable Long articleId, @RequestBody String entity) {
         
