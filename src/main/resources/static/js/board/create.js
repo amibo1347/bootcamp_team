@@ -81,6 +81,7 @@
       const body = new URLSearchParams({
         title: payload.title,
         content: payload.content,
+        boardId: payload.boardId
       });
       const response = await fetch(endpoint, {
         method: 'POST',

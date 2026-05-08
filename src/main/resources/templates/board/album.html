@@ -29,7 +29,7 @@
             <main class="space-y-6 p-8">
                 <section class="flex flex-wrap items-center justify-between gap-3">
                     <h2 class="text-2xl font-black text-gray-900 dark:text-white" th:text="${board.boardName}">게시판</h2>
-                    <a th:href="@{/board/{id}/posts/create(id=${board.boardId})}"
+                    <a th:href="@{/board/{id}/articles/new(id=${board.boardId})}"
                         class="rounded-xl bg-indigo-400 px-6 py-2.5 font-medium text-white hover:bg-indigo-500">
                         글쓰기
                     </a>

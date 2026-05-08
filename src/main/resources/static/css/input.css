@@ -3,6 +3,9 @@ layer(base);
 
 @import "tailwindcss";
 
+@source "../../templates/**/*.html";
+@source "../../../js/**/*.js";
+
 @custom-variant dark (&:is(.dark *));
 
 /* Thymeleaf HTML 및 정적 JS에서 사용하는 유틸 클래스가 output.css에 포함되도록 스캔 경로 지정 */
