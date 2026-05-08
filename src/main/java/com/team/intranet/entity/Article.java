@@ -70,9 +70,6 @@ public class Article {
     @Column(name = "is_deleted")
     private boolean isDeleted; // 삭제 여부
 
-    @Column(name = "attachment_url")
-    private String attachmentUrl; // 첨부파일 URL
-
     public static Article create(Board board, Member author, ArticleDto dto, boolean isAnonymous) {
         return Article.builder()
             .title(dto.getTitle())
@@ -89,7 +86,7 @@ public class Article {
     
 
     public void increaseViewCount() {
-        this.viewCount++;
+        this.viewCount = (this.viewCount == null ? 0L : this.viewCount) + 1L;
     }
 
     public void delete() {

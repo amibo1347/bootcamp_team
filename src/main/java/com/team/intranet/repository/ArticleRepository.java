@@ -2,7 +2,9 @@ package com.team.intranet.repository;
 
 import com.team.intranet.entity.Article;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,4 +25,5 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     Page<Article> findByBoard_BoardIdAndIsDeletedFalse(Long boardId, Pageable pageable);
 
     Optional<Article> findByArticleIdAndBoard_BoardIdAndIsDeletedFalse(Long articleId, Long boardId);
+
 }
