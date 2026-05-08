@@ -5,6 +5,11 @@
   const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
   let editor = null;
   let isUploadingAttachments = false;
+  /**
+   * 사용자가 누적 선택한 원본 파일 목록을 보관한다.
+   * @type {File[]}
+   */
+  let selectedFiles = [];
 
   /**
    * 업로드 완료된 첨부파일 메타를 보관한다.
@@ -46,9 +51,16 @@
    * @returns {File[]}
    */
   function getSelectedAttachments() {
-    const attachmentInput = document.getElementById('attachments');
-    if (!attachmentInput?.files) return [];
-    return Array.from(attachmentInput.files);
+    return selectedFiles;
+  }
+
+  /**
+   * 파일 고유 식별 키를 생성한다.
+   * @param {File} file 원본 파일
+   * @returns {string}
+   */
+  function getFileKey(file) {
+    return `${file.name}__${file.size}__${file.lastModified}`;
   }
 
   /**
@@ -146,59 +158,53 @@
     const input = event.currentTarget;
     const files = Array.from(input?.files || []);
 
-    if (files.length > MAX_ATTACHMENTS) {
-      alert(`첨부파일은 최대 ${MAX_ATTACHMENTS}개까지 선택할 수 있습니다.`);
-      input.value = '';
-      uploadedAttachments = [];
-      syncAttachmentIdFields();
-      renderUploadedAttachments();
-      return;
-    }
+    if (!files.length) return;
 
     const hasOversizedFile = files.some((file) => file.size > MAX_ATTACHMENT_SIZE);
     if (hasOversizedFile) {
       alert('파일당 최대 10MB까지 업로드할 수 있습니다.');
       input.value = '';
-      uploadedAttachments = [];
-      syncAttachmentIdFields();
-      renderUploadedAttachments();
       return;
     }
 
-    if (!files.length) {
-      uploadedAttachments = [];
-      syncAttachmentIdFields();
-      renderUploadedAttachments();
+    const existingKeySet = new Set(selectedFiles.map((file) => getFileKey(file)));
+    const uniqueNewFiles = files.filter((file) => !existingKeySet.has(getFileKey(file)));
+    const mergedFiles = [...selectedFiles, ...uniqueNewFiles];
+
+    if (mergedFiles.length > MAX_ATTACHMENTS) {
+      alert(`첨부파일은 최대 ${MAX_ATTACHMENTS}개까지 선택할 수 있습니다.`);
+      input.value = '';
       return;
     }
-
-    // 이미 업로드된 목록은 새 선택으로 교체한다(단순/직관 UX).
-    uploadedAttachments = [];
-    syncAttachmentIdFields();
 
     try {
       isUploadingAttachments = true;
       input.disabled = true;
       renderUploadingState('첨부파일 업로드 중...');
 
+      const uploadedKeySet = new Set(
+        uploadedAttachments.map((att) => `${att.filename}__${Number(att.size || 0)}`)
+      );
       const results = [];
-      for (const file of files) {
+      for (const file of uniqueNewFiles) {
         // eslint-disable-next-line no-await-in-loop
         const uploaded = await uploadAttachment(file);
+        const uploadedKey = `${uploaded.filename}__${Number(uploaded.size || 0)}`;
+        if (uploadedKeySet.has(uploadedKey)) continue;
+        uploadedKeySet.add(uploadedKey);
         results.push(uploaded);
       }
 
-      uploadedAttachments = results;
+      selectedFiles = mergedFiles;
+      uploadedAttachments = [...uploadedAttachments, ...results];
       syncAttachmentIdFields();
       renderUploadedAttachments();
     } catch (error) {
-      uploadedAttachments = [];
-      syncAttachmentIdFields();
-      renderUploadedAttachments();
       alert(error?.message || '첨부파일 업로드 중 오류가 발생했습니다.');
     } finally {
       isUploadingAttachments = false;
       input.disabled = false;
+      input.value = '';
     }
   }
 
@@ -234,7 +240,14 @@
     const index = Number(button.dataset.attachmentIndex);
     if (!Number.isFinite(index)) return;
 
+    const removed = uploadedAttachments[index];
     uploadedAttachments = uploadedAttachments.filter((_, i) => i !== index);
+    if (removed) {
+      selectedFiles = selectedFiles.filter(
+        (file) =>
+          !(file.name === removed.filename && Number(file.size || 0) === Number(removed.size || 0))
+      );
+    }
     syncAttachmentIdFields();
     renderUploadedAttachments();
   }
@@ -378,6 +391,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     initEditor();
     uploadedAttachments = [];
+    selectedFiles = [];
     syncAttachmentIdFields();
     renderUploadedAttachments();
     document.getElementById('attachments')?.addEventListener('change', handleAttachmentChange);

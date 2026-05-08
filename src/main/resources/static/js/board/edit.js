@@ -7,6 +7,11 @@
   let editor = null;
   let isUploadingAttachments = false;
   let existingAttachments = [];
+  /**
+   * 수정 화면에서 사용자가 누적 선택한 새 첨부파일 목록을 보관한다.
+   * @type {File[]}
+   */
+  let selectedFiles = [];
 
   /**
    * 새로 업로드가 완료된 첨부파일 메타를 보관한다.
@@ -38,9 +43,16 @@
    * @returns {File[]}
    */
   function getSelectedAttachments() {
-    const attachmentInput = document.getElementById('attachments');
-    if (!attachmentInput?.files) return [];
-    return Array.from(attachmentInput.files);
+    return selectedFiles;
+  }
+
+  /**
+   * 파일 고유 식별 키를 생성한다.
+   * @param {File} file 원본 파일
+   * @returns {string}
+   */
+  function getFileKey(file) {
+    return `${file.name}__${file.size}__${file.lastModified}`;
   }
 
   /**
@@ -229,19 +241,7 @@
     const input = event.currentTarget;
     const files = Array.from(input?.files || []);
 
-    if (!files.length) {
-      newUploadedAttachments = [];
-      syncAttachmentIdFields();
-      renderNewAttachments();
-      return;
-    }
-
-    const totalCount = existingAttachments.length + files.length;
-    if (totalCount > MAX_ATTACHMENTS) {
-      alert(`첨부파일은 기존 포함 최대 ${MAX_ATTACHMENTS}개까지 업로드할 수 있습니다.`);
-      input.value = '';
-      return;
-    }
+    if (!files.length) return;
 
     const hasOversizedFile = files.some((file) => file.size > MAX_ATTACHMENT_SIZE);
     if (hasOversizedFile) {
@@ -250,31 +250,44 @@
       return;
     }
 
+    const existingKeySet = new Set(selectedFiles.map((file) => getFileKey(file)));
+    const uniqueNewFiles = files.filter((file) => !existingKeySet.has(getFileKey(file)));
+    const mergedFiles = [...selectedFiles, ...uniqueNewFiles];
+
+    const totalCount = existingAttachments.length + mergedFiles.length;
+    if (totalCount > MAX_ATTACHMENTS) {
+      alert(`첨부파일은 기존 포함 최대 ${MAX_ATTACHMENTS}개까지 업로드할 수 있습니다.`);
+      input.value = '';
+      return;
+    }
+
     try {
       isUploadingAttachments = true;
       input.disabled = true;
-      newUploadedAttachments = [];
-      syncAttachmentIdFields();
-      renderNewAttachments();
 
+      const uploadedKeySet = new Set(
+        newUploadedAttachments.map((att) => `${att.filename}__${Number(att.size || 0)}`)
+      );
       const results = [];
-      for (const file of files) {
+      for (const file of uniqueNewFiles) {
         // eslint-disable-next-line no-await-in-loop
         const uploaded = await uploadAttachment(file);
+        const uploadedKey = `${uploaded.filename}__${Number(uploaded.size || 0)}`;
+        if (uploadedKeySet.has(uploadedKey)) continue;
+        uploadedKeySet.add(uploadedKey);
         results.push(uploaded);
       }
 
-      newUploadedAttachments = results;
+      selectedFiles = mergedFiles;
+      newUploadedAttachments = [...newUploadedAttachments, ...results];
       syncAttachmentIdFields();
       renderNewAttachments();
     } catch (error) {
-      newUploadedAttachments = [];
-      syncAttachmentIdFields();
-      renderNewAttachments();
       alert(error?.message || '첨부파일 업로드 중 오류가 발생했습니다.');
     } finally {
       isUploadingAttachments = false;
       input.disabled = false;
+      input.value = '';
     }
   }
 
@@ -323,6 +336,10 @@
       button.disabled = true;
       await deleteAttachment(target.id);
       newUploadedAttachments = newUploadedAttachments.filter((_, i) => i !== index);
+      selectedFiles = selectedFiles.filter(
+        (file) =>
+          !(file.name === target.filename && Number(file.size || 0) === Number(target.size || 0))
+      );
       syncAttachmentIdFields();
       renderNewAttachments();
     } catch (error) {
@@ -494,6 +511,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     initEditor();
     newUploadedAttachments = [];
+    selectedFiles = [];
     syncAttachmentIdFields();
     renderNewAttachments();
     loadExistingAttachments();
