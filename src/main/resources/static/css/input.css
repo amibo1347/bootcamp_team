@@ -5,6 +5,10 @@ layer(base);
 
 @custom-variant dark (&:is(.dark *));
 
+/* Thymeleaf HTML 및 정적 JS에서 사용하는 유틸 클래스가 output.css에 포함되도록 스캔 경로 지정 */
+@source "../../templates/**/*.html";
+@source "../js/**/*.js";
+
 @theme {
   --font-*: initial;
   --font-outfit: Outfit, sans-serif;
@@ -80,6 +84,15 @@ layer(base);
   --color-gray-900: #101828;
   --color-gray-950: #0c111d;
   --color-gray-dark: #1a2231;
+
+  /* TailAdmin 레거시 이름 — 템플릿의 border-stroke, dark:bg-boxdark, dark:bg-meta-4 등이 빌드되도록 */
+  --color-primary: #465fff;
+  --color-stroke: #e4e7ec;
+  --color-strokedark: #344054;
+  --color-boxdark: #1d2939;
+  --color-meta-4: #313d4a;
+  --color-form-strokedark: #475467;
+  --color-gray: #f2f4f7;
 
   --color-orange-25: #fffaf5;
   --color-orange-50: #fff6ed;
@@ -278,7 +291,12 @@ layer(base);
 
 @layer base {
   body {
-    @apply font-outfit relative z-1 bg-gray-50 text-base font-normal;
+    @apply font-outfit relative z-1 bg-gray-50 text-base font-normal text-gray-900;
+  }
+
+  /* 다크: 인덱스 본문(bg-gray-900) + 사이드바 메뉴 비활성 글자 톤(text-gray-300)과 정렬 */
+  body.dark {
+    @apply bg-gray-900 text-gray-300;
   }
 }
 

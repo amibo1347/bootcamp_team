@@ -47,3 +47,6 @@ src/main/resources/application.properties
 # 백업 및 임시 파일 (이미지에서 확인된 중복 파일 방지)
 *.bak
 *.tmp
+
+# Cursor Rules
+.cursorrules

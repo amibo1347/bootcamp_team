@@ -8,7 +8,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>Sign Up | TailAdmin</title>
     <link rel="stylesheet" th:href="@{/css/output.css}" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
     <style>
         /* [레이아웃 리셋] : 프레임워크 기본 컨테이너 여백/크기 제약 해제 */
         html,
@@ -45,6 +45,10 @@
             justify-content: center;
         }
 
+        .dark .signup-card {
+            background-color: #1d2939;
+        }
+
         /* 선택되지 않았을 때(placeholder 상태)의 색상 제어 */
         .dept-select:invalid {
             color: #9CA3AF;
@@ -68,17 +72,11 @@
     <div th:replace="~{partials/preloader}"></div>
 
     <!-- 최상위 컨테이너: 화면 전체 사용, 카드 정중앙 배치 -->
-    <div style="
-    min-height: 100vh;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #D1D5DB;
-  ">
+    <div
+        class="flex min-h-screen w-full items-center justify-center bg-gray-300 dark:bg-gray-900">
 
         <!-- [회원가입 카드 - 정사각형 레이아웃] : 크기/스타일은 .signup-card 클래스로 일원화 -->
-        <div class="signup-card bg-white dark:bg-gray-800">
+        <div class="signup-card bg-white">
 
             <!-- 로고 이미지: 중앙 정렬 -->
             <div
@@ -308,21 +306,21 @@
                             <label style="flex: 1; cursor: pointer;">
                                 <input type="radio" name="gender" value="MALE" class="hidden peer" required>
                                 <div
-                                    class="flex items-center justify-center h-11 bg-gray-100 rounded-xl text-sm text-gray-500 peer-checked:bg-indigo-100 peer-checked:text-indigo-600 peer-checked:ring-1 peer-checked:ring-indigo-400 transition-all">
+                                    class="flex h-11 items-center justify-center rounded-xl bg-gray-100 text-sm text-gray-500 transition-all peer-checked:bg-indigo-100 peer-checked:text-indigo-600 peer-checked:ring-1 peer-checked:ring-indigo-400 dark:bg-meta-4 dark:text-gray-300 dark:peer-checked:bg-indigo-950/50 dark:peer-checked:text-indigo-300">
                                     남자
                                 </div>
                             </label>
                             <label style="flex: 1; cursor: pointer;">
                                 <input type="radio" name="gender" value="FEMALE" class="hidden peer">
                                 <div
-                                    class="flex items-center justify-center h-11 bg-gray-100 rounded-xl text-sm text-gray-500 peer-checked:bg-pink-100 peer-checked:text-pink-600 peer-checked:ring-1 peer-checked:ring-pink-400 transition-all">
+                                    class="flex h-11 items-center justify-center rounded-xl bg-gray-100 text-sm text-gray-500 transition-all peer-checked:bg-pink-100 peer-checked:text-pink-600 peer-checked:ring-1 peer-checked:ring-pink-400 dark:bg-meta-4 dark:text-gray-300 dark:peer-checked:bg-pink-950/40 dark:peer-checked:text-pink-300">
                                     여자
                                 </div>
                             </label>
                             <label style="flex: 1; cursor: pointer;">
                                 <input type="radio" name="gender" value="NONE" class="hidden peer">
                                 <div
-                                    class="flex items-center justify-center h-11 bg-gray-100 rounded-xl text-sm text-gray-500 peer-checked:bg-gray-200 peer-checked:text-gray-700 transition-all">
+                                    class="flex h-11 items-center justify-center rounded-xl bg-gray-100 text-sm text-gray-500 transition-all peer-checked:bg-gray-200 peer-checked:text-gray-700 dark:bg-meta-4 dark:text-gray-300 dark:peer-checked:bg-white/10 dark:peer-checked:text-gray-200">
                                     선택안함
                                 </div>
                             </label>

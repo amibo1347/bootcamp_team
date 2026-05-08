@@ -11,6 +11,7 @@
       테마형 인트라넷
     </title>
   <link rel="stylesheet" th:href="@{/css/output.css}" />
+  <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
   </head>
   <body
     x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
@@ -44,10 +45,10 @@
         <!-- ===== Main Content Start ===== -->
         <main>
           <div class="relative overflow-hidden p-5 rounded-md shadow-sm bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700">
-            <h3 class="text-lg font-semibold mb-4">메인 콘텐츠 영역</h3>
-            <p>이곳에 페이지별 주요 콘텐츠가 들어갑니다.</p>
+            <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">메인 콘텐츠 영역</h3>
+            <p class="text-gray-600 dark:text-gray-300">이곳에 페이지별 주요 콘텐츠가 들어갑니다.</p>
             <div class="mt-6">
-              <a href="#" class="text-blue-500 hover:underline">더 알아보기</a>
+              <a href="#" class="text-blue-500 hover:underline dark:text-blue-400">더 알아보기</a>
             </div>
           </div>
         </main>

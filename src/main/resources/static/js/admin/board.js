@@ -68,6 +68,8 @@
       const isSelected = itemButton.dataset.value === select.value;
       itemButton.classList.toggle('bg-indigo-50', isSelected);
       itemButton.classList.toggle('text-indigo-700', isSelected);
+      itemButton.classList.toggle('dark:bg-indigo-950/40', isSelected);
+      itemButton.classList.toggle('dark:text-indigo-300', isSelected);
       itemButton.classList.toggle('font-semibold', isSelected);
     });
   }
@@ -84,7 +86,7 @@
     const trigger = document.createElement('button');
     trigger.type = 'button';
     trigger.className =
-      'w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-left text-gray-700 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-300';
+      'w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-left text-gray-900 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-strokedark dark:bg-meta-4 dark:text-gray-200 dark:hover:border-indigo-500/40 dark:focus:ring-indigo-400/40';
     trigger.setAttribute('aria-haspopup', 'listbox');
     trigger.setAttribute('aria-expanded', 'false');
 
@@ -94,7 +96,7 @@
     const triggerText = document.createElement('span');
     triggerText.className = 'truncate';
     const arrow = document.createElement('span');
-    arrow.className = 'ml-3 text-gray-500';
+    arrow.className = 'ml-3 shrink-0 text-gray-500 dark:text-gray-400';
     arrow.textContent = '▾';
 
     triggerInner.appendChild(triggerText);
@@ -103,7 +105,7 @@
 
     const menu = document.createElement('div');
     menu.className =
-      'absolute left-0 top-full z-[10001] mt-1 hidden max-h-64 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg';
+      'absolute left-0 top-full z-[10001] mt-1 hidden max-h-64 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:shadow-black/40';
     menu.setAttribute('role', 'listbox');
 
     Array.from(select.options).forEach((option) => {
@@ -112,7 +114,7 @@
       item.dataset.value = option.value;
       item.disabled = option.disabled;
       item.className =
-        'block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-300';
+        'block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-300 dark:text-gray-300 dark:hover:bg-white/10 dark:disabled:text-gray-500';
       item.textContent = option.textContent;
       item.addEventListener('click', () => {
         select.value = option.value;
@@ -549,6 +551,7 @@
     initCustomSelects();
     initPermissionPanelToggles();
     initCreatePermissionControls();
+    initEditPermissionControls();
     initSelectAllControls();
     document.getElementById('createBoardForm')?.addEventListener('submit', onCreateSubmit);
     document.getElementById('editBoardForm')?.addEventListener('submit', onEditSubmit);

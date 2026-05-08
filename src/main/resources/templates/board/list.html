@@ -8,7 +8,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title th:text="${board.boardName} + ' - 목록형'">게시판 목록형</title>
     <link rel="stylesheet" th:href="@{/css/output.css}" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
 </head>
 
 <body
@@ -52,7 +52,7 @@
                     </div>
 
                     <div id="postListEmpty"
-                        class="px-5 py-16 text-center text-gray-500 dark:text-gray-400">
+                        class="px-5 py-16 text-center text-gray-500 dark:text-gray-300">
                         등록된 게시글이 없습니다.
                     </div>
                 </section>

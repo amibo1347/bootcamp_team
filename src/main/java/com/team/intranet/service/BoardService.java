@@ -86,6 +86,9 @@ public class BoardService {
     @Transactional
     public Board createBoard(MemberSession ms, BoardDto dto) {
         Company company = findCompany(ms.getCompanyId());
+        if (ms.getPositionId() == null) {
+            throw new BusinessException(ErrorCode.POSITION_NOT_FOUND);
+        }
 
         Board board = Board.createBoard(
                 dto.getBoardName(), dto.getBoardType(), company,
@@ -96,6 +99,17 @@ public class BoardService {
                 dto.getIsActive(), dto.getIsAiUse(),
                 dto.getAnonymousType()
         );
+
+        // Legacy NOT NULL 컬럼(dept_id, position_id) 호환값 세팅
+        if (ms.getDeptId() != null) {
+            Dept dept = findDept(ms.getDeptId());
+            validateSameCompany(dept.getCompany().getCompanyId(), ms.getCompanyId());
+            board.setDept(dept);
+        }
+        Position position = findPosition(ms.getPositionId());
+        validateSameCompany(position.getCompany().getCompanyId(), ms.getCompanyId());
+        board.setPosition(position);
+
         Board saved = boardRepository.save(board);
 
         saveScopeRules(saved, ScopeType.READ, dto.getReadDeptIds(), dto.getReadPositionIds());

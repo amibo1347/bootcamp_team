@@ -1,0 +1,34 @@
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="darkmodeStyle">
+  <!-- 다크 토큰·body.dark 기본색: /css/input.css @theme·@layer base -->
+  <style>
+    /* 인덱스·브레드크럼과 동일: 클래스 없는 링크만 */
+    .dark main a:not([class*="text-"]) {
+      color: rgb(96 165 250);
+    }
+    .dark main a:not([class*="text-"]):hover {
+      color: rgb(147 197 253);
+    }
+
+    /* 로그인/회원가입: 인라인 스타일보다 다크 필드색 우선 (사이드바 비활성 글자 톤 #d1d5db = gray-300) */
+    body.dark .login-card label,
+    body.dark .signup-card label {
+      color: #d1d5db !important;
+    }
+    body.dark .login-card input[type="text"],
+    body.dark .login-card input[type="password"],
+    body.dark .signup-card input[type="text"],
+    body.dark .signup-card input[type="password"],
+    body.dark .signup-card input[type="email"],
+    body.dark .signup-card input[type="number"],
+    body.dark .signup-card select {
+      background-color: #313d4a !important;
+      color: #f2f4f7 !important;
+      border-color: transparent !important;
+    }
+    body.dark .signup-card input::placeholder,
+    body.dark .login-card input::placeholder {
+      color: #98a2b3 !important;
+      opacity: 0.9;
+    }
+  </style>
+</th:block>

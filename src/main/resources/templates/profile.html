@@ -9,6 +9,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>Profile | TailAdmin - Tailwind CSS Admin Dashboard Template</title>
     <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
   </head>
   <body
     x-data="{ page: 'profile', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false, 'isProfileInfoModal': false, 'isProfileAddressModal': false }"
@@ -80,13 +81,13 @@
                       <div
                         class="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left"
                       >
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                        <p class="text-sm text-gray-500 dark:text-gray-300">
                           Team Manager
                         </p>
                         <div
                           class="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"
                         ></div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                        <p class="text-sm text-gray-500 dark:text-gray-300">
                           Arizona, United States
                         </p>
                       </div>
@@ -95,7 +96,7 @@
                       class="flex items-center order-2 gap-2 grow xl:order-3 xl:justify-end"
                     >
                       <button
-                        class="flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+                        class="flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
                       >
                         <svg
                           class="fill-current"
@@ -113,7 +114,7 @@
                       </button>
 
                       <button
-                        class="flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+                        class="flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
                       >
                         <svg
                           class="fill-current"
@@ -131,7 +132,7 @@
                       </button>
 
                       <button
-                        class="flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+                        class="flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
                       >
                         <svg
                           class="fill-current"
@@ -149,7 +150,7 @@
                       </button>
 
                       <button
-                        class="flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+                        class="flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
                       >
                         <svg
                           class="fill-current"
@@ -170,7 +171,7 @@
 
                   <button
                     @click="isProfileInfoModal = true"
-                    class="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
+                    class="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
                   >
                     <svg
                       class="fill-current"
@@ -210,7 +211,7 @@
                     >
                       <div>
                         <p
-                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400"
+                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300"
                         >
                           First Name
                         </p>
@@ -223,7 +224,7 @@
 
                       <div>
                         <p
-                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400"
+                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300"
                         >
                           Last Name
                         </p>
@@ -236,7 +237,7 @@
 
                       <div>
                         <p
-                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400"
+                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300"
                         >
                           Email address
                         </p>
@@ -249,7 +250,7 @@
 
                       <div>
                         <p
-                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400"
+                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300"
                         >
                           Phone
                         </p>
@@ -262,7 +263,7 @@
 
                       <div>
                         <p
-                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400"
+                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300"
                         >
                           Bio
                         </p>
@@ -277,7 +278,7 @@
 
                   <button
                     @click="isProfileInfoModal = true"
-                    class="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
+                    class="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
                   >
                     <svg
                       class="fill-current"
@@ -316,7 +317,7 @@
                     >
                       <div>
                         <p
-                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400"
+                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300"
                         >
                           Country
                         </p>
@@ -329,7 +330,7 @@
 
                       <div>
                         <p
-                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400"
+                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300"
                         >
                           City/State
                         </p>
@@ -342,7 +343,7 @@
 
                       <div>
                         <p
-                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400"
+                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300"
                         >
                           Postal Code
                         </p>
@@ -355,7 +356,7 @@
 
                       <div>
                         <p
-                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400"
+                          class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300"
                         >
                           TAX ID
                         </p>
@@ -370,7 +371,7 @@
 
                   <button
                     @click="isProfileAddressModal = true"
-                    class="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
+                    class="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
                   >
                     <svg
                       class="fill-current"

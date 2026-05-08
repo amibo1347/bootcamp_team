@@ -12,6 +12,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>설정 | 인트라넷</title>
     <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
   </head>
   <body
     x-data="{ page: 'settings', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
@@ -41,7 +42,7 @@
             </div>
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
               <h3 class="mb-5 text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-7">Settings</h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Settings page placeholder.</p>
+              <p class="text-sm text-gray-500 dark:text-gray-300">Settings page placeholder.</p>
             </div>
           </div>
         </main>

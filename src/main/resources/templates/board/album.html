@@ -8,7 +8,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title th:text="${board.boardName} + ' - 앨범형'">게시판 앨범형</title>
     <link rel="stylesheet" th:href="@{/css/output.css}" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
 </head>
 
 <body
@@ -38,7 +38,7 @@
                 <section id="postAlbumGrid" class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"></section>
 
                 <section id="postAlbumEmpty"
-                    class="rounded-xl border border-dashed border-gray-300 px-5 py-16 text-center text-gray-500 dark:border-strokedark dark:text-gray-400">
+                    class="rounded-xl border border-dashed border-gray-300 px-5 py-16 text-center text-gray-500 dark:border-strokedark dark:text-gray-300">
                     등록된 게시글이 없습니다.
                 </section>
             </main>

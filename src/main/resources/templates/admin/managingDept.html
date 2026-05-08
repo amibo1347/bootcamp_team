@@ -15,7 +15,7 @@
         Managing Departure
     </title>
     <link rel="stylesheet" th:href="@{/css/output.css}" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
 </head>
 
 <body
@@ -47,17 +47,17 @@
             <!-- ===== Main Content Start ===== -->
 
             <main class="p-8 space-y-8">
-                <h2 class="text-2xl font-black text-gray-900 ml-2">부서 관리</h2>
+                <h2 class="ml-2 text-2xl font-black text-gray-900 dark:text-white">부서 관리</h2>
 
                 <section
                     class="p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark flex items-center space-x-12">
-                    <h2 class="text-xl font-semibold text-gray-900 flex-shrink-0">부서 추가 생성</h2>
+                    <h2 class="flex-shrink-0 text-xl font-semibold text-gray-900 dark:text-white">부서 추가 생성</h2>
 
                     <div class="hidden sm:block h-10 w-[1px] bg-gray-200 dark:bg-strokedark"></div>
 
                     <div class="flex items-center space-x-10">
                         <input type="text" placeholder="부서명" id="deptNameInput"
-                            class="w-80 h-12 px-4 border border-gray-400 outline-none focus:ring-2 focus:ring-indigo-300 transition-all rounded-lg">
+                            class="h-12 w-80 rounded-lg border border-gray-400 bg-white px-4 text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-300 dark:border-gray-600 dark:bg-meta-4 dark:text-white dark:placeholder:text-gray-300">
 
                         <button type="button"
                             class="px-8 py-3 bg-indigo-400 text-white font-medium rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm flex-shrink-0"
@@ -69,20 +69,20 @@
 
                 <section
                     class="p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
-                    <h2 class="text-xl font-semibold ttext-black dark:text-white mb-6">기존 부서 목록</h2>
+                    <h2 class="mb-6 text-xl font-semibold text-black dark:text-white">기존 부서 목록</h2>
 
-                    <div class="border border-gray-400 rounded-xl  min-h-[400px] flex flex-col">
+                    <div class="flex min-h-[400px] flex-col rounded-xl border border-gray-400 dark:border-gray-700">
                         <div class="flex-1" id="deptListContainer">
                             <div th:each="dept : ${departments}" th:id="'dept-row-' + ${dept.deptId}"
-                                class="flex items-center justify-between p-5 border-b border-gray-400 last:border-b-0 hover:bg-gray-50 transition-colors">
+                                class="flex items-center justify-between border-b border-gray-400 p-5 transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5">
                                 <input type="hidden" th:id="'dept-code-' + ${dept.deptId}" th:value="${dept.deptCode}">
 
                                 <span th:id="'dept-name-text-' + ${dept.deptId}"
-                                    class="text-lg font-semibold text-gray-900 ml-4" th:text="${dept.deptName}"></span>
+                                    class="ml-4 text-lg font-semibold text-gray-900 dark:text-white" th:text="${dept.deptName}"></span>
 
                                 <input type="text" th:id="'dept-name-input-' + ${dept.deptId}"
                                     th:value="${dept.deptName}"
-                                    class="hidden ml-4 text-lg font-semibold border-2 border-indigo-300 rounded-lg py-1 focus:outline-none focus:border-indigo-500">
+                                    class="ml-4 hidden rounded-lg border-2 border-indigo-300 py-1 text-lg font-semibold text-gray-900 focus:border-indigo-500 focus:outline-none dark:border-indigo-500/50 dark:bg-meta-4 dark:text-white">
 
                                 <div class="flex items-center space-x-3 mr-4">
                                     <button type="button" th:id="'btn-edit-' + ${dept.deptId}"
@@ -102,17 +102,17 @@
                                         삭제
                                     </button>
                                     <button type="button" th:id="'btn-cancel-' + ${dept.deptId}"
-                                        class="hidden px-8 py-2.5 bg-gray-200 text-gray-500 font-medium rounded-xl hover:bg-gray-300 transition-all shadow-sm"
-                                        th:attr="onclick=|toggleEditMode('${dept.deptId}', false)|">
+                                        th:attr="onclick=|toggleEditMode('${dept.deptId}', false)|"
+                                        class="hidden px-8 py-2.5 bg-gray-200 font-medium text-gray-500 rounded-xl shadow-sm transition-all hover:bg-gray-300 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/15">
                                         취소
                                     </button>
                                 </div>
                             </div>
 
                             <div th:if="${departments == null or #lists.isEmpty(departments)}"
-                                class="p-20 text-center text-gray-400">등록된 부서가 없습니다.</div>
+                                class="p-20 text-center text-gray-400 dark:text-gray-300">등록된 부서가 없습니다.</div>
                         </div>
-                        <div class="bg-white flex-1"></div>
+                        <div class="flex-1 bg-white dark:bg-boxdark"></div>
                     </div>
                 </section>
             </main>

@@ -6,8 +6,8 @@
   <meta name="viewport"
     content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" th:href="@{/css/output.css}" />
+  <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
   <title>Sign In | TailAdmin</title>
   <style>
     /* [레이아웃 리셋] : 프레임워크 기본 컨테이너 여백/크기 제약 해제 */
@@ -44,6 +44,10 @@
       flex-direction: column;
       justify-content: center;
     }
+
+    .dark .login-card {
+      background-color: #1d2939;
+    }
   </style>
 </head>
 
@@ -54,16 +58,10 @@
   <div th:replace="~{partials/preloader}"></div>
 
   <!-- 최상위 컨테이너: 화면 전체 사용, 카드 정중앙 배치 -->
-  <div style="
-        min-height: 100vh;
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #d1d5db;
-      ">
+  <div
+      class="flex min-h-screen w-full items-center justify-center bg-gray-300 dark:bg-gray-900">
     <!-- [로그인 카드 - 정사각형 레이아웃] : 크기/스타일은 .login-card 클래스로 일원화 -->
-    <div class="login-card bg-white dark:bg-gray-800">
+    <div class="login-card bg-white">
       <!-- 로고 이미지: 중앙 정렬 /필요없지 않나?-->
       <div style="display: flex; justify-content: center; margin-bottom: 1.5rem">
         <!-- <img
@@ -75,7 +73,7 @@
 
       <!-------------------- 바꿨음 -->
       <div th:if="${errorMessage != null}"
-     class="flex items-center p-4 mb-6 text-sm border-2 rounded-2xl shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
+     class="flex items-center p-4 mb-6 text-sm border-2 rounded-2xl shadow-sm duration-300 transition-colors"
      th:classappend="${
         errorMessage.contains('탈퇴') ? 'text-gray-700 border-gray-200 bg-gray-100' : 
         (errorMessage.contains('승인') or errorMessage.contains('반려') ? 'text-amber-900 border-amber-200 bg-amber-50' : 'text-red-900 border-red-200 bg-red-100/80')

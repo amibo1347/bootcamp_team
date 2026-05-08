@@ -12,6 +12,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>폼 요소 | 인트라넷</title>
   <link rel="stylesheet" th:href="@{/css/output.css}" />
+  <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
   </head>
   <body
     x-data="{ page: 'formElements', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
@@ -70,7 +71,7 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Input
                       </label>
@@ -83,7 +84,7 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Input with Placeholder
                       </label>
@@ -97,7 +98,7 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Select Input
                       </label>
@@ -112,31 +113,31 @@
                         >
                           <option
                             value=""
-                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                           >
                             Select Option
                           </option>
                           <option
                             value=""
-                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                           >
                             Marketing
                           </option>
                           <option
                             value=""
-                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                           >
                             Template
                           </option>
                           <option
                             value=""
-                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                           >
                             Development
                           </option>
                         </select>
                         <span
-                          class="pointer-events-none absolute top-1/2 right-4 z-30 -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                          class="pointer-events-none absolute top-1/2 right-4 z-30 -translate-y-1/2 text-gray-500 dark:text-gray-300"
                         >
                           <svg
                             class="stroke-current"
@@ -161,7 +162,7 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Password Input
                       </label>
@@ -213,7 +214,7 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Date Picker Input
                       </label>
@@ -226,7 +227,7 @@
                           onclick="this.showPicker()"
                         />
                         <span
-                          class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                          class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-300"
                         >
                           <svg
                             class="fill-current"
@@ -250,7 +251,7 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Time Select Input
                       </label>
@@ -262,7 +263,7 @@
                           class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pr-11 pl-4 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                         />
                         <span
-                          class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                          class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-300"
                         >
                           <svg
                             class="fill-current"
@@ -286,7 +287,7 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Input with Payment
                       </label>
@@ -346,7 +347,7 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Select Input
                       </label>
@@ -361,31 +362,31 @@
                         >
                           <option
                             value=""
-                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                           >
                             Select Option
                           </option>
                           <option
                             value=""
-                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                           >
                             Marketing
                           </option>
                           <option
                             value=""
-                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                           >
                             Template
                           </option>
                           <option
                             value=""
-                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                            class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                           >
                             Development
                           </option>
                         </select>
                         <span
-                          class="pointer-events-none absolute top-1/2 right-4 z-30 -translate-y-1/2 text-gray-700 dark:text-gray-400"
+                          class="pointer-events-none absolute top-1/2 right-4 z-30 -translate-y-1/2 text-gray-700 dark:text-gray-300"
                         >
                           <svg
                             class="stroke-current"
@@ -410,7 +411,7 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Multiple Select Options
                       </label>
@@ -456,7 +457,7 @@
                                         >
                                           <div
                                             @click="remove(index,option)"
-                                            class="cursor-pointer pl-2 text-gray-500 group-hover:text-gray-400 dark:text-gray-400"
+                                            class="cursor-pointer pl-2 text-gray-500 group-hover:text-gray-400 dark:text-gray-300"
                                           >
                                             <svg
                                               class="fill-current"
@@ -495,7 +496,7 @@
                                     <button
                                       type="button"
                                       @click="open"
-                                      class="h-5 w-5 cursor-pointer text-gray-700 outline-hidden focus:outline-hidden dark:text-gray-400"
+                                      class="h-5 w-5 cursor-pointer text-gray-700 outline-hidden focus:outline-hidden dark:text-gray-300"
                                       :class="isOpen() === true ? 'rotate-180' : ''"
                                     >
                                       <svg
@@ -578,7 +579,7 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Description
                       </label>
@@ -609,7 +610,7 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Description
                       </label>
@@ -635,7 +636,7 @@
                     >
                       Input States
                     </h3>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-300">
                       Validation styles for error, success and disabled states
                       on form controls.
                     </p>
@@ -646,7 +647,7 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Email
                       </label>
@@ -684,7 +685,7 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Email
                       </label>
@@ -730,7 +731,7 @@
                         type="text"
                         placeholder="info@gmail.com"
                         disabled
-                        class="shadow-theme-xs focus:border-brand-300 focus:shadow-focus-ring dark:focus:border-brand-300 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-hidden disabled:border-gray-100 disabled:placeholder:text-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-gray-400 dark:disabled:border-gray-800 dark:disabled:placeholder:text-white/15"
+                        class="shadow-theme-xs focus:border-brand-300 focus:shadow-focus-ring dark:focus:border-brand-300 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-hidden disabled:border-gray-100 disabled:placeholder:text-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-gray-300 dark:disabled:border-gray-800 dark:disabled:placeholder:text-white/15"
                       />
                     </div>
                   </div>
@@ -754,13 +755,13 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Email
                       </label>
                       <div class="relative">
                         <span
-                          class="absolute top-1/2 left-0 -translate-y-1/2 border-r border-gray-200 px-3.5 py-3 text-gray-500 dark:border-gray-800 dark:text-gray-400"
+                          class="absolute top-1/2 left-0 -translate-y-1/2 border-r border-gray-200 px-3.5 py-3 text-gray-500 dark:border-gray-800 dark:text-gray-300"
                         >
                           <svg
                             width="20"
@@ -799,7 +800,7 @@
                       }"
                     >
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Phone
                       </label>
@@ -808,36 +809,36 @@
                           <select
                             x-model="selectedCountry"
                             @change="phoneNumber = countryCodes[selectedCountry]"
-                            class="focus:border-brand-300 focus:ring-brand-500/10 appearance-none rounded-l-lg border-0 border-r border-gray-200 bg-transparent bg-none py-3 pr-8 pl-3.5 leading-tight text-gray-700 focus:ring-3 focus:outline-hidden dark:border-gray-800 dark:text-gray-400"
+                            class="focus:border-brand-300 focus:ring-brand-500/10 appearance-none rounded-l-lg border-0 border-r border-gray-200 bg-transparent bg-none py-3 pr-8 pl-3.5 leading-tight text-gray-700 focus:ring-3 focus:outline-hidden dark:border-gray-800 dark:text-gray-300"
                           >
                             <option
                               value="US"
-                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                             >
                               US
                             </option>
                             <option
                               value="GB"
-                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                             >
                               GB
                             </option>
                             <option
                               value="CA"
-                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                             >
                               CA
                             </option>
                             <option
                               value="AU"
-                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                             >
                               AU
                             </option>
                             <!-- Add more country codes as needed -->
                           </select>
                           <div
-                            class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-700 dark:text-gray-400"
+                            class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-700 dark:text-gray-300"
                           >
                             <svg
                               class="stroke-current"
@@ -880,7 +881,7 @@
                       }"
                     >
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Phone
                       </label>
@@ -889,36 +890,36 @@
                           <select
                             x-model="selectedCountry"
                             @change="phoneNumber = countryCodes[selectedCountry]"
-                            class="focus:border-brand-300 focus:ring-brand-500/10 appearance-none rounded-r-lg border-0 border-l border-gray-200 bg-transparent bg-none py-3 pr-8 pl-3.5 leading-tight text-gray-700 focus:ring-3 focus:outline-hidden dark:border-gray-800 dark:text-gray-400"
+                            class="focus:border-brand-300 focus:ring-brand-500/10 appearance-none rounded-r-lg border-0 border-l border-gray-200 bg-transparent bg-none py-3 pr-8 pl-3.5 leading-tight text-gray-700 focus:ring-3 focus:outline-hidden dark:border-gray-800 dark:text-gray-300"
                           >
                             <option
                               value="US"
-                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                             >
                               US
                             </option>
                             <option
                               value="GB"
-                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                             >
                               GB
                             </option>
                             <option
                               value="CA"
-                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                             >
                               CA
                             </option>
                             <option
                               value="AU"
-                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                              class="text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                             >
                               AU
                             </option>
                             <!-- Add more country codes as needed -->
                           </select>
                           <div
-                            class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-700 dark:text-gray-400"
+                            class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-700 dark:text-gray-300"
                           >
                             <svg
                               class="stroke-current"
@@ -950,13 +951,13 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         URL
                       </label>
                       <div class="relative">
                         <span
-                          class="absolute top-1/2 left-0 inline-flex h-11 -translate-y-1/2 items-center justify-center border-r border-gray-200 py-3 pr-3 pl-3.5 text-gray-500 dark:border-gray-800 dark:text-gray-400"
+                          class="absolute top-1/2 left-0 inline-flex h-11 -translate-y-1/2 items-center justify-center border-r border-gray-200 py-3 pr-3 pl-3.5 text-gray-500 dark:border-gray-800 dark:text-gray-300"
                         >
                           http://
                         </span>
@@ -971,14 +972,14 @@
                     <!-- Elements -->
                     <div id="copy-input">
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Website
                       </label>
                       <div class="relative">
                         <button
                           id="copy-button"
-                          class="absolute top-1/2 right-0 inline-flex -translate-y-1/2 cursor-pointer items-center gap-1 border-l border-gray-200 py-3 pr-3 pl-3.5 text-sm font-medium text-gray-700 dark:border-gray-800 dark:text-gray-400"
+                          class="absolute top-1/2 right-0 inline-flex -translate-y-1/2 cursor-pointer items-center gap-1 border-l border-gray-200 py-3 pr-3 pl-3.5 text-sm font-medium text-gray-700 dark:border-gray-800 dark:text-gray-300"
                         >
                           <svg
                             class="fill-current"
@@ -1024,13 +1025,13 @@
                     <!-- Elements -->
                     <div>
                       <label
-                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
                         Upload file
                       </label>
                       <input
                         type="file"
-                        class="focus:border-ring-brand-300 shadow-theme-xs focus:file:ring-brand-300 h-11 w-full overflow-hidden rounded-lg border border-gray-300 bg-transparent text-sm text-gray-500 transition-colors file:mr-5 file:border-collapse file:cursor-pointer file:rounded-l-lg file:border-0 file:border-r file:border-solid file:border-gray-200 file:bg-gray-50 file:py-3 file:pr-3 file:pl-3.5 file:text-sm file:text-gray-700 placeholder:text-gray-400 hover:file:bg-gray-100 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:text-white/90 dark:file:border-gray-800 dark:file:bg-white/[0.03] dark:file:text-gray-400 dark:placeholder:text-gray-400"
+                        class="focus:border-ring-brand-300 shadow-theme-xs focus:file:ring-brand-300 h-11 w-full overflow-hidden rounded-lg border border-gray-300 bg-transparent text-sm text-gray-500 transition-colors file:mr-5 file:border-collapse file:cursor-pointer file:rounded-l-lg file:border-0 file:border-r file:border-solid file:border-gray-200 file:bg-gray-50 file:py-3 file:pr-3 file:pl-3.5 file:text-sm file:text-gray-700 placeholder:text-gray-400 hover:file:bg-gray-100 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:text-white/90 dark:file:border-gray-800 dark:file:bg-white/[0.03] dark:file:text-gray-300 dark:placeholder:text-gray-300"
                       />
                     </div>
                   </div>
@@ -1054,7 +1055,7 @@
                       <div x-data="{ checkboxToggle: false }">
                         <label
                           for="checkboxLabelOne"
-                          class="flex cursor-pointer items-center text-sm font-medium text-gray-700 select-none dark:text-gray-400"
+                          class="flex cursor-pointer items-center text-sm font-medium text-gray-700 select-none dark:text-gray-300"
                         >
                           <div class="relative">
                             <input
@@ -1093,7 +1094,7 @@
                       <div x-data="{ checkboxToggle: true }">
                         <label
                           for="checkboxLabelTwo"
-                          class="flex cursor-pointer items-center text-sm font-medium text-gray-700 select-none dark:text-gray-400"
+                          class="flex cursor-pointer items-center text-sm font-medium text-gray-700 select-none dark:text-gray-300"
                         >
                           <div class="relative">
                             <input
@@ -1191,7 +1192,7 @@
                       <div x-data="{ checkboxToggle: false }">
                         <label
                           for="radioLabelOne"
-                          class="flex cursor-pointer items-center text-sm font-medium text-gray-700 select-none dark:text-gray-400"
+                          class="flex cursor-pointer items-center text-sm font-medium text-gray-700 select-none dark:text-gray-300"
                         >
                           <div class="relative">
                             <input
@@ -1217,7 +1218,7 @@
                       <div x-data="{ checkboxToggle: true }">
                         <label
                           for="radioLabelTwo"
-                          class="flex cursor-pointer items-center text-sm font-medium text-gray-700 select-none dark:text-gray-400"
+                          class="flex cursor-pointer items-center text-sm font-medium text-gray-700 select-none dark:text-gray-300"
                         >
                           <div class="relative">
                             <input
@@ -1290,7 +1291,7 @@
                       <div x-data="{ switcherToggle: false }">
                         <label
                           for="toggle1"
-                          class="flex cursor-pointer items-center gap-3 text-sm font-medium text-gray-700 select-none dark:text-gray-400"
+                          class="flex cursor-pointer items-center gap-3 text-sm font-medium text-gray-700 select-none dark:text-gray-300"
                         >
                           <div class="relative">
                             <input
@@ -1316,7 +1317,7 @@
                       <div x-data="{ switcherToggle: true }">
                         <label
                           for="toggle2"
-                          class="flex cursor-pointer items-center gap-3 text-sm font-medium text-gray-700 select-none dark:text-gray-400"
+                          class="flex cursor-pointer items-center gap-3 text-sm font-medium text-gray-700 select-none dark:text-gray-300"
                         >
                           <div class="relative">
                             <input
@@ -1372,7 +1373,7 @@
                       <div x-data="{ switcherToggle: false }">
                         <label
                           for="toggle11"
-                          class="flex cursor-pointer items-center gap-3 text-sm font-medium text-gray-700 select-none dark:text-gray-400"
+                          class="flex cursor-pointer items-center gap-3 text-sm font-medium text-gray-700 select-none dark:text-gray-300"
                         >
                           <div class="relative">
                             <input
@@ -1397,7 +1398,7 @@
                       <div x-data="{ switcherToggle: true }">
                         <label
                           for="toggle22"
-                          class="flex cursor-pointer items-center gap-3 text-sm font-medium text-gray-700 select-none dark:text-gray-400"
+                          class="flex cursor-pointer items-center gap-3 text-sm font-medium text-gray-700 select-none dark:text-gray-300"
                         >
                           <div class="relative">
                             <input
@@ -1469,7 +1470,7 @@
                       <div class="dz-message m-0!">
                         <div class="mb-[22px] flex justify-center">
                           <div
-                            class="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                            class="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
                           >
                             <svg
                               class="fill-current"
@@ -1495,7 +1496,7 @@
                           Drop File Here
                         </h4>
                         <span
-                          class="mx-auto mb-5 block w-full max-w-[290px] text-sm text-gray-700 dark:text-gray-400"
+                          class="mx-auto mb-5 block w-full max-w-[290px] text-sm text-gray-700 dark:text-gray-300"
                         >
                           Drag and drop your PNG, JPG, WebP, SVG images here or
                           browse
