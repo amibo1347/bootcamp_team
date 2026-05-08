@@ -11,8 +11,7 @@
     <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
 </head>
 
-<body
-    th:attr="data-board-id=${board.boardId}"
+<body th:attr="data-board-id=${board.boardId}"
     x-data="{ page: 'board', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
     x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
     :class="{ 'dark bg-gray-900': darkMode === true }">
@@ -35,24 +34,36 @@
                     </a>
                 </section>
 
-                <section class="overflow-hidden rounded-xl border border-stroke bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                <section
+                    class="overflow-hidden rounded-xl border border-stroke bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
                     <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm">
+                        <table class="min-w-full table-fixed text-sm">
+                            <colgroup>
+                                <!-- 번호: 작게 유지하되 너무 줄어들지 않게 최소폭 보장 -->
+                                <col style="width: clamp(48px, 6vw, 64px);" />
+                                <!-- 제목: 남는 공간을 가장 많이 사용 -->
+                                <col />
+                                <!-- 작성자: 기존보다 넓게 조정 -->
+                                <col style="width: clamp(88px, 12vw, 140px);" />
+                                <!-- 작성일: 날짜+시간 한 줄 표시를 위한 유연 폭 -->
+                                <col style="width: clamp(136px, 18vw, 176px);" />
+                                <!-- 조회수: 숫자 한 줄 표시를 위한 최소폭 보장 -->
+                                <col style="width: clamp(60px, 8vw, 92px);" />
+                            </colgroup>
                             <thead class="bg-gray-50 dark:bg-meta-4/60">
                                 <tr class="text-left text-gray-600 dark:text-gray-300">
-                                    <th class="px-5 py-3 font-semibold">번호</th>
+                                    <th class="whitespace-nowrap px-5 py-3 font-semibold">번호</th>
                                     <th class="px-5 py-3 font-semibold">제목</th>
-                                    <th class="px-5 py-3 font-semibold">작성자</th>
-                                    <th class="px-5 py-3 font-semibold">작성일</th>
-                                    <th class="px-5 py-3 font-semibold">조회수</th>
+                                    <th class="whitespace-nowrap px-5 py-3 font-semibold">작성자</th>
+                                    <th class="whitespace-nowrap px-5 py-3 font-semibold">작성일</th>
+                                    <th class="whitespace-nowrap px-5 py-3 font-semibold">조회수</th>
                                 </tr>
                             </thead>
                             <tbody id="postListBody"></tbody>
                         </table>
                     </div>
 
-                    <div id="postListEmpty"
-                        class="px-5 py-16 text-center text-gray-500 dark:text-gray-300">
+                    <div id="postListEmpty" class="px-5 py-16 text-center text-gray-500 dark:text-gray-300">
                         등록된 게시글이 없습니다.
                     </div>
                 </section>

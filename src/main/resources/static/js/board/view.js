@@ -2,7 +2,7 @@
   const PAGE_SIZE = 10;
 
   /**
-   * 날짜 문자열을 YYYY-MM-DD 형식으로 반환한다.
+   * 날짜 문자열을 YYYY-MM-DD HH:mm 형식으로 반환한다.
    * @param {string|number|Date} value 날짜 원본 값
    * @returns {string}
    */
@@ -10,7 +10,12 @@
     if (!value) return '-';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
   }
 
   /**
@@ -27,7 +32,6 @@
       .replaceAll("'", '&#39;');
   }
 
-<<<<<<< HEAD
   /**
    * 게시글 목록 API 응답을 프론트 공통 구조로 정규화한다.
    * @param {unknown} payload API 응답 원본
@@ -68,11 +72,12 @@
    * @returns {Promise<{ posts: Array, currentPage: number, totalPages: number }>}
    */
   async function fetchPosts(boardId, page) {
-    const response = await fetch(`/api/board/${boardId}/articles?page=${page}&size=${PAGE_SIZE}`, {
+    const response = await fetch(`/board/${boardId}/articles?page=${page}&size=${PAGE_SIZE}`, {
       method: 'GET',
       headers: {
         Accept: 'application/json',
       },
+      credentials: 'same-origin',
     });
 
     if (!response.ok) {
@@ -86,21 +91,9 @@
   /**
    * 목록형 뷰를 렌더링한다.
    * @param {Array} posts 게시글 배열
+   * @param {number} boardId 게시판 ID
    */
-  function renderList(posts) {
-=======
-  async function loadPosts(boardId) {
-    if (!boardId) return [];
-    const res = await fetch(`/board/${boardId}/articles`, {
-      headers: { 'Accept': 'application/json' },
-      credentials: 'same-origin',
-    });
-    if (!res.ok) return [];
-    return res.json();
-  }
-
   function renderList(posts, boardId) {
->>>>>>> 1d8903bbb0389be7f260ddd1ef639245baba7500
     const body = document.getElementById('postListBody');
     const empty = document.getElementById('postListEmpty');
     if (!body || !empty) return;
@@ -116,26 +109,23 @@
           const detailUrl = `/board/${boardId}/articles/${post.articleId}`;
          return `
           <tr class="border-t border-gray-100 text-gray-700 dark:border-strokedark dark:text-gray-200">
-            <td class="px-5 py-3">${index + 1}</td>
-            <td class="px-5 py-3"><a href="${detailUrl}" class="hover:text-indigo-500">${escapeHtml(post.title)}</a></td>
-            <td class="px-5 py-3">${escapeHtml(post.authorName || '-')}</td>
-            <td class="px-5 py-3">${formatDate(post.createdAt)}</td>
-            <td class="px-5 py-3">${Number(post.viewCount || 0)}</td>
+            <td class="whitespace-nowrap px-5 py-3">${index + 1}</td>
+            <td class="px-5 py-3"><a href="${detailUrl}" class="block truncate hover:text-indigo-500">${escapeHtml(post.title)}</a></td>
+            <td class="whitespace-nowrap px-5 py-3">${escapeHtml(post.authorName || '-')}</td>
+            <td class="whitespace-nowrap px-5 py-3">${formatDate(post.createdAt)}</td>
+            <td class="whitespace-nowrap px-5 py-3">${Number(post.viewCount || 0)}</td>
           </tr>
         `;
   })
       .join('');
   }
 
-<<<<<<< HEAD
   /**
    * 앨범형 뷰를 렌더링한다.
    * @param {Array} posts 게시글 배열
+   * @param {number} boardId 게시판 ID
    */
-  function renderAlbum(posts) {
-=======
   function renderAlbum(posts, boardId) {
->>>>>>> 1d8903bbb0389be7f260ddd1ef639245baba7500
     const grid = document.getElementById('postAlbumGrid');
     const empty = document.getElementById('postAlbumEmpty');
     if (!grid || !empty) return;
@@ -166,15 +156,12 @@
       .join('');
   }
 
-<<<<<<< HEAD
   /**
    * 카드형 뷰를 렌더링한다.
    * @param {Array} posts 게시글 배열
+   * @param {number} boardId 게시판 ID
    */
-  function renderCard(posts) {
-=======
   function renderCard(posts, boardId) {
->>>>>>> 1d8903bbb0389be7f260ddd1ef639245baba7500
     const grid = document.getElementById('postCardGrid');
     const empty = document.getElementById('postCardEmpty');
     if (!grid || !empty) return;
@@ -207,7 +194,6 @@
       .join('');
   }
 
-<<<<<<< HEAD
   /**
    * 공통 페이지네이션 UI를 렌더링한다.
    * @param {number} currentPage 현재 페이지(0-base)
@@ -261,9 +247,9 @@
    */
   async function updateBoardPosts(boardId, page) {
     const { posts, currentPage, totalPages } = await fetchPosts(boardId, page);
-    renderList(posts);
-    renderAlbum(posts);
-    renderCard(posts);
+    renderList(posts, boardId);
+    renderAlbum(posts, boardId);
+    renderCard(posts, boardId);
     renderPagination(currentPage, totalPages, (nextPage) => {
       updateBoardPosts(boardId, nextPage);
     });
@@ -274,19 +260,10 @@
     if (!boardId) return;
     updateBoardPosts(boardId, 0).catch((error) => {
       console.error(error);
-      renderList([]);
-      renderAlbum([]);
-      renderCard([]);
+      renderList([], boardId);
+      renderAlbum([], boardId);
+      renderCard([], boardId);
       renderPagination(0, 1, () => {});
     });
-=======
-  document.addEventListener('DOMContentLoaded', async () => {
-    const boardId = Number(document.body.dataset.boardId || 0);
-    if (!boardId) return;
-    const posts = await loadPosts(boardId);
-    renderList(posts, boardId);
-    renderAlbum(posts, boardId);
-    renderCard(posts, boardId);
->>>>>>> 1d8903bbb0389be7f260ddd1ef639245baba7500
   });
 })();
