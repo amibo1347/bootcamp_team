@@ -7,6 +7,7 @@ import com.team.intranet.entity.Article;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -22,6 +23,7 @@ public class ArticleDto {
     private int commentCount;   // 댓글 수
     private String createdAt;
     private String authorName;
+    private List<Long> attachmentIds;
 
     public static ArticleDto from(Article article) {
         ArticleDto dto = new ArticleDto();

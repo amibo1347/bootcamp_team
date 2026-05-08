@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import com.team.intranet.entity.Article;
+import com.team.intranet.entity.ArticleAttachment;
 import com.team.intranet.dto.ArticleDto;
 import com.team.intranet.enums.board.ScopeType;
 import com.team.intranet.exception.BusinessException;
@@ -24,6 +25,7 @@ import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import com.team.intranet.entity.Member;
 import com.team.intranet.repository.MemberRepository;
+import com.team.intranet.repository.AttachmentRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +36,7 @@ public class ArticleService {
     private final BoardService boardService;
     private final ArticleRepository articleRepository;
     private final MemberRepository memberRepository;
+    private final AttachmentRepository attachmentRepository;
 
 
     @Transactional
@@ -53,8 +56,23 @@ public class ArticleService {
 
         // 게시글 생성 및 저장
         Article article = Article.create(board, author, dto, isAnonymous);
-        return articleRepository.save(article);
-        
+        Article saved = articleRepository.save(article);
+
+      // 첨부파일 연결
+      if (dto.getAttachmentIds() != null && !dto.getAttachmentIds().isEmpty()) {
+          for (Long id : dto.getAttachmentIds()) {
+              ArticleAttachment att = attachmentRepository.findById(id)
+                  .orElseThrow(() -> new BusinessException(ErrorCode.ATTACHMENT_NOT_FOUND));
+
+              // 본인이 업로드한 것 + 같은 회사 + 아직 연결 안 된 것만 허용
+              if (!att.getUploader().getMemberId().equals(ms.getMemberId())) continue;
+              if (!att.getCompany().getCompanyId().equals(ms.getCompanyId())) continue;
+              if (att.getArticle() != null) continue;
+
+              att.setArticle(saved);
+          }
+      }
+      return saved;
     }
 
     public Page<ArticleDto> findArticlesByBoard(MemberSession ms, Long boardId, Pageable pageable){
@@ -65,6 +83,7 @@ public class ArticleService {
           .map(ArticleDto::from);
     }
 
+    @Transactional
     public ArticleDto findArticle(MemberSession ms, Long boardId, Long articleId) {
       // 게시판 read 권한 검증 (회사/활성/scope 다 처리)
       boardService.getReadableBoard(ms, boardId);
@@ -72,6 +91,10 @@ public class ArticleService {
       Article article = articleRepository
           .findByArticleIdAndBoard_BoardIdAndIsDeletedFalse(articleId, boardId)
           .orElseThrow(() -> new BusinessException(ErrorCode.ARTICLE_NOT_FOUND));
+        
+        if(!article.isAuthor(ms.getMemberId())){
+            article.increaseViewCount();
+        }
 
       return ArticleDto.from(article);
   }

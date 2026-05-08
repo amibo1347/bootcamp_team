@@ -130,6 +130,7 @@
     authorElement.textContent = post.authorName || '-';
     dateElement.textContent = formatDate(post.createdAt);
     viewsElement.textContent = String(Number(post.viewCount || 0));
+<<<<<<< HEAD
     contentElement.innerHTML = ''; // 플레이스홀더 텍스트 제거
     contentViewer = null;
     renderAttachments(post);
@@ -146,6 +147,49 @@
 
     // 라이브러리 로딩 실패 폴백
     contentElement.textContent = post.content || '';
+=======
+    contentElement.innerHTML = '';                       // 플레이스홀더 텍스트 제거
+      if (window.toastui?.Editor?.factory) {
+          window.toastui.Editor.factory({
+              el: contentElement,
+              viewer: true,
+              initialValue: post.content || '',
+          });
+      } else {
+          // 라이브러리 로딩 실패 폴백
+          contentElement.textContent = post.content || '';
+      }
+       upgradeYouTubeLinks(contentElement);
+  }
+
+  function getYouTubeId(url) {
+      try {
+          const m = String(url).match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{11})/);
+          return m ? m[1] : null;
+      } catch { return null; }
+  }
+
+  function upgradeYouTubeLinks(root) {
+      root.querySelectorAll('a').forEach((a) => {
+          const id = getYouTubeId(a.getAttribute('href'));
+          if (!id) return;
+
+          const wrapper = document.createElement('div');
+          wrapper.className = 'my-4 w-full max-w-2xl';
+          wrapper.style.aspectRatio = '16 / 9';
+          wrapper.innerHTML = `
+              <iframe
+                  src="https://www.youtube.com/embed/${id}"
+                  class="h-full w-full rounded-lg border border-gray-200 dark:border-strokedark"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  loading="lazy">
+              </iframe>
+          `;
+          a.replaceWith(wrapper);
+      });
+>>>>>>> 9f5cc350b995142c2d698a099d21bc9d00a39a14
   }
   
   /**

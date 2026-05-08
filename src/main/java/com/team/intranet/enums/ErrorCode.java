@@ -61,6 +61,7 @@ public enum ErrorCode {
     INVALID_FILE_TYPE(403, "파일 형식이 맞지 않습니다"),
     INVALID_INPUT(403, "파일이 깨졌습니다"),
     ARTICLE_NOT_FOUND(404, "해당 게시글을 찾을 수 없습니다"),
+    ATTACHMENT_NOT_FOUND(404, "첨부파일을 찾을 수 없습니다"),
     NOT_ANONYMOUS_POST(400, "익명 게시글이 아닙니다");
     
     // 2. 변수 정의
