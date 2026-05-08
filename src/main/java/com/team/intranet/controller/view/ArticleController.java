@@ -16,7 +16,6 @@ import com.team.intranet.dto.ArticleDto;
 import com.team.intranet.dto.BoardDto;
 import com.team.intranet.session.MemberSession;
 import com.team.intranet.service.BoardService;
-import com.team.intranet.service.BoardService;
 import com.team.intranet.service.ArticleService;
 
 
@@ -50,8 +49,8 @@ public class ArticleController {
 
     // 글 상세
     @GetMapping("/{articleId}")
-    public String viewArticle(@PathVariable Long id, @PathVariable Long articleId, @SessionAttribute(name = "memberSession", required = false) MemberSession ms, Model model) {
-        BoardDto board = boardService.findVisibleBoardById(ms, id);
+    public String viewArticle(@PathVariable Long boardId, @PathVariable Long articleId, @SessionAttribute(name = "memberSession", required = false) MemberSession ms, Model model) {
+        BoardDto board = boardService.findVisibleBoardById(ms, boardId);
         model.addAttribute("board", board);
         model.addAttribute("articleId", articleId);
         return "board/viewPost";    

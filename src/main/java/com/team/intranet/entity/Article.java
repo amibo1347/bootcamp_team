@@ -86,6 +86,8 @@ public class Article {
             .build();
     }
 
+    
+
     public void increaseViewCount() {
         this.viewCount++;
     }

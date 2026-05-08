@@ -25,16 +25,7 @@
     return res.json();
   }
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    const boardId = Number(document.body.dataset.boardId || 0);
-    if (!boardId) return;
-    const posts = await loadPosts(boardId);
-    renderList(posts);
-    renderAlbum(posts);
-    renderCard(posts);
-  });
-
-  function renderList(posts) {
+  function renderList(posts, boardId) {
     const body = document.getElementById('postListBody');
     const empty = document.getElementById('postListEmpty');
     if (!body || !empty) return;
@@ -46,20 +37,22 @@
     empty.classList.add('hidden');
     body.innerHTML = posts
       .map(
-        (post, index) => `
+        (post, index) => {
+          const detailUrl = `/board/${boardId}/articles/${post.articleId}`;
+         return `
           <tr class="border-t border-gray-100 text-gray-700 dark:border-strokedark dark:text-gray-200">
             <td class="px-5 py-3">${index + 1}</td>
-            <td class="px-5 py-3"><a href="#" class="hover:text-indigo-500">${escapeHtml(post.title)}</a></td>
+            <td class="px-5 py-3"><a href="${detailUrl}" class="hover:text-indigo-500">${escapeHtml(post.title)}</a></td>
             <td class="px-5 py-3">${escapeHtml(post.authorName || '-')}</td>
             <td class="px-5 py-3">${formatDate(post.createdAt)}</td>
             <td class="px-5 py-3">${Number(post.viewCount || 0)}</td>
           </tr>
-        `
-      )
+        `;
+  })
       .join('');
   }
 
-  function renderAlbum(posts) {
+  function renderAlbum(posts, boardId) {
     const grid = document.getElementById('postAlbumGrid');
     const empty = document.getElementById('postAlbumEmpty');
     if (!grid || !empty) return;
@@ -71,7 +64,9 @@
     empty.classList.add('hidden');
     grid.innerHTML = posts
       .map(
-        (post) => `
+        (post) => {
+          const detailUrl = `/board/${boardId}/articles/${post.articleId}`;
+        return  `
           <article class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
             ${
               post.thumbnailUrl
@@ -87,12 +82,12 @@
               </div>
             </div>
           </article>
-        `
-      )
+        `;
+  })
       .join('');
   }
 
-  function renderCard(posts) {
+  function renderCard(posts, boardId) {
     const grid = document.getElementById('postCardGrid');
     const empty = document.getElementById('postCardEmpty');
     if (!grid || !empty) return;
@@ -104,7 +99,9 @@
     empty.classList.add('hidden');
     grid.innerHTML = posts
       .map(
-        (post) => `
+        (post) => {
+          const detailUrl = `/board/${boardId}/articles/${post.articleId}`;
+         return `
           <article class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-strokedark dark:bg-boxdark">
             <div class="mb-3 flex items-start justify-between gap-3">
               <h3 class="line-clamp-2 text-lg font-semibold text-gray-900 dark:text-white">${escapeHtml(post.title)}</h3>
@@ -128,17 +125,17 @@
               <span>${formatDate(post.createdAt)}</span>
             </div>
           </article>
-        `
-      )
+        `;
+  })
       .join('');
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     const boardId = Number(document.body.dataset.boardId || 0);
     if (!boardId) return;
-    const posts = loadPosts(boardId);
-    renderList(posts);
-    renderAlbum(posts);
-    renderCard(posts);
+    const posts = await loadPosts(boardId);
+    renderList(posts, boardId);
+    renderAlbum(posts, boardId);
+    renderCard(posts, boardId);
   });
 })();
