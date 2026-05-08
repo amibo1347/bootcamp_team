@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title th:text="${board.boardName} + ' - 상세보기'">게시글 상세보기</title>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+</head>
+
+<body th:attr="data-board-id=${board.boardId},data-article-id=${articleId}"
+    x-data="{ page: 'board', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
+    x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{ 'dark bg-gray-900': darkMode === true }">
+
+    <!-- Preloader 시작 -->
+    <div th:replace="~{partials/preloader}"></div>
+    <!-- Preloader 끝 -->
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar 시작 -->
+        <div th:replace="~{partials/sidebar}"></div>
+        <!-- Sidebar 끝 -->
+
+        <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+            <div th:replace="~{partials/overlay}"></div>
+            <div th:replace="~{partials/header}"></div>
+
+            <!-- Content 시작 -->
+            <main class="space-y-6 p-8">
+                <section class="flex flex-wrap items-center justify-between gap-3">
+                    <h2 class="text-2xl font-black text-gray-900 dark:text-white" th:text="${board.boardName}">게시판</h2>
+                    <a th:href="@{/board/{id}(id=${board.boardId})}"
+                        class="px-8 py-2.5 bg-gray-200 font-medium text-gray-500 rounded-xl shadow-sm transition-all hover:bg-gray-300 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/15">
+                        목록으로
+                    </a>
+                </section>
+
+                <section
+                    class="overflow-hidden rounded-xl border border-stroke bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <header class="border-b border-gray-100 px-8 py-7 dark:border-strokedark">
+                        <h3 id="postTitle" class="text-xl font-bold text-gray-900 dark:text-white">불러오는 중...</h3>
+                        <div class="mt-5 flex flex-wrap items-center text-sm text-gray-500 dark:text-gray-300"
+                            style="column-gap: 3rem; row-gap: 1rem;">
+                            <span>작성자: <strong id="postAuthor"
+                                    class="font-medium text-gray-700 dark:text-gray-100">-</strong></span>
+                            <span>작성일: <strong id="postDate"
+                                    class="font-medium text-gray-700 dark:text-gray-100">-</strong></span>
+                            <span>조회수: <strong id="postViews"
+                                    class="font-medium text-gray-700 dark:text-gray-100">0</strong></span>
+                        </div>
+                    </header>
+
+                    <article id="postContent"
+                        class="whitespace-pre-wrap break-words px-8 text-base leading-8 text-gray-700 dark:text-gray-200"
+                        style="min-height: 20rem; padding-top: 2rem; padding-bottom: 9rem; font-size: 1rem;">
+                        게시글 내용을 불러오는 중입니다.
+                    </article>
+                </section>
+            </main>
+            <!-- Content 끝 -->
+        </div>
+    </div>
+
+    <script type="module" src="/js/index.js"></script>
+    <script src="/js/board/detail.js"></script>
+</body>
+
+</html>

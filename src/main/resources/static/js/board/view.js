@@ -2,7 +2,7 @@
   const PAGE_SIZE = 10;
 
   /**
-   * 날짜 문자열을 YYYY-MM-DD 형식으로 반환한다.
+   * 날짜 문자열을 YYYY-MM-DD HH:mm 형식으로 반환한다.
    * @param {string|number|Date} value 날짜 원본 값
    * @returns {string}
    */
@@ -10,7 +10,12 @@
     if (!value) return '-';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
   }
 
   /**
@@ -72,6 +77,7 @@
       headers: {
         Accept: 'application/json',
       },
+      credentials: 'same-origin',
     });
 
     if (!response.ok) {
@@ -85,6 +91,7 @@
   /**
    * 목록형 뷰를 렌더링한다.
    * @param {Array} posts 게시글 배열
+   * @param {number} boardId 게시판 ID
    */
   function renderList(posts, boardId) {
     const body = document.getElementById('postListBody');
@@ -102,11 +109,11 @@
           const detailUrl = `/board/${boardId}/articles/${post.articleId}`;
          return `
           <tr class="border-t border-gray-100 text-gray-700 dark:border-strokedark dark:text-gray-200">
-            <td class="px-5 py-3">${index + 1}</td>
-            <td class="px-5 py-3"><a href="${detailUrl}" class="hover:text-indigo-500">${escapeHtml(post.title)}</a></td>
-            <td class="px-5 py-3">${escapeHtml(post.authorName || '-')}</td>
-            <td class="px-5 py-3">${formatDate(post.createdAt)}</td>
-            <td class="px-5 py-3">${Number(post.viewCount || 0)}</td>
+            <td class="whitespace-nowrap px-5 py-3">${index + 1}</td>
+            <td class="px-5 py-3"><a href="${detailUrl}" class="block truncate hover:text-indigo-500">${escapeHtml(post.title)}</a></td>
+            <td class="whitespace-nowrap px-5 py-3">${escapeHtml(post.authorName || '-')}</td>
+            <td class="whitespace-nowrap px-5 py-3">${formatDate(post.createdAt)}</td>
+            <td class="whitespace-nowrap px-5 py-3">${Number(post.viewCount || 0)}</td>
           </tr>
         `;
   })
@@ -116,6 +123,7 @@
   /**
    * 앨범형 뷰를 렌더링한다.
    * @param {Array} posts 게시글 배열
+   * @param {number} boardId 게시판 ID
    */
   function renderAlbum(posts, boardId) {
     const grid = document.getElementById('postAlbumGrid');
@@ -151,6 +159,7 @@
   /**
    * 카드형 뷰를 렌더링한다.
    * @param {Array} posts 게시글 배열
+   * @param {number} boardId 게시판 ID
    */
   function renderCard(posts, boarId) {
     const grid = document.getElementById('postCardGrid');
@@ -251,9 +260,9 @@
     if (!boardId) return;
     updateBoardPosts(boardId, 0).catch((error) => {
       console.error(error);
-      renderList([]);
-      renderAlbum([]);
-      renderCard([]);
+      renderList([], boardId);
+      renderAlbum([], boardId);
+      renderCard([], boardId);
       renderPagination(0, 1, () => {});
     });
   });

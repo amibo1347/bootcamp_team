@@ -20,6 +20,15 @@
     contentElement.value = editor.getMarkdown().trim();
   }
 
+  function handleImage(blob, callback) {
+      const reader = new FileReader();
+      reader.onload = () => {
+          callback(reader.result, blob.name || 'image');
+      };
+      reader.onerror = () => alert('이미지를 읽지 못했습니다.');
+      reader.readAsDataURL(blob);
+  }
+
   function initEditor() {
     const editorRoot = document.getElementById('contentEditor');
     if (!editorRoot || !window.toastui?.Editor) return;
@@ -32,6 +41,7 @@
       language: 'ko-KR',
       placeholder: '게시글 내용을 입력하세요',
       hideModeSwitch: true,
+      hooks : {addImageBlobHook: handleImage}
     });
 
     editor.on('change', syncEditorContentToTextarea);

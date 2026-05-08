@@ -17,6 +17,7 @@ import com.team.intranet.util.HtmlSanitizer;
 import com.team.intranet.enums.ErrorCode;
 import com.team.intranet.entity.Board;
 import com.team.intranet.enums.board.AnonymousType;
+import com.team.intranet.exception.BusinessException;
 import java.util.List;
 
 import lombok.Builder;
@@ -38,24 +39,7 @@ public class ArticleService {
     @Transactional
     public Article createArticle(MemberSession ms, ArticleDto dto) {
 
-        // 게시판 존재 여부 확인
-        Board board = boardRepository.findById(dto.getBoardId()).orElseThrow(() 
-        -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
-
-        // 멀티 테넌시 검증
-        if(!board.getCompany().getCompanyId().equals(ms.getCompanyId())) {
-            throw new BusinessException(ErrorCode.BOARD_NOT_FOUND);
-        }
-
-        // 게시판 활성화 여부 확인
-        if(!board.getIsActive()) {
-            throw new BusinessException(ErrorCode.BOARD_INACTIVE);
-        }
-        
-        // 게시글 작성 권한 확인
-        if(!boardService.canWrite(ms, board)) {
-            throw new BusinessException(ErrorCode.NO_AUTHORITY);
-        }
+        Board board = boardService.getWritableBoard(ms, dto.getBoardId());
 
         // 익명 여부 확인
         boolean isAnonymous = (board.getAnonymousType() == AnonymousType.ANONYMOUS);
@@ -64,6 +48,7 @@ public class ArticleService {
         Member author = memberRepository.findById(ms.getMemberId()).orElseThrow(()
         -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
+        // 본문 정제
         dto.setContent(HtmlSanitizer.sanitize(dto.getContent()));
 
         // 게시글 생성 및 저장
@@ -73,23 +58,12 @@ public class ArticleService {
     }
 
     public Page<ArticleDto> findArticlesByBoard(MemberSession ms, Long boardId, Pageable pageable){
-        Board board = boardRepository.findById(boardId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
-
-        if (!board.getCompany().getCompanyId().equals(ms.getCompanyId())) {
-          throw new BusinessException(ErrorCode.BOARD_NOT_FOUND);
-      }
-      if (!boardService.canRead(ms, board)) {
-          throw new BusinessException(ErrorCode.NO_AUTHORITY);
-      }
+        Board board = boardService.getWritableBoard(ms, boardId);
 
       return articleRepository
           .findByBoard_BoardIdAndIsDeletedFalse(boardId, pageable)
           .map(ArticleDto::from);
     }
 
-    
-
-    // 게시글 수정
 
 }

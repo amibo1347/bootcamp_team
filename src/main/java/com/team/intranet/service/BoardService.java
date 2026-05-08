@@ -66,19 +66,9 @@ public class BoardService {
 
     // 게시판 조회
     public BoardDto findVisibleBoardById(MemberSession ms, Long boardId) {
-        Board board = boardRepository.findById(boardId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
-
-        validateSameCompany(board.getCompany().getCompanyId(), ms.getCompanyId());
-
-        if (!board.getIsActive()) {
-            throw new BusinessException(ErrorCode.BOARD_NOT_FOUND);
-        }
-        if (!canRead(ms, board)) {
-            throw new BusinessException(ErrorCode.ACCESS_DENIED);
-        }
-        return BoardDto.from(board);
-    }
+      return BoardDto.from(getReadableBoard(ms, boardId));
+  }
+  
     // 권한 검증
     public Board getReadableBoard(MemberSession ms, Long boardId) {
       Board board = boardRepository.findById(boardId)
