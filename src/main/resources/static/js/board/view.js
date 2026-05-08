@@ -89,6 +89,53 @@
   }
 
   /**
+   * 게시글 1건의 첨부파일 목록을 조회한다.
+   * @param {number} articleId 게시글 ID
+   * @returns {Promise<Array>}
+   */
+  async function fetchArticleAttachments(articleId) {
+    const response = await fetch(`/api/article-attachment?articleId=${articleId}`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin',
+    });
+    if (!response.ok) return [];
+    const payload = await response.json();
+    return Array.isArray(payload) ? payload : [];
+  }
+
+  /**
+   * 게시글 데이터에 첨부파일 존재 여부를 추가한다.
+   * - 응답에 첨부 여부 필드가 이미 있으면 그대로 사용
+   * - 없으면 글별 첨부파일 목록 API를 조회해 hasAttachment를 계산
+   * @param {Array} posts 게시글 배열
+   * @returns {Promise<Array>}
+   */
+  async function enrichPostsWithAttachmentFlag(posts) {
+    const enrichedPosts = await Promise.all(
+      posts.map(async (post) => {
+        const hasKnownAttachmentFlag =
+          Boolean(post?.hasAttachment) ||
+          (Array.isArray(post?.attachmentIds) && post.attachmentIds.length > 0) ||
+          Number(post?.attachmentCount || 0) > 0 ||
+          Boolean(post?.attachmentUrl);
+
+        if (hasKnownAttachmentFlag) {
+          return { ...post, hasAttachment: true };
+        }
+
+        const articleId = Number(post?.articleId || 0);
+        if (!articleId) return { ...post, hasAttachment: false };
+
+        const attachments = await fetchArticleAttachments(articleId);
+        return { ...post, hasAttachment: attachments.length > 0 };
+      })
+    );
+
+    return enrichedPosts;
+  }
+
+  /**
    * 목록형 뷰를 렌더링한다.
    * @param {Array} posts 게시글 배열
    * @param {number} boardId 게시판 ID
@@ -107,10 +154,24 @@
       .map(
         (post, index) => {
           const detailUrl = `/board/${boardId}/articles/${post.articleId}`;
+          const attachmentIcon = post?.hasAttachment
+            ? `
+              <span class="inline-flex items-center text-gray-500 dark:text-gray-300" title="첨부파일 있음" aria-label="첨부파일 있음">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path d="M8.5 3a3.5 3.5 0 0 0-3.5 3.5v7a5 5 0 0 0 10 0V7a2.5 2.5 0 0 0-5 0v6.5a1 1 0 1 0 2 0V8a.75.75 0 0 1 1.5 0v5.5a2.5 2.5 0 0 1-5 0V7a4 4 0 0 1 8 0v6.5a6.5 6.5 0 0 1-13 0v-7a5 5 0 0 1 10 0v7a3.5 3.5 0 1 1-7 0V7a2 2 0 1 1 4 0v6.5a.5.5 0 0 1-1 0V8a.75.75 0 0 0-1.5 0v5.5a2 2 0 1 0 4 0V7a3.5 3.5 0 0 0-3.5-3.5Z" />
+                </svg>
+              </span>
+            `
+            : '';
          return `
           <tr class="border-t border-gray-100 text-gray-700 dark:border-strokedark dark:text-gray-200">
             <td class="whitespace-nowrap px-5 py-3">${index + 1}</td>
-            <td class="px-5 py-3"><a href="${detailUrl}" class="block truncate hover:text-indigo-500">${escapeHtml(post.title)}</a></td>
+            <td class="px-5 py-3">
+              <a href="${detailUrl}" class="flex items-center gap-1 truncate hover:text-indigo-500">
+                <span class="truncate">${escapeHtml(post.title)}</span>
+                ${attachmentIcon}
+              </a>
+            </td>
             <td class="whitespace-nowrap px-5 py-3">${escapeHtml(post.authorName || '-')}</td>
             <td class="whitespace-nowrap px-5 py-3">${formatDate(post.createdAt)}</td>
             <td class="whitespace-nowrap px-5 py-3">${Number(post.viewCount || 0)}</td>
@@ -247,9 +308,10 @@
    */
   async function updateBoardPosts(boardId, page) {
     const { posts, currentPage, totalPages } = await fetchPosts(boardId, page);
-    renderList(posts, boardId);
-    renderAlbum(posts, boardId);
-    renderCard(posts, boardId);
+    const postsWithAttachment = await enrichPostsWithAttachmentFlag(posts);
+    renderList(postsWithAttachment, boardId);
+    renderAlbum(postsWithAttachment, boardId);
+    renderCard(postsWithAttachment, boardId);
     renderPagination(currentPage, totalPages, (nextPage) => {
       updateBoardPosts(boardId, nextPage);
     });
