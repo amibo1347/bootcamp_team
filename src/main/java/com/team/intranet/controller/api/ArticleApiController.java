@@ -85,8 +85,14 @@ public class ArticleApiController {
   }
 
     @DeleteMapping("/{articleId}")
-    public String deleteArticle(@PathVariable Long boardId, @PathVariable Long articleId) {
+    @ResponseBody
+    public ResponseEntity<Void> deleteArticle(@PathVariable Long boardId, @PathVariable Long articleId,
+        @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
         // 게시글 삭제 로직 수행
-        return "redirect:/board/" + boardId + "/articles";
+        if(ms == null){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        articleService.deleteArticle(ms, boardId, articleId);
+        return ResponseEntity.noContent().build();
     }
 }

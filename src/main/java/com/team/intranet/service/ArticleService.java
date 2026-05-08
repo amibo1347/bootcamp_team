@@ -132,4 +132,18 @@ public class ArticleService {
     }
     return ArticleDto.from(article);
   }
+
+  @Transactional
+  public void deleteArticle(MemberSession ms, Long boardId, Long articleId){
+    // 1. 게시글 조회
+    Article article = articleRepository
+    .findByArticleIdAndBoard_BoardIdAndIsDeletedFalse(articleId, boardId)
+    .orElseThrow(() -> new BusinessException(ErrorCode.ARTICLE_NOT_FOUND));
+
+    // 2. 작성자 본인 확인
+    if(!article.isAuthor(ms.getMemberId())){
+        throw new BusinessException(ErrorCode.NO_AUTHORITY);
+    }
+    article.delete();
+  }
 }
