@@ -67,6 +67,36 @@
           // 라이브러리 로딩 실패 폴백
           contentElement.textContent = post.content || '';
       }
+       upgradeYouTubeLinks(contentElement);
+  }
+
+  function getYouTubeId(url) {
+      try {
+          const m = String(url).match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{11})/);
+          return m ? m[1] : null;
+      } catch { return null; }
+  }
+
+  function upgradeYouTubeLinks(root) {
+      root.querySelectorAll('a').forEach((a) => {
+          const id = getYouTubeId(a.getAttribute('href'));
+          if (!id) return;
+
+          const wrapper = document.createElement('div');
+          wrapper.className = 'my-4 w-full max-w-2xl';
+          wrapper.style.aspectRatio = '16 / 9';
+          wrapper.innerHTML = `
+              <iframe
+                  src="https://www.youtube.com/embed/${id}"
+                  class="h-full w-full rounded-lg border border-gray-200 dark:border-strokedark"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  loading="lazy">
+              </iframe>
+          `;
+          a.replaceWith(wrapper);
+      });
   }
   
   /**
