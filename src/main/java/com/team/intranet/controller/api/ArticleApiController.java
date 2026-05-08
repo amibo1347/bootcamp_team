@@ -22,8 +22,6 @@ import com.team.intranet.entity.Article;
 import com.team.intranet.session.MemberSession;
 import com.team.intranet.service.BoardService;
 import com.team.intranet.service.ArticleService;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import com.team.intranet.dto.ArticleDto;
 
@@ -71,8 +69,8 @@ public class ArticleApiController {
       return ResponseEntity.ok(articleService.findArticle(ms, boardId, articleId));
   }
 
-     @PutMapping("/{articleId}")
-  @ResponseBody
+      @PostMapping("/{articleId}/edit")                                                                                            
+  @ResponseBody                                                                                                              
   public ResponseEntity<ArticleDto> updateArticle(
           @PathVariable Long boardId,
           @PathVariable Long articleId,
@@ -84,9 +82,16 @@ public class ArticleApiController {
       return ResponseEntity.ok(articleService.updateArticle(ms, boardId, articleId, dto));
   }
 
-    @DeleteMapping("/{articleId}")
-    public String deleteArticle(@PathVariable Long boardId, @PathVariable Long articleId) {
-        // 게시글 삭제 로직 수행
-        return "redirect:/board/" + boardId + "/articles";
-    }
+    @PostMapping("/{articleId}/delete")
+  @ResponseBody
+  public ResponseEntity<Void> deleteArticle(
+          @PathVariable Long boardId,
+          @PathVariable Long articleId,
+          @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+      if (ms == null) {
+          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+      }
+      articleService.deleteArticle(ms, boardId, articleId);
+      return ResponseEntity.noContent().build();
+  }
 }

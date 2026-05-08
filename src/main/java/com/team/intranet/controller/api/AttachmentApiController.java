@@ -81,6 +81,10 @@ import java.net.URLEncoder;
               return ResponseEntity.notFound().build();
           }
 
+          if (att.getArticle() != null && att.getArticle().isDeleted()) {
+          return ResponseEntity.notFound().build();
+         }       
+
           // 한글 파일명 인코딩 (RFC 5987)
           String encodedName = URLEncoder.encode(att.getOriginalFilename(), StandardCharsets.UTF_8)
                   .replace("+", "%20");
@@ -112,4 +116,35 @@ import java.net.URLEncoder;
                   .toList();
           return ResponseEntity.ok(result);
       }
-  }
+
+      @DeleteMapping("/{id}")
+  public ResponseEntity<Void> delete(
+          @PathVariable Long id,
+          @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+
+      if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+      ArticleAttachment att = attachmentRepository.findById(id).orElse(null);
+      if (att == null) return ResponseEntity.notFound().build();
+
+      // 회사 검증 (멀티 테넌시)
+      if (!att.getCompany().getCompanyId().equals(ms.getCompanyId())) {
+          return ResponseEntity.notFound().build();
+      }
+
+      // 권한 검증
+      boolean allowed = (att.getArticle() == null)
+          // 아직 글에 연결 안 된 첨부 → 본인이 올린 것만 삭제
+          ? att.getUploader().getMemberId().equals(ms.getMemberId())
+          // 글에 연결된 첨부 → 그 글의 작성자만 삭제
+          : att.getArticle().getAuthor().getMemberId().equals(ms.getMemberId());
+
+      if (!allowed) {
+          return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+      }
+
+      attachmentRepository.delete(att);
+      return ResponseEntity.noContent().build();
+    }
+
+}
