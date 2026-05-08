@@ -1,5 +1,6 @@
 <!-- [사이드바] : 좌측 고정 내비게이션. sidebarToggle 상태에 따라 축소(90px)/확장(290px) 전환 -->
-<aside xmlns:th="http://www.thymeleaf.org" :class="sidebarToggle ? 'translate-x-0 lg:w-[90px]' : '-translate-x-full'"
+<aside xmlns:th="http://www.thymeleaf.org" th:with="ms=${session.memberSession}, isAdmin=${ms != null and ms.isAdmin()}"
+    :class="sidebarToggle ? 'translate-x-0 lg:w-[90px]' : '-translate-x-full'"
     class="sidebar fixed left-0 top-0 z-9999 flex h-screen w-[290px] flex-col overflow-y-hidden border-r border-gray-200 bg-white px-5 dark:border-gray-800 dark:bg-black lg:static lg:translate-x-0">
     <!-- SIDEBAR HEADER -->
     <div :class="sidebarToggle ? 'justify-center' : 'justify-between'"
@@ -48,7 +49,7 @@
 
                 <ul class="flex flex-col gap-4 mb-6">
                     <!-- Menu Item Staff -->
-                    <li>
+                    <li th:if="${isAdmin}">
                         <!-- 1. @click 로직 수정: selected 변수에 'Staff'라는 이름만 저장/해제 -->
                         <a th:href="@{/}" @click.prevent="selected = (selected === 'Staff' ? '' : 'Staff')"
                             class="menu-item group"
@@ -99,7 +100,7 @@
                     <!-- Menu Item Dashboard -->
 
                     <!-- Menu Item Organization -->
-                    <li>
+                    <li th:if="${isAdmin}">
                         <!-- 1. @click: selected 값을 'Organization'으로 토글 -->
                         <a th:href="@{/}"
                             @click.prevent="selected = (selected === 'Organization' ? '' : 'Organization')"
@@ -235,7 +236,7 @@
                     <!-- Menu Item Forms -->
 
                     <!-- Menu Item Tables -->
-                    <li>
+                    <li th:if="${isAdmin}">
                         <a th:href="@{/}" @click.prevent="selected = (selected === 'Tables' ? '':'Tables')"
                             class="menu-item group"
                             :class="(selected === 'Tables') || (page === 'basicTables' || page === 'dataTables') ? 'menu-item-active' : 'menu-item-inactive'">
@@ -266,9 +267,9 @@
                             <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
                                 class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
                                 <li>
-                                    <a th:href="@{/tables}" class="menu-dropdown-item group"
+                                    <a th:href="@{/admin/board/list}" class="menu-dropdown-item group"
                                         :class="page === 'basicTables' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                        기본 게시판
+                                        게시판 관리
                                     </a>
                                 </li>
                             </ul>
@@ -325,9 +326,11 @@
                         <!-- Dropdown Menu End -->
                     </li>
                     <!-- Menu Item Board: 공지사항 -->
-                    <th:block th:with="notices=${boardList.?[#this.boardType != null and #this.boardType.name() == 'NOTICE']}">
+                    <th:block
+                        th:with="notices=${boardList.?[#this.boardType != null and #this.boardType.name() == 'NOTICE']}">
                         <li th:if="${not #lists.isEmpty(notices)}">
-                            <a th:href="@{/}" @click.prevent="selected = (selected === 'BoardNotice' ? '' : 'BoardNotice')"
+                            <a th:href="@{/}"
+                                @click.prevent="selected = (selected === 'BoardNotice' ? '' : 'BoardNotice')"
                                 class="menu-item group"
                                 :class="selected === 'BoardNotice' ? 'menu-item-active' : 'menu-item-inactive'">
                                 <span class="w-6 text-center text-lg">📌</span>
@@ -345,8 +348,7 @@
                                     class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
                                     <li th:each="board : ${notices}">
                                         <a th:href="@{/board/{id}(id=${board.boardId})}"
-                                            th:data-board-id="${board.boardId}"
-                                            class="menu-dropdown-item group"
+                                            th:data-board-id="${board.boardId}" class="menu-dropdown-item group"
                                             :class="page === ('board-' + $el.dataset.boardId) ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
                                             @click="page = 'board-' + $el.dataset.boardId"
                                             th:text="${board.boardName}">게시판 이름</a>
@@ -357,9 +359,11 @@
                     </th:block>
 
                     <!-- Menu Item Board: 사내정책 -->
-                    <th:block th:with="policies=${boardList.?[#this.boardType != null and #this.boardType.name() == 'POLICY']}">
+                    <th:block
+                        th:with="policies=${boardList.?[#this.boardType != null and #this.boardType.name() == 'POLICY']}">
                         <li th:if="${not #lists.isEmpty(policies)}">
-                            <a th:href="@{/}" @click.prevent="selected = (selected === 'BoardPolicy' ? '' : 'BoardPolicy')"
+                            <a th:href="@{/}"
+                                @click.prevent="selected = (selected === 'BoardPolicy' ? '' : 'BoardPolicy')"
                                 class="menu-item group"
                                 :class="selected === 'BoardPolicy' ? 'menu-item-active' : 'menu-item-inactive'">
                                 <span class="w-6 text-center text-lg">📋</span>
@@ -377,8 +381,7 @@
                                     class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
                                     <li th:each="board : ${policies}">
                                         <a th:href="@{/board/{id}(id=${board.boardId})}"
-                                            th:data-board-id="${board.boardId}"
-                                            class="menu-dropdown-item group"
+                                            th:data-board-id="${board.boardId}" class="menu-dropdown-item group"
                                             :class="page === ('board-' + $el.dataset.boardId) ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
                                             @click="page = 'board-' + $el.dataset.boardId"
                                             th:text="${board.boardName}">게시판 이름</a>
@@ -389,7 +392,8 @@
                     </th:block>
 
                     <!-- Menu Item Board: 자유게시판 -->
-                    <th:block th:with="freeBoards=${boardList.?[#this.boardType != null and #this.boardType.name() == 'FREE']}">
+                    <th:block
+                        th:with="freeBoards=${boardList.?[#this.boardType != null and #this.boardType.name() == 'FREE']}">
                         <li th:if="${not #lists.isEmpty(freeBoards)}">
                             <a th:href="@{/}" @click.prevent="selected = (selected === 'BoardFree' ? '' : 'BoardFree')"
                                 class="menu-item group"
@@ -409,8 +413,7 @@
                                     class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
                                     <li th:each="board : ${freeBoards}">
                                         <a th:href="@{/board/{id}(id=${board.boardId})}"
-                                            th:data-board-id="${board.boardId}"
-                                            class="menu-dropdown-item group"
+                                            th:data-board-id="${board.boardId}" class="menu-dropdown-item group"
                                             :class="page === ('board-' + $el.dataset.boardId) ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
                                             @click="page = 'board-' + $el.dataset.boardId"
                                             th:text="${board.boardName}">게시판 이름</a>
@@ -421,13 +424,15 @@
                     </th:block>
 
                     <!-- Menu Item Board: Q&A 게시판 -->
-                    <th:block th:with="qnas=${boardList.?[#this.boardType != null and #this.boardType.name() == 'QNA']}">
+                    <th:block
+                        th:with="qnas=${boardList.?[#this.boardType != null and #this.boardType.name() == 'QNA']}">
                         <li th:if="${not #lists.isEmpty(qnas)}">
                             <a th:href="@{/}" @click.prevent="selected = (selected === 'BoardQna' ? '' : 'BoardQna')"
                                 class="menu-item group"
                                 :class="selected === 'BoardQna' ? 'menu-item-active' : 'menu-item-inactive'">
                                 <span class="w-6 text-center text-lg">❓</span>
-                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Q&amp;A 게시판</span>
+                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Q&amp;A
+                                    게시판</span>
                                 <svg class="menu-item-arrow"
                                     :class="[(selected === 'BoardQna') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive', sidebarToggle ? 'lg:hidden' : '' ]"
                                     width="20" height="20" viewBox="0 0 20 20" fill="none"
@@ -441,8 +446,7 @@
                                     class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
                                     <li th:each="board : ${qnas}">
                                         <a th:href="@{/board/{id}(id=${board.boardId})}"
-                                            th:data-board-id="${board.boardId}"
-                                            class="menu-dropdown-item group"
+                                            th:data-board-id="${board.boardId}" class="menu-dropdown-item group"
                                             :class="page === ('board-' + $el.dataset.boardId) ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
                                             @click="page = 'board-' + $el.dataset.boardId"
                                             th:text="${board.boardName}">게시판 이름</a>
@@ -453,9 +457,11 @@
                     </th:block>
 
                     <!-- Menu Item Board: 익명게시판 -->
-                    <th:block th:with="anonymous=${boardList.?[#this.boardType != null and #this.boardType.name() == 'ANONYMOUS']}">
+                    <th:block
+                        th:with="anonymous=${boardList.?[#this.boardType != null and #this.boardType.name() == 'ANONYMOUS']}">
                         <li th:if="${not #lists.isEmpty(anonymous)}">
-                            <a th:href="@{/}" @click.prevent="selected = (selected === 'BoardAnonymous' ? '' : 'BoardAnonymous')"
+                            <a th:href="@{/}"
+                                @click.prevent="selected = (selected === 'BoardAnonymous' ? '' : 'BoardAnonymous')"
                                 class="menu-item group"
                                 :class="selected === 'BoardAnonymous' ? 'menu-item-active' : 'menu-item-inactive'">
                                 <span class="w-6 text-center text-lg">👤</span>
@@ -473,8 +479,7 @@
                                     class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
                                     <li th:each="board : ${anonymous}">
                                         <a th:href="@{/board/{id}(id=${board.boardId})}"
-                                            th:data-board-id="${board.boardId}"
-                                            class="menu-dropdown-item group"
+                                            th:data-board-id="${board.boardId}" class="menu-dropdown-item group"
                                             :class="page === ('board-' + $el.dataset.boardId) ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
                                             @click="page = 'board-' + $el.dataset.boardId"
                                             th:text="${board.boardName}">게시판 이름</a>
@@ -485,7 +490,8 @@
                     </th:block>
 
                     <!-- Menu Item Board: 기타 -->
-                    <th:block th:with="etcBoards=${boardList.?[#this.boardType != null and #this.boardType.name() == 'ETC']}">
+                    <th:block
+                        th:with="etcBoards=${boardList.?[#this.boardType != null and #this.boardType.name() == 'ETC']}">
                         <li th:if="${not #lists.isEmpty(etcBoards)}">
                             <a th:href="@{/}" @click.prevent="selected = (selected === 'BoardEtc' ? '' : 'BoardEtc')"
                                 class="menu-item group"
@@ -505,8 +511,7 @@
                                     class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
                                     <li th:each="board : ${etcBoards}">
                                         <a th:href="@{/board/{id}(id=${board.boardId})}"
-                                            th:data-board-id="${board.boardId}"
-                                            class="menu-dropdown-item group"
+                                            th:data-board-id="${board.boardId}" class="menu-dropdown-item group"
                                             :class="page === ('board-' + $el.dataset.boardId) ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
                                             @click="page = 'board-' + $el.dataset.boardId"
                                             th:text="${board.boardName}">게시판 이름</a>
@@ -521,11 +526,11 @@
                         게시판이 없습니다
                     </li>
 
-            <!-- Menu Item Pages -->
-            </ul>
-    </div>
+                    <!-- Menu Item Pages -->
+                </ul>
+            </div>
 
-    </nav>
-    <!-- Sidebar Menu -->
+        </nav>
+        <!-- Sidebar Menu -->
     </div>
 </aside>

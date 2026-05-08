@@ -98,4 +98,38 @@ public class ArticleService {
 
       return ArticleDto.from(article);
   }
+
+  @Transactional
+  public ArticleDto updateArticle(MemberSession ms, Long boardId, Long articleId, ArticleDto dto){
+
+    // 1. 게시판 write 검증
+    Board board = boardService.getWritableBoard(ms, boardId);
+
+    // 2. 게시글 조회
+    Article article = articleRepository
+    .findByArticleIdAndBoard_BoardIdAndIsDeletedFalse(articleId, boardId)
+    .orElseThrow(() -> new BusinessException(ErrorCode.ARTICLE_NOT_FOUND));
+
+    // 3. 작성자 본인 확인
+    if(!article.isAuthor(ms.getMemberId())){
+        throw new BusinessException(ErrorCode.NO_AUTHORITY);
+    }
+
+    // 4. 본문 정제 + 업뎃
+    String safeContent = HtmlSanitizer.sanitize(dto.getContent());
+    article.updateInfo(dto.getTitle(), safeContent);
+
+    // 5. 첨부 파일 변경
+    if(dto.getAttachmentIds() != null && !dto.getAttachmentIds().isEmpty()){
+        for (Long id : dto.getAttachmentIds()){
+            ArticleAttachment att = attachmentRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ATTACHMENT_NOT_FOUND));
+            if(!att.getUploader().getMemberId().equals(ms.getMemberId())) continue;
+            if(!att.getCompany().getCompanyId().equals(ms.getCompanyId())) continue;
+            if(att.getArticle() != null) continue;
+            att.setArticle(article);
+        }
+    }
+    return ArticleDto.from(article);
+  }
 }

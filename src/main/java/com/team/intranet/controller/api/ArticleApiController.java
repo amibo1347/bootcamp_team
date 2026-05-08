@@ -71,12 +71,18 @@ public class ArticleApiController {
       return ResponseEntity.ok(articleService.findArticle(ms, boardId, articleId));
   }
 
-    @PutMapping("/{articleId}")
-    public String updateArticle(@PathVariable Long boardId, @PathVariable Long articleId, @RequestBody String entity) {
-        
-        
-        return entity;
-    }
+     @PutMapping("/{articleId}")
+  @ResponseBody
+  public ResponseEntity<ArticleDto> updateArticle(
+          @PathVariable Long boardId,
+          @PathVariable Long articleId,
+          @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+          @ModelAttribute ArticleDto dto) {
+      if (ms == null) {
+          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+      }
+      return ResponseEntity.ok(articleService.updateArticle(ms, boardId, articleId, dto));
+  }
 
     @DeleteMapping("/{articleId}")
     public String deleteArticle(@PathVariable Long boardId, @PathVariable Long articleId) {
