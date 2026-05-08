@@ -83,7 +83,11 @@ public class Article {
             .build();
     }
 
-    
+    public void updateInfo(String title, String content){
+        this.title = title;
+        this.content = content;
+        this.updatedAt = LocalDateTime.now().toString();
+    }
 
     public void increaseViewCount() {
         this.viewCount = (this.viewCount == null ? 0L : this.viewCount) + 1L;

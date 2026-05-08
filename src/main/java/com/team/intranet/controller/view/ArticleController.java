@@ -44,4 +44,25 @@ public class ArticleController {
         model.addAttribute("articleId", articleId);
         return "board/viewPost";    
     }
+
+    @GetMapping("/{articleId}/edit")
+  public String editArticle(
+          @PathVariable Long boardId,
+          @PathVariable Long articleId,
+          @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+          Model model) {
+
+      BoardDto board = boardService.findVisibleBoardById(ms, boardId);
+      ArticleDto article = articleService.findArticle(ms, boardId, articleId);
+
+      // 작성자 본인만 폼 진입 (UX — 백엔드에서 또 검증되니 이중 보호)
+      if (!article.getAuthorId().equals(ms.getMemberId())) {
+          return "redirect:/board/" + boardId + "/articles/" + articleId;
+      }
+
+      model.addAttribute("board", board);
+      model.addAttribute("boardId", boardId);
+      model.addAttribute("article", article);
+      return "board/editPost";   // 또는 createPost를 mode=edit으로 재활용
+  }
 }

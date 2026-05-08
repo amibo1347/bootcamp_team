@@ -39,4 +39,8 @@ import lombok.Getter;
             this.positionLevel = member.getPosition().getPositionLevel();
             this.deptId = member.getDept() != null ? member.getDept().getDeptId() : null;
         }
+
+    public boolean isAdmin() {
+         return role == Role.ADMIN || role == Role.MASTER || role == Role.SUB_ADMIN;
     }
+}
