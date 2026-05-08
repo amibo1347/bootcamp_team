@@ -16,6 +16,12 @@
     </title>
     <link rel="stylesheet" th:href="@{/css/output.css}" />
     <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+    <style>
+        /* 삭제 버튼 호버 색상을 고정한다(Tailwind 빌드 여부와 무관하게 적용) */
+        .btn-delete-hover:hover {
+            background-color: #fda4af;
+        }
+    </style>
 </head>
 
 <body
@@ -85,27 +91,35 @@
                                     class="ml-4 hidden rounded-lg border-2 border-indigo-300 py-1 text-lg font-semibold text-gray-900 focus:border-indigo-500 focus:outline-none dark:border-indigo-500/50 dark:bg-meta-4 dark:text-white">
 
                                 <div class="flex items-center space-x-3 mr-4">
-                                    <button type="button" th:id="'btn-edit-' + ${dept.deptId}"
-                                        class="px-8 py-2.5 bg-indigo-200 text-indigo-700 font-medium rounded-xl hover:bg-indigo-300 transition-all shadow-sm"
-                                        th:attr="onclick=|toggleEditMode('${dept.deptId}', true)|">
-                                        수정
-                                    </button>
-                                    <button type="button" th:id="'btn-save-' + ${dept.deptId}"
-                                        class="hidden px-8 py-2.5 bg-indigo-200 text-indigo-700 font-medium rounded-xl hover:bg-indigo-300 transition-all shadow-sm"
-                                        th:attr="onclick=|saveDept('${dept.deptId}')|">
-                                        저장
-                                    </button>
+                                    <div class="relative">
+                                        <span aria-hidden="true"
+                                            class="invisible block px-8 py-2.5 font-medium rounded-xl shadow-sm">수정</span>
+                                        <button type="button" th:id="'btn-edit-' + ${dept.deptId}"
+                                            class="absolute inset-0 px-8 py-2.5 bg-indigo-200 text-indigo-700 font-medium rounded-xl hover:bg-indigo-300 transition-all shadow-sm"
+                                            th:attr="onclick=|toggleEditMode('${dept.deptId}', true)|">
+                                            수정
+                                        </button>
+                                        <button type="button" th:id="'btn-save-' + ${dept.deptId}"
+                                            class="hidden absolute inset-0 px-8 py-2.5 bg-indigo-200 text-indigo-700 font-medium rounded-xl hover:bg-indigo-300 transition-all shadow-sm"
+                                            th:attr="onclick=|saveDept('${dept.deptId}')|">
+                                            저장
+                                        </button>
+                                    </div>
 
-                                    <button type="button" th:id="'btn-delete-' + ${dept.deptId}"
-                                        class="px-8 py-2.5 bg-rose-100 text-rose-500 font-medium rounded-xl hover:bg-rose-200 transition-all shadow-sm"
-                                        th:attr="onclick=|deleteDept('${dept.deptId}')|">
-                                        삭제
-                                    </button>
-                                    <button type="button" th:id="'btn-cancel-' + ${dept.deptId}"
-                                        th:attr="onclick=|toggleEditMode('${dept.deptId}', false)|"
-                                        class="hidden px-8 py-2.5 bg-gray-200 font-medium text-gray-500 rounded-xl shadow-sm transition-all hover:bg-gray-300 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/15">
-                                        취소
-                                    </button>
+                                    <div class="relative">
+                                        <span aria-hidden="true"
+                                            class="invisible block px-8 py-2.5 font-medium rounded-xl shadow-sm">삭제</span>
+                                        <button type="button" th:id="'btn-delete-' + ${dept.deptId}"
+                                            class="btn-delete-hover absolute inset-0 px-8 py-2.5 bg-rose-200 text-rose-500 font-medium rounded-xl transition-all shadow-sm"
+                                            th:attr="onclick=|deleteDept('${dept.deptId}')|">
+                                            삭제
+                                        </button>
+                                        <button type="button" th:id="'btn-cancel-' + ${dept.deptId}"
+                                            th:attr="onclick=|toggleEditMode('${dept.deptId}', false)|"
+                                            class="hidden absolute inset-0 px-8 py-2.5 bg-gray-200 font-medium text-gray-500 rounded-xl shadow-sm transition-all hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+                                            취소
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 

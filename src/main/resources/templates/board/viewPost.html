@@ -10,6 +10,16 @@
     <link rel="stylesheet" th:href="@{/css/output.css}" />
     <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css" />
     <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+    <style>
+        /* 게시글 상세(Viewer) 다크모드 색상 보정: Toast UI 기본 텍스트 색상 오버라이드 */
+        .dark #postContent .toastui-editor-contents,
+        .dark #postContent .toastui-editor-contents p,
+        .dark #postContent .toastui-editor-contents li,
+        .dark #postContent .toastui-editor-contents blockquote,
+        .dark #postContent .toastui-editor-contents span {
+            color: rgb(209 213 219);
+        }
+    </style>
 </head>
 
 <body th:attr="data-board-id=${board.boardId},data-article-id=${articleId}"
@@ -35,7 +45,7 @@
                 <section class="flex flex-wrap items-center justify-between gap-3">
                     <h2 class="text-2xl font-black text-gray-900 dark:text-white" th:text="${board.boardName}">게시판</h2>
                     <a th:href="@{/board/{id}(id=${board.boardId})}"
-                        class="px-8 py-2.5 bg-gray-200 font-medium text-gray-500 rounded-xl shadow-sm transition-all hover:bg-gray-300 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/15">
+                        class="rounded-xl bg-gray-100 px-8 py-2.5 font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-200 dark:!bg-white/10 dark:!text-gray-300 dark:hover:!bg-white/15">
                         목록으로
                     </a>
                 </section>
@@ -56,7 +66,7 @@
                     </header>
 
                     <article id="postContent"
-                        class="break-words px-8 text-base leading-8 text-gray-700 dark:text-gray-200"
+                        class="break-words px-8 text-base leading-8 text-gray-700 dark:text-gray-300 [&_*]:text-gray-700 dark:[&_*]:text-gray-300"
                         style="min-height: 20rem; padding-top: 2rem; padding-bottom: 9rem; font-size: 1rem;">
                     </article>
 
