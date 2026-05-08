@@ -56,7 +56,17 @@
     authorElement.textContent = post.authorName || '-';
     dateElement.textContent = formatDate(post.createdAt);
     viewsElement.textContent = String(Number(post.viewCount || 0));
-    contentElement.textContent = post.content || '';
+    contentElement.innerHTML = '';                       // 플레이스홀더 텍스트 제거
+      if (window.toastui?.Editor?.factory) {
+          window.toastui.Editor.factory({
+              el: contentElement,
+              viewer: true,
+              initialValue: post.content || '',
+          });
+      } else {
+          // 라이브러리 로딩 실패 폴백
+          contentElement.textContent = post.content || '';
+      }
   }
   
   /**

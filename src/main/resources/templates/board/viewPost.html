@@ -8,6 +8,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title th:text="${board.boardName} + ' - 상세보기'">게시글 상세보기</title>
     <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css" />
     <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
 </head>
 
@@ -55,7 +56,7 @@
                     </header>
 
                     <article id="postContent"
-                        class="whitespace-pre-wrap break-words px-8 text-base leading-8 text-gray-700 dark:text-gray-200"
+                        class="break-words px-8 text-base leading-8 text-gray-700 dark:text-gray-200"
                         style="min-height: 20rem; padding-top: 2rem; padding-bottom: 9rem; font-size: 1rem;">
                         게시글 내용을 불러오는 중입니다.
                     </article>
@@ -66,6 +67,7 @@
     </div>
 
     <script type="module" src="/js/index.js"></script>
+    <script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
     <script src="/js/board/detail.js"></script>
 </body>
 
