@@ -36,17 +36,6 @@ public class ArticleController {
         return "board/createPost";
     }
 
-    @GetMapping("")
-    @ResponseBody
-    public ResponseEntity<List<ArticleDto>> listArticles(
-          @PathVariable Long boardId,
-          @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-      if (ms == null) {
-          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-      }
-      return ResponseEntity.ok(articleService.findArticlesByBoard(ms, boardId));
-  }
-
     // 글 상세
     @GetMapping("/{articleId}")
     public String viewArticle(@PathVariable Long boardId, @PathVariable Long articleId, @SessionAttribute(name = "memberSession", required = false) MemberSession ms, Model model) {

@@ -64,6 +64,7 @@ public class BoardService {
         return result;
     }
 
+    // 게시판 조회
     public BoardDto findVisibleBoardById(MemberSession ms, Long boardId) {
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
@@ -78,6 +79,36 @@ public class BoardService {
         }
         return BoardDto.from(board);
     }
+    // 권한 검증
+    public Board getReadableBoard(MemberSession ms, Long boardId) {
+      Board board = boardRepository.findById(boardId)
+              .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
+      validateSameCompany(board.getCompany().getCompanyId(), ms.getCompanyId());
+      if (!board.getIsActive()) {
+          throw new BusinessException(ErrorCode.BOARD_NOT_FOUND);
+      }
+      if (!canRead(ms, board)) {
+          throw new BusinessException(ErrorCode.ACCESS_DENIED);
+      }
+      return board;
+  }
+
+  /** 글쓰기까지 가능한 Board */
+  public Board getWritableBoard(MemberSession ms, Long boardId) {
+      Board board = getReadableBoard(ms, boardId);
+      if (!canWrite(ms, board)) {
+          throw new BusinessException(ErrorCode.NO_AUTHORITY);
+      }
+      return board;
+  }
+
+  public Board getCommentableBoard(MemberSession ms, Long boardId){
+    Board board = getWritableBoard(ms, boardId);
+    if(!canComment(ms, board)){
+        throw new BusinessException(ErrorCode.NO_AUTHORITY);
+    }
+    return board;
+  }
 
     /**
      * 게시판 생성 — 권한별 다중 부서/직급 규칙 저장

@@ -27,7 +27,6 @@
       .replaceAll("'", '&#39;');
   }
 
-<<<<<<< HEAD
   /**
    * 게시글 목록 API 응답을 프론트 공통 구조로 정규화한다.
    * @param {unknown} payload API 응답 원본
@@ -87,20 +86,7 @@
    * 목록형 뷰를 렌더링한다.
    * @param {Array} posts 게시글 배열
    */
-  function renderList(posts) {
-=======
-  async function loadPosts(boardId) {
-    if (!boardId) return [];
-    const res = await fetch(`/board/${boardId}/articles`, {
-      headers: { 'Accept': 'application/json' },
-      credentials: 'same-origin',
-    });
-    if (!res.ok) return [];
-    return res.json();
-  }
-
   function renderList(posts, boardId) {
->>>>>>> 1d8903bbb0389be7f260ddd1ef639245baba7500
     const body = document.getElementById('postListBody');
     const empty = document.getElementById('postListEmpty');
     if (!body || !empty) return;
@@ -127,15 +113,11 @@
       .join('');
   }
 
-<<<<<<< HEAD
   /**
    * 앨범형 뷰를 렌더링한다.
    * @param {Array} posts 게시글 배열
    */
-  function renderAlbum(posts) {
-=======
   function renderAlbum(posts, boardId) {
->>>>>>> 1d8903bbb0389be7f260ddd1ef639245baba7500
     const grid = document.getElementById('postAlbumGrid');
     const empty = document.getElementById('postAlbumEmpty');
     if (!grid || !empty) return;
@@ -166,15 +148,11 @@
       .join('');
   }
 
-<<<<<<< HEAD
   /**
    * 카드형 뷰를 렌더링한다.
    * @param {Array} posts 게시글 배열
    */
-  function renderCard(posts) {
-=======
-  function renderCard(posts, boardId) {
->>>>>>> 1d8903bbb0389be7f260ddd1ef639245baba7500
+  function renderCard(posts, boarId) {
     const grid = document.getElementById('postCardGrid');
     const empty = document.getElementById('postCardEmpty');
     if (!grid || !empty) return;
@@ -207,7 +185,6 @@
       .join('');
   }
 
-<<<<<<< HEAD
   /**
    * 공통 페이지네이션 UI를 렌더링한다.
    * @param {number} currentPage 현재 페이지(0-base)
@@ -261,9 +238,9 @@
    */
   async function updateBoardPosts(boardId, page) {
     const { posts, currentPage, totalPages } = await fetchPosts(boardId, page);
-    renderList(posts);
-    renderAlbum(posts);
-    renderCard(posts);
+    renderList(posts, boardId);
+    renderAlbum(posts, boardId);
+    renderCard(posts, boardId);
     renderPagination(currentPage, totalPages, (nextPage) => {
       updateBoardPosts(boardId, nextPage);
     });
@@ -279,14 +256,5 @@
       renderCard([]);
       renderPagination(0, 1, () => {});
     });
-=======
-  document.addEventListener('DOMContentLoaded', async () => {
-    const boardId = Number(document.body.dataset.boardId || 0);
-    if (!boardId) return;
-    const posts = await loadPosts(boardId);
-    renderList(posts, boardId);
-    renderAlbum(posts, boardId);
-    renderCard(posts, boardId);
->>>>>>> 1d8903bbb0389be7f260ddd1ef639245baba7500
   });
 })();

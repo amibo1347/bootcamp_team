@@ -1,8 +1,15 @@
 package com.team.intranet.controller.api;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -19,6 +26,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import com.team.intranet.dto.ArticleDto;
+
+import java.util.List;
 @Controller
 @RequestMapping("/api/board/{boardId}/articles")
 @RequiredArgsConstructor
@@ -37,6 +46,18 @@ public class ArticleApiController {
         Article saved = articleService.createArticle(ms, dto);
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("")
+    @ResponseBody
+    public ResponseEntity<Page<ArticleDto>> listArticles(
+          @PathVariable Long boardId,
+          @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+        @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+      if (ms == null) {
+          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+      }
+      return ResponseEntity.ok(articleService.findArticlesByBoard(ms, boardId, pageable));
+  }
 
     @PutMapping("/{articleId}")
     public String updateArticle(@PathVariable Long boardId, @PathVariable Long articleId, @RequestBody String entity) {

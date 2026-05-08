@@ -4,7 +4,8 @@ import com.team.intranet.repository.BoardRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import com.team.intranet.entity.Article;
 import com.team.intranet.dto.ArticleDto;
@@ -71,7 +72,7 @@ public class ArticleService {
         
     }
 
-    public List<ArticleDto> findArticlesByBoard(MemberSession ms, Long boardId){
+    public Page<ArticleDto> findArticlesByBoard(MemberSession ms, Long boardId, Pageable pageable){
         Board board = boardRepository.findById(boardId)
             .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
 
@@ -83,12 +84,12 @@ public class ArticleService {
       }
 
       return articleRepository
-          .findByBoard_BoardIdAndIsDeletedFalseOrderByCreatedAtDesc(boardId)
-          .stream()
-          .map(ArticleDto::from)
-          .toList();
+          .findByBoard_BoardIdAndIsDeletedFalse(boardId, pageable)
+          .map(ArticleDto::from);
     }
 
-    // 게시글 수정
     
+
+    // 게시글 수정
+
 }
