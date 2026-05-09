@@ -33,6 +33,20 @@
   }
 
   /**
+   * 본문 미리보기에서 마크다운 이미지/img 태그/마크다운 링크 마크업을 제거한다.
+   * @param {string} value 원본 본문
+   * @returns {string}
+   */
+  function stripContentMarkup(value) {
+    return String(value || '')
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+      .replace(/<img[^>]*>/gi, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /**
    * 게시글 목록 API 응답을 프론트 공통 구조로 정규화한다.
    * @param {unknown} payload API 응답 원본
    * @returns {{ posts: Array, currentPage: number, totalPages: number }}
@@ -164,17 +178,25 @@
             `
             : '';
          return `
-          <tr class="border-t border-gray-100 text-gray-700 dark:border-strokedark dark:text-gray-200">
-            <td class="whitespace-nowrap px-5 py-3">${index + 1}</td>
-            <td class="px-5 py-3">
-              <a href="${detailUrl}" class="flex items-center gap-1 truncate hover:text-indigo-500">
+          <tr class="border-t border-gray-100 text-gray-700 hover:bg-gray-50 dark:border-strokedark dark:text-gray-200 dark:hover:bg-meta-4/40">
+            <td class="whitespace-nowrap">
+              <a href="${detailUrl}" class="block px-5 py-3 text-inherit">${index + 1}</a>
+            </td>
+            <td>
+              <a href="${detailUrl}" class="flex items-center gap-1 truncate px-5 py-3 hover:text-indigo-500">
                 <span class="truncate">${escapeHtml(post.title)}</span>
                 ${attachmentIcon}
               </a>
             </td>
-            <td class="whitespace-nowrap px-5 py-3">${escapeHtml(post.authorName || '-')}</td>
-            <td class="whitespace-nowrap px-5 py-3">${formatDate(post.createdAt)}</td>
-            <td class="whitespace-nowrap px-5 py-3">${Number(post.viewCount || 0)}</td>
+            <td class="whitespace-nowrap">
+              <a href="${detailUrl}" class="block px-5 py-3 text-inherit">${escapeHtml(post.authorName || '-')}</a>
+            </td>
+            <td class="whitespace-nowrap">
+              <a href="${detailUrl}" class="block px-5 py-3 text-inherit">${formatDate(post.createdAt)}</a>
+            </td>
+            <td class="whitespace-nowrap">
+              <a href="${detailUrl}" class="block px-5 py-3 text-inherit">${Number(post.viewCount || 0)}</a>
+            </td>
           </tr>
         `;
   })
@@ -200,18 +222,24 @@
       .map(
         (post) => {
           const detailUrl = `/board/${boardId}/articles/${post.articleId}`;
+          const thumbnail = post.thumbnailUrl
+            ? `<img src="${escapeHtml(post.thumbnailUrl)}" alt="${escapeHtml(post.title)}" class="h-48 w-full object-cover" />`
+            : `<div class="flex h-48 items-center justify-center bg-gray-100 text-sm text-gray-400 dark:bg-meta-4/60">미리보기 없음</div>`;
         return  `
-          <article class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
-            <div class="flex h-48 items-center justify-center bg-gray-100 text-sm text-gray-400 dark:bg-meta-4/60">미리보기 없음</div>
-            <div class="space-y-2 p-4">
-              <h3 class="line-clamp-1 text-base font-semibold text-gray-900 dark:text-white">${escapeHtml(post.title)}</h3>
-              <p class="line-clamp-2 text-sm text-gray-600 dark:text-gray-300">${escapeHtml(post.content || '')}</p>
-              <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                <span>${escapeHtml(post.authorName || '-')}</span>
-                <span>${formatDate(post.createdAt)}</span>
+        
+          <a href="${detailUrl}" class="block h-full">
+            <article class="flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+              ${thumbnail}
+              <div class="flex flex-1 flex-col space-y-2 p-4">
+                <h3 class="line-clamp-1 text-base font-semibold text-gray-900 dark:text-white">${escapeHtml(post.title)}</h3>
+                <p class="line-clamp-2 min-h-[2.5rem] text-sm text-gray-600 dark:text-gray-300">${escapeHtml(stripContentMarkup(post.content))}</p>
+                <div class="mt-auto flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                  <span>${escapeHtml(post.authorName || '-')}</span>
+                  <span>${formatDate(post.createdAt)}</span>
+                </div>
               </div>
-            </div>
-          </article>
+            </article>
+          </a>
         `;
   })
       .join('');
@@ -222,7 +250,7 @@
    * @param {Array} posts 게시글 배열
    * @param {number} boardId 게시판 ID
    */
-  function renderCard(posts, boarId) {
+  function renderCard(posts, boardId) {
     const grid = document.getElementById('postCardGrid');
     const empty = document.getElementById('postCardEmpty');
     if (!grid || !empty) return;
@@ -237,19 +265,21 @@
         (post) => {
           const detailUrl = `/board/${boardId}/articles/${post.articleId}`;
          return `
-          <article class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-strokedark dark:bg-boxdark">
-            <div class="mb-3 flex items-start justify-between gap-3">
-              <h3 class="line-clamp-2 text-lg font-semibold text-gray-900 dark:text-white">${escapeHtml(post.title)}</h3>
-              <span class="shrink-0 rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-700">${Number(
-                post.viewCount || 0
-              )} views</span>
-            </div>
-            <p class="line-clamp-3 text-sm leading-6 text-gray-600 dark:text-gray-300">${escapeHtml(post.content || '')}</p>
-            <div class="mt-5 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-              <span>${escapeHtml(post.authorName || '-')}</span>
-              <span>${formatDate(post.createdAt)}</span>
-            </div>
-          </article>
+          <a href="${detailUrl}" class="block">
+            <article class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-strokedark dark:bg-boxdark">
+              <div class="mb-3 flex items-start justify-between gap-3">
+                <h3 class="line-clamp-2 text-lg font-semibold text-gray-900 dark:text-white">${escapeHtml(post.title)}</h3>
+                <span class="shrink-0 rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-700">${Number(
+                  post.viewCount || 0
+                )} views</span>
+              </div>
+              <p class="line-clamp-3 text-sm leading-6 text-gray-600 dark:text-gray-300">${escapeHtml(stripContentMarkup(post.content))}</p>
+              <div class="mt-5 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>${escapeHtml(post.authorName || '-')}</span>
+                <span>${formatDate(post.createdAt)}</span>
+              </div>
+            </article>
+          </a>
         `;
   })
       .join('');

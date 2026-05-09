@@ -97,6 +97,10 @@ public class Article {
         this.isDeleted = true;
     }
 
+    public void restore() {
+        this.isDeleted = false;
+    }
+
     public boolean isAuthor(Long memberId) {
         return this.author.getMemberId().equals(memberId);
     }

@@ -24,6 +24,18 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
   """)
     Page<Article> findByBoard_BoardIdAndIsDeletedFalse(Long boardId, Pageable pageable);
 
+     @Query("""
+      SELECT a FROM Article a
+      JOIN FETCH a.board
+      LEFT JOIN FETCH a.author
+      WHERE a.board.boardId = :boardId AND a.isDeleted = true
+  """)
+  Page<Article> findByBoard_BoardIdAndIsDeletedTrue(Long boardId, Pageable pageable);
+
+  Page<Article> findByBoard_BoardIdAndAuthor_MemberIdAndIsDeletedTrue(Long boardId, Long memberId, Pageable pageable);
+
     Optional<Article> findByArticleIdAndBoard_BoardIdAndIsDeletedFalse(Long articleId, Long boardId);
+
+    Optional<Article> findByArticleIdAndBoard_BoardIdAndIsDeletedTrue(Long articleId, Long boardId);
 
 }

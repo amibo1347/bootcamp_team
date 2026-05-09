@@ -27,7 +27,7 @@ import java.net.URLEncoder;
       // 위험 확장자 블랙리스트 (실행 가능 파일 차단)
       private static final Set<String> BLOCKED_EXT =
               Set.of("exe", "bat", "sh", "cmd", "com", "msi", "scr", "jar");
-      private static final long MAX_BYTES = 50L * 1024 * 1024; // 50MB
+      private static final long MAX_BYTES = 50L * 1024 * 1024; // 50MBㅂ
 
       private final AttachmentRepository attachmentRepository;
       private final MemberRepository memberRepository;

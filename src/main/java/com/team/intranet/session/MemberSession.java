@@ -43,4 +43,6 @@ import lombok.Getter;
     public boolean isAdmin() {
          return role == Role.ADMIN || role == Role.MASTER || role == Role.SUB_ADMIN;
     }
+
+    
 }

@@ -19,15 +19,24 @@ import com.team.intranet.service.BoardService;
 public class BoardController {
       private final BoardService boardService;
 
-    @GetMapping("/{id}")
-    public String viewBoard(@PathVariable Long id, @SessionAttribute(name = "memberSession", required = false) MemberSession ms, Model model) {
-        BoardDto board = boardService.findVisibleBoardById(ms, id);
+    @GetMapping("/{boardId}")
+    public String viewBoard(@PathVariable Long boardId, @SessionAttribute(name = "memberSession", required = false) MemberSession ms, Model model) {
+        BoardDto board = boardService.findVisibleBoardById(ms, boardId);
         model.addAttribute("board", board);
         return switch (board.getViewType() != null ? board.getViewType() : ViewType.LIST) {
             case LIST -> "/board/list";
             case ALBUM -> "/board/album";
             case CARD -> "/board/card";
         };
+    }
+
+    @GetMapping("/{boardId}/trash")
+    public String trashBoard(@PathVariable Long boardId,
+                             @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+                             Model model) {
+        BoardDto board = boardService.findVisibleBoardById(ms, boardId);
+        model.addAttribute("board", board);
+        return "/board/trash";
     }
 
 }

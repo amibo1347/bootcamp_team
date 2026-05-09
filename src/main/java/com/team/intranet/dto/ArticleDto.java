@@ -8,6 +8,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Data
 @NoArgsConstructor
@@ -24,6 +26,18 @@ public class ArticleDto {
     private String createdAt;
     private String authorName;
     private List<Long> attachmentIds;
+    private String thumbnailUrl;
+
+    private static final Pattern MD_IMG_PATTERN =
+        Pattern.compile("!\\[[^\\]]*\\]\\(([^)]+)\\)");
+    private static final Pattern HTML_IMG_PATTERN =
+        Pattern.compile("<img[^>]+src=[\"']([^\"']+)[\"']", Pattern.CASE_INSENSITIVE);
+    private static final Pattern YOUTUBE_PATTERN =
+        Pattern.compile("(?:youtube\\.com/watch\\?v=|youtu\\.be/|youtube\\.com/embed/)([\\w-]{11})");
+    private static final String[] ALLOWED_THUMBNAIL_PREFIXES = {
+        "/api/article-image/",
+        "https://img.youtube.com/vi/"
+    };
 
     public static ArticleDto from(Article article) {
         ArticleDto dto = new ArticleDto();
@@ -39,6 +53,34 @@ public class ArticleDto {
         dto.setAuthorName(article.isAnonymous()
           ? "익명"
           : (article.getAuthor() != null ? article.getAuthor().getName() : "-"));
+        dto.setThumbnailUrl(extractThumbnail(article.getContent()));
         return dto;
+    }
+
+    private static String extractThumbnail(String content) {
+        if (content == null || content.isEmpty()) return null;
+
+        Matcher md = MD_IMG_PATTERN.matcher(content);
+        if (md.find()) {
+            String url = md.group(1).trim();
+            if (isAllowedThumbnailUrl(url)) return url;
+        }
+        Matcher html = HTML_IMG_PATTERN.matcher(content);
+        if (html.find()) {
+            String url = html.group(1).trim();
+            if (isAllowedThumbnailUrl(url)) return url;
+        }
+        Matcher yt = YOUTUBE_PATTERN.matcher(content);
+        if (yt.find()) {
+            return "https://img.youtube.com/vi/" + yt.group(1) + "/hqdefault.jpg";
+        }
+        return null;
+    }
+
+    private static boolean isAllowedThumbnailUrl(String url) {
+        for (String prefix : ALLOWED_THUMBNAIL_PREFIXES) {
+            if (url.startsWith(prefix)) return true;
+        }
+        return false;
     }
 }
