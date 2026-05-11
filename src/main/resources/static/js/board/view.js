@@ -178,7 +178,7 @@
             `
             : '';
          return `
-          <tr class="border-t border-gray-100 text-gray-700 hover:bg-gray-50 dark:border-strokedark dark:text-gray-200 dark:hover:bg-meta-4/40">
+          <tr class="border-t border-gray-100 text-gray-700 hover:bg-gray-50 dark:border-strokedark dark:text-gray-200 dark:hover:bg-meta-4/25">
             <td class="whitespace-nowrap">
               <a href="${detailUrl}" class="block px-5 py-3 text-inherit">${index + 1}</a>
             </td>

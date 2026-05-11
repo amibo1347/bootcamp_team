@@ -29,10 +29,22 @@
             <main class="space-y-6 p-8">
                 <section class="flex flex-wrap items-center justify-between gap-3">
                     <h2 class="text-2xl font-black text-gray-900 dark:text-white" th:text="${board.boardName}">게시판</h2>
-                    <a th:href="@{/board/{id}/articles/new(id=${board.boardId})}"
-                        class="rounded-xl bg-indigo-400 px-6 py-2.5 font-medium text-white hover:bg-indigo-500">
-                        글쓰기
-                    </a>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a th:href="@{/board/{id}/trash(id=${board.boardId})}"
+                            class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-stroke text-gray-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-strokedark dark:text-gray-300 dark:hover:border-indigo-500/60 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-200"
+                            title="이 게시판 휴지통" aria-label="이 게시판 휴지통">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" clip-rule="evenodd"
+                                    d="M9 3.75a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 .75.75v.75h3a.75.75 0 0 1 0 1.5h-1.061l-.687 11.684A2.25 2.25 0 0 1 14.068 21H9.932a2.25 2.25 0 0 1-2.246-2.066L7 5.25H6a.75.75 0 0 1 0-1.5h3v-.75Zm4.275 13.971a.75.75 0 1 0 1.5 0v-4.5a.75.75 0 1 0-1.5 0v4.5Zm-5.775-5.971a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-.75.75h-3a.75.75 0 0 1-.75-.75v-4.5Z"
+                                    fill="currentColor" />
+                            </svg>
+                        </a>
+                        <a th:href="@{/board/{id}/articles/new(id=${board.boardId})}"
+                            class="rounded-xl bg-indigo-400 px-6 py-2.5 font-medium text-white hover:bg-indigo-500">
+                            글쓰기
+                        </a>
+                    </div>
                 </section>
 
                 <section id="postCardGrid" class="grid grid-cols-1 gap-4 lg:grid-cols-2"></section>

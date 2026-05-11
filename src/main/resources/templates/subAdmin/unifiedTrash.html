@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <!-- CSRF: 복구·영구삭제 POST에 사용 -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <title>통합 휴지통</title>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+    <!-- DESIGN_RULES 4-3: Danger 호버 고정색 -->
+    <style>
+        .btn-delete-hover:hover {
+            background-color: #fda4af;
+        }
+    </style>
+</head>
+
+<body
+    x-data="{ page: 'ecommerce', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
+    x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{ 'dark bg-gray-900': darkMode === true }">
+
+    <!-- ===== 레이아웃: 부관리자 회원 목록과 동일 shell ===== -->
+    <div th:replace="~{partials/preloader}"></div>
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- ===== 사이드바 ===== -->
+        <div th:replace="~{partials/sidebar}"></div>
+
+        <div class="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
+            <div th:replace="~{partials/overlay}"></div>
+            <div th:replace="~{partials/header}"></div>
+
+            <!-- ===== 통합 휴지통 본문 ===== -->
+            <main class="space-y-6 p-8">
+                <section class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 class="ml-0 text-2xl font-black text-gray-900 dark:text-white">통합 휴지통</h2>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            회사 소속 게시판에 흩어진 삭제된 글을 한곳에서 복구하거나 영구 삭제합니다.
+                        </p>
+                    </div>
+                </section>
+
+                <div id="unifiedTrashMessage" role="alert"
+                    class="hidden rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/40 dark:bg-rose-950/40 dark:text-rose-200"></div>
+
+                <!-- ===== 테이블 ===== -->
+                <section
+                    class="overflow-hidden rounded-xl border border-stroke bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full table-fixed text-sm">
+                            <colgroup>
+                                <col style="width: clamp(56px, 7vw, 80px);" />
+                                <col style="width: clamp(120px, 16vw, 200px);" />
+                                <col />
+                                <col style="width: clamp(88px, 12vw, 140px);" />
+                                <col style="width: clamp(136px, 18vw, 176px);" />
+                                <col style="width: clamp(180px, 22vw, 260px);" />
+                            </colgroup>
+                            <thead class="bg-gray-50 dark:bg-meta-4/60">
+                                <tr class="text-left text-gray-600 dark:text-gray-300">
+                                    <th class="whitespace-nowrap px-5 py-3 font-semibold">번호</th>
+                                    <th class="px-5 py-3 font-semibold">게시판</th>
+                                    <th class="px-5 py-3 font-semibold">제목</th>
+                                    <th class="whitespace-nowrap px-5 py-3 font-semibold">작성자</th>
+                                    <th class="whitespace-nowrap px-5 py-3 font-semibold">작성일</th>
+                                    <th class="whitespace-nowrap px-5 py-3 font-semibold">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody id="unifiedTrashBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="unifiedTrashEmpty" class="hidden px-5 py-16 text-center text-gray-500 dark:text-gray-300">
+                        휴지통에 게시글이 없습니다.
+                    </div>
+                </section>
+
+                <section id="unifiedTrashPagination" class="pt-1"></section>
+            </main>
+        </div>
+    </div>
+
+    <script type="module" src="/js/index.js"></script>
+    <script src="/js/subAdmin/unifiedTrash.js"></script>
+</body>
+
+</html>

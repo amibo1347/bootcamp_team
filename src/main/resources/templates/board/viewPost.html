@@ -29,7 +29,7 @@
     </style>
 </head>
 
-<body th:attr="data-board-id=${board.boardId},data-article-id=${articleId},data-current-member-id=${session.memberSession?.memberId}"
+<body th:attr="data-board-id=${board.boardId},data-article-id=${articleId},data-current-member-id=${session.memberSession?.memberId},data-is-admin=${session.memberSession != null and session.memberSession.isAdmin()}"
     x-data="{ page: 'board', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
     x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
     :class="{ 'dark bg-gray-900': darkMode === true }">
