@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.team.intranet.entity.Article;
 import com.team.intranet.enums.board.BoardType;
@@ -40,5 +41,13 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     List<Article> findByIsDeletedTrueAndBoard_BoardTypeAndDeletedAtBefore(
         BoardType boardType, LocalDateTime threshoId);
     
+    /** 회사(테넌트) 단위 소프트 삭제 글 페이지 — board·author 패치 포함 */
+    @Query("""
+        SELECT a FROM Article a
+        JOIN FETCH a.board b
+        LEFT JOIN FETCH a.author
+        WHERE b.company.companyId = :companyId AND a.isDeleted = true
+        """)
+    Page<Article> findDeletedByCompanyId(@Param("companyId") Long companyId, Pageable pageable);
 
 }

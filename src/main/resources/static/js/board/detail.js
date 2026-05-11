@@ -120,6 +120,8 @@
     const boardId = Number(document.body.dataset.boardId || 0);
     const articleId = Number(document.body.dataset.articleId || 0);
     const currentMemberId = Number(document.body.dataset.currentMemberId || 0);
+    /** 서버(세션)에서 내려준 관리자 여부 — SUB_ADMIN/ADMIN/MASTER */
+    const isViewerAdmin = document.body.dataset.isAdmin === 'true';
 
     if (!titleElement || !authorElement || !dateElement || !viewsElement || !contentElement) return;
 
@@ -139,16 +141,21 @@
     authorElement.textContent = post.authorName || '-';
     dateElement.textContent = formatDate(post.createdAt);
     viewsElement.textContent = String(Number(post.viewCount || 0));
-    // 작성자 본인인 경우에만 수정 버튼을 노출한다.
+    // 수정: 작성자만. 삭제: 작성자 또는 관리자(백엔드 deleteArticle 권한과 동일).
     if (editButtonElement && boardId && articleId) {
       const isAuthor = Number(post.authorId || 0) === currentMemberId;
       if (isAuthor) {
         editButtonElement.href = `/board/${boardId}/articles/${articleId}/edit`;
         editButtonElement.classList.remove('hidden');
-        if (deleteButtonElement) deleteButtonElement.classList.remove('hidden');
       } else {
         editButtonElement.classList.add('hidden');
-        if (deleteButtonElement) deleteButtonElement.classList.add('hidden');
+      }
+      if (deleteButtonElement) {
+        if (isAuthor || isViewerAdmin) {
+          deleteButtonElement.classList.remove('hidden');
+        } else {
+          deleteButtonElement.classList.add('hidden');
+        }
       }
     }
     contentElement.innerHTML = ''; // 플레이스홀더 텍스트 제거
@@ -204,14 +211,16 @@
     const deleteButtonElement = document.getElementById('deletePostButton');
     if (!boardId || !articleId || !deleteButtonElement || !currentPost) return;
 
-    const ok = window.confirm('정말 이 게시글을 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.');
+    const ok = window.confirm(
+      '이 게시글을 삭제하면 게시판 휴지통으로 이동합니다.\n휴지통에서 복구하거나 영구 삭제할 수 있습니다.\n계속하시겠습니까?'
+    );
     if (!ok) return;
 
     try {
       deleteButtonElement.disabled = true;
       await deletePost(boardId, articleId);
-      alert('게시글이 삭제되었습니다.');
-      window.location.href = `/board/${boardId}`;
+      alert('게시글이 휴지통으로 이동했습니다.');
+      window.location.href = `/board/${boardId}/trash`;
     } catch (error) {
       alert(error?.message || '요청 처리 중 오류가 발생했습니다.');
     } finally {
