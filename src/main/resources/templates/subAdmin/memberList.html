@@ -318,19 +318,19 @@
                                             ※ 빌드된 output.css 에 text-rose-700 / text-amber-700 유틸리티가 누락되어 있어
                                               inline style 로 정확한 색상값(#be123c, #b45309)을 강제 적용.
                                               Tailwind watcher 재빌드 후에는 클래스 방식으로 정리 가능.
-                                            ※ 크기는 px-4 py-1.5 + text-sm 으로 한 단계 키움.
+                                            ※ 색상 의미: 자진퇴사(amber - 중립/주의), 해고(rose - 강한 경고)
                                         -->
                                         <th:block th:if="${selectedStatusKey == 'LEAVE'}">
-                                            <!-- 자진퇴사 뱃지 (rose-700 = #be123c) -->
+                                            <!-- 자진퇴사 뱃지 (amber-700 = #b45309) -->
                                             <span th:if="${emp.status != null and emp.status.name() == 'LEAVE'}"
-                                                style="color: #be123c;"
-                                                class="inline-flex items-center justify-center rounded-full bg-rose-100 px-4 py-1.5 text-sm font-semibold dark:bg-rose-500/15">
-                                                자진퇴사
-                                            </span>
-                                            <!-- 해고 뱃지 (amber-700 = #b45309) -->
-                                            <span th:if="${emp.status != null and emp.status.name() == 'BANNED'}"
                                                 style="color: #b45309;"
                                                 class="inline-flex items-center justify-center rounded-full bg-amber-100 px-4 py-1.5 text-sm font-semibold dark:bg-amber-500/15">
+                                                자진퇴사
+                                            </span>
+                                            <!-- 해고 뱃지 (rose-700 = #be123c) -->
+                                            <span th:if="${emp.status != null and emp.status.name() == 'BANNED'}"
+                                                style="color: #be123c;"
+                                                class="inline-flex items-center justify-center rounded-full bg-rose-100 px-4 py-1.5 text-sm font-semibold dark:bg-rose-500/15">
                                                 해고
                                             </span>
                                         </th:block>
@@ -477,14 +477,21 @@
             <input type="hidden" id="resignTargetId">
 
             <div class="flex flex-col gap-2">
-                <!-- 자진퇴사: LEAVE -->
+                <!--
+                    퇴사 사유 버튼
+                    ※ 뱃지와 동일하게 색상 의미 맞춤 → 자진퇴사(amber - 주의), 해고(rose - 강한 경고)
+                    ※ text-amber-700 / text-rose-700 도 output.css 빌드 누락 케이스가 있어 inline style 로 색상 강제.
+                -->
+                <!-- 자진퇴사: LEAVE (amber-700 = #b45309) -->
                 <button type="button" onclick="confirmResign('LEAVE')"
-                    class="w-full rounded-lg bg-rose-100 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-200 dark:bg-rose-500/15 dark:text-rose-300">
+                    style="color: #b45309;"
+                    class="w-full rounded-lg bg-amber-100 py-2.5 text-sm font-semibold transition hover:bg-amber-200 dark:bg-amber-500/15">
                     자진퇴사 (LEAVE)
                 </button>
-                <!-- 해고: BANNED -->
+                <!-- 해고: BANNED (rose-700 = #be123c) -->
                 <button type="button" onclick="confirmResign('BANNED')"
-                    class="w-full rounded-lg bg-amber-100 py-2.5 text-sm font-semibold text-amber-700 transition hover:bg-amber-200 dark:bg-amber-500/15 dark:text-amber-300">
+                    style="color: #be123c;"
+                    class="w-full rounded-lg bg-rose-100 py-2.5 text-sm font-semibold transition hover:bg-rose-200 dark:bg-rose-500/15">
                     해고 (BANNED)
                 </button>
                 <!-- 취소 -->

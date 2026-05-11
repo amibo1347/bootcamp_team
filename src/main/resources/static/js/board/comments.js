@@ -64,6 +64,17 @@
   }
 
   /**
+   * 댓글 객체에서 부모 댓글 ID를 숫자로 추출한다.
+   * @param {Object} comment 댓글 객체
+   * @returns {number}
+   */
+  function getParentCommentId(comment) {
+    const raw = comment?.parentCommentId ?? comment?.parentId ?? 0;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  /**
    * 목록 API 응답을 배열 형태로 정규화한다.
    * @param {unknown} data 응답 본문
    * @returns {Array}
@@ -168,13 +179,23 @@
    * @param {number} currentMemberId 현재 로그인 회원 ID
    * @returns {string}
    */
-  function renderCommentItem(comment, currentMemberId) {
+  function renderCommentItem(comment, currentMemberId, commentScope) {
     const id = getCommentId(comment);
+    const parentCommentId = getParentCommentId(comment);
+    const isReply = parentCommentId > 0;
     const authorId = Number(comment.authorId || 0);
     const isAuthor = authorId > 0 && authorId === Number(currentMemberId);
+    const canReply = Number(currentMemberId) > 0 && commentScope !== 'NONE' && !isReply;
     const authorName = escapeHtml(comment.authorName || '익명');
     const created = formatDate(comment.createdAt);
     const bodyEscaped = escapeHtml(comment.content || '');
+
+    const replyButton = canReply
+      ? `
+      <button type="button" data-comment-action="reply" data-comment-id="${id}"
+        class="text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-300">답글</button>
+    `
+      : '';
 
     const actions = isAuthor
       ? `
@@ -187,13 +208,19 @@
     `
       : '';
 
+    const replyIndentStyle = isReply ? 'style="margin-left: 2rem;"' : '';
+
     return `
-      <li class="rounded-lg border border-gray-100 bg-gray-50/90 px-4 py-3 dark:border-strokedark dark:bg-meta-4/25" data-comment-id="${id}">
+      <div ${replyIndentStyle}>
+        <div class="comment-item rounded-lg ${isReply ? 'bg-transparent' : 'bg-gray-50/90'} px-4 py-3 dark:${isReply ? 'bg-transparent' : 'bg-meta-4/25'}" data-comment-id="${id}">
         <div class="comment-view">
           <div class="flex flex-wrap items-start justify-between gap-2">
             <div class="min-w-0 flex-1">
-              <span class="font-medium text-gray-900 dark:text-gray-100">${authorName}</span>
-              <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">${created}</span>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-medium text-gray-900 dark:text-gray-100">${authorName}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">${created}</span>
+                ${replyButton}
+              </div>
             </div>
             ${actions}
           </div>
@@ -209,8 +236,55 @@
               class="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300 dark:bg-white/10 dark:text-gray-200">취소</button>
           </div>
         </div>
-      </li>
+        <div class="comment-reply mt-3 hidden">
+          <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">대댓글 작성</label>
+          <textarea rows="2"
+            class="comment-reply-input w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 shadow-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-strokedark dark:bg-boxdark dark:text-gray-100 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/30"
+            placeholder="답글 내용을 입력하세요."></textarea>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <button type="button" data-comment-action="reply-save" data-comment-id="${id}"
+              class="rounded-lg bg-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-800 hover:bg-indigo-300 dark:bg-indigo-500/30 dark:text-indigo-100">등록</button>
+            <button type="button" data-comment-action="reply-cancel" data-comment-id="${id}"
+              class="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300 dark:bg-white/10 dark:text-gray-200">취소</button>
+          </div>
+        </div>
+        </div>
+      </div>
     `;
+  }
+
+  /**
+   * 평면 댓글 배열을 원댓글/대댓글 그룹으로 변환한다.
+   * @param {Array} comments 댓글 배열
+   * @returns {Array<{ root: Object, replies: Array }>}
+   */
+  function groupCommentsByRoot(comments) {
+    const groups = [];
+    const rootGroupMap = new Map();
+
+    comments.forEach((comment) => {
+      const commentId = getCommentId(comment);
+      const parentId = getParentCommentId(comment);
+
+      if (!parentId) {
+        const group = { root: comment, replies: [] };
+        groups.push(group);
+        rootGroupMap.set(commentId, group);
+        return;
+      }
+
+      const parentGroup = rootGroupMap.get(parentId);
+      if (parentGroup) {
+        parentGroup.replies.push(comment);
+      } else {
+        // 부모가 누락된 예외 케이스는 원댓글처럼 표시한다.
+        const fallbackGroup = { root: comment, replies: [] };
+        groups.push(fallbackGroup);
+        rootGroupMap.set(commentId, fallbackGroup);
+      }
+    });
+
+    return groups;
   }
 
   /**
@@ -221,7 +295,24 @@
   function renderCommentList(comments, currentMemberId) {
     const list = document.getElementById('commentsList');
     if (!list) return;
-    list.innerHTML = comments.map((c) => renderCommentItem(c, currentMemberId)).join('');
+    const { commentScope } = readPageContext();
+    const groups = groupCommentsByRoot(comments);
+
+    list.innerHTML = groups
+      .map((group) => {
+        const rootHtml = renderCommentItem(group.root, currentMemberId, commentScope);
+        const repliesHtml = group.replies
+          .map((reply, index) => {
+            const separatorClass = index === 0 ? 'border-t border-gray-200 pt-3 dark:border-strokedark' : 'mt-3 border-t border-gray-200 pt-3 dark:border-strokedark';
+            return `<div class="${separatorClass}">${renderCommentItem(reply, currentMemberId, commentScope)}</div>`;
+          })
+          .join('');
+
+        const replySection = repliesHtml ? `<div class="mt-3">${repliesHtml}</div>` : '';
+
+        return `<li class="rounded-lg border border-gray-100 bg-gray-50/90 px-1 py-1 dark:border-strokedark dark:bg-meta-4/25">${rootHtml}${replySection}</li>`;
+      })
+      .join('');
   }
 
   /**
@@ -254,9 +345,12 @@
    * @param {number} articleId 게시글 ID
    * @param {string} content 본문
    */
-  async function submitNewComment(boardId, articleId, content) {
+  async function submitNewComment(boardId, articleId, content, parentCommentId = 0) {
     const body = new URLSearchParams();
     body.set('content', content);
+    if (Number(parentCommentId) > 0) {
+      body.set('parentCommentId', String(parentCommentId));
+    }
 
     const response = await fetch(
       `/api/board/${boardId}/articles/${articleId}/comments/new`,
@@ -334,11 +428,11 @@
    * @param {number} commentId 댓글 ID
    */
   function openEditMode(commentId) {
-    const li = document.querySelector(`#commentsList li[data-comment-id="${commentId}"]`);
-    if (!li) return;
-    const view = li.querySelector('.comment-view');
-    const edit = li.querySelector('.comment-edit');
-    const input = li.querySelector('.comment-edit-input');
+    const item = document.querySelector(`#commentsList [data-comment-id="${commentId}"]`);
+    if (!item) return;
+    const view = item.querySelector('.comment-view');
+    const edit = item.querySelector('.comment-edit');
+    const input = item.querySelector('.comment-edit-input');
     if (!view || !edit || !input) return;
 
     const original = cachedComments.find((c) => getCommentId(c) === commentId);
@@ -354,13 +448,42 @@
    * @param {number} commentId 댓글 ID
    */
   function closeEditMode(commentId) {
-    const li = document.querySelector(`#commentsList li[data-comment-id="${commentId}"]`);
-    if (!li) return;
-    const view = li.querySelector('.comment-view');
-    const edit = li.querySelector('.comment-edit');
+    const item = document.querySelector(`#commentsList [data-comment-id="${commentId}"]`);
+    if (!item) return;
+    const view = item.querySelector('.comment-view');
+    const edit = item.querySelector('.comment-edit');
     if (!view || !edit) return;
     view.classList.remove('hidden');
     edit.classList.add('hidden');
+  }
+
+  /**
+   * 현재 열린 대댓글 입력창을 모두 닫는다.
+   */
+  function closeAllReplyModes() {
+    document.querySelectorAll('#commentsList .comment-reply').forEach((replyBox) => {
+      replyBox.classList.add('hidden');
+      const input = replyBox.querySelector('.comment-reply-input');
+      if (input instanceof HTMLTextAreaElement) {
+        input.value = '';
+      }
+    });
+  }
+
+  /**
+   * 특정 댓글의 대댓글 입력창을 연다.
+   * @param {number} commentId 부모 댓글 ID
+   */
+  function openReplyMode(commentId) {
+    const item = document.querySelector(`#commentsList [data-comment-id="${commentId}"]`);
+    if (!item) return;
+    const replyBox = item.querySelector('.comment-reply');
+    const input = item.querySelector('.comment-reply-input');
+    if (!replyBox || !(input instanceof HTMLTextAreaElement)) return;
+
+    closeAllReplyModes();
+    replyBox.classList.remove('hidden');
+    input.focus();
   }
 
   /**
@@ -400,9 +523,37 @@
       return;
     }
 
+    if (action === 'reply') {
+      openReplyMode(commentId);
+      return;
+    }
+
+    if (action === 'reply-cancel') {
+      closeAllReplyModes();
+      return;
+    }
+
+    if (action === 'reply-save') {
+      const item = btn.closest('.comment-item[data-comment-id]');
+      const input = item?.querySelector('.comment-reply-input');
+      const text = input instanceof HTMLTextAreaElement ? input.value.trim() : '';
+      if (!text) {
+        alert('답글 내용을 입력해 주세요.');
+        return;
+      }
+      try {
+        await submitNewComment(boardId, articleId, text, commentId);
+        closeAllReplyModes();
+        await reloadComments();
+      } catch (err) {
+        alert(err?.message || '요청 처리 중 오류가 발생했습니다.');
+      }
+      return;
+    }
+
     if (action === 'save') {
-      const li = btn.closest('li[data-comment-id]');
-      const input = li?.querySelector('.comment-edit-input');
+      const item = btn.closest('.comment-item[data-comment-id]');
+      const input = item?.querySelector('.comment-edit-input');
       const text = input instanceof HTMLTextAreaElement ? input.value.trim() : '';
       if (!text) {
         alert('댓글 내용을 입력해 주세요.');
@@ -439,6 +590,7 @@
       submitBtn.disabled = true;
       await submitNewComment(boardId, articleId, text);
       textarea.value = '';
+      closeAllReplyModes();
       await reloadComments();
     } catch (err) {
       alert(err?.message || '요청 처리 중 오류가 발생했습니다.');
