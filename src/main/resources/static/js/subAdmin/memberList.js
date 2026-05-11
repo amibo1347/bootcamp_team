@@ -102,13 +102,26 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(editModal);
     }
 
+    // 퇴사 사유 선택 모달도 body 최상단으로 끌어올려서 z-index/overflow 이슈를 피한다.
+    const resignModal = document.querySelector('#resignTypeModal');
+    if (resignModal && resignModal.parentElement !== document.body) {
+        document.body.appendChild(resignModal);
+    }
+
     initCustomSelects();
     document.addEventListener('click', () => closeAllCustomSelects());
 
+    // 행별 버튼은 fragment 가 AJAX 로 갈아끼워지므로 document 위임 방식으로 일괄 처리한다.
     document.addEventListener('click', (event) => {
         const editButton = event.target.closest('.js-edit-member-btn');
         if (editButton) {
             openEditModal(editButton);
+            return;
+        }
+
+        const resignButton = event.target.closest('.js-resign-btn');
+        if (resignButton) {
+            openResignModal(resignButton);
         }
     });
 });
@@ -223,16 +236,57 @@ window.updateMember = async () => {
 };
 
 
-// 직원 정보 삭제
-window.deleteMember = async (memberId) => {
-    if (!confirm("정말로 이 직원을 퇴사 처리하시겠습니까?")) return;
+// ============================================================================
+// 퇴사 처리 (자진퇴사 LEAVE / 해고 BANNED)
+//   1) [퇴사] 버튼 클릭 → openResignModal() 이 #resignTypeModal 을 띄움.
+//   2) 모달의 [자진퇴사] / [해고] 버튼이 confirmResign(type) 호출.
+//   3) 서버에 POST /api/subAdmin/status/{id}/{LEAVE|BANNED} 로 상태 전이.
+//   - "퇴사 직원 목록" 탭은 LEAVE + BANNED 를 함께 보여주도록 백엔드와 약속한다.
+// ============================================================================
 
-    // 2단계: CSRF 토큰 및 헤더 정보 추출
+/**
+ * 퇴사 사유 선택 모달 열기.
+ * @param {HTMLElement} button 이벤트 위임으로 잡힌 [.js-resign-btn] 버튼
+ */
+window.openResignModal = (button) => {
+    const memberId = button.dataset.memberId || '';
+    const memberName = button.dataset.memberName || '';
+
+    document.querySelector('#resignTargetId').value = memberId;
+    document.querySelector('#resignTargetName').textContent = memberName || '직원';
+
+    document.querySelector('#resignTypeModal').classList.remove('hidden');
+};
+
+/** 퇴사 사유 선택 모달 닫기 */
+window.closeResignModal = () => {
+    document.querySelector('#resignTypeModal').classList.add('hidden');
+    document.querySelector('#resignTargetId').value = '';
+};
+
+/**
+ * 모달에서 선택된 사유로 상태 전이 요청.
+ *  - LEAVE  : 자진퇴사 (Status.ALLOWED 상 JOIN/ON_LEAVE → LEAVE)
+ *  - BANNED : 해고     (Status.ALLOWED 상 JOIN/ON_LEAVE → BANNED)
+ *  - 처리 후 현재 탭(활성/휴직)을 유지하기 위해 loadMemberList() 만 호출한다.
+ * @param {('LEAVE'|'BANNED')} type 사유 코드
+ */
+window.confirmResign = async (type) => {
+    const memberId = document.querySelector('#resignTargetId').value;
+    if (!memberId) {
+        alert('대상 직원 정보가 없습니다. 다시 시도해주세요.');
+        closeResignModal();
+        return;
+    }
+
+    const label = type === 'LEAVE' ? '자진퇴사' : '해고';
+    if (!confirm(`해당 직원을 [${label}] 사유로 퇴사 처리합니다. 계속하시겠습니까?`)) return;
+
     const token = document.querySelector('meta[name="_csrf"]')?.content;
     const header = document.querySelector('meta[name="_csrf_header"]')?.content;
 
     try {
-        const response = await fetch(`/api/subAdmin/status/${memberId}/BANNED`, {
+        const response = await fetch(`/api/subAdmin/status/${memberId}/${type}`, {
             method: 'POST',
             headers: {
                 [header]: token
@@ -240,15 +294,16 @@ window.deleteMember = async (memberId) => {
         });
 
         if (response.ok) {
-            alert("퇴사 처리되었습니다.");
-            location.reload();
+            alert(`${label} 처리되었습니다.`);
+            closeResignModal();
+            loadMemberList();
         } else {
             const errorText = await response.text();
             alert(`처리 실패: ${errorText || '알 수 없는 오류가 발생했습니다.'}`);
         }
     } catch (error) {
-        console.error("Error during deletion:", error);
-        alert("서버와 통신 중 오류가 발생했습니다.");
+        console.error('Error during resign:', error);
+        alert('서버와 통신 중 오류가 발생했습니다.');
     }
 };
 

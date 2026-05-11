@@ -343,6 +343,7 @@
 
   /**
    * 등록 전 입력값 유효성을 검증한다.
+   * - 본문과 첨부는 둘 중 하나만 있어도 등록 가능하다.
    * @param {{boardId: number|null, title: string, content: string}} payload
    * @returns {boolean}
    */
@@ -356,11 +357,19 @@
       document.getElementById('title')?.focus();
       return false;
     }
-    if (!payload.content) {
-      alert('본문을 입력해주세요.');
-      document.getElementById('content')?.focus();
+
+    const hasBody = Boolean(payload.content);
+    const hasUploadedAttachments = uploadedAttachments.length > 0;
+    if (!hasBody && !hasUploadedAttachments) {
+      alert('본문을 입력하거나 첨부파일을 업로드해주세요.');
+      if (editor && typeof editor.focus === 'function') {
+        editor.focus();
+      } else {
+        document.getElementById('attachments')?.focus();
+      }
       return false;
     }
+
     if (!validateAttachments()) {
       document.getElementById('attachments')?.focus();
       return false;
