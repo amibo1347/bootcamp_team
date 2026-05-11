@@ -3,6 +3,8 @@ package com.team.intranet.enums.member;
 public enum Status {
     WAIT,       // 가입 대기중
     JOIN,       // 가입 승인
-    LEAVE,      // 해고
-    REJECT      // 가입 거절(반려)
+    LEAVE,      // 퇴사
+    REJECT,     // 가입 거절(반려)
+    ON_LEAVE    // 휴직
+    
 }

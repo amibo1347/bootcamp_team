@@ -29,10 +29,10 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
   """)
   Page<Article> findByBoard_BoardIdAndIsDeletedTrue(Long boardId, Pageable pageable);
 
-    // Page<Article> findByBoard_BoardIdAndAuthor_MemberIdAndIsDeletedTrue(Long boardId, Long memberId, Pageable pageable);
+    Page<Article> findByBoard_BoardIdAndAuthor_MemberIdAndIsDeletedTrue(Long boardId, Long memberId, Pageable pageable);
 
     Optional<Article> findByArticleIdAndBoard_BoardIdAndIsDeletedFalse(Long articleId, Long boardId);
 
-    // Optional<Article> findByArticleIdAndBoard_BoardIdAndIsDeletedTrue(Long articleId, Long boardId);
+    Optional<Article> findByArticleIdAndBoard_BoardIdAndIsDeletedTrue(Long articleId, Long boardId);
 
 }

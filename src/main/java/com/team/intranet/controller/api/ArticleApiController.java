@@ -57,17 +57,17 @@ public class ArticleApiController {
       return ResponseEntity.ok(articleService.findArticlesByBoard(ms, boardId, pageable));
   }
 
-//   @GetMapping("/trash")
-//   @ResponseBody
-//   public ResponseEntity<Page<ArticleDto>> listDeletedArticles(
-//           @PathVariable Long boardId,
-//           @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
-//           @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-//       if (ms == null) {
-//           return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-//       }
-//       return ResponseEntity.ok(articleService.findDeletedArticles(ms, boardId, pageable));
-//   }
+  @GetMapping("/trash")
+  @ResponseBody
+  public ResponseEntity<Page<ArticleDto>> listDeletedArticles(
+          @PathVariable Long boardId,
+          @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+          @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+      if (ms == null) {
+          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+      }
+      return ResponseEntity.ok(articleService.findDeletedArticles(ms, boardId, pageable));
+  }
 
   @GetMapping("/{articleId}")
   @ResponseBody
@@ -107,29 +107,29 @@ public class ArticleApiController {
       return ResponseEntity.noContent().build();
   }
 
-//   @PostMapping("/trash/{articleId}/restore")
-//   @ResponseBody
-//   public ResponseEntity<Void> restoreArticle(
-//           @PathVariable Long boardId,
-//           @PathVariable Long articleId,
-//           @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-//       if (ms == null) {
-//           return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-//       }
-//       articleService.restoreArticle(ms, boardId, articleId);
-//       return ResponseEntity.noContent().build();
-//   }
+  @PostMapping("/trash/{articleId}/restore")
+  @ResponseBody
+  public ResponseEntity<Void> restoreArticle(
+          @PathVariable Long boardId,
+          @PathVariable Long articleId,
+          @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+      if (ms == null) {
+          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+      }
+      articleService.restoreArticle(ms, boardId, articleId);
+      return ResponseEntity.noContent().build();
+  }
 
-//   @PostMapping("/trash/{articleId}/delete")
-//   @ResponseBody
-//   public ResponseEntity<Void> permanentlyDeleteArticle(
-//           @PathVariable Long boardId,
-//           @PathVariable Long articleId,
-//           @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-//       if (ms == null) {
-//           return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-//       }
-//       articleService.permanentlyDeleteArticle(ms, boardId, articleId);
-//       return ResponseEntity.noContent().build();
-//   }
+  @PostMapping("/trash/{articleId}/delete")
+  @ResponseBody
+  public ResponseEntity<Void> permanentlyDeleteArticle(
+          @PathVariable Long boardId,
+          @PathVariable Long articleId,
+          @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+      if (ms == null) {
+          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+      }
+      articleService.permanentlyDeleteArticle(ms, boardId, articleId);
+      return ResponseEntity.noContent().build();
+  }
 }

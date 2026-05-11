@@ -94,17 +94,17 @@ public class ArticleService {
       return ArticleDto.from(article);
   }
 
-//   @Transactional(readOnly = true)
-//   public Page<ArticleDto> findDeletedArticles(MemberSession ms, Long boardId, Pageable pageable){
-//     boardService.getReadableBoard(ms, boardId);
+  @Transactional(readOnly = true)
+  public Page<ArticleDto> findDeletedArticles(MemberSession ms, Long boardId, Pageable pageable){
+    boardService.getReadableBoard(ms, boardId);
 
-//     Page<Article> page = ms.isAdmin()
-//         ? articleRepository.findByBoard_BoardIdAndIsDeletedTrue(boardId, pageable)
-//         : articleRepository.findByBoard_BoardIdAndAuthor_MemberIdAndIsDeletedTrue(
-//               boardId, ms.getMemberId(), pageable);
+    Page<Article> page = ms.isAdmin()
+        ? articleRepository.findByBoard_BoardIdAndIsDeletedTrue(boardId, pageable)
+        : articleRepository.findByBoard_BoardIdAndAuthor_MemberIdAndIsDeletedTrue(
+              boardId, ms.getMemberId(), pageable);
 
-//     return page.map(ArticleDto::from);
-//   }
+    return page.map(ArticleDto::from);
+  }
 
   @Transactional
   public ArticleDto updateArticle(MemberSession ms, Long boardId, Long articleId, ArticleDto dto){
@@ -140,52 +140,52 @@ public class ArticleService {
     return ArticleDto.from(article);
   }
 
-//   @Transactional
-//   public void restoreArticle(MemberSession ms, Long boardId, Long articleId){
-//     // 1. 삭제 상태인 게시글만 조회
-//     Article article = articleRepository
-//         .findByArticleIdAndBoard_BoardIdAndIsDeletedTrue(articleId, boardId)
-//         .orElseThrow(() -> new BusinessException(ErrorCode.ARTICLE_NOT_FOUND));
+  @Transactional
+  public void restoreArticle(MemberSession ms, Long boardId, Long articleId){
+    // 1. 삭제 상태인 게시글만 조회
+    Article article = articleRepository
+        .findByArticleIdAndBoard_BoardIdAndIsDeletedTrue(articleId, boardId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.ARTICLE_NOT_FOUND));
 
-//     // 2. 멀티테넌시 검증
-//     if (!article.getBoard().getCompany().getCompanyId().equals(ms.getCompanyId())) {
-//         throw new BusinessException(ErrorCode.ACCESS_DENIED);
-//     }
+    // 2. 멀티테넌시 검증
+    if (!article.getBoard().getCompany().getCompanyId().equals(ms.getCompanyId())) {
+        throw new BusinessException(ErrorCode.ACCESS_DENIED);
+    }
 
-//     // 3. 권한: 작성자 본인 OR 관리자
-//     if (!article.isAuthor(ms.getMemberId()) && !ms.isAdmin()) {
-//         throw new BusinessException(ErrorCode.NO_AUTHORITY);
-//     }
+    // 3. 권한: 작성자 본인 OR 관리자
+    if (!article.isAuthor(ms.getMemberId()) && !ms.isAdmin()) {
+        throw new BusinessException(ErrorCode.NO_AUTHORITY);
+    }
 
-//     article.restore();
-//   }
+    article.restore();
+  }
 
-//   @Transactional
-//   public void permanentlyDeleteArticle(MemberSession ms, Long boardId, Long articleId){
-//     // 1. 삭제 상태인 게시글만 조회 (휴지통에 있는 글만 영구삭제 가능)
-//     Article article = articleRepository
-//         .findByArticleIdAndBoard_BoardIdAndIsDeletedTrue(articleId, boardId)
-//         .orElseThrow(() -> new BusinessException(ErrorCode.ARTICLE_NOT_FOUND));
+  @Transactional
+  public void permanentlyDeleteArticle(MemberSession ms, Long boardId, Long articleId){
+    // 1. 삭제 상태인 게시글만 조회 (휴지통에 있는 글만 영구삭제 가능)
+    Article article = articleRepository
+        .findByArticleIdAndBoard_BoardIdAndIsDeletedTrue(articleId, boardId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.ARTICLE_NOT_FOUND));
 
-//     // 2. 멀티테넌시 검증
-//     if (!article.getBoard().getCompany().getCompanyId().equals(ms.getCompanyId())) {
-//         throw new BusinessException(ErrorCode.ACCESS_DENIED);
-//     }
+    // 2. 멀티테넌시 검증
+    if (!article.getBoard().getCompany().getCompanyId().equals(ms.getCompanyId())) {
+        throw new BusinessException(ErrorCode.ACCESS_DENIED);
+    }
 
-//     // 3. 권한: 작성자 본인 OR 관리자
-//     if (!article.isAuthor(ms.getMemberId()) && !ms.isAdmin()) {
-//         throw new BusinessException(ErrorCode.NO_AUTHORITY);
-//     }
+    // 3. 권한: 작성자 본인 OR 관리자
+    if (!article.isAuthor(ms.getMemberId()) && !ms.isAdmin()) {
+        throw new BusinessException(ErrorCode.NO_AUTHORITY);
+    }
 
-//     // 4. 첨부파일 먼저 제거 (FK 제약 회피)
-//     List<ArticleAttachment> attachments = attachmentRepository.findByArticle_ArticleId(articleId);
-//     if (!attachments.isEmpty()) {
-//         attachmentRepository.deleteAll(attachments);
-//     }
+    // 4. 첨부파일 먼저 제거 (FK 제약 회피)
+    List<ArticleAttachment> attachments = attachmentRepository.findByArticle_ArticleId(articleId);
+    if (!attachments.isEmpty()) {
+        attachmentRepository.deleteAll(attachments);
+    }
 
-//     // 5. 게시글 영구 삭제
-//     articleRepository.delete(article);
-//   }
+    // 5. 게시글 영구 삭제
+    articleRepository.delete(article);
+  }
 
   @Transactional
   public void deleteArticle(MemberSession ms, Long boardId, Long articleId){
