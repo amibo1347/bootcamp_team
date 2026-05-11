@@ -1,6 +1,8 @@
 (() => {
   /** 마지막으로 로드한 댓글 목록(수정 시 원문 조회용) */
   let cachedComments = [];
+  /** 댓글 정렬: 'asc' = 등록순(기본), 'desc' = 최신순 */
+  let currentCommentSort = 'asc';
 
   const csrfToken = document.querySelector('meta[name="_csrf"]')?.content || '';
   const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || 'X-CSRF-TOKEN';
@@ -155,7 +157,8 @@
    * @returns {Promise<{ ok: boolean, comments: Array, errorMessage: string | null }>}
    */
   async function requestComments(boardId, articleId) {
-    const response = await fetch(`/api/board/${boardId}/articles/${articleId}/comments`, {
+    const url = `/api/board/${boardId}/articles/${articleId}/comments?sort=${encodeURIComponent(currentCommentSort)}`;
+    const response = await fetch(url, {
       method: 'GET',
       headers: buildHeaders(false),
       credentials: 'same-origin',
@@ -599,6 +602,39 @@
       applyCommentFormRules(readPageContext());
     }
   }
+
+  /**
+   * 정렬 탭(최신순/등록순) 활성 표시를 업데이트한다.
+   * memberList 의 높은순/낮은순 패턴(text-primary + font-bold + border-b-2 + border-primary) 그대로 사용.
+   */
+  function applyCommentSortTabUI(sort) {
+    const descEl = document.getElementById('commentSortDesc');
+    const ascEl = document.getElementById('commentSortAsc');
+    if (!descEl || !ascEl) return;
+    const activeCls = ['text-primary', 'font-bold', 'border-b-2', 'border-primary'];
+    const inactiveCls = ['text-gray-400', 'dark:text-gray-300'];
+
+    const setActive = (el, isActive) => {
+      el.classList.remove(...activeCls, ...inactiveCls);
+      el.classList.add(...(isActive ? activeCls : inactiveCls));
+    };
+    setActive(descEl, sort === 'desc');
+    setActive(ascEl, sort === 'asc');
+  }
+
+  /**
+   * 정렬 토글 클릭 핸들러(viewPost.html 의 onclick="setCommentSort('asc'|'desc')" 에서 호출).
+   * 같은 값이면 무시, 다르면 상태 갱신 후 목록 재로드.
+   */
+  window.setCommentSort = (sort) => {
+    if (sort !== 'asc' && sort !== 'desc') return;
+    if (currentCommentSort === sort) return;
+    currentCommentSort = sort;
+    applyCommentSortTabUI(sort);
+    reloadComments().catch((err) => {
+      console.error(err);
+    });
+  };
 
   /**
    * 댓글 영역 초기화: 폼 규칙 적용, 목록 로드, 이벤트 바인딩.

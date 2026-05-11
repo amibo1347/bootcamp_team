@@ -3,6 +3,7 @@ package com.team.intranet.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,7 +75,7 @@ public class CommentService {
      * 반환 순서: [top1, top1.reply1, top1.reply2, top2, top2.reply1, ...]
      * 프론트에서 parentCommentId 가 채워져 있으면 들여쓰기/대댓글로 표시.
      */
-    public List<CommentDto> getCommentsByArticle(MemberSession ms, Long articleId) {
+    public List<CommentDto> getCommentsByArticle(MemberSession ms, Long articleId, String sort) {
         Article article = articleRepository.findById(articleId)
             .orElseThrow(() -> new BusinessException(ErrorCode.ARTICLE_NOT_FOUND));
         if (article.isDeleted()) {
@@ -84,8 +85,11 @@ public class CommentService {
         // 읽기 권한만 검사 (회사 일치 + 활성 + READ scope + 부서/직급 규칙)
         boardService.getReadableBoard(ms, article.getBoard().getBoardId());
 
+        Sort.Direction dir = "desc".equalsIgnoreCase(sort)
+          ? Sort.Direction.DESC : Sort.Direction.ASC;
+
         List<Comment> roots =
-            commentRepository.findByArticle_ArticleIdAndParentIsNullOrderByCreatedAtAsc(articleId);
+            commentRepository.findByArticle_ArticleIdAndParentIsNull(articleId, Sort.by(dir, "createdAt"));
 
         List<CommentDto> result = new ArrayList<>();
         for (Comment root : roots) {

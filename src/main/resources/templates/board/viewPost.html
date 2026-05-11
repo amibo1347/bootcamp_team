@@ -100,7 +100,27 @@
                     <!-- 댓글 섹션 시작 -->
                     <section id="commentsSection"
                         class="border-t border-gray-100 px-8 py-6 dark:border-strokedark">
-                        <h4 class="text-base font-bold text-gray-900 dark:text-white">댓글</h4>
+                        <div class="flex items-center">
+                            <h4 class="text-base font-bold text-gray-900 dark:text-white">댓글</h4>
+                            <!-- 정렬 (최신순/등록순) — '최신순'과 '등록순' 사이의 | 폭만큼 댓글에서 떨어진 위치에서 시작 -->
+                            <div class="ml-12 flex items-center gap-3">
+                                <div class="flex gap-2">
+                                    <a href="javascript:void(0)" onclick="setCommentSort('desc')"
+                                        id="commentSortDesc"
+                                        class="text-sm transition-all hover:text-primary text-gray-400 dark:text-gray-300">
+                                        최신순
+                                    </a>
+
+                                    <span class="text-sm text-gray-300 dark:text-gray-300">|</span>
+
+                                    <a href="javascript:void(0)" onclick="setCommentSort('asc')"
+                                        id="commentSortAsc"
+                                        class="text-sm transition-all hover:text-primary text-primary font-bold border-b-2 border-primary">
+                                        등록순
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                         <p id="commentsLoadError" class="mt-3 hidden text-sm text-rose-600 dark:text-rose-400"></p>
                         <p id="commentsLoading" class="mt-3 text-sm text-gray-500 dark:text-gray-400">댓글을 불러오는 중...</p>
                         <p id="commentsEmpty" class="mt-3 hidden text-sm text-gray-500 dark:text-gray-400">등록된 댓글이 없습니다.</p>

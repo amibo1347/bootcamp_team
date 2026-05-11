@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.SessionAttribute;
 
@@ -48,11 +49,12 @@ public class CommentApiController {
     public ResponseEntity<List<CommentDto>> listComments(
             @PathVariable Long boardId,
             @PathVariable Long articleId,
+            @RequestParam(value = "sort", defaultValue = "asc") String sort,
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
         if (ms == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        return ResponseEntity.ok(commentService.getCommentsByArticle(ms, articleId));
+        return ResponseEntity.ok(commentService.getCommentsByArticle(ms, articleId, sort));
     }
 
     /** 댓글 수정 — 작성자 본인만. */
