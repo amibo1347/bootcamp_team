@@ -198,15 +198,17 @@ public class MemberService {
      * 회원 검색 + 필터 + 정렬
      */
     public List<Member> findFilteredMembers(
-            Long companyId, 
-            String keyword, 
-            Long deptId, 
-            Status status, 
-            Long positionId, 
+            Long companyId,
+            String keyword,
+            Long deptId,
+            List<Status> statuses,
+            Long positionId,
             String sort) {
-        
+
+        // 빈 리스트는 null 로 normalize (IN () SQL 오류 회피)
+        List<Status> normalized = (statuses == null || statuses.isEmpty()) ? null : statuses;
         List<Member> members = memberRepository.searchMembers(
-            companyId, keyword, deptId, status, positionId
+            companyId, keyword, deptId, normalized, positionId
         );
 
         // 직급 레벨 기준 정렬

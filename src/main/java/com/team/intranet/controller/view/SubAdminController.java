@@ -62,7 +62,7 @@ public class SubAdminController {
             @RequestParam(value = "deptId", required = false) Long deptId,
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "positionId", required = false) Long positionId,
-            @RequestParam(value = "status", required = false) Status status,
+            @RequestParam(value = "status", required = false) List<Status> statuses,
             @RequestParam(value = "sort", defaultValue = "desc") String sort,
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
             HttpServletRequest request) {
@@ -70,7 +70,7 @@ public class SubAdminController {
         Long companyId = ms.getCompanyId();
 
         List<Member> filteredMembers = memberService.findFilteredMembers(
-        companyId, keyword, deptId, status, positionId, sort
+        companyId, keyword, deptId, statuses, positionId, sort
     );
 
         List<Dept> depts = deptService.findAll(companyId);
@@ -82,7 +82,10 @@ public class SubAdminController {
         model.addAttribute("keyword", keyword); // 검색 키워드
         model.addAttribute("selectedDeptId", deptId); // 선택된 부서 ID
         model.addAttribute("selectedPositionId", positionId); // 선택된 직급 ID
-        model.addAttribute("selectedStatus", status); // 선택된 상태
+        // 템플릿 호환: 단일 선택 시에만 selectedStatus 채움 (다중 선택은 selectedStatuses 로 별도 노출)
+        Status selectedStatus = (statuses != null && statuses.size() == 1) ? statuses.get(0) : null;
+        model.addAttribute("selectedStatus", selectedStatus);
+        model.addAttribute("selectedStatuses", statuses);
         model.addAttribute("currentSort", sort); // 현재 정렬 방식
         String requestedWith = request.getHeader("X-Requested-With");
         if ("XMLHttpRequest".equals(requestedWith)) {
