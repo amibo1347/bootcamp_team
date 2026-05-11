@@ -29,7 +29,8 @@
     </style>
 </head>
 
-<body th:attr="data-board-id=${board.boardId},data-article-id=${articleId},data-current-member-id=${session.memberSession?.memberId},data-is-admin=${session.memberSession != null and session.memberSession.isAdmin()},data-comment-scope=${board.commentScope}"
+<body
+    th:attr="data-board-id=${board.boardId},data-article-id=${articleId},data-current-member-id=${session.memberSession?.memberId},data-is-admin=${session.memberSession != null and session.memberSession.isAdmin()},data-comment-scope=${board.commentScope}"
     x-data="{ page: 'board', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
     x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
     :class="{ 'dark bg-gray-900': darkMode === true }">
@@ -98,24 +99,21 @@
                     <!-- 첨부파일 섹션 끝 -->
 
                     <!-- 댓글 섹션 시작 -->
-                    <section id="commentsSection"
-                        class="border-t border-gray-100 px-8 py-6 dark:border-strokedark">
-                        <div class="flex items-center">
+                    <section id="commentsSection" class="border-t border-gray-100 px-8 py-6 dark:border-strokedark">
+                        <div class="flex items-end">
                             <h4 class="text-base font-bold text-gray-900 dark:text-white">댓글</h4>
                             <!-- 정렬 (최신순/등록순) — '최신순'과 '등록순' 사이의 | 폭만큼 댓글에서 떨어진 위치에서 시작 -->
-                            <div class="ml-12 flex items-center gap-3">
-                                <div class="flex gap-2">
-                                    <a href="javascript:void(0)" onclick="setCommentSort('desc')"
-                                        id="commentSortDesc"
-                                        class="text-sm transition-all hover:text-primary text-gray-400 dark:text-gray-300">
+                            <div style="margin-left: 1.5rem;" class="flex items-end gap-3">
+                                <div class="flex items-end gap-2">
+                                    <a href="javascript:void(0)" onclick="setCommentSort('desc')" id="commentSortDesc"
+                                        class="inline-flex items-end border-b-2 border-transparent pb-0.5 text-sm leading-none transition-all hover:text-primary text-gray-400 dark:text-gray-300">
                                         최신순
                                     </a>
 
                                     <span class="text-sm text-gray-300 dark:text-gray-300">|</span>
 
-                                    <a href="javascript:void(0)" onclick="setCommentSort('asc')"
-                                        id="commentSortAsc"
-                                        class="text-sm transition-all hover:text-primary text-primary font-bold border-b-2 border-primary">
+                                    <a href="javascript:void(0)" onclick="setCommentSort('asc')" id="commentSortAsc"
+                                        class="inline-flex items-end border-b-2 border-primary pb-0.5 text-sm leading-none transition-all hover:text-primary text-primary font-bold">
                                         등록순
                                     </a>
                                 </div>
@@ -123,11 +121,13 @@
                         </div>
                         <p id="commentsLoadError" class="mt-3 hidden text-sm text-rose-600 dark:text-rose-400"></p>
                         <p id="commentsLoading" class="mt-3 text-sm text-gray-500 dark:text-gray-400">댓글을 불러오는 중...</p>
-                        <p id="commentsEmpty" class="mt-3 hidden text-sm text-gray-500 dark:text-gray-400">등록된 댓글이 없습니다.</p>
+                        <p id="commentsEmpty" class="mt-3 hidden text-sm text-gray-500 dark:text-gray-400">등록된 댓글이 없습니다.
+                        </p>
                         <ul id="commentsList" class="mt-4 space-y-4 text-sm text-gray-800 dark:text-gray-200"></ul>
 
                         <div id="commentFormSection" class="mt-6 border-t border-gray-100 pt-6 dark:border-strokedark">
-                            <label for="commentContentInput" class="block text-sm font-medium text-gray-700 dark:text-gray-300">댓글 작성</label>
+                            <label for="commentContentInput"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300">댓글 작성</label>
                             <textarea id="commentContentInput" rows="3"
                                 class="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 shadow-sm placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-strokedark dark:bg-boxdark dark:text-gray-100 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/30"
                                 placeholder="내용을 입력하세요."></textarea>
