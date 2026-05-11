@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -49,5 +50,10 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
         WHERE b.company.companyId = :companyId AND a.isDeleted = true
         """)
     Page<Article> findDeletedByCompanyId(@Param("companyId") Long companyId, Pageable pageable);
+
+    /** 회원이 종료 상태(LEAVE/BANNED)로 전이될 때, 작성한 모든 글의 표시명을 고정. */
+    @Modifying
+    @Query("UPDATE Article a SET a.authorDisplayName = :name WHERE a.author.memberId = :memberId AND a.authorDisplayName IS NULL")
+    int markAuthorDisplayName(@Param("memberId") Long memberId, @Param("name") String name);
 
 }

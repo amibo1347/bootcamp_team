@@ -20,6 +20,9 @@ import jakarta.persistence.FetchType;
 
 import com.team.intranet.dto.ArticleDto;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Entity
 @Table(name = "tbl_article")
 @Getter
@@ -49,8 +52,12 @@ public class Article {
     private Board board; // 게시판과의 연관관계
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")
-    private Member author; // 작성자와의 연관관계
+    @JoinColumn(name = "member_id", nullable = true)
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private Member author; // 작성자와의 연관관계 (회원 영구 삭제 시 NULL)
+
+    @Column(name = "author_display_name")
+    private String authorDisplayName; // 작성자가 탈퇴/해고/거절 후 표시할 이름
 
     @Column(name = "is_anonymous")
     private boolean isAnonymous; // 익명 여부

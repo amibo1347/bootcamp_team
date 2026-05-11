@@ -16,7 +16,7 @@ public enum Status {
       private static final Map<Status, Set<Status>> ALLOWED = Map.of(
           WAIT,     EnumSet.of(JOIN, REJECT),
           JOIN,     EnumSet.of(BANNED, LEAVE, ON_LEAVE),
-          ON_LEAVE, EnumSet.of(BANNED, LEAVE),   // 복직 허용 시 JOIN 추가
+          ON_LEAVE, EnumSet.of(JOIN, BANNED, LEAVE),   // JOIN 으로 복직 허용
           // REJECT, BANNED, LEAVE는 항목 없음 = 모두 불가
           REJECT,   EnumSet.noneOf(Status.class),
           BANNED,   EnumSet.noneOf(Status.class),
@@ -25,5 +25,19 @@ public enum Status {
 
       public boolean canTransitionTo(Status next) {
           return ALLOWED.getOrDefault(this, EnumSet.noneOf(Status.class)).contains(next);
+      }
+
+      public boolean isTerminal() {
+          return this == REJECT || this == LEAVE || this == BANNED;
+      }
+
+      // 즉시 익명화 후 보존 기간 (스케줄러는 LEAVE/BANNED만 사용. REJECT는 즉시 row DELETE)
+      public long getRetentionDays() {
+          return switch (this) {
+              case LEAVE  -> 730;   // 2년
+              case BANNED -> 1825;  // 5년
+              case REJECT -> 0;     // 즉시 삭제 (스케줄러 미사용)
+              default -> throw new IllegalStateException("non-terminal status has no retention: " + this);
+          };
       }
 }

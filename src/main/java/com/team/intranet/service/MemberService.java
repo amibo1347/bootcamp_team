@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import com.team.intranet.enums.ErrorCode;
 import com.team.intranet.enums.member.MemberType;
 import com.team.intranet.enums.member.Status;
 import com.team.intranet.exception.BusinessException;
+import com.team.intranet.repository.ArticleRepository;
 import com.team.intranet.repository.CompanyRepository;
 import com.team.intranet.repository.DeptRepository;
 import com.team.intranet.repository.MemberRepository;
@@ -37,7 +39,10 @@ public class MemberService {
     private final CompanyRepository companyRepository;
     private final DeptRepository deptRepository;
     private final PositionRepository positionRepository;
+    private final ArticleRepository articleRepository;
     private final PasswordEncoder passwordEncoder;
+
+    private static final String RETIRED_DISPLAY_NAME = "탈퇴 회원";
 
     // ===== 회원가입 =====
 
@@ -91,16 +96,24 @@ public class MemberService {
     @Transactional
     public void changeStatus(MemberSession ms, Long memberId, Status next){
         Member target = findMemberAndValidateOwner(ms, memberId);
-        
+
         if (!target.getStatus().canTransitionTo(next)){
             throw new BusinessException(ErrorCode.INVALID_STATUS);
         }
         switch (next) {
-            case REJECT -> target.reject();
-            case BANNED -> target.fire();
-            case LEAVE -> target.leave();
+            case REJECT -> {
+                // 가입 거절: 작성한 게시글/댓글이 없으므로 별도 처리 없이 row 즉시 DELETE
+                memberRepository.delete(target);
+            }
+            case BANNED, LEAVE -> {
+                // 게시글 표시명을 먼저 고정해야 함 (author 가 아직 살아있어 검색 가능)
+                articleRepository.markAuthorDisplayName(target.getMemberId(), RETIRED_DISPLAY_NAME);
+                if (next == Status.BANNED) target.fire(); else target.leave();
+                target.anonymizePii(passwordEncoder.encode(UUID.randomUUID().toString()));
+            }
             case ON_LEAVE -> target.onLeave();
-            default -> throw new BusinessException(ErrorCode.INVALID_STATUS); 
+            case JOIN -> target.reinstate(); // ON_LEAVE -> JOIN 복직
+            default -> throw new BusinessException(ErrorCode.INVALID_STATUS);
         }
     }
 

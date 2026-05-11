@@ -50,11 +50,19 @@ public class ArticleDto {
         dto.setViewCount(article.getViewCount());
         dto.setCommentCount(article.getCommentCount());
         dto.setCreatedAt(article.getCreatedAt() != null ? article.getCreatedAt().toString() : null);
-        dto.setAuthorName(article.isAnonymous()
-          ? "익명"
-          : (article.getAuthor() != null ? article.getAuthor().getName() : "-"));
+        dto.setAuthorName(resolveAuthorName(article));
         dto.setThumbnailUrl(extractThumbnail(article.getContent()));
         return dto;
+    }
+
+    // 작성자 표시명 결정 우선순위:
+    // 1) 익명글  2) 탈퇴/해고/거절로 박제된 표시명  3) 살아있는 author 의 이름  4) 폴백
+    private static String resolveAuthorName(Article article) {
+        if (article.isAnonymous()) return "익명";
+        String fixed = article.getAuthorDisplayName();
+        if (fixed != null && !fixed.isBlank()) return fixed;
+        if (article.getAuthor() != null) return article.getAuthor().getName();
+        return "탈퇴 회원";
     }
 
     private static String extractThumbnail(String content) {

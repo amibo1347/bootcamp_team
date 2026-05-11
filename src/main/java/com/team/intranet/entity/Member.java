@@ -76,6 +76,9 @@ public class Member {
     @Column(name = "status")
     private Status status;
 
+    @Column(name = "status_changed_at")
+    private LocalDateTime statusChangedAt;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
@@ -107,6 +110,7 @@ public class Member {
         member.profileImg = dto.getProfileImg();
         member.company = company;
         member.status = Status.WAIT;
+        member.statusChangedAt = LocalDateTime.now();
         member.role = Role.USER;
         member.createdAt = LocalDateTime.now();
         member.dept = dto.getDept();
@@ -118,6 +122,7 @@ public class Member {
     // 가입 승인
     public void accept(Dept dept, Position position) {
         this.status = Status.JOIN;
+        this.statusChangedAt = LocalDateTime.now();
         this.dept = dept;
         this.position = position;
         this.acceptedAt = LocalDateTime.now();
@@ -140,18 +145,39 @@ public class Member {
 
     public void reject() {
         this.status = Status.REJECT;
+        this.statusChangedAt = LocalDateTime.now();
     }
 
     public void fire() {
         this.status = Status.BANNED;
+        this.statusChangedAt = LocalDateTime.now();
     }
 
     public void leave() {
         this.status = Status.LEAVE;
+        this.statusChangedAt = LocalDateTime.now();
     }
 
     public void onLeave(){
         this.status = Status.ON_LEAVE;
+        this.statusChangedAt = LocalDateTime.now();
+    }
+
+    // 휴직 -> 재직 복귀 (dept/position 은 휴직 시점 그대로 유지)
+    public void reinstate(){
+        this.status = Status.JOIN;
+        this.statusChangedAt = LocalDateTime.now();
+    }
+
+    // LEAVE/BANNED 전이 직후 호출. 이름/전화/이메일은 보존(퇴사 후 문의 대응),
+    // 그 외 PII는 비우고 비밀번호는 garbage 해시로 덮어 로그인 차단.
+    public void anonymizePii(String garbagePassword) {
+        this.password = garbagePassword;
+        this.birthDay = null;
+        this.role = null;
+        this.dept = null;
+        this.position = null;
+        this.profileImg = null;
     }
 
 }

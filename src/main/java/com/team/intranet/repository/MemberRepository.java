@@ -1,9 +1,9 @@
 package com.team.intranet.repository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.List;
 
-import org.antlr.v4.runtime.atn.SemanticContext.OR;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,6 +17,9 @@ public interface MemberRepository extends JpaRepository<Member, Long>{
     List<Member> findByCompanyCompanyId(Long companyId);
     List<Member> findByStatusAndCompanyCompanyId(Status status, Long companyId);
     boolean existsByLoginId(String loginId);
+
+    // 보존 기간을 넘긴 종료 상태 회원 (스케줄러 영구 삭제 대상)
+    List<Member> findByStatusAndStatusChangedAtBefore(Status status, LocalDateTime threshold);
     
 
    @Query("SELECT m.profileImg FROM Member m WHERE m.memberId = :id")
