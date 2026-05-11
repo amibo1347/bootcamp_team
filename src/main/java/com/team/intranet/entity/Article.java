@@ -70,6 +70,9 @@ public class Article {
     @Column(name = "is_deleted")
     private boolean isDeleted; // 삭제 여부
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt; // 삭제 시점
+
     public static Article create(Board board, Member author, ArticleDto dto, boolean isAnonymous) {
         return Article.builder()
             .title(dto.getTitle())
@@ -94,10 +97,12 @@ public class Article {
     }
 
     public void delete() {
+        this.deletedAt = LocalDateTime.now();
         this.isDeleted = true;
     }
 
     public void restore() {
+        this.deletedAt = null;
         this.isDeleted = false;
     }
 

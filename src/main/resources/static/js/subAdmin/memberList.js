@@ -232,7 +232,7 @@ window.deleteMember = async (memberId) => {
     const header = document.querySelector('meta[name="_csrf_header"]')?.content;
 
     try {
-        const response = await fetch(`/api/subAdmin/fire/${memberId}`, {
+        const response = await fetch(`/api/subAdmin/status/${memberId}/BANNED`, {
             method: 'POST',
             headers: {
                 [header]: token

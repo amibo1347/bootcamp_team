@@ -143,7 +143,15 @@ public class Member {
     }
 
     public void fire() {
+        this.status = Status.BANNED;
+    }
+
+    public void leave() {
         this.status = Status.LEAVE;
+    }
+
+    public void onLeave(){
+        this.status = Status.ON_LEAVE;
     }
 
 }

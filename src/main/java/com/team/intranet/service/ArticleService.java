@@ -19,6 +19,7 @@ import com.team.intranet.repository.BoardRepository;
 import com.team.intranet.repository.MemberRepository;
 import com.team.intranet.session.MemberSession;
 import com.team.intranet.util.HtmlSanitizer;
+import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 

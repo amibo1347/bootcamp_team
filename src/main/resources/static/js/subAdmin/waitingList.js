@@ -167,7 +167,7 @@
         const { token, header } = getCsrfToken();
 
         try {
-            const response = await fetch(`/api/subAdmin/reject/${memberId}`, {
+            const response = await fetch(`/api/subAdmin/status/${memberId}/REJECT`, {
                 method: 'POST',
                 headers: {
                     [header]: token

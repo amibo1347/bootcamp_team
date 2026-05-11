@@ -19,6 +19,7 @@ import com.team.intranet.session.MemberSession;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.team.intranet.enums.member.Status;
 
 @Controller
 @RequestMapping("/api/subAdmin")
@@ -48,17 +49,6 @@ public class SubAdminApiController {
         return "redirect:/admin/waitingList";
     }
 
-    // 가입 반려 (거절)
-    @PostMapping("/reject/{id}")
-    @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
-    public String rejectMember(
-            @PathVariable("id") Long memberId,
-            @SessionAttribute("memberSession") MemberSession ms) {
-
-        memberService.rejectMember(ms, memberId);
-        return "redirect:/admin/waitingList";
-    }
-
     // 회원 정보 수정 (부서, 직급 변경)
     @PostMapping("/update/{id}")
     @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
@@ -82,14 +72,15 @@ public class SubAdminApiController {
         return "redirect:/admin/memberList";
     }
 
-    // 퇴사 처리
-    @PostMapping("/fire/{id}")
+    // 상태 처리
+    @PostMapping("/status/{id}/{action}")
     @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
-    public String fireMember(@PathVariable("id") Long memberId, HttpSession session) {
-        MemberSession ms = (MemberSession) session.getAttribute("memberSession");
+    public String changeStatus(@PathVariable("id") Long memberId, 
+                             @PathVariable("action") Status action,
+                             @SessionAttribute("memberSession") MemberSession ms) {
 
-        memberService.fireMember(ms, memberId);
-
+        memberService.changeStatus(ms, memberId, action);
+       
         return "redirect:/admin/memberList";
     }
 

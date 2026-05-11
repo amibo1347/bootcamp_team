@@ -88,6 +88,22 @@ public class MemberService {
         targetMember.accept(dept, position);
     }
 
+    @Transactional
+    public void changeStatus(MemberSession ms, Long memberId, Status next){
+        Member target = findMemberAndValidateOwner(ms, memberId);
+        
+        if (!target.getStatus().canTransitionTo(next)){
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
+        switch (next) {
+            case REJECT -> target.reject();
+            case BANNED -> target.fire();
+            case LEAVE -> target.leave();
+            case ON_LEAVE -> target.onLeave();
+            default -> throw new BusinessException(ErrorCode.INVALID_STATUS); 
+        }
+    }
+
     /**
      * 회원 정보 수정
      */
@@ -108,24 +124,6 @@ public class MemberService {
         Position position = findPositionAndValidateOwner(ms, positionId);
 
         targetMember.updateInfo(dept, position, profileImg, phone, email, name, birthDay);
-    }
-
-    /**
-     * 가입 반려 (WAIT → REJECT)
-     */
-    @Transactional
-    public void rejectMember(MemberSession ms, Long memberId) {
-        Member target = findMemberAndValidateOwner(ms, memberId);
-        target.reject();  // ⭐ 도메인 메서드
-    }
-
-    /**
-     * 퇴사 처리 (JOIN → LEAVE)
-     */
-    @Transactional
-    public void fireMember(MemberSession ms, Long memberId) {
-        Member target = findMemberAndValidateOwner(ms, memberId);
-        target.fire();  // ⭐ 도메인 메서드
     }
 
     // ===== 조회 =====

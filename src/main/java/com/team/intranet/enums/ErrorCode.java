@@ -33,6 +33,7 @@ public enum ErrorCode {
     MEMBER_REJECTED(403, "가입이 거절된 회원입니다"),
     MEMBER_LEFT(403, "퇴사한 회원입니다"),
     MEMBER_NOT_WAITING(400, "승인 대기 상태가 아닌 회원입니다"),
+    INVALID_STATUS(400, "변경할 수 없는 상태값입니다"),
     
     // 기업
     COMPANY_NOT_FOUND(404, "해당 기업을 찾을 수 없습니다"),
