@@ -177,6 +177,12 @@
               </span>
             `
             : '';
+          // 댓글 수는 숫자만 표시해 XSS를 피한다.
+          const commentCount = Number(post.commentCount || 0);
+          const commentBadge =
+            commentCount > 0
+              ? `<span class="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-meta-4/60 dark:text-gray-300" title="댓글 ${commentCount}개" aria-label="댓글 ${commentCount}개">[${commentCount}]</span>`
+              : '';
          return `
           <tr class="border-t border-gray-100 text-gray-700 hover:bg-gray-50 dark:border-strokedark dark:text-gray-200 dark:hover:bg-meta-4/25">
             <td class="whitespace-nowrap">
@@ -185,6 +191,7 @@
             <td>
               <a href="${detailUrl}" class="flex items-center gap-1 truncate px-5 py-3 hover:text-indigo-500">
                 <span class="truncate">${escapeHtml(post.title)}</span>
+                ${commentBadge}
                 ${attachmentIcon}
               </a>
             </td>
