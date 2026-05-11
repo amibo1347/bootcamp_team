@@ -31,13 +31,13 @@ public interface MemberRepository extends JpaRepository<Member, Long>{
        "     OR LOWER(m.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
        "AND (:deptId IS NULL OR m.dept.deptId = :deptId) " +
        "AND (:positionId IS NULL OR m.position.positionId = :positionId) " +
-       "AND (:status IS NULL OR m.status = :status) " +
+       "AND (:statuses IS NULL OR m.status IN :statuses) " +
        "ORDER BY m.position.positionLevel ASC, m.name ASC")
 List<Member> searchMembers(
     @Param("companyId") Long companyId,
     @Param("keyword") String keyword,
     @Param("deptId") Long deptId,
-    @Param("status") Status status,
+    @Param("statuses") List<Status> statuses,
     @Param("positionId") Long positionId
 );
 
