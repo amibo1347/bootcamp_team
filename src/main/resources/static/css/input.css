@@ -12,6 +12,11 @@ layer(base);
 @source "../../templates/**/*.html";
 @source "../js/**/*.js";
 
+/* 디자인 규칙 4-6 (Restore / 복귀 버튼) 색상 강제 포함:
+   아직 어떤 템플릿에서도 사용 전이지만, 휴직 직원 목록 화면이 추가될 때
+   별도 빌드 없이 바로 적용되도록 safelist 처럼 미리 포함시킨다. */
+@source inline("bg-emerald-200 text-emerald-700 hover:bg-emerald-300");
+
 @theme {
   --font-*: initial;
   --font-outfit: Outfit, sans-serif;

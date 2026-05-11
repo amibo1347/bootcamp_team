@@ -11,6 +11,8 @@
     <title>게시글 작성</title>
     <link rel="stylesheet" th:href="@{/css/output.css}" />
     <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css" />
+    <!-- Toast UI Editor 다크 테마 — body.dark일 때 create.js에서 toastui-editor-dark 클래스와 함께 사용 -->
+    <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/theme/toastui-editor-dark.css" />
     <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
 </head>
 
@@ -47,7 +49,7 @@
 
                         <div>
                             <label for="content" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">본문</label>
-                            <div id="contentEditor" class="rounded-lg border border-gray-300"></div>
+                            <div id="contentEditor" class="rounded-lg border border-gray-300 dark:border-strokedark"></div>
                             <textarea id="content" required class="hidden"></textarea>
                         </div>
 

@@ -59,6 +59,8 @@
                         class="flex flex-col sm:flex-row items-end justify-between gap-6">
 
                         <input type="hidden" name="sort" id="sortInput" th:value="${currentSort}">
+                        <!-- 상태 필터 (활성/휴직/퇴사) - 탭 클릭으로 값이 바뀐다 -->
+                        <input type="hidden" name="status" id="statusInput" th:value="${currentStatus != null ? currentStatus : 'JOIN'}">
 
                         <div class="flex items-end gap-4 w-full sm:w-2/3">
                             <div class="relative z-20 w-full"> <label
@@ -95,10 +97,37 @@
                     <div th:fragment="memberListFragment"
                         class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
 
-                        <div class="mb-6 flex items-center justify-between">
-                            <h3 id="deptTitle" class="text-xl font-semibold text-black dark:text-white">부서 소속 직원 목록
-                            </h3>
+                        <!-- 카드 헤더: 좌측 상태별 탭 + 우측 정렬 -->
+                        <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <!-- 상태별 탭 (활성: JOIN / 휴직: ON_LEAVE / 퇴사: LEAVE) -->
+                            <div class="flex items-center gap-3">
+                                <a href="javascript:void(0)" data-status="JOIN"
+                                    onclick="selectStatusTab('JOIN')"
+                                    th:classappend="${(currentStatus != null ? currentStatus : 'JOIN') == 'JOIN' ? 'text-primary font-bold border-b-2 border-primary' : 'text-gray-400 dark:text-gray-300'}"
+                                    class="js-status-tab text-lg font-semibold transition-all hover:text-primary">
+                                    부서 소속 직원 목록
+                                </a>
 
+                                <span class="text-gray-300 dark:text-gray-300">|</span>
+
+                                <a href="javascript:void(0)" data-status="ON_LEAVE"
+                                    onclick="selectStatusTab('ON_LEAVE')"
+                                    th:classappend="${currentStatus == 'ON_LEAVE' ? 'text-primary font-bold border-b-2 border-primary' : 'text-gray-400 dark:text-gray-300'}"
+                                    class="js-status-tab text-lg font-semibold transition-all hover:text-primary">
+                                    휴직 직원 목록
+                                </a>
+
+                                <span class="text-gray-300 dark:text-gray-300">|</span>
+
+                                <a href="javascript:void(0)" data-status="LEAVE"
+                                    onclick="selectStatusTab('LEAVE')"
+                                    th:classappend="${currentStatus == 'LEAVE' ? 'text-primary font-bold border-b-2 border-primary' : 'text-gray-400 dark:text-gray-300'}"
+                                    class="js-status-tab text-lg font-semibold transition-all hover:text-primary">
+                                    퇴사 직원 목록
+                                </a>
+                            </div>
+
+                            <!-- 정렬 (높은순/낮은순) -->
                             <div class="flex items-center gap-3">
                                 <div class="flex gap-2">
 
@@ -166,23 +195,55 @@
                                         </div>
                                     </div>
 
+                                    <!-- 행별 액션 버튼: currentStatus 에 따라 분기 -->
                                     <div class="flex flex-col gap-2">
-                                        <button type="button"
-                                            class="rounded-md bg-indigo-200 px-6 py-1 text-sm font-medium text-indigo-700 transition hover:bg-indigo-300 js-edit-member-btn"
-                                            th:attr="data-member-id=${emp.memberId},
-                                                         data-member-name=${emp.name},
-                                                         data-dept-id=${emp.dept != null ? emp.dept.deptId : ''},
-                                                         data-position-id=${emp.position != null ? emp.position.positionId : ''},
-                                                         data-email=${emp.email != null ? emp.email : ''},
-                                                         data-phone=${emp.phone != null ? emp.phone : ''},
-                                                         data-birth=${emp.birthDay != null ? #temporals.format(emp.birthDay, 'yyyy-MM-dd') : ''},
-                                                         data-profile-img=@{/api/member/{id}/profileImg(id=${emp.memberId})}">
-                                            수정
-                                        </button>
-                                        <button type="button" th:attr="onclick=|deleteMember(${emp.memberId})|"
-                                            class="btn-delete-hover rounded-md bg-rose-200 px-6 py-1 text-sm font-medium text-rose-500 transition">
-                                            퇴사
-                                        </button>
+
+                                        <!-- [활성 직원 탭] 수정 / 휴직 / 퇴사 -->
+                                        <th:block th:if="${(currentStatus != null ? currentStatus : 'JOIN') == 'JOIN'}">
+                                            <!-- 수정 버튼 (Secondary, indigo-200) -->
+                                            <button type="button"
+                                                class="rounded-md bg-indigo-200 px-6 py-1 text-sm font-medium text-indigo-700 transition hover:bg-indigo-300 js-edit-member-btn"
+                                                th:attr="data-member-id=${emp.memberId},
+                                                             data-member-name=${emp.name},
+                                                             data-dept-id=${emp.dept != null ? emp.dept.deptId : ''},
+                                                             data-position-id=${emp.position != null ? emp.position.positionId : ''},
+                                                             data-email=${emp.email != null ? emp.email : ''},
+                                                             data-phone=${emp.phone != null ? emp.phone : ''},
+                                                             data-birth=${emp.birthDay != null ? #temporals.format(emp.birthDay, 'yyyy-MM-dd') : ''},
+                                                             data-profile-img=@{/api/member/{id}/profileImg(id=${emp.memberId})}">
+                                                수정
+                                            </button>
+                                            <!-- 휴직 버튼 (State Toggle - Pause, violet-200) -->
+                                            <button type="button" th:attr="onclick=|leaveMember(${emp.memberId})|"
+                                                class="rounded-md bg-violet-200 px-6 py-1 text-sm font-medium text-violet-700 transition hover:bg-violet-300">
+                                                휴직
+                                            </button>
+                                            <!-- 퇴사 버튼 (Danger, rose-200) -->
+                                            <button type="button" th:attr="onclick=|deleteMember(${emp.memberId})|"
+                                                class="btn-delete-hover rounded-md bg-rose-200 px-6 py-1 text-sm font-medium text-rose-500 transition">
+                                                퇴사
+                                            </button>
+                                        </th:block>
+
+                                        <!-- [휴직 직원 탭] 복귀 / 퇴사 -->
+                                        <th:block th:if="${currentStatus == 'ON_LEAVE'}">
+                                            <!-- 복귀 버튼 (State Toggle - Restore, emerald-200) -->
+                                            <button type="button" th:attr="onclick=|restoreMember(${emp.memberId})|"
+                                                class="rounded-md bg-emerald-200 px-6 py-1 text-sm font-medium text-emerald-700 transition hover:bg-emerald-300">
+                                                복귀
+                                            </button>
+                                            <!-- 퇴사 버튼 (Danger, rose-200) -->
+                                            <button type="button" th:attr="onclick=|deleteMember(${emp.memberId})|"
+                                                class="btn-delete-hover rounded-md bg-rose-200 px-6 py-1 text-sm font-medium text-rose-500 transition">
+                                                퇴사
+                                            </button>
+                                        </th:block>
+
+                                        <!-- [퇴사 직원 탭] 액션 없음 (열람 전용) -->
+                                        <th:block th:if="${currentStatus == 'LEAVE'}">
+                                            <span class="text-xs text-gray-400 dark:text-gray-300">퇴사 처리 완료</span>
+                                        </th:block>
+
                                     </div>
                                 </div>
                             </div>

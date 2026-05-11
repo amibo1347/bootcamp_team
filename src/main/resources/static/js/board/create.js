@@ -281,6 +281,30 @@
   }
 
   /**
+   * 다크 모드 여부를 반환한다.
+   * - 헤더 Alpine이 body에 `dark`를 붙이기 전에 스크립트가 돌 수 있어 localStorage도 함께 본다.
+   * @returns {boolean}
+   */
+  function isUiDarkMode() {
+    if (document.body.classList.contains('dark')) return true;
+    try {
+      return JSON.parse(localStorage.getItem('darkMode') || 'false') === true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Toast UI Editor 루트에 공식 다크 테마 클래스를 토글한다.
+   * (createPost.html에서 theme/toastui-editor-dark.css 로드 전제)
+   */
+  function applyToastEditorDarkTheme() {
+    const uiRoot = document.querySelector('#contentEditor .toastui-editor-defaultUI');
+    if (!uiRoot) return;
+    uiRoot.classList.toggle('toastui-editor-dark', isUiDarkMode());
+  }
+
+  /**
    * TOAST UI Editor를 초기화한다.
    */
   function initEditor() {
@@ -300,6 +324,7 @@
 
     editor.on('change', syncEditorContentToTextarea);
     syncEditorContentToTextarea();
+    applyToastEditorDarkTheme();
   }
 
   /**
@@ -390,6 +415,10 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     initEditor();
+    new MutationObserver(() => applyToastEditorDarkTheme()).observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
     uploadedAttachments = [];
     selectedFiles = [];
     syncAttachmentIdFields();

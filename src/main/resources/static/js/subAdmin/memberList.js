@@ -253,6 +253,95 @@ window.deleteMember = async (memberId) => {
 };
 
 /**
+ * 직원 휴직 처리 (JOIN → ON_LEAVE).
+ * 백엔드: POST /api/subAdmin/status/{memberId}/ON_LEAVE (SubAdminApiController.changeStatus)
+ * @param {number|string} memberId 대상 회원 PK
+ */
+window.leaveMember = async (memberId) => {
+    if (!confirm("이 직원을 휴직 처리하시겠습니까?")) return;
+
+    const token = document.querySelector('meta[name="_csrf"]')?.content;
+    const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+    try {
+        const response = await fetch(`/api/subAdmin/status/${memberId}/ON_LEAVE`, {
+            method: 'POST',
+            headers: {
+                [header]: token
+            }
+        });
+
+        if (response.ok) {
+            alert("휴직 처리되었습니다.");
+            loadMemberList();
+        } else {
+            const errorText = await response.text();
+            alert(`처리 실패: ${errorText || '알 수 없는 오류가 발생했습니다.'}`);
+        }
+    } catch (error) {
+        console.error("Error during leave:", error);
+        alert("서버와 통신 중 오류가 발생했습니다.");
+    }
+};
+
+/**
+ * 직원 복귀 처리 (ON_LEAVE → JOIN).
+ * 백엔드: POST /api/subAdmin/status/{memberId}/JOIN (SubAdminApiController.changeStatus)
+ *  ※ 동작 전제: Status enum 의 ON_LEAVE 전이 허용 목록에 JOIN 이 추가되어 있어야 한다.
+ * @param {number|string} memberId 대상 회원 PK
+ */
+window.restoreMember = async (memberId) => {
+    if (!confirm("이 직원을 복귀(활성) 처리하시겠습니까?")) return;
+
+    const token = document.querySelector('meta[name="_csrf"]')?.content;
+    const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+    try {
+        const response = await fetch(`/api/subAdmin/status/${memberId}/JOIN`, {
+            method: 'POST',
+            headers: {
+                [header]: token
+            }
+        });
+
+        if (response.ok) {
+            alert("복귀 처리되었습니다.");
+            loadMemberList();
+        } else {
+            const errorText = await response.text();
+            alert(`처리 실패: ${errorText || '알 수 없는 오류가 발생했습니다.'}`);
+        }
+    } catch (error) {
+        console.error("Error during restore:", error);
+        alert("서버와 통신 중 오류가 발생했습니다.");
+    }
+};
+
+/**
+ * 상태별 탭(JOIN / ON_LEAVE / LEAVE) 전환 핸들러.
+ *  1) hidden input(#statusInput) 값을 갱신해서 다음 fetch 요청에 status 가 실린다.
+ *  2) 통신을 기다리지 않고 즉시 활성 탭 시각효과를 갈아끼워 클릭 응답성을 높인다.
+ *  3) loadMemberList() 호출 시 fragment 가 새 status 기준으로 재렌더링된다.
+ * @param {('JOIN'|'ON_LEAVE'|'LEAVE')} status 전환할 상태 값
+ */
+window.selectStatusTab = (status) => {
+    const statusInput = document.getElementById('statusInput');
+    if (statusInput) statusInput.value = status;
+
+    document.querySelectorAll('.js-status-tab').forEach((tab) => {
+        const isActive = tab.dataset.status === status;
+        tab.classList.toggle('text-primary', isActive);
+        tab.classList.toggle('font-bold', isActive);
+        tab.classList.toggle('border-b-2', isActive);
+        tab.classList.toggle('border-primary', isActive);
+        tab.classList.toggle('text-gray-400', !isActive);
+        tab.classList.toggle('dark:text-gray-300', !isActive);
+    });
+
+    loadMemberList();
+};
+
+/**
  * 직원 목록을 AJAX로 로드하는 공통 함수
  */
 function loadMemberList() {
@@ -282,23 +371,9 @@ function loadMemberList() {
                 container.innerHTML = html;
                 initCustomSelects();
 
-                // 2. 제목 업데이트 로직 실행
-                const deptSelect = document.getElementById('deptSelect');
-                if (deptSelect) {
-                    // 현재 드롭다운에서 선택된 글자(예: "인사팀") 가져오기
-                    const selectedText = deptSelect.options[deptSelect.selectedIndex].text;
-
-                    // 새로 갈아끼워진 HTML 내부에서 h3 태그 찾기
-                    const titleElement = container.querySelector('#deptTitle');
-                    if (titleElement) {
-                        titleElement.innerText = `${selectedText} 소속 직원 목록`;
-                    }
-                }
-                // 부서 변경할 때마다 어느 부서 소속인지 명시하기 위해 추가함 (예: 인사과 소속 직원 목록)
-
-                // 💡 중요: 목록이 새로 바뀌면 내부의 버튼(수정/삭제 등) 이벤트가 
-                // 끊길 수 있으므로, 여기서 필요한 초기화 함수를 다시 호출해줘야 함
-                // 예: initEditButtons();
+                // 카드 헤더가 상태별 탭(JOIN / ON_LEAVE / LEAVE)으로 교체된 이후에는
+                // 별도의 제목 갱신 로직이 필요 없다. 부서 필터는 검색 폼의 select 가 그대로 표현한다.
+                // 버튼(수정/삭제 등) 이벤트는 document 레벨 위임이므로 별도 재초기화 불필요.
             }
         })
         .catch(error => {

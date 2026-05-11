@@ -6,6 +6,8 @@
   "scripts": {
     "start": "webpack serve --open --config webpack.config.js",
     "build": "webpack --config webpack.config.js",
+    "css:build": "tailwindcss -i src/main/resources/static/css/input.css -o src/main/resources/static/css/output.css --minify",
+    "css:watch": "tailwindcss -i src/main/resources/static/css/input.css -o src/main/resources/static/css/output.css --watch",
     "sort": "npx prettier --write src"
   },
   "keywords": [],

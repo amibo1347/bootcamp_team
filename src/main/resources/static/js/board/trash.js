@@ -223,11 +223,11 @@
             <td class="whitespace-nowrap px-5 py-3">
               <div class="flex flex-wrap gap-2">
                 <button type="button" data-action="restore" data-article-id="${articleId}"
-                  class="rounded-xl bg-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-300 dark:bg-indigo-600/35 dark:text-indigo-100 dark:hover:bg-indigo-600/50">
+                  class="rounded-lg bg-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-300 dark:bg-indigo-600/35 dark:text-indigo-100 dark:hover:bg-indigo-600/50">
                   복구
                 </button>
                 <button type="button" data-action="permanent" data-article-id="${articleId}"
-                  class="btn-delete-hover rounded-xl bg-rose-200 px-3 py-1.5 text-xs font-medium text-rose-500 transition dark:bg-rose-600/35 dark:text-rose-100">
+                  class="btn-delete-hover rounded-lg bg-rose-200 px-3 py-1.5 text-xs font-medium text-rose-500 transition dark:bg-rose-600/35 dark:text-rose-100">
                   영구 삭제
                 </button>
               </div>
@@ -258,11 +258,10 @@
         data-page="${targetPage}"
         ${disabled ? 'disabled' : ''}
         class="rounded-md border px-3 py-1.5 text-sm transition
-          ${
-            active
-              ? 'border-indigo-300 bg-indigo-200 font-semibold text-indigo-700 dark:border-indigo-500/60 dark:bg-indigo-500/20 dark:text-indigo-200'
-              : 'border-gray-300 bg-white text-gray-700 hover:border-indigo-300 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/60 dark:hover:text-indigo-300'
-          }">
+          ${active
+        ? 'border-indigo-300 bg-indigo-200 font-semibold text-indigo-700 dark:border-indigo-500/60 dark:bg-indigo-500/20 dark:text-indigo-200'
+        : 'border-gray-300 bg-white text-gray-700 hover:border-indigo-300 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/60 dark:hover:text-indigo-300'
+      }">
         ${label}
       </button>
     `;
@@ -374,7 +373,7 @@
       console.error(error);
       showPageMessage(error?.message || '휴지통 목록을 불러오지 못했습니다.');
       renderRows([], boardId, 0);
-      renderPagination(0, 1, () => {});
+      renderPagination(0, 1, () => { });
     });
   });
 })();
