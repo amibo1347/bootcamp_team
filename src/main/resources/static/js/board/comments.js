@@ -255,12 +255,18 @@
    * @param {string} content 본문
    */
   async function submitNewComment(boardId, articleId, content) {
-    const response = await fetch(`/api/board/${boardId}/articles/${articleId}/comments`, {
-      method: 'POST',
-      headers: buildHeaders(true),
-      credentials: 'same-origin',
-      body: JSON.stringify({ content }),
-    });
+    const body = new URLSearchParams();
+    body.set('content', content);
+
+    const response = await fetch(
+      `/api/board/${boardId}/articles/${articleId}/comments/new`,
+      {
+        method: 'POST',
+        headers: buildHeaders(false),
+        credentials: 'same-origin',
+        body,
+      }
+    );
 
     if (response.status === 401 || response.status === 403) {
       throw new Error('댓글 작성 권한이 없습니다.');
@@ -278,13 +284,16 @@
    * @param {string} content 본문
    */
   async function submitCommentUpdate(boardId, articleId, commentId, content) {
+    const body = new URLSearchParams();
+    body.set('content', content);
+
     const response = await fetch(
-      `/api/board/${boardId}/articles/${articleId}/comments/${commentId}`,
+      `/api/board/${boardId}/articles/${articleId}/comments/${commentId}/edit`,
       {
-        method: 'PATCH',
-        headers: buildHeaders(true),
+        method: 'POST',
+        headers: buildHeaders(false),
         credentials: 'same-origin',
-        body: JSON.stringify({ content }),
+        body,
       }
     );
 
@@ -304,9 +313,9 @@
    */
   async function submitCommentDelete(boardId, articleId, commentId) {
     const response = await fetch(
-      `/api/board/${boardId}/articles/${articleId}/comments/${commentId}`,
+      `/api/board/${boardId}/articles/${articleId}/comments/${commentId}/delete`,
       {
-        method: 'DELETE',
+        method: 'POST',
         headers: buildHeaders(false),
         credentials: 'same-origin',
       }
