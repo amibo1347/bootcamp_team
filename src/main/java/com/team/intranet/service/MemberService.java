@@ -20,6 +20,7 @@ import com.team.intranet.enums.member.MemberType;
 import com.team.intranet.enums.member.Status;
 import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.ArticleRepository;
+import com.team.intranet.repository.CommentRepository;
 import com.team.intranet.repository.CompanyRepository;
 import com.team.intranet.repository.DeptRepository;
 import com.team.intranet.repository.MemberRepository;
@@ -40,6 +41,7 @@ public class MemberService {
     private final DeptRepository deptRepository;
     private final PositionRepository positionRepository;
     private final ArticleRepository articleRepository;
+    private final CommentRepository commentRepository;
     private final PasswordEncoder passwordEncoder;
 
     private static final String RETIRED_DISPLAY_NAME = "탈퇴 회원";
@@ -106,8 +108,9 @@ public class MemberService {
                 memberRepository.delete(target);
             }
             case BANNED, LEAVE -> {
-                // 게시글 표시명을 먼저 고정해야 함 (author 가 아직 살아있어 검색 가능)
+                // 게시글/댓글 표시명을 먼저 고정해야 함 (author 가 아직 살아있어 검색 가능)
                 articleRepository.markAuthorDisplayName(target.getMemberId(), RETIRED_DISPLAY_NAME);
+                commentRepository.markAuthorDisplayName(target.getMemberId(), RETIRED_DISPLAY_NAME);
                 if (next == Status.BANNED) target.fire(); else target.leave();
                 target.anonymizePii(passwordEncoder.encode(UUID.randomUUID().toString()));
             }

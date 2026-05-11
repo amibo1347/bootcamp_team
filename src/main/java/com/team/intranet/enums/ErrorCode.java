@@ -64,7 +64,11 @@ public enum ErrorCode {
     ARTICLE_NOT_FOUND(404, "해당 게시글을 찾을 수 없습니다"),
     ATTACHMENT_NOT_FOUND(404, "첨부파일을 찾을 수 없습니다"),
     ALEADY_DELETE_ARTICLE(409, "이미 삭제된 게시글입니다"),
-    NOT_ANONYMOUS_POST(400, "익명 게시글이 아닙니다");
+    NOT_ANONYMOUS_POST(400, "익명 게시글이 아닙니다"),
+
+    // 댓글
+    COMMENT_NOT_FOUND(404, "해당 댓글을 찾을 수 없습니다"),
+    INVALID_COMMENT_DEPTH(400, "대댓글에는 답글을 달 수 없습니다");
     
     // 2. 변수 정의
     private final int status;
