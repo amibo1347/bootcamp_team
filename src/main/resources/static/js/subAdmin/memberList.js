@@ -397,7 +397,10 @@ window.selectStatusTab = (status) => {
 };
 
 /**
- * 직원 목록을 AJAX로 로드하는 공통 함수
+ * 직원 목록을 AJAX로 로드하는 공통 함수.
+ *  ※ "퇴사 직원 목록" 탭(status=LEAVE) 은 자진퇴사(LEAVE) + 해고(BANNED) 를 함께 조회한다.
+ *    백엔드는 List<Status> 를 받아 m.status IN :statuses 절로 처리하므로
+ *    status 파라미터를 두 번 append 하면 둘 다 결과에 포함된다.
  */
 function loadMemberList() {
     const form = document.getElementById('filterForm');
@@ -406,6 +409,14 @@ function loadMemberList() {
     // 폼 안의 모든 데이터(deptId, name, sort 등)를 가져옴
     const formData = new FormData(form);
     const params = new URLSearchParams(formData);
+
+    // 퇴사 탭은 항상 LEAVE + BANNED 두 가지 상태를 함께 조회한다.
+    //  ※ Spring 의 @RequestParam List<Status> 는 multiple-param(`?status=A&status=B`) 형식과
+    //    콤마 분리(`?status=A,B`) 형식 둘 다 받지만, 일부 환경에서 multiple-param 이 첫 값만
+    //    binding 되는 케이스가 있어 콤마 분리 형식으로 보낸다.
+    if (params.get('status') === 'LEAVE') {
+        params.set('status', 'LEAVE,BANNED');
+    }
 
     // AJAX 요청 URL 생성
     const url = `${form.action}?${params.toString()}`;
