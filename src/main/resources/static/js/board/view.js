@@ -191,8 +191,8 @@
             <td>
               <a href="${detailUrl}" class="flex items-center gap-1 truncate px-5 py-3 hover:text-indigo-500">
                 <span class="truncate">${escapeHtml(post.title)}</span>
-                ${commentBadge}
                 ${attachmentIcon}
+                ${commentBadge}
               </a>
             </td>
             <td class="whitespace-nowrap">
