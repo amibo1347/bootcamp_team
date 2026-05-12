@@ -12,5 +12,5 @@ public interface CalendarShareMemberRepository extends JpaRepository<CalendarSha
     List<CalendarShareMember> findAllByCalendar(Calendar calendar);
     List<CalendarShareMember> findAllByMember(Member member);
     void deleteAllByCalendar(Calendar calendar);
-    boolean existsByCalendarAndMember(Calendar, Member);
+    boolean existsByCalendarAndMember(Calendar calendar, Member member);
 }
