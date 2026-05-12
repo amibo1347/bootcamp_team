@@ -1,4 +1,5 @@
 import { Calendar } from "@fullcalendar/core";
+import koLocale from "@fullcalendar/core/locales/ko";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import listPlugin from "@fullcalendar/list";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -11,15 +12,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!calendarEl) return;
 
   // ---------------------------------------------------------------------------
-  // [상수] API 경로 — CalendarApiController / CategoryApiController 와 동일 경로 유지
-  // (변경 요청은 프로젝트 정책상 PUT/DELETE 대신 POST 하위 경로 사용)
+  // [상수] API 경로 — CalendarApiController(@RequestMapping("/api/calendars"))·CategoryApiController 와 동일
+  // 일정 생성·수정은 JSON이 아니라 application/x-www-form-urlencoded(@ModelAttribute CalendarDto)
   // ---------------------------------------------------------------------------
-  const API_CALENDAR_EVENTS = "/api/calendar/events";
-  /** 일정 수정: POST 본문에 `id` + 필드 포함 (@PostMapping .../update) */
-  const API_CALENDAR_EVENTS_UPDATE = `${API_CALENDAR_EVENTS}/update`;
-  /** 일정 삭제: POST 본문 `{ id }` (@PostMapping .../delete) */
-  const API_CALENDAR_EVENTS_DELETE = `${API_CALENDAR_EVENTS}/delete`;
-  /** CategoryApiController: `/api/categories` — 생성·수정은 JSON이 아니라 form-urlencoded(@ModelAttribute) */
+  const API_CALENDARS = "/api/calendars";
+  /** CategoryApiController: `/api/categories` — 생성·수정은 @RequestBody CategoryDto(JSON) */
   const API_CATEGORIES = "/api/categories";
   const API_DEPTS = "/api/depts";
   const API_MEMBERS = "/api/members";
@@ -51,14 +48,37 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * datetime-local 값을 ISO 문자열로 변환 (JSON 전송용)
+   * datetime-local 입력값을 Spring LocalDateTime 폼 바인딩용 문자열로 변환 (로컬 시각 유지)
    * @param {string} localStr
+   * @returns {string|null}
    */
-  function datetimeLocalToIso(localStr) {
-    if (!localStr || !localStr.trim()) return null;
-    const d = new Date(localStr);
-    if (Number.isNaN(d.getTime())) return null;
-    return d.toISOString();
+  function datetimeLocalToSpringParam(localStr) {
+    if (!localStr || !String(localStr).trim()) return null;
+    const s = String(localStr).trim();
+    return s.length === 16 ? `${s}:00` : s;
+  }
+
+  /**
+   * JSON의 startAt/endAt(문자열·배열 등)을 epoch ms로 변환 (뷰 범위 필터용)
+   * @param {unknown} v
+   */
+  function calendarDtoTimeToMillis(v) {
+    if (v == null) return NaN;
+    if (typeof v === "string") {
+      const t = new Date(v).getTime();
+      return Number.isNaN(t) ? NaN : t;
+    }
+    if (Array.isArray(v) && v.length >= 3) {
+      const y = Number(v[0]);
+      const mo = Number(v[1]);
+      const d = Number(v[2]);
+      const h = v.length > 3 ? Number(v[3]) : 0;
+      const mi = v.length > 4 ? Number(v[4]) : 0;
+      const s = v.length > 5 ? Number(v[5]) : 0;
+      if ([y, mo, d, h, mi, s].some((n) => Number.isNaN(n))) return NaN;
+      return new Date(y, mo - 1, d, h, mi, s).getTime();
+    }
+    return NaN;
   }
 
   /** Spring Security CSRF 메타가 있으면 헤더 객체로 반환 */
@@ -107,15 +127,36 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * CategoryDto 폼 필드 — CategoryApiController 의 @ModelAttribute 바인딩용 (body 에 넣으면 fetch 가 urlencoded Content-Type 설정)
+   * CategoryDto JSON 본문 — CategoryApiController 의 @RequestBody CategoryDto(name, color) 와 동일 스키마
    * @param {{ name: string; color: string }} fields
-   * @returns {URLSearchParams}
+   * @returns {string}
    */
-  function buildCategoryFormParams(fields) {
-    const p = new URLSearchParams();
-    p.set("name", fields.name);
-    p.set("color", fields.color);
-    return p;
+  function buildCategoryRequestJson(fields) {
+    return JSON.stringify({ name: fields.name, color: fields.color });
+  }
+
+  /**
+   * 카테고리 hex 색 → 반투명 배경용 rgba (월 그리드에서 색 박스가 보이도록)
+   * @param {string} hex #rgb 또는 #rrggbb
+   * @param {number} alpha 0~1
+   * @returns {string}
+   */
+  function hexToRgba(hex, alpha) {
+    const h = String(hex ?? "").replace(/^#/, "").trim();
+    if (h.length === 3) {
+      const r = parseInt(h[0] + h[0], 16);
+      const g = parseInt(h[1] + h[1], 16);
+      const b = parseInt(h[2] + h[2], 16);
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+    if (h.length === 6) {
+      const r = parseInt(h.slice(0, 2), 16);
+      const g = parseInt(h.slice(2, 4), 16);
+      const b = parseInt(h.slice(4, 6), 16);
+      if ([r, g, b].some((n) => Number.isNaN(n))) return `rgba(70,95,255,${alpha})`;
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+    return `rgba(70,95,255,${alpha})`;
   }
 
   /** XSS 방지용 간단 이스케이프 (카테고리 이름 등) */
@@ -137,6 +178,9 @@ document.addEventListener("DOMContentLoaded", () => {
       (cat && typeof cat.color === "string" && cat.color) ||
       (typeof raw.categoryColor === "string" && raw.categoryColor) ||
       "#465fff";
+    /** 월 뷰 블록 배경은 반투명, 테두리는 같은 색조로 조금 진하게 */
+    const bgTint = hexToRgba(color, 0.22);
+    const borderTint = hexToRgba(color, 0.55);
     const calendarId = raw.calendarId ?? raw.id;
     const shareMemberIds = Array.isArray(raw.shareMemberIds) ? raw.shareMemberIds : [];
     const shareDeptIds = Array.isArray(raw.shareDeptIds) ? raw.shareDeptIds : [];
@@ -147,13 +191,15 @@ document.addEventListener("DOMContentLoaded", () => {
       start: raw.startAt ?? raw.start,
       end: raw.endAt ?? raw.end ?? raw.startAt ?? raw.start,
       allDay: Boolean(raw.allDay),
-      backgroundColor: color,
-      borderColor: color,
+      backgroundColor: bgTint,
+      borderColor: borderTint,
       extendedProps: {
         calendarId,
         description: raw.description ?? "",
         categoryId: cat?.categoryId ?? raw.categoryId ?? null,
         categoryColor: color,
+        categoryBgTint: bgTint,
+        categoryBorderTint: borderTint,
         location: raw.location ?? "",
         visibility: raw.visibility ?? "PRIVATE",
         allDay: Boolean(raw.allDay),
@@ -260,50 +306,191 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * 폼 값을 API 요청 본문 객체로 직렬화
-   * @returns {Record<string, unknown>}
+   * Spring @ModelAttribute(CalendarDto) 바인딩용 x-www-form-urlencoded 본문 생성
+   * - 빈 문자열은 Long·LocalDateTime 변환 시 BindException(400)이 나므로 calendarId·categoryId·endAt 등은 값이 있을 때만 넣는다.
+   * - 체크박스는 name 이 `isRepeat`·`isAlert`·`allDay` 이고, 미체크 시 FormData 에서 빠지므로 false 를 명시한다.
+   * @returns {URLSearchParams}
    */
-  function collectEventPayload() {
-    const categorySel = document.getElementById("calendar-category-id");
-    const catVal = categorySel?.value ?? "";
-    const visibility =
-      eventForm?.querySelector('input[name="visibility"]:checked')?.value ?? "PRIVATE";
-    const deptSelect = document.getElementById("calendar-share-depts");
-    const memberSelect = document.getElementById("calendar-share-members");
+  function buildCalendarModelAttributeParams() {
+    const p = new URLSearchParams();
+    const form = document.getElementById("calendarEventForm");
+    if (!(form instanceof HTMLFormElement)) return p;
 
-    const shareDeptIds = deptSelect
-      ? Array.from(deptSelect.selectedOptions).map((o) => Number(o.value)).filter((id) => !Number.isNaN(id))
-      : [];
-    const shareMemberIds = memberSelect
-      ? Array.from(memberSelect.selectedOptions).map((o) => Number(o.value)).filter((id) => !Number.isNaN(id))
-      : [];
+    const skipIfEmpty = new Set([
+      "calendarId",
+      "categoryId",
+      "endAt",
+      "description",
+      "location",
+      "repeatEndAt",
+    ]);
+
+    const fd = new FormData(form);
+    for (const [key, val] of fd.entries()) {
+      const s = typeof val === "string" ? val.trim() : String(val);
+      if (key === "startAt" || key === "endAt" || key === "repeatEndAt") continue;
+      if (skipIfEmpty.has(key) && s === "") continue;
+      if (key === "isRepeat" || key === "isAlert" || key === "allDay") {
+        p.append(key, s === "on" ? "true" : s === "" ? "false" : s);
+        continue;
+      }
+      if (s === "") continue;
+      p.append(key, s);
+    }
+
+    const startNorm = datetimeLocalToSpringParam(document.getElementById("calendar-start-at")?.value ?? "");
+    if (startNorm) p.set("startAt", startNorm);
+
+    const endNorm = datetimeLocalToSpringParam(document.getElementById("calendar-end-at")?.value ?? "");
+    if (endNorm) p.set("endAt", endNorm);
+
+    const allDay = document.getElementById("calendar-all-day")?.checked ?? false;
+    if (!p.has("allDay")) p.set("allDay", String(allDay));
 
     const isRepeat = document.getElementById("calendar-is-repeat")?.checked ?? false;
+    if (!p.has("isRepeat")) p.set("isRepeat", String(isRepeat));
+    if (isRepeat) {
+      p.set("repeatType", document.getElementById("calendar-repeat-type")?.value ?? "DAILY");
+      const re = datetimeLocalToSpringParam(document.getElementById("calendar-repeat-end-at")?.value ?? "");
+      if (re) p.set("repeatEndAt", re);
+    } else {
+      p.delete("repeatType");
+      p.delete("repeatEndAt");
+    }
+
     const isAlert = document.getElementById("calendar-is-alert")?.checked ?? false;
-    const repeatTypeEl = document.getElementById("calendar-repeat-type");
-    const alertMinutesEl = document.getElementById("calendar-alert-minutes");
+    if (!p.has("isAlert")) p.set("isAlert", String(isAlert));
+    if (isAlert) {
+      p.set("alertMinutesBefore", String(document.getElementById("calendar-alert-minutes")?.value ?? "15"));
+    } else {
+      p.delete("alertMinutesBefore");
+    }
 
-    const startIso = datetimeLocalToIso(document.getElementById("calendar-start-at")?.value ?? "");
-    const endIso = datetimeLocalToIso(document.getElementById("calendar-end-at")?.value ?? "");
-    const repeatEndIso = datetimeLocalToIso(document.getElementById("calendar-repeat-end-at")?.value ?? "");
+    const visibility =
+      form.querySelector('input[name="visibility"]:checked')?.value ?? "PRIVATE";
+    p.set("visibility", visibility);
 
-    return {
-      title: document.getElementById("calendar-title")?.value?.trim() ?? "",
-      description: document.getElementById("calendar-description")?.value?.trim() || null,
-      location: document.getElementById("calendar-location")?.value?.trim() || null,
-      startAt: startIso,
-      endAt: endIso,
-      allDay: document.getElementById("calendar-all-day")?.checked ?? false,
-      categoryId: catVal ? Number(catVal) : null,
-      visibility,
-      shareDeptIds,
-      shareMemberIds,
-      isRepeat,
-      repeatType: isRepeat ? repeatTypeEl?.value ?? "DAILY" : null,
-      repeatEndAt: isRepeat ? repeatEndIso : null,
-      isAlert,
-      alertMinutesBefore: isAlert ? Number(alertMinutesEl?.value ?? 15) : null,
-    };
+    const catVal = document.getElementById("calendar-category-id")?.value?.trim() ?? "";
+    if (catVal) p.set("categoryId", catVal);
+    else p.delete("categoryId");
+
+    const deptSelect = document.getElementById("calendar-share-depts");
+    const memberSelect = document.getElementById("calendar-share-members");
+    if (deptSelect && visibility === "DEPARTMENT") {
+      p.delete("shareDeptIds");
+      Array.from(deptSelect.selectedOptions).forEach((o) => {
+        const id = Number(o.value);
+        if (!Number.isNaN(id)) p.append("shareDeptIds", String(id));
+      });
+    } else {
+      p.delete("shareDeptIds");
+    }
+    if (memberSelect && visibility === "SPECIFIC") {
+      p.delete("shareMemberIds");
+      Array.from(memberSelect.selectedOptions).forEach((o) => {
+        const id = Number(o.value);
+        if (!Number.isNaN(id)) p.append("shareMemberIds", String(id));
+      });
+    } else {
+      p.delete("shareMemberIds");
+    }
+
+    return p;
+  }
+
+  /**
+   * 서버가 기간 필터 없이 전체 목록을 주므로, FullCalendar 뷰 구간과 겹치는 DTO만 남긴다.
+   * @param {Record<string, unknown>[]} rows
+   * @param {Date} rangeStart
+   * @param {Date} rangeEndExclusive FullCalendar info.end (배타적)
+   */
+  function filterCalendarDtosByViewRange(rows, rangeStart, rangeEndExclusive) {
+    const rs = rangeStart.getTime();
+    const re = rangeEndExclusive.getTime();
+    return rows.filter((raw) => {
+      const startAt = raw.startAt ?? raw.start;
+      const endAt = raw.endAt ?? raw.end ?? startAt;
+      const es = calendarDtoTimeToMillis(startAt);
+      const ee = calendarDtoTimeToMillis(endAt);
+      if (Number.isNaN(es)) return false;
+      const eeff = Number.isNaN(ee) ? es : ee;
+      return es < re && eeff > rs;
+    });
+  }
+
+  /**
+   * GET /api/calendars/{id} 응답(CalendarDto JSON)으로 일정 폼 채우기
+   * @param {Record<string, unknown>} raw
+   */
+  function fillFormFromCalendarDto(raw) {
+    const cid = raw.calendarId != null ? String(raw.calendarId) : raw.id != null ? String(raw.id) : "";
+    const hiddenId = document.getElementById("calendar-id");
+    if (hiddenId) hiddenId.value = cid;
+
+    const titleEl = document.getElementById("calendar-title");
+    if (titleEl) titleEl.value = typeof raw.title === "string" ? raw.title : "";
+
+    const desc = document.getElementById("calendar-description");
+    if (desc) desc.value = typeof raw.description === "string" ? raw.description : "";
+
+    const loc = document.getElementById("calendar-location");
+    if (loc) loc.value = typeof raw.location === "string" ? raw.location : "";
+
+    const categorySel = document.getElementById("calendar-category-id");
+    if (categorySel instanceof HTMLSelectElement) {
+      categorySel.value = raw.categoryId != null ? String(raw.categoryId) : "";
+    }
+
+    const allDayEl = document.getElementById("calendar-all-day");
+    const allDay = Boolean(raw.allDay);
+    if (allDayEl) allDayEl.checked = allDay;
+
+    const startMs = calendarDtoTimeToMillis(raw.startAt);
+    const endMs = calendarDtoTimeToMillis(raw.endAt);
+    const s = document.getElementById("calendar-start-at");
+    if (s && !Number.isNaN(startMs)) s.value = toDatetimeLocalValue(new Date(startMs));
+    const e = document.getElementById("calendar-end-at");
+    if (e && !Number.isNaN(endMs)) {
+      const displayEnd = allDay ? new Date(endMs - 1) : new Date(endMs);
+      e.value = toDatetimeLocalValue(displayEnd);
+    }
+
+    const isRepeatEl = document.getElementById("calendar-is-repeat");
+    if (isRepeatEl) isRepeatEl.checked = Boolean(raw.isRepeat ?? raw.repeat);
+    const rt = document.getElementById("calendar-repeat-type");
+    if (rt && raw.repeatType) rt.value = String(raw.repeatType);
+
+    const reEnd = document.getElementById("calendar-repeat-end-at");
+    const reMs = calendarDtoTimeToMillis(raw.repeatEndAt);
+    if (reEnd && !Number.isNaN(reMs)) reEnd.value = toDatetimeLocalValue(new Date(reMs));
+
+    const isAlertEl = document.getElementById("calendar-is-alert");
+    if (isAlertEl) isAlertEl.checked = Boolean(raw.isAlert ?? raw.alert);
+    const am = document.getElementById("calendar-alert-minutes");
+    if (am && raw.alertMinutesBefore != null) am.value = String(raw.alertMinutesBefore);
+
+    const vis = typeof raw.visibility === "string" ? raw.visibility : "PRIVATE";
+    visibilityRadios().forEach((r) => {
+      if (r instanceof HTMLInputElement) r.checked = r.value === vis;
+    });
+
+    const shareDeptIds = Array.isArray(raw.shareDeptIds) ? raw.shareDeptIds : [];
+    const shareMemberIds = Array.isArray(raw.shareMemberIds) ? raw.shareMemberIds : [];
+
+    const deptSelect = document.getElementById("calendar-share-depts");
+    if (deptSelect) {
+      Array.from(deptSelect.options).forEach((opt) => {
+        opt.selected = shareDeptIds.map(Number).includes(Number(opt.value));
+      });
+    }
+    const memberSelect = document.getElementById("calendar-share-members");
+    if (memberSelect) {
+      Array.from(memberSelect.options).forEach((opt) => {
+        opt.selected = shareMemberIds.map(Number).includes(Number(opt.value));
+      });
+    }
+
+    syncAllCalendarComboboxesFromSelects();
   }
 
   /** @param {boolean} [clearCalendarId=true] */
@@ -581,22 +768,24 @@ document.addEventListener("DOMContentLoaded", () => {
       root.dataset.calComboboxInit = "1";
       rebuildCalendarComboboxPanel(root);
       const trigger = root.querySelector("[data-cal-combobox-trigger]");
-      const panel = root.querySelector("[data-cal-combobox-panel]");
       const stop = (e) => {
         e.stopPropagation();
       };
       trigger?.addEventListener("mousedown", stop);
       trigger?.addEventListener("click", (e) => {
         stop(e);
-        if (!(panel instanceof HTMLElement)) return;
-        const isOpen = !panel.classList.contains("hidden");
+        // 패널은 동기화(rebuild) 시 innerHTML 이 바뀌므로 매 클릭 시 루트에서 다시 조회한다.
+        const panelLive = root.querySelector("[data-cal-combobox-panel]");
+        if (!(panelLive instanceof HTMLElement)) return;
+        const isOpen = !panelLive.classList.contains("hidden");
         if (isOpen) closeCalendarComboboxPanel(root);
         else openCalendarComboboxPanel(root);
       });
-      panel?.addEventListener("click", (e) => {
+      const panelForOptions = root.querySelector("[data-cal-combobox-panel]");
+      panelForOptions?.addEventListener("click", (e) => {
         const t = e.target;
         const btn = t instanceof Element ? t.closest("button[role='option']") : null;
-        if (!btn || !panel.contains(btn)) return;
+        if (!btn || !(panelForOptions instanceof HTMLElement) || !panelForOptions.contains(btn)) return;
         e.stopPropagation();
         const selectId = root.getAttribute("data-cal-select-id");
         const sel = selectId ? document.getElementById(selectId) : null;
@@ -611,18 +800,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if (eventModalComboboxGlobalsBound) return;
     eventModalComboboxGlobalsBound = true;
 
-    document.addEventListener(
-      "click",
-      (e) => {
-        const t = e.target;
-        if (!(t instanceof Node)) return;
-        if (!eventModal || eventModal.classList.contains("hidden")) return;
-        document.querySelectorAll("#eventModal [data-cal-combobox]").forEach((root) => {
-          if (root instanceof HTMLElement && !root.contains(t)) closeCalendarComboboxPanel(root);
-        });
-      },
-      true,
-    );
+    // 바깥 클릭으로 패널 닫기: 캡처 단계는 다른 전역 리스너·라이브러리와 순서 충돌이 나기 쉬우므로
+    // 버블 단계에서만 처리한다. 트리거·옵션 클릭은 stopPropagation 으로 여기까지 오지 않는다.
+    document.addEventListener("click", (e) => {
+      if (!eventModal || eventModal.classList.contains("hidden")) return;
+      const path =
+        typeof e.composedPath === "function"
+          ? e.composedPath().filter((n) => n instanceof Node)
+          : [];
+      const t = e.target;
+      const primary = t instanceof Node ? t : null;
+      document.querySelectorAll("#eventModal [data-cal-combobox]").forEach((root) => {
+        if (!(root instanceof HTMLElement)) return;
+        const inside =
+          path.length > 0 ? path.some((n) => root.contains(n)) : primary != null && root.contains(primary);
+        if (!inside) closeCalendarComboboxPanel(root);
+      });
+    });
 
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
@@ -784,6 +978,31 @@ document.addEventListener("DOMContentLoaded", () => {
     resetCategoryForms();
   }
 
+  /**
+   * FullCalendar 커스텀 버튼은 기본이 텍스트만 지원하므로, 렌더 후 + / 태그 SVG 아이콘을 삽입한다.
+   * 뷰·날짜 변경 시 툴바가 다시 그려질 수 있어 datesSet 에서도 호출한다.
+   */
+  function decorateCalendarToolbarIcons() {
+    const addBtn = calendarEl.querySelector(".fc-addEventButton-button");
+    if (addBtn) {
+      addBtn.setAttribute("aria-label", "일정 추가");
+      addBtn.setAttribute("title", "일정 추가");
+      if (!addBtn.querySelector('svg[data-cal-toolbar-icon="add"]')) {
+        addBtn.innerHTML =
+          '<svg data-cal-toolbar-icon="add" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>';
+      }
+    }
+    const catBtn = calendarEl.querySelector(".fc-categoryButton-button");
+    if (catBtn) {
+      catBtn.setAttribute("aria-label", "카테고리 관리");
+      catBtn.setAttribute("title", "카테고리 관리");
+      if (!catBtn.querySelector('svg[data-cal-toolbar-icon="tag"]')) {
+        catBtn.innerHTML =
+          '<svg data-cal-toolbar-icon="tag" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.772 3.659c-.422-.422-.994-.659-1.591-.659H9.568z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z" /></svg>';
+      }
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // [공유 대상] 부서·멤버 멀티 셀렉트 채우기 (API 스키마 유연 처리)
   // ---------------------------------------------------------------------------
@@ -836,23 +1055,23 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ---------------------------------------------------------------------------
-  // [일정 API] 등록 · 수정 · 삭제 — 모두 POST(수정/삭제는 전용 URL)
+  // [일정 API] 등록 · 수정 · 삭제 — CalendarApiController: POST + @ModelAttribute
   // ---------------------------------------------------------------------------
 
   async function submitCreateEvent() {
     if (!validateEventForm()) return;
-    const payload = collectEventPayload();
+    const body = buildCalendarModelAttributeParams();
     try {
-      const res = await fetch(API_CALENDAR_EVENTS, {
+      const res = await fetchSessionApi(`${API_CALENDARS}/new`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
-        credentials: "same-origin",
-        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
+          ...getCsrfHeaders(),
+        },
+        body: body.toString(),
       });
-      if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t || "등록에 실패했습니다.");
-      }
+      if (!res.ok) throw new Error(await parseApiErrorBody(res));
       calendarInstance?.refetchEvents();
       closeEventModal();
     } catch (e) {
@@ -867,18 +1086,21 @@ document.addEventListener("DOMContentLoaded", () => {
       showEventFormError("수정할 일정 ID가 없습니다.");
       return;
     }
-    const payload = { id: Number(calendarId), ...collectEventPayload() };
+    const body = buildCalendarModelAttributeParams();
     try {
-      const res = await fetch(API_CALENDAR_EVENTS_UPDATE, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
-        credentials: "same-origin",
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t || "수정에 실패했습니다.");
-      }
+      const res = await fetchSessionApi(
+        `${API_CALENDARS}/${encodeURIComponent(calendarId)}/edit`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+            ...getCsrfHeaders(),
+          },
+          body: body.toString(),
+        },
+      );
+      if (!res.ok) throw new Error(await parseApiErrorBody(res));
       calendarInstance?.refetchEvents();
       closeEventModal();
     } catch (e) {
@@ -891,18 +1113,46 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!calendarId) return;
     if (!window.confirm("이 일정을 삭제할까요?")) return;
     try {
-      const res = await fetch(API_CALENDAR_EVENTS_DELETE, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
-        credentials: "same-origin",
-        body: JSON.stringify({ id: Number(calendarId) }),
-      });
-      if (!res.ok) throw new Error("삭제에 실패했습니다.");
+      const res = await fetchSessionApi(
+        `${API_CALENDARS}/${encodeURIComponent(calendarId)}/delete`,
+        {
+          method: "POST",
+          headers: { Accept: "application/json", ...getCsrfHeaders() },
+        },
+      );
+      if (!res.ok) throw new Error(await parseApiErrorBody(res));
       calendarInstance?.refetchEvents();
       closeEventModal();
     } catch (e) {
       showEventFormError(e instanceof Error ? e.message : "삭제 요청 중 오류가 발생했습니다.");
     }
+  }
+
+  /**
+   * FullCalendar 가 넘기는 날짜 마커(Date / 배열 / 숫자 등)를 JS Date 로 통일
+   * titleFormat 등에서 Invalid Date → 렌더 예외로 일 뷰 전환이 막히는 것을 방지
+   * @param {unknown} raw
+   * @returns {Date}
+   */
+  function dateMarkerToJsDate(raw) {
+    if (raw == null) return new Date();
+    if (raw instanceof Date) {
+      return Number.isNaN(raw.getTime()) ? new Date() : raw;
+    }
+    if (typeof raw === "number") {
+      const d = new Date(raw);
+      return Number.isNaN(d.getTime()) ? new Date() : d;
+    }
+    if (Array.isArray(raw) && raw.length >= 3) {
+      const y = Number(raw[0]);
+      const mo = Number(raw[1]);
+      const day = Number(raw[2]);
+      if (![y, mo, day].some((n) => Number.isNaN(n))) {
+        return new Date(y, mo, day);
+      }
+    }
+    const d = new Date(/** @type {string} */ (raw));
+    return Number.isNaN(d.getTime()) ? new Date() : d;
   }
 
   // ---------------------------------------------------------------------------
@@ -911,28 +1161,77 @@ document.addEventListener("DOMContentLoaded", () => {
 
   calendarInstance = new Calendar(calendarEl, {
     plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
+    /** 한국어: 요일·월명 등은 locale code(ko) + 브라우저 Intl 기준 */
+    locale: koLocale,
+    /**
+     * 기본 로케일 패키지의 prev/next 가 '이전달/다음달' 고정이라 주·일 뷰와 어긋남 → 네비만 중립적으로 통일
+     * @see https://fullcalendar.io/docs/locale
+     */
+    buttonText: {
+      prev: "이전",
+      next: "다음",
+      today: "오늘",
+      month: "월",
+      week: "주",
+      day: "일",
+      list: "목록",
+    },
     selectable: true,
     initialView: "dayGridMonth",
+    /**
+     * 월 그리드 기본값은 시간 있는 일정을 "점 + 3p 제목" 형태로 그려 배경색이 안 보임 → 블록으로 표시.
+     * 주간/일간 타임그리드는 기존 슬롯 레이아웃 유지.
+     */
+    eventDisplay: "block",
+    views: {
+      dayGridMonth: {
+        /** "3p" 등 월 뷰 접두 시간 숨김 (시간은 주간/일간·모달에서 확인) */
+        displayEventTime: false,
+      },
+      /**
+       * 일 뷰: 플러그인 기본 정의(type/duration)를 반드시 유지해야 함 — 생략 시 뷰 타입이 깨져 '일' 전환 불가
+       * @see @fullcalendar/timegrid — timeGridDay: { type: 'timeGrid', duration: { days: 1 } }
+       */
+      timeGridDay: {
+        type: "timeGrid",
+        duration: { days: 1 },
+        dayHeaders: false,
+        titleFormat: (arg) => {
+          try {
+            const d = dateMarkerToJsDate(arg?.start);
+            const dateStr = new Intl.DateTimeFormat("ko-KR", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            }).format(d);
+            const wd = new Intl.DateTimeFormat("ko-KR", {
+              weekday: "short",
+            }).format(d);
+            return `${dateStr} (${wd})`;
+          } catch {
+            return "";
+          }
+        },
+      },
+    },
     headerToolbar: {
-      left: "prev,next addEventButton",
+      left: "prev,next addEventButton categoryButton",
       center: "title",
       right: "dayGridMonth,timeGridWeek,timeGridDay",
     },
     events: async (info, successCallback, failureCallback) => {
       try {
-        const url = new URL(API_CALENDAR_EVENTS, window.location.origin);
-        url.searchParams.set("start", info.startStr);
-        url.searchParams.set("end", info.endStr);
-        const res = await fetch(url.toString(), {
+        const res = await fetchSessionApi(API_CALENDARS, {
           headers: { Accept: "application/json", ...getCsrfHeaders() },
-          credentials: "same-origin",
         });
-        if (!res.ok) throw new Error("fetch failed");
+        if (!res.ok) throw new Error(await parseApiErrorBody(res));
         const data = await res.json();
         const arr = Array.isArray(data) ? data : [];
-        successCallback(arr.map(mapCalendarDtoToFcEvent));
-      } catch {
-        successCallback([]);
+        const filtered = filterCalendarDtosByViewRange(arr, info.start, info.end);
+        successCallback(filtered.map(mapCalendarDtoToFcEvent));
+      } catch (e) {
+        if (typeof failureCallback === "function") failureCallback(e instanceof Error ? e : new Error(String(e)));
+        else successCallback([]);
       }
     },
     select: (info) => {
@@ -986,11 +1285,25 @@ document.addEventListener("DOMContentLoaded", () => {
       syncVisibilityShares();
       openEventModal();
     },
-    eventClick: (info) => {
+    eventClick: async (info) => {
       info.jsEvent.preventDefault();
       if (info.event.url) return;
+      const idRaw = info.event.extendedProps?.calendarId ?? info.event.id;
+      const id = idRaw != null && idRaw !== "" ? String(idRaw) : "";
+      if (!id) return;
       setEventModalMode("edit");
       fillFormFromFcEvent(info.event);
+      try {
+        const res = await fetchSessionApi(`${API_CALENDARS}/${encodeURIComponent(id)}`, {
+          headers: { Accept: "application/json", ...getCsrfHeaders() },
+        });
+        if (res.ok) {
+          const dto = await res.json();
+          if (dto && typeof dto === "object") fillFormFromCalendarDto(/** @type {Record<string, unknown>} */ (dto));
+        }
+      } catch {
+        /* 목록 이벤트만으로 폼 유지 */
+      }
       syncRepeatSection();
       syncAlertSection();
       syncVisibilityShares();
@@ -998,7 +1311,8 @@ document.addEventListener("DOMContentLoaded", () => {
     },
     customButtons: {
       addEventButton: {
-        text: "일정 추가 +",
+        /** 실제 표시는 decorateCalendarToolbarIcons 에서 SVG(+)로 교체 */
+        text: " ",
         click: () => {
           setEventModalMode("create");
           resetEventForm();
@@ -1019,10 +1333,21 @@ document.addEventListener("DOMContentLoaded", () => {
           openEventModal();
         },
       },
+      categoryButton: {
+        /** 일정 추가 버튼 오른쪽 — 표시는 decorateCalendarToolbarIcons 에서 SVG(태그)로 교체 */
+        text: " ",
+        click: () => {
+          openCategoryModal();
+        },
+      },
     },
   });
 
   calendarInstance.render();
+  decorateCalendarToolbarIcons();
+  calendarInstance.on("datesSet", () => {
+    decorateCalendarToolbarIcons();
+  });
 
   initEventModalCalendarComboboxes();
 
@@ -1050,10 +1375,9 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   // ---------------------------------------------------------------------------
-  // [이벤트 리스너] 카테고리 모달
+  // [이벤트 리스너] 카테고리 모달 (열기는 FullCalendar 툴바 categoryButton)
   // ---------------------------------------------------------------------------
 
-  document.getElementById("btn-open-category-modal")?.addEventListener("click", openCategoryModal);
   document.getElementById("btn-category-cancel")?.addEventListener("click", closeCategoryModal);
   document.getElementById("category-modal-backdrop")?.addEventListener("click", closeCategoryModal);
 
@@ -1077,8 +1401,12 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await fetchSessionApi(`${API_CATEGORIES}/new`, {
         method: "POST",
-        headers: { Accept: "application/json", ...getCsrfHeaders() },
-        body: buildCategoryFormParams({ name, color }),
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...getCsrfHeaders(),
+        },
+        body: buildCategoryRequestJson({ name, color }),
       });
       if (!res.ok) throw new Error(await parseApiErrorBody(res));
       resetCategoryAddForm();
@@ -1114,8 +1442,12 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await fetchSessionApi(`${API_CATEGORIES}/${encodeURIComponent(editId)}/edit`, {
         method: "POST",
-        headers: { Accept: "application/json", ...getCsrfHeaders() },
-        body: buildCategoryFormParams({ name, color }),
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...getCsrfHeaders(),
+        },
+        body: buildCategoryRequestJson({ name, color }),
       });
       if (!res.ok) throw new Error(await parseApiErrorBody(res));
       resetCategoryEditForm();
