@@ -8,20 +8,25 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.team.intranet.dto.BoardDto;
 import com.team.intranet.entity.Board;
+import com.team.intranet.entity.BoardAlertPref;
 import com.team.intranet.entity.BoardScopeRule;
 import com.team.intranet.entity.Company;
 import com.team.intranet.entity.Dept;
+import com.team.intranet.entity.Member;
 import com.team.intranet.entity.Position;
 import com.team.intranet.enums.ErrorCode;
+import com.team.intranet.enums.board.BoardType;
 import com.team.intranet.enums.board.CommentScope;
 import com.team.intranet.enums.board.ReadScope;
 import com.team.intranet.enums.board.ScopeType;
 import com.team.intranet.enums.board.WriteScope;
 import com.team.intranet.exception.BusinessException;
+import com.team.intranet.repository.BoardAlertPrefRepository;
 import com.team.intranet.repository.BoardRepository;
 import com.team.intranet.repository.BoardscopeRuleRepository;
 import com.team.intranet.repository.CompanyRepository;
 import com.team.intranet.repository.DeptRepository;
+import com.team.intranet.repository.MemberRepository;
 import com.team.intranet.repository.PositionRepository;
 import com.team.intranet.session.MemberSession;
 
@@ -39,6 +44,8 @@ public class BoardService {
     private final DeptRepository deptRepository;
     private final PositionRepository positionRepository;
     private final BoardscopeRuleRepository scopeRuleRepository;
+    private final BoardAlertPrefRepository boardAlertPrefRepository;
+    private final MemberRepository memberRepository;
 
     /**
      * 게시판 전체 조회 (관리자용 - 비활성 포함)
@@ -318,5 +325,47 @@ public class BoardService {
     private Position findPosition(Long positionId) {
         return positionRepository.findById(positionId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POSITION_NOT_FOUND));
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isAlertOn(MemberSession ms, Long boardId) {
+        Board board = getReadableBoard(ms, boardId);
+        Member me = memberRepository.findById(ms.getMemberId())
+            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+        return boardAlertPrefRepository.findByBoardAndMember(board, me)
+            .map(BoardAlertPref::isEnabled)
+            .orElseGet(() -> isDefaultOn(board.getBoardType()));   // 미설정이면 기본값
+    }
+
+    @Transactional
+    public boolean toggleAlert(MemberSession ms, Long boardId) {
+        Board board = getReadableBoard(ms, boardId);
+        Member me = memberRepository.findById(ms.getMemberId())
+            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+        boolean defaultOn = isDefaultOn(board.getBoardType());
+        BoardAlertPref pref = boardAlertPrefRepository
+            .findByBoardAndMember(board, me)
+            .orElse(null);
+
+        boolean currentlyOn = (pref != null) ? pref.isEnabled() : defaultOn;
+        boolean next = !currentlyOn;
+
+        if (pref == null) {
+            pref = BoardAlertPref.builder()
+                .board(board)
+                .member(me)
+                .isEnabled(next)
+                .build();   // updatedAt 은 @PrePersist 가 자동 세팅
+        } else {
+            pref.setEnabled(next);   // updatedAt 은 @PreUpdate 가 자동 갱신
+        }
+        boardAlertPrefRepository.save(pref);
+        return next;   // 프론트에 새 상태 응답
+    }
+
+    private boolean isDefaultOn(BoardType type) {
+        return type == BoardType.NOTICE || type == BoardType.POLICY;
     }
 }

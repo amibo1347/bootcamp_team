@@ -29,6 +29,7 @@ public class CommentService {
     private final ArticleRepository articleRepository;
     private final MemberRepository memberRepository;
     private final BoardService boardService;
+    private final AlertService alertService;
 
     @Transactional
     public Comment createComment(MemberSession ms, CommentDto dto) {
@@ -67,6 +68,8 @@ public class CommentService {
             Comment.create(article, author, parent, dto.getContent())
         );
         article.setCommentCount(article.getCommentCount() + 1);
+        alertService.sendCommentAlert(saved, article.getAuthor(), article);  // 게시글 작성자에게
+        alertService.sendCommentReplyAlert(saved, article);
         return saved;
     }
 

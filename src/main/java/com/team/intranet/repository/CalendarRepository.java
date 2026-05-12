@@ -28,4 +28,14 @@ public interface CalendarRepository extends JpaRepository<Calendar, Long>{
              WHERE s.calendar = c AND s.member = :me))
   """)
   List<Calendar> findAccessibleByMember(@Param("me") Member me, @Param("myDept") Dept myDept);
+
+    // 알림 스캐너용: 알림 사용 ON이고 startAt이 [from, to] 범위인 일정
+    @Query("""
+        SELECT c FROM Calendar c
+        WHERE c.isAlert = true
+          AND c.startAt IS NOT NULL
+          AND c.startAt BETWEEN :from AND :to
+    """)
+    List<Calendar> findUpcomingForAlert(@Param("from") LocalDateTime from,
+                                       @Param("to") LocalDateTime to);
 }

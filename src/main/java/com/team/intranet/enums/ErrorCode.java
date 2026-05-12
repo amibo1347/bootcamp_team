@@ -80,7 +80,10 @@ public enum ErrorCode {
     // 캘린더
     CALENDAR_ACCESS_DENIED(403, "일정에 관한 권한이 없습니다"),
     CALENDAR_NOT_OWNER(400, "일정의 작성자가 아닙니다"),
-    CALENDAR_NOT_FOUND(404, "해당 일정을 찾을 수 없습니다");
+    CALENDAR_NOT_FOUND(404, "해당 일정을 찾을 수 없습니다"),
+
+    // 알림
+    ALERT_NOT_FOUND(404, "해당 알림을 찾을 수 없습니다");
     
     // 2. 변수 정의
     private final int status;
