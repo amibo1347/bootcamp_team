@@ -2,8 +2,8 @@
  * admin/managingBoard.html — 게시판 생성·수정·삭제용 스크립트
  *
  * - 생성 폼: 숨김 필드(readScope 등) + 라디오/체크박스 UI 동기화 후 POST /api/admin/board/create
- * - 수정 모달: 목록의 data-* 로 폼 채움 후 PUT /api/admin/board/update
- * - 삭제: DELETE /api/admin/board/delete/{id}
+ * - 수정 모달: 목록의 data-* 로 폼 채움 후 POST /api/admin/board/update/{id}
+ * - 삭제: POST /api/admin/board/delete/{id}
  * - native select는 버튼+드롭다운 형태의 커스텀 셀렉트로 교체 (Tailwind 스타일용)
  */
 (() => {

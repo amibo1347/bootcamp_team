@@ -23,7 +23,7 @@ public class MainController {
 
     @GetMapping("/calendar")
     public String calendar() {
-        return "calendar";
+        return "calendar/calendar";
     }
 
     @GetMapping("/form-elements")

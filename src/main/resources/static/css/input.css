@@ -225,6 +225,43 @@ layer(base);
 .menu-dropdown-item-active {
   @apply text-indigo-600 font-bold bg-indigo-50 rounded-md;
 }
+
+  /*
+   * [캘린더 일정 모달] 네이티브 select — 모달 내 text input 과 동일 톤(rounded-xl, shadow-sm, brand 포커스)
+   * 단일 select 는 appearance-none + 형제 SVG 화살표(템플릿) 조합을 위해 우측 패딩(pr-10) 확보.
+   */
+  .calendar-native-select {
+    @apply w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-3 pr-10 text-sm text-gray-900 shadow-sm transition
+      focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25
+      dark:border-gray-600 dark:bg-gray-800/60 dark:text-white dark:focus:border-brand-500;
+  }
+  .dark .calendar-native-select {
+    color-scheme: dark;
+  }
+  .calendar-native-select-multiple {
+    @apply max-h-40 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-sm transition
+      focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25
+      dark:border-gray-600 dark:bg-gray-800/60 dark:text-white dark:focus:border-brand-500;
+  }
+  .dark .calendar-native-select-multiple {
+    color-scheme: dark;
+  }
+
+  /* 일정 모달 커스텀 콤보박스(열린 목록) — managingBoard 권한 패널·DESIGN_RULES 5-2 패널 톤 */
+  .calendar-combobox-trigger {
+    @apply flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-gray-300 bg-white px-4 py-3 text-left text-sm font-normal text-gray-900 shadow-sm transition
+      focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25
+      dark:border-gray-600 dark:bg-gray-800/60 dark:text-white dark:focus:border-brand-500;
+  }
+  .cal-combobox-panel {
+    @apply max-h-56 overflow-y-auto rounded-lg border border-gray-300 bg-white py-1 shadow-xl ring-1 ring-black/5 dark:border-strokedark dark:bg-meta-4 dark:ring-white/10;
+  }
+  .cal-combobox-option {
+    @apply w-full cursor-pointer px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/10;
+  }
+  .cal-combobox-option[aria-selected="true"] {
+    @apply bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-200;
+  }
 }
 
 @utility menu-item {
@@ -470,6 +507,10 @@ span.flatpickr-weekday,
 }
 
 /* fullcalendar */
+.fc {
+  /* 테마 기본값의 오늘 칸 배경(연한 색) 제거 — 오늘은 숫자/헤더만 브랜드 박스로 표시 */
+  --fc-today-bg-color: transparent;
+}
 .fc .fc-view-harness {
   @apply custom-scrollbar max-w-full overflow-x-auto;
 }
@@ -536,14 +577,15 @@ span.flatpickr-weekday,
 .fc .fc-col-header-cell-cushion {
   @apply px-5! py-4! text-sm font-medium text-gray-400 uppercase;
 }
+/* 오늘 날짜: 칸 전체 배경 없음 — 숫자/헤더 라벨만 브랜드 박스(불투명) */
 .fc .fc-daygrid-day.fc-day-today {
+  @apply bg-transparent;
+}
+.fc .fc-daygrid-day.fc-day-today .fc-scrollgrid-sync-inner {
   @apply bg-transparent;
 }
 .fc .fc-daygrid-day {
   @apply p-2;
-}
-.fc .fc-daygrid-day.fc-day-today .fc-scrollgrid-sync-inner {
-  @apply rounded-sm bg-gray-100 dark:bg-white/[0.03];
 }
 .fc .fc-daygrid-day-number {
   @apply p-3! text-sm font-medium text-gray-700 dark:text-gray-400;
@@ -557,6 +599,14 @@ span.flatpickr-weekday,
 .fc .fc-day-other .fc-daygrid-day-top .fc-daygrid-day-number {
   @apply text-gray-400 dark:text-white/30;
 }
+/* 월 뷰: 오늘 숫자만 강조 */
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  @apply inline-flex min-h-8 min-w-8 items-center justify-center rounded-md bg-brand-500 px-2 py-1 text-sm font-semibold text-white;
+}
+/*
+ * 주간(timeGridWeek) 열 헤더의 오늘: 아래에서 셀 전체 브랜드 배경으로 처리
+ * (월 그리드용 col 헤더에는 fc-day-today 가 거의 없음)
+ */
 .event-fc-color {
   @apply rounded-lg py-2.5 pr-3 pl-4;
 }
@@ -601,4 +651,38 @@ span.flatpickr-weekday,
 }
 .fc .fc-timegrid-axis-cushion {
   @apply text-sm font-medium text-gray-500 dark:text-gray-400;
+}
+/*
+ * 주·일 뷰 (1-1, 2-2): 시간 문자열이 감싸는 div 중앙에 오도록
+ * .fc-timegrid-slot-label-frame.fc-scrollgrid-shrink-frame 기준 수평·수직 정렬
+ */
+.fc-timeGridWeek-view .fc-direction-ltr .fc-timegrid-slot-label-frame,
+.fc-timeGridDay-view .fc-direction-ltr .fc-timegrid-slot-label-frame {
+  @apply flex items-center justify-center px-3 py-1.5 text-center text-sm font-medium text-gray-500 dark:text-gray-400;
+}
+.fc-timeGridWeek-view .fc-timegrid-slot-label-cushion,
+.fc-timeGridDay-view .fc-timegrid-slot-label-cushion {
+  @apply block w-full text-center leading-tight;
+}
+/* 주·일 뷰: 왼쪽 축 열 너비만 간단히 지정 (이전 단순 규칙으로 복구) */
+.fc-timeGridWeek-view .fc-timegrid-axis,
+.fc-timeGridDay-view .fc-timegrid-axis {
+  min-width: 6rem !important;
+  width: 6rem !important;
+}
+/* 같은 시간축 열의 '종일' 등 축 라벨도 셀 안에서 가운데 */
+.fc-timeGridWeek-view .fc-timegrid-axis .fc-timegrid-axis-cushion,
+.fc-timeGridDay-view .fc-timegrid-axis .fc-timegrid-axis-cushion {
+  @apply flex items-center justify-center px-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400;
+}
+/* 주 뷰: 날짜 헤더(예: 5.10(일)) 셀 안 중앙 정렬 */
+.fc-timeGridWeek-view .fc-col-header-cell .fc-col-header-cell-cushion {
+  @apply mx-auto flex w-full justify-center text-center font-medium normal-case text-gray-700 dark:text-gray-300;
+}
+/* 주 뷰: 오늘 열은 헤더 셀 전체 브랜드색 (테마 th 배경보다 우선) */
+.fc-timeGridWeek-view th.fc-col-header-cell.fc-day-today {
+  @apply bg-brand-500! dark:bg-brand-500!;
+}
+.fc-timeGridWeek-view .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
+  @apply flex min-h-[3.25rem] w-full items-center justify-center rounded-none bg-transparent px-2 py-3 text-center text-sm font-semibold text-white;
 }
