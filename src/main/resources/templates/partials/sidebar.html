@@ -155,12 +155,18 @@
                         <a th:href="@{/subAdmin/unified-trash}" @click="page = 'unifiedTrash'"
                             class="menu-item group"
                             :class="page === 'unifiedTrash' ? 'menu-item-active' : 'menu-item-inactive'">
-                            <svg :class="page === 'unifiedTrash' ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"
-                                width="24" height="24" viewBox="0 0 24 24" fill="none"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <path fill-rule="evenodd" clip-rule="evenodd"
-                                    d="M9 3.75a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 .75.75v.75h3a.75.75 0 0 1 0 1.5h-1.061l-.687 11.684A2.25 2.25 0 0 1 14.068 21H9.932a2.25 2.25 0 0 1-2.246-2.066L7 5.25H6a.75.75 0 0 1 0-1.5h3v-.75Zm1.78 2.25 6.22 11.068a.75.75 0 0 0 .722.682h4.068a.75.75 0 0 0 .723-.682L17.719 6H9.782Zm2.972 8.466a.75.75 0 1 0 1.5 0v-4.5a.75.75 0 1 0-1.5 0v4.5ZM12 13.5a.75.75 0 1 0-1.5 0v4.5a.75.75 0 1 0 1.5 0v-4.5Z"
-                                    fill="currentColor" />
+                            <!-- 통합 휴지통: 목록 페이지와 동일한 미니멀 라인 아이콘(fill 유틸이 stroke를 덮지 않도록 fill-none) -->
+                            <svg fill="none" width="28" height="28" viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg" aria-hidden="true" stroke-width="1.5"
+                                stroke-linecap="round" stroke-linejoin="round"
+                                :class="page === 'unifiedTrash'
+                                    ? 'stroke-brand-500 dark:stroke-brand-400'
+                                    : 'stroke-gray-500 group-hover:stroke-gray-700 dark:stroke-gray-400 dark:group-hover:stroke-gray-300'">
+                                <path
+                                    d="M8 8.5h8v8.35a1.15 1.15 0 0 1-1.15 1.15h-5.7a1.15 1.15 0 0 1-1.15-1.15v-8.35z" />
+                                <path d="M9.35 10.25v6.5M12 10.25v6.5M14.65 10.25v6.5" />
+                                <path d="M7 7.65h10" />
+                                <path d="M11 5.1h2v2.55H11z" />
                             </svg>
                             <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">통합 휴지통</span>
                         </a>
