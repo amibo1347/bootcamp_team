@@ -19,6 +19,9 @@ import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import com.team.intranet.enums.Visibility;
 import com.team.intranet.enums.RepeatType;
 
@@ -74,6 +77,7 @@ public class Calendar {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private Category category; // 일정 카테고리 (Category 엔티티 참조)
 
     @Column(name = "location")

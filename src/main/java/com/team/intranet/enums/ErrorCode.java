@@ -68,7 +68,11 @@ public enum ErrorCode {
 
     // 댓글
     COMMENT_NOT_FOUND(404, "해당 댓글을 찾을 수 없습니다"),
-    INVALID_COMMENT_DEPTH(400, "대댓글에는 답글을 달 수 없습니다");
+    INVALID_COMMENT_DEPTH(400, "대댓글에는 답글을 달 수 없습니다"),
+
+    // 카테고리
+    CATEGORY_NOT_FOUND(404, "해당 카테고리를 찾을 수 없습니다"),
+    DUPLICATE_CATEGORY_NAME(409, "이미 존재하는 카테고리입니다");
     
     // 2. 변수 정의
     private final int status;
