@@ -30,7 +30,73 @@
 
     <div class="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <!-- Sidebar Menu -->
-        <nav x-data="{ selected: $persist(''), page: $persist('') }">
+        <!--
+          [활성 탭] selected/page는 $persist로 유지하되, 전체 페이지 로드 시 URL과 불일치할 수 있음
+          (레이아웃 body의 page와 스코프가 다름). x-init에서 pathname으로 동기화한다.
+        -->
+        <nav
+            x-data="{
+                selected: $persist(''),
+                page: $persist(''),
+                syncActiveFromPath() {
+                    // 현재 URL과 persist된 탭 상태를 맞춤 (레이아웃 body의 page와 별개 스코프 보정)
+                    const path = window.location.pathname || '';
+                    if (path === '/calendar' || path.startsWith('/calendar/')) {
+                        this.selected = 'Calendar';
+                        this.page = 'calendar';
+                        return;
+                    }
+                    if (path === '/profile' || path.startsWith('/profile/')) {
+                        this.selected = 'Profile';
+                        this.page = 'profile';
+                        return;
+                    }
+                    if (path.includes('/admin/waitingList')) {
+                        this.selected = 'Staff';
+                        this.page = 'waiting';
+                        return;
+                    }
+                    if (path.includes('/admin/memberList')) {
+                        this.selected = 'Staff';
+                        this.page = 'members';
+                        return;
+                    }
+                    if (path.includes('/admin/dept/list')) {
+                        this.selected = 'Organization';
+                        this.page = 'department';
+                        return;
+                    }
+                    if (path.includes('/admin/position/list')) {
+                        this.selected = 'Organization';
+                        this.page = 'position';
+                        return;
+                    }
+                    if (path.includes('/subAdmin/unified-trash')) {
+                        this.page = 'unifiedTrash';
+                        this.selected = '';
+                        return;
+                    }
+                    if (path.includes('/admin/board/list')) {
+                        this.selected = 'Tables';
+                        this.page = 'basicTables';
+                        return;
+                    }
+                    const boardPathMatch = path.match(/^\/board\/(\d+)/);
+                    if (boardPathMatch) {
+                        this.page = 'board-' + boardPathMatch[1];
+                        // 게시판 카테고리(Board*)는 펼친 채 유지. 관리 메뉴(Tables 등)만 남으면 접히며 오표시되므로 해제
+                        const boardCategoryKeys = [
+                            'BoardNotice', 'BoardPolicy', 'BoardFree',
+                            'BoardQna', 'BoardAnonymous', 'BoardEtc'
+                        ];
+                        if (!boardCategoryKeys.includes(this.selected)) {
+                            this.selected = '';
+                        }
+                    }
+                }
+            }"
+            x-init="syncActiveFromPath()"
+        >
             <!-- Menu Group -->
             <div>
                 <h3 class="mb-4 text-xs uppercase leading-[20px] text-gray-400">
@@ -181,10 +247,10 @@
 
                     <!-- Menu Item Calendar -->
                     <li>
-                        <a th:href="@{/calendar}" @click="selected = (selected === 'Calendar' ? '':'Calendar')"
+                        <a th:href="@{/calendar}" @click="page = 'calendar'; selected = 'Calendar'"
                             class="menu-item group"
-                            :class=" (selected === 'Calendar') && (page === 'calendar') ? 'menu-item-active' : 'menu-item-inactive'">
-                            <svg :class="(selected === 'Calendar') && (page === 'calendar') ? 'menu-item-icon-active'  :'menu-item-icon-inactive'"
+                            :class="page === 'calendar' ? 'menu-item-active' : 'menu-item-inactive'">
+                            <svg :class="page === 'calendar' ? 'menu-item-icon-active'  :'menu-item-icon-inactive'"
                                 width="24" height="24" viewBox="0 0 24 24" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path fill-rule="evenodd" clip-rule="evenodd"
@@ -201,10 +267,10 @@
 
                     <!-- Menu Item Profile -->
                     <li>
-                        <a th:href="@{/profile}" @click="selected = (selected === 'Profile' ? '':'Profile')"
+                        <a th:href="@{/profile}" @click="page = 'profile'; selected = 'Profile'"
                             class="menu-item group"
-                            :class=" (selected === 'Profile') && (page === 'profile') ? 'menu-item-active' : 'menu-item-inactive'">
-                            <svg :class="(selected === 'Profile') && (page === 'profile') ?  'menu-item-icon-active'  :'menu-item-icon-inactive'"
+                            :class="page === 'profile' ? 'menu-item-active' : 'menu-item-inactive'">
+                            <svg :class="page === 'profile' ?  'menu-item-icon-active'  :'menu-item-icon-inactive'"
                                 width="24" height="24" viewBox="0 0 24 24" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path fill-rule="evenodd" clip-rule="evenodd"
@@ -252,7 +318,8 @@
                                 class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
                                 <li>
                                     <a th:href="@{/admin/board/list}" class="menu-dropdown-item group"
-                                        :class="page === 'basicTables' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
+                                        :class="page === 'basicTables' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                                        @click="page = 'basicTables'; selected = 'Tables'">
                                         게시판 관리
                                     </a>
                                 </li>
