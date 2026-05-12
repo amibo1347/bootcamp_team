@@ -11,6 +11,8 @@
     />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>일정 조회 | 인트라넷</title>
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
     <link rel="stylesheet" th:href="@{/css/output.css}" />
     <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
   </head>
@@ -52,15 +54,31 @@
             </div>
             <!-- Breadcrumb End -->
 
+            <!-- [캘린더 상단 도구줄] 카테고리 관리는 일정 추가와 분리된 보조 기능 -->
+            <div class="mb-4 flex flex-wrap items-center justify-end gap-3">
+              <button
+                type="button"
+                id="btn-open-category-modal"
+                class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-white/5"
+              >
+                <span class="inline-block h-3 w-3 rounded-full bg-gradient-to-br from-brand-400 to-violet-500" aria-hidden="true"></span>
+                카테고리 관리
+              </button>
+            </div>
+
             <div
               class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
             >
               <div id="calendar" class="min-h-screen"></div>
             </div>
 
-            <!-- BEGIN MODAL -->
+            <!-- BEGIN MODAL : 일정 -->
             <div th:replace="~{partials/calendar-event-modal}"></div>
-            <!-- END MODAL -->
+            <!-- END MODAL : 일정 -->
+
+            <!-- BEGIN MODAL : 카테고리 -->
+            <div th:replace="~{partials/calendar-category-modal}"></div>
+            <!-- END MODAL : 카테고리 -->
           </div>
         </main>
         <!-- ===== Main Content End ===== -->

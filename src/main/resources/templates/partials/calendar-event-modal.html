@@ -1,52 +1,352 @@
-<!-- [캘린더 이벤트 모달] : #eventModal 일정 추가/수정 모달. modal-close-btn 클릭 또는 배경 클릭으로 닫힘 -->
+  <!-- [캘린더 이벤트 모달] 일정 추가/수정 — 헤더·스크롤 본문·하단 액션 분리 -->
 <div
-  class="fixed inset-0 items-center justify-center hidden p-5 overflow-y-auto modal z-99999"
+  class="fixed inset-0 z-99999 flex hidden items-center justify-center overflow-y-auto p-4 sm:p-6"
   id="eventModal"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="eventModalLabel"
 >
+  <!-- 배경 딤 -->
   <div
-    class="modal-close-btn fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]"
+    class="modal-close-btn fixed inset-0 z-0 bg-gray-900/40 backdrop-blur-sm dark:bg-gray-950/60"
   ></div>
-  <div
-    class="modal-dialog modal-dialog-scrollable modal-lg no-scrollbar relative flex w-full max-w-[700px] flex-col overflow-y-auto rounded-3xl bg-white p-6 dark:bg-gray-900 lg:p-11"
-  >
-    <!-- close btn -->
-    <button
-      class="modal-close-btn transition-color absolute right-5 top-5 z-999 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:bg-gray-700 dark:bg-white/[0.05] dark:text-gray-300 dark:hover:bg-white/[0.07] dark:hover:text-gray-300 sm:h-11 sm:w-11"
-    >
-      <svg
-        class="fill-current"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          fill-rule="evenodd"
-          clip-rule="evenodd"
-          d="M6.04289 16.5418C5.65237 16.9323 5.65237 17.5655 6.04289 17.956C6.43342 18.3465 7.06658 18.3465 7.45711 17.956L11.9987 13.4144L16.5408 17.9565C16.9313 18.347 17.5645 18.347 17.955 17.9565C18.3455 17.566 18.3455 16.9328 17.955 16.5423L13.4129 12.0002L17.955 7.45808C18.3455 7.06756 18.3455 6.43439 17.955 6.04387C17.5645 5.65335 16.9313 5.65335 16.5408 6.04387L11.9987 10.586L7.45711 6.04439C7.06658 5.65386 6.43342 5.65386 6.04289 6.04439C5.65237 6.43491 5.65237 7.06808 6.04289 7.4586L10.5845 12.0002L6.04289 16.5418Z"
-          fill=""
-        />
-      </svg>
-    </button>
 
-    <div
-      class="flex flex-col px-2 overflow-y-auto modal-content custom-scrollbar"
+  <!-- 패널 -->
+  <div
+    class="relative z-10 flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-stroke bg-white shadow-2xl ring-1 ring-black/5 dark:border-strokedark dark:bg-boxdark dark:ring-white/10"
+    style="max-height: min(92vh, 880px)"
+  >
+    <!-- [헤더] -->
+    <header
+      class="flex shrink-0 items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 sm:px-6 sm:py-5 dark:border-gray-800"
     >
-      <div class="modal-header">
-        <h5
-          class="mb-2 font-semibold text-gray-800 modal-title text-theme-xl dark:text-white/90 lg:text-2xl"
+      <div class="min-w-0 pr-8">
+        <h2
+          class="text-lg font-semibold text-gray-900 dark:text-white sm:text-xl"
           id="eventModalLabel"
         >
-          Add / Edit Event
-        </h5>
-        <p class="text-sm text-gray-500 dark:text-gray-300">
-          Plan your next big moment: schedule or edit an event to stay on track
+          일정 등록
+        </h2>
+        <p class="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+          제목과 일시를 입력하고 저장하면 캘린더에 반영됩니다.
         </p>
       </div>
-      <div class="mt-8 modal-body">
-        <!-- modal body content -->
-      </div>
+      <button
+        type="button"
+        class="modal-close-btn -mr-1 -mt-1 shrink-0 rounded-full p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10 dark:hover:text-gray-200"
+        aria-label="모달 닫기"
+      >
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </header>
+
+    <!-- [스크롤 영역] -->
+    <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 custom-scrollbar">
+      <p
+        id="calendar-event-form-error"
+        class="mb-5 hidden rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/50 dark:text-rose-200"
+        role="alert"
+      ></p>
+
+      <form id="calendarEventForm" class="space-y-8" novalidate>
+        <input type="hidden" id="calendar-id" name="calendarId" value="" />
+
+        <!-- 공통 입력 칸 스타일 (주석: 클래스 통일로 폼 품질 유지) -->
+        <!-- input: rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white -->
+
+        <!-- 기본 정보 -->
+        <section class="space-y-4" aria-labelledby="cal-sec-basic">
+          <h3
+            id="cal-sec-basic"
+            class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500"
+          >
+            기본 정보
+          </h3>
+          <div class="space-y-4">
+            <div>
+              <label for="calendar-title" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                제목 <span class="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="calendar-title"
+                name="title"
+                required
+                maxlength="500"
+                placeholder="어떤 일정인가요?"
+                class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white dark:placeholder:text-gray-500"
+              />
+            </div>
+            <div>
+              <label for="calendar-description" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                설명
+              </label>
+              <textarea
+                id="calendar-description"
+                name="description"
+                rows="3"
+                placeholder="메모·안건 등 (선택)"
+                class="w-full resize-y rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white dark:placeholder:text-gray-500"
+              ></textarea>
+            </div>
+            <div>
+              <label for="calendar-location" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                장소
+              </label>
+              <input
+                type="text"
+                id="calendar-location"
+                name="location"
+                maxlength="500"
+                placeholder="회의실, 주소 등"
+                class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white dark:placeholder:text-gray-500"
+              />
+            </div>
+            <div>
+              <label for="calendar-category-id" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                카테고리
+              </label>
+              <select
+                id="calendar-category-id"
+                name="categoryId"
+                class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white"
+              >
+                <option value="">선택 안 함</option>
+              </select>
+              <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                막대 색은 카테고리 관리에서 지정한 색이 적용됩니다.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 일시 -->
+        <section class="space-y-4 border-t border-gray-100 pt-8 dark:border-gray-800" aria-labelledby="cal-sec-time">
+          <h3
+            id="cal-sec-time"
+            class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500"
+          >
+            일시
+          </h3>
+          <label
+            class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-white/[0.04] dark:hover:bg-white/[0.06]"
+          >
+            <input
+              type="checkbox"
+              id="calendar-all-day"
+              name="allDay"
+              class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600"
+            />
+            <span class="text-sm font-medium text-gray-800 dark:text-gray-200">종일 일정</span>
+          </label>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="calendar-start-at" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                시작 <span class="text-rose-500">*</span>
+              </label>
+              <input
+                type="datetime-local"
+                id="calendar-start-at"
+                name="startAt"
+                required
+                class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white"
+              />
+            </div>
+            <div>
+              <label for="calendar-end-at" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                종료
+              </label>
+              <input
+                type="datetime-local"
+                id="calendar-end-at"
+                name="endAt"
+                class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white"
+              />
+            </div>
+          </div>
+        </section>
+
+        <!-- 반복 -->
+        <section class="space-y-4 border-t border-gray-100 pt-8 dark:border-gray-800" aria-labelledby="cal-sec-repeat">
+          <h3 id="cal-sec-repeat" class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            반복
+          </h3>
+          <label
+            class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-white/[0.04] dark:hover:bg-white/[0.06]"
+          >
+            <input
+              type="checkbox"
+              id="calendar-is-repeat"
+              name="isRepeat"
+              class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600"
+            />
+            <span class="text-sm font-medium text-gray-800 dark:text-gray-200">반복 일정</span>
+          </label>
+          <div id="calendar-repeat-fields" class="grid gap-4 opacity-50 pointer-events-none sm:grid-cols-2">
+            <div>
+              <label for="calendar-repeat-type" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                반복 유형
+              </label>
+              <select
+                id="calendar-repeat-type"
+                name="repeatType"
+                class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white"
+              >
+                <option value="DAILY">매일</option>
+                <option value="WEEKLY">매주</option>
+                <option value="MONTHLY">매월</option>
+                <option value="YEARLY">매년</option>
+              </select>
+            </div>
+            <div>
+              <label for="calendar-repeat-end-at" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                반복 종료 일시
+              </label>
+              <input
+                type="datetime-local"
+                id="calendar-repeat-end-at"
+                name="repeatEndAt"
+                class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white"
+              />
+            </div>
+          </div>
+        </section>
+
+        <!-- 알림 -->
+        <section class="space-y-4 border-t border-gray-100 pt-8 dark:border-gray-800" aria-labelledby="cal-sec-alert">
+          <h3 id="cal-sec-alert" class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            알림
+          </h3>
+          <label
+            class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-white/[0.04] dark:hover:bg-white/[0.06]"
+          >
+            <input
+              type="checkbox"
+              id="calendar-is-alert"
+              name="isAlert"
+              class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600"
+            />
+            <span class="text-sm font-medium text-gray-800 dark:text-gray-200">시작 전 알림</span>
+          </label>
+          <div id="calendar-alert-fields" class="opacity-50 pointer-events-none">
+            <label for="calendar-alert-minutes" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              알림 시점
+            </label>
+            <select
+              id="calendar-alert-minutes"
+              name="alertMinutesBefore"
+              class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white"
+            >
+              <option value="5">5분 전</option>
+              <option value="10">10분 전</option>
+              <option value="15">15분 전</option>
+              <option value="30">30분 전</option>
+              <option value="60">1시간 전</option>
+              <option value="120">2시간 전</option>
+              <option value="1440">1일 전</option>
+            </select>
+          </div>
+        </section>
+
+        <!-- 공개 범위 -->
+        <section class="space-y-4 border-t border-gray-100 pt-8 dark:border-gray-800" aria-labelledby="cal-sec-vis">
+          <h3 id="cal-sec-vis" class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            공개 범위
+          </h3>
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label
+              class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 p-3 transition has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 hover:border-gray-300 dark:border-gray-700 dark:has-[:checked]:border-brand-400 dark:has-[:checked]:bg-brand-500/15 dark:hover:border-gray-600"
+            >
+              <input type="radio" name="visibility" value="PRIVATE" checked class="h-4 w-4 border-gray-300 text-brand-500 focus:ring-brand-500" />
+              <span class="text-sm font-medium text-gray-800 dark:text-gray-200">나만 보기</span>
+            </label>
+            <label
+              class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 p-3 transition has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 hover:border-gray-300 dark:border-gray-700 dark:has-[:checked]:border-brand-400 dark:has-[:checked]:bg-brand-500/15 dark:hover:border-gray-600"
+            >
+              <input type="radio" name="visibility" value="COMPANY" class="h-4 w-4 border-gray-300 text-brand-500 focus:ring-brand-500" />
+              <span class="text-sm font-medium text-gray-800 dark:text-gray-200">전사</span>
+            </label>
+            <label
+              class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 p-3 transition has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 hover:border-gray-300 dark:border-gray-700 dark:has-[:checked]:border-brand-400 dark:has-[:checked]:bg-brand-500/15 dark:hover:border-gray-600"
+            >
+              <input type="radio" name="visibility" value="DEPARTMENT" class="h-4 w-4 border-gray-300 text-brand-500 focus:ring-brand-500" />
+              <span class="text-sm font-medium text-gray-800 dark:text-gray-200">특정 부서</span>
+            </label>
+            <label
+              class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 p-3 transition has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 hover:border-gray-300 dark:border-gray-700 dark:has-[:checked]:border-brand-400 dark:has-[:checked]:bg-brand-500/15 dark:hover:border-gray-600"
+            >
+              <input type="radio" name="visibility" value="SPECIFIC" class="h-4 w-4 border-gray-300 text-brand-500 focus:ring-brand-500" />
+              <span class="text-sm font-medium text-gray-800 dark:text-gray-200">특정 인원</span>
+            </label>
+          </div>
+
+          <div id="calendar-share-dept-wrap" class="hidden space-y-2">
+            <label for="calendar-share-depts" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              공유 부서
+            </label>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Ctrl / ⌘ + 클릭으로 여러 부서 선택</p>
+            <select
+              id="calendar-share-depts"
+              name="shareDeptIds"
+              multiple
+              size="6"
+              class="max-h-40 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white"
+            ></select>
+          </div>
+
+          <div id="calendar-share-member-wrap" class="hidden space-y-2">
+            <label for="calendar-share-members" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              공유 멤버
+            </label>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Ctrl / ⌘ + 클릭으로 여러 명 선택</p>
+            <select
+              id="calendar-share-members"
+              name="shareMemberIds"
+              multiple
+              size="6"
+              class="max-h-40 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white"
+            ></select>
+          </div>
+        </section>
+      </form>
     </div>
+
+    <!-- [하단 액션] 폼 밖에 두어 스크롤과 분리 -->
+    <footer
+      class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50/90 px-5 py-4 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/80 sm:px-6"
+    >
+      <button
+        type="button"
+        id="btn-calendar-cancel"
+        class="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+      >
+        취소
+      </button>
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          id="btn-calendar-delete"
+          class="hidden rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-medium text-rose-600 shadow-sm transition hover:bg-rose-50 dark:border-rose-900/50 dark:bg-gray-800 dark:text-rose-400 dark:hover:bg-rose-950/40"
+        >
+          삭제
+        </button>
+        <button
+          type="button"
+          id="btn-calendar-submit"
+          class="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+        >
+          등록
+        </button>
+        <button
+          type="button"
+          id="btn-calendar-update"
+          class="hidden rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+        >
+          수정
+        </button>
+      </div>
+    </footer>
   </div>
 </div>

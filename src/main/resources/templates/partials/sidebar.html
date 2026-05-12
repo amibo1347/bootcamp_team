@@ -153,10 +153,11 @@
                     <!-- Menu Item Unified trash -->
                     <li th:if="${isAdmin}">
                         <a th:href="@{/subAdmin/unified-trash}" @click="page = 'unifiedTrash'"
-                            class="menu-item group"
+                            class="menu-item group -ml-2.5"
                             :class="page === 'unifiedTrash' ? 'menu-item-active' : 'menu-item-inactive'">
-                            <!-- 통합 휴지통: 목록 페이지와 동일한 미니멀 라인 아이콘(fill 유틸이 stroke를 덮지 않도록 fill-none) -->
+                            <!-- 통합 휴지통: 28×28·path 유지. 아이콘+텍스트 블록 전체를 -ml-2.5로 왼쪽 이동, 실루엣은 -translate-x-2로 추가 보정 -->
                             <svg fill="none" width="28" height="28" viewBox="0 0 24 24"
+                                class="shrink-0 -translate-x-2"
                                 xmlns="http://www.w3.org/2000/svg" aria-hidden="true" stroke-width="1.5"
                                 stroke-linecap="round" stroke-linejoin="round"
                                 :class="page === 'unifiedTrash'
