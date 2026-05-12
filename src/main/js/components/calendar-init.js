@@ -4,225 +4,893 @@ import listPlugin from "@fullcalendar/list";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 
-document.addEventListener("DOMContentLoaded", function () {
+/** @typedef {'create'|'edit'} EventModalMode */
+
+document.addEventListener("DOMContentLoaded", () => {
   const calendarEl = document.querySelector("#calendar");
   if (!calendarEl) return;
 
-  const newDate = new Date();
-  const getDynamicMonth = () => {
-    const month = newDate.getMonth() + 1;
-    return month < 10 ? `0${month}` : `${month}`;
-  };
+  // ---------------------------------------------------------------------------
+  // [상수] REST 경로 — 백엔드 구현 전까지 실패 시 빈 목록·목업 없이 조용히 무시
+  // ---------------------------------------------------------------------------
+  const API_CALENDAR_EVENTS = "/api/calendar/events";
+  const API_CALENDAR_CATEGORIES = "/api/calendar/categories";
+  const API_DEPTS = "/api/depts";
+  const API_MEMBERS = "/api/members";
 
-  const getModalTitleEl = document.querySelector("#event-title");
-  const getModalStartDateEl = document.querySelector("#event-start-date");
-  const getModalEndDateEl = document.querySelector("#event-end-date");
-  const getModalAddBtnEl = document.querySelector(".btn-add-event");
-  const getModalUpdateBtnEl = document.querySelector(".btn-update-event");
+  /** @type {Calendar | null} */
+  let calendarInstance = null;
 
-  const calendarsEvents = {
-    Danger: "danger",
-    Success: "success",
-    Primary: "primary",
-    Warning: "warning",
-  };
+  /** @type {EventModalMode} */
+  let eventModalMode = "create";
 
-  const calendarEventsList = [
-    {
-      id: 1,
-      title: "Event Conf.",
-      start: `${newDate.getFullYear()}-${getDynamicMonth()}-01`,
-      extendedProps: { calendar: "Danger" },
-    },
-    {
-      id: 2,
-      title: "Seminar #4",
-      start: `${newDate.getFullYear()}-${getDynamicMonth()}-07`,
-      end: `${newDate.getFullYear()}-${getDynamicMonth()}-10`,
-      extendedProps: { calendar: "Success" },
-    },
-    {
-      groupId: "999",
-      id: 3,
-      title: "Meeting #5",
-      start: `${newDate.getFullYear()}-${getDynamicMonth()}-09T16:00:00`,
-      extendedProps: { calendar: "Primary" },
-    },
-    {
-      groupId: "999",
-      id: 4,
-      title: "Submission #1",
-      start: `${newDate.getFullYear()}-${getDynamicMonth()}-16T16:00:00`,
-      extendedProps: { calendar: "Warning" },
-    },
-    {
-      id: 5,
-      title: "Seminar #6",
-      start: `${newDate.getFullYear()}-${getDynamicMonth()}-11`,
-      end: `${newDate.getFullYear()}-${getDynamicMonth()}-13`,
-      extendedProps: { calendar: "Danger" },
-    },
-    {
-      id: 6,
-      title: "Meeting 3",
-      start: `${newDate.getFullYear()}-${getDynamicMonth()}-12T10:30:00`,
-      end: `${newDate.getFullYear()}-${getDynamicMonth()}-12T12:30:00`,
-      extendedProps: { calendar: "Success" },
-    },
-    {
-      id: 7,
-      title: "Meetup #",
-      start: `${newDate.getFullYear()}-${getDynamicMonth()}-12T12:00:00`,
-      extendedProps: { calendar: "Primary" },
-    },
-    {
-      id: 8,
-      title: "Submission",
-      start: `${newDate.getFullYear()}-${getDynamicMonth()}-12T14:30:00`,
-      extendedProps: { calendar: "Warning" },
-    },
-    {
-      id: 9,
-      title: "Attend event",
-      start: `${newDate.getFullYear()}-${getDynamicMonth()}-13T07:00:00`,
-      extendedProps: { calendar: "Success" },
-    },
-    {
-      id: 10,
-      title: "Project submission #2",
-      start: `${newDate.getFullYear()}-${getDynamicMonth()}-28`,
-      extendedProps: { calendar: "Primary" },
-    },
-  ];
+  /** @type {Array<Record<string, unknown>>} */
+  let categoriesCache = [];
 
-  const openModal = () => {
-    const modal = document.getElementById("eventModal");
-    if (modal) modal.style.display = "flex";
-  };
+  // ---------------------------------------------------------------------------
+  // [유틸] 날짜·CSRF·문자열 이스케이프
+  // ---------------------------------------------------------------------------
 
-  const closeModal = () => {
-    const modal = document.getElementById("eventModal");
-    if (modal) modal.style.display = "none";
-    resetModalFields();
-  };
+  /**
+   * Date → datetime-local 문자열 (브라우저 로컬 기준)
+   * @param {Date} date
+   */
+  function toDatetimeLocalValue(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
 
-  const calendarSelect = (info) => {
-    resetModalFields();
-    if (getModalAddBtnEl) getModalAddBtnEl.style.display = "flex";
-    if (getModalUpdateBtnEl) getModalUpdateBtnEl.style.display = "none";
-    openModal();
-    if (getModalStartDateEl) getModalStartDateEl.value = info.startStr;
-    if (getModalEndDateEl) getModalEndDateEl.value = info.endStr || info.startStr;
-    if (getModalTitleEl) getModalTitleEl.value = "";
-  };
+  /**
+   * datetime-local 값을 ISO 문자열로 변환 (JSON 전송용)
+   * @param {string} localStr
+   */
+  function datetimeLocalToIso(localStr) {
+    if (!localStr || !localStr.trim()) return null;
+    const d = new Date(localStr);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toISOString();
+  }
 
-  const calendarAddEvent = () => {
-    const currentDate = new Date();
-    const dd = String(currentDate.getDate()).padStart(2, "0");
-    const mm = String(currentDate.getMonth() + 1).padStart(2, "0");
-    const yyyy = currentDate.getFullYear();
-    const combineDate = `${yyyy}-${mm}-${dd}T00:00:00`;
+  /** Spring Security CSRF 메타가 있으면 헤더 객체로 반환 */
+  function getCsrfHeaders() {
+    const token = document.querySelector('meta[name="_csrf"]')?.getAttribute("content");
+    const headerName = document.querySelector('meta[name="_csrf_header"]')?.getAttribute("content");
+    if (!token || !headerName) return {};
+    return { [headerName]: token };
+  }
 
-    if (getModalAddBtnEl) getModalAddBtnEl.style.display = "flex";
-    if (getModalUpdateBtnEl) getModalUpdateBtnEl.style.display = "none";
-    openModal();
-    if (getModalStartDateEl) getModalStartDateEl.value = combineDate;
-  };
+  /** XSS 방지용 간단 이스케이프 (카테고리 이름 등) */
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
 
-  const calendarEventClick = (info) => {
-    const eventObj = info.event;
-    if (eventObj.url) {
-      window.open(eventObj.url);
-      info.jsEvent.preventDefault();
-    } else {
-      const getModalEventId = eventObj._def.publicId;
-      const getModalEventLevel = eventObj._def.extendedProps.calendar;
-      const getModalCheckedRadioBtnEl = document.querySelector(
-        `input[value="${getModalEventLevel}"]`,
-      );
-      if (getModalTitleEl) getModalTitleEl.value = eventObj.title;
-      if (getModalStartDateEl) getModalStartDateEl.value = eventObj.startStr.slice(0, 10);
-      if (getModalEndDateEl) getModalEndDateEl.value = eventObj.endStr ? eventObj.endStr.slice(0, 10) : "";
-      if (getModalCheckedRadioBtnEl) getModalCheckedRadioBtnEl.checked = true;
-      if (getModalUpdateBtnEl) getModalUpdateBtnEl.dataset.fcEventPublicId = getModalEventId;
-      if (getModalAddBtnEl) getModalAddBtnEl.style.display = "none";
-      if (getModalUpdateBtnEl) getModalUpdateBtnEl.style.display = "block";
-      openModal();
+  /**
+   * 서버 DTO 한 건을 FullCalendar 이벤트 객체로 매핑
+   * @param {Record<string, unknown>} raw
+   */
+  function mapCalendarDtoToFcEvent(raw) {
+    const cat = raw.category && typeof raw.category === "object" ? raw.category : null;
+    const color =
+      (cat && typeof cat.color === "string" && cat.color) ||
+      (typeof raw.categoryColor === "string" && raw.categoryColor) ||
+      "#465fff";
+    const calendarId = raw.calendarId ?? raw.id;
+    const shareMemberIds = Array.isArray(raw.shareMemberIds) ? raw.shareMemberIds : [];
+    const shareDeptIds = Array.isArray(raw.shareDeptIds) ? raw.shareDeptIds : [];
+
+    return {
+      id: String(calendarId ?? ""),
+      title: typeof raw.title === "string" ? raw.title : "",
+      start: raw.startAt ?? raw.start,
+      end: raw.endAt ?? raw.end ?? raw.startAt ?? raw.start,
+      allDay: Boolean(raw.allDay),
+      backgroundColor: color,
+      borderColor: color,
+      extendedProps: {
+        calendarId,
+        description: raw.description ?? "",
+        categoryId: cat?.categoryId ?? raw.categoryId ?? null,
+        categoryColor: color,
+        location: raw.location ?? "",
+        visibility: raw.visibility ?? "PRIVATE",
+        allDay: Boolean(raw.allDay),
+        isRepeat: Boolean(raw.isRepeat),
+        repeatType: raw.repeatType ?? null,
+        repeatEndAt: raw.repeatEndAt ?? null,
+        isAlert: Boolean(raw.isAlert),
+        alertMinutesBefore: raw.alertMinutesBefore ?? 15,
+        shareMemberIds,
+        shareDeptIds,
+      },
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // [DOM 참조] 일정 폼
+  // ---------------------------------------------------------------------------
+  const eventModal = document.getElementById("eventModal");
+  const eventForm = document.getElementById("calendarEventForm");
+  const eventModalLabel = document.getElementById("eventModalLabel");
+  const formErrorEl = document.getElementById("calendar-event-form-error");
+
+  const btnSubmit = document.getElementById("btn-calendar-submit");
+  const btnUpdate = document.getElementById("btn-calendar-update");
+  const btnDelete = document.getElementById("btn-calendar-delete");
+  const btnCancel = document.getElementById("btn-calendar-cancel");
+
+  const visibilityRadios = () =>
+    eventForm ? Array.from(eventForm.querySelectorAll('input[name="visibility"]')) : [];
+
+  // ---------------------------------------------------------------------------
+  // [폼] 검증 · 수집 · 리셋 · 채우기
+  // ---------------------------------------------------------------------------
+
+  function showEventFormError(message) {
+    if (!formErrorEl) return;
+    formErrorEl.textContent = message;
+    formErrorEl.classList.remove("hidden");
+  }
+
+  function clearEventFormError() {
+    if (!formErrorEl) return;
+    formErrorEl.textContent = "";
+    formErrorEl.classList.add("hidden");
+  }
+
+  function validateEventForm() {
+    const titleInput = document.getElementById("calendar-title");
+    const startInput = document.getElementById("calendar-start-at");
+    const endInput = document.getElementById("calendar-end-at");
+    const title = titleInput?.value?.trim() ?? "";
+    if (!title) {
+      showEventFormError("제목을 입력해 주세요.");
+      titleInput?.focus();
+      return false;
     }
-  };
+    const startVal = startInput?.value ?? "";
+    if (!startVal) {
+      showEventFormError("시작 일시를 선택해 주세요.");
+      startInput?.focus();
+      return false;
+    }
+    const endVal = endInput?.value ?? "";
+    if (endVal) {
+      const s = new Date(startVal).getTime();
+      const e = new Date(endVal).getTime();
+      if (!Number.isNaN(s) && !Number.isNaN(e) && e < s) {
+        showEventFormError("종료 일시는 시작 일시보다 빠를 수 없습니다.");
+        endInput?.focus();
+        return false;
+      }
+    }
+    const vis =
+      eventForm?.querySelector('input[name="visibility"]:checked')?.value ?? "PRIVATE";
+    const deptSelect = document.getElementById("calendar-share-depts");
+    const memberSelect = document.getElementById("calendar-share-members");
+    if (vis === "DEPARTMENT") {
+      const n = deptSelect?.selectedOptions?.length ?? 0;
+      if (n === 0) {
+        showEventFormError('공개 범위가 "특정 부서"일 때 공유 부서를 한 개 이상 선택해 주세요.');
+        deptSelect?.focus();
+        return false;
+      }
+    }
+    if (vis === "SPECIFIC") {
+      const n = memberSelect?.selectedOptions?.length ?? 0;
+      if (n === 0) {
+        showEventFormError('공개 범위가 "특정 인원"일 때 공유 멤버를 한 명 이상 선택해 주세요.');
+        memberSelect?.focus();
+        return false;
+      }
+    }
+    const isRepeat = document.getElementById("calendar-is-repeat")?.checked;
+    if (isRepeat) {
+      const reEnd = document.getElementById("calendar-repeat-end-at")?.value ?? "";
+      if (!reEnd.trim()) {
+        showEventFormError("반복 일정일 때 반복 종료 일시를 입력해 주세요.");
+        document.getElementById("calendar-repeat-end-at")?.focus();
+        return false;
+      }
+    }
+    clearEventFormError();
+    return true;
+  }
 
-  const calendar = new Calendar(calendarEl, {
+  /**
+   * 폼 값을 API 요청 본문 객체로 직렬화
+   * @returns {Record<string, unknown>}
+   */
+  function collectEventPayload() {
+    const categorySel = document.getElementById("calendar-category-id");
+    const catVal = categorySel?.value ?? "";
+    const visibility =
+      eventForm?.querySelector('input[name="visibility"]:checked')?.value ?? "PRIVATE";
+    const deptSelect = document.getElementById("calendar-share-depts");
+    const memberSelect = document.getElementById("calendar-share-members");
+
+    const shareDeptIds = deptSelect
+      ? Array.from(deptSelect.selectedOptions).map((o) => Number(o.value)).filter((id) => !Number.isNaN(id))
+      : [];
+    const shareMemberIds = memberSelect
+      ? Array.from(memberSelect.selectedOptions).map((o) => Number(o.value)).filter((id) => !Number.isNaN(id))
+      : [];
+
+    const isRepeat = document.getElementById("calendar-is-repeat")?.checked ?? false;
+    const isAlert = document.getElementById("calendar-is-alert")?.checked ?? false;
+    const repeatTypeEl = document.getElementById("calendar-repeat-type");
+    const alertMinutesEl = document.getElementById("calendar-alert-minutes");
+
+    const startIso = datetimeLocalToIso(document.getElementById("calendar-start-at")?.value ?? "");
+    const endIso = datetimeLocalToIso(document.getElementById("calendar-end-at")?.value ?? "");
+    const repeatEndIso = datetimeLocalToIso(document.getElementById("calendar-repeat-end-at")?.value ?? "");
+
+    return {
+      title: document.getElementById("calendar-title")?.value?.trim() ?? "",
+      description: document.getElementById("calendar-description")?.value?.trim() || null,
+      location: document.getElementById("calendar-location")?.value?.trim() || null,
+      startAt: startIso,
+      endAt: endIso,
+      allDay: document.getElementById("calendar-all-day")?.checked ?? false,
+      categoryId: catVal ? Number(catVal) : null,
+      visibility,
+      shareDeptIds,
+      shareMemberIds,
+      isRepeat,
+      repeatType: isRepeat ? repeatTypeEl?.value ?? "DAILY" : null,
+      repeatEndAt: isRepeat ? repeatEndIso : null,
+      isAlert,
+      alertMinutesBefore: isAlert ? Number(alertMinutesEl?.value ?? 15) : null,
+    };
+  }
+
+  /** @param {boolean} [clearCalendarId=true] */
+  function resetEventForm(clearCalendarId = true) {
+    clearEventFormError();
+    if (clearCalendarId && document.getElementById("calendar-id")) {
+      document.getElementById("calendar-id").value = "";
+    }
+    const fields = [
+      ["calendar-title", ""],
+      ["calendar-description", ""],
+      ["calendar-location", ""],
+      ["calendar-start-at", ""],
+      ["calendar-end-at", ""],
+      ["calendar-repeat-end-at", ""],
+    ];
+    fields.forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    });
+    const cat = document.getElementById("calendar-category-id");
+    if (cat) cat.value = "";
+    const allDay = document.getElementById("calendar-all-day");
+    if (allDay) allDay.checked = false;
+    const isRepeat = document.getElementById("calendar-is-repeat");
+    if (isRepeat) isRepeat.checked = false;
+    const isAlert = document.getElementById("calendar-is-alert");
+    if (isAlert) isAlert.checked = false;
+    const repeatType = document.getElementById("calendar-repeat-type");
+    if (repeatType) repeatType.value = "DAILY";
+    const alertMin = document.getElementById("calendar-alert-minutes");
+    if (alertMin) alertMin.value = "15";
+
+    visibilityRadios().forEach((r) => {
+      if (r instanceof HTMLInputElement) r.checked = r.value === "PRIVATE";
+    });
+
+    const deptSelect = document.getElementById("calendar-share-depts");
+    const memberSelect = document.getElementById("calendar-share-members");
+    if (deptSelect) Array.from(deptSelect.options).forEach((o) => (o.selected = false));
+    if (memberSelect) Array.from(memberSelect.options).forEach((o) => (o.selected = false));
+
+    syncRepeatSection();
+    syncAlertSection();
+    syncVisibilityShares();
+  }
+
+  /**
+   * FullCalendar 이벤트로 폼 채우기 (수정 모드)
+   * @param {*} fcEvent
+   */
+  function fillFormFromFcEvent(fcEvent) {
+    const xp = fcEvent.extendedProps || {};
+    const cid =
+      xp.calendarId != null ? String(xp.calendarId) : fcEvent.id ? String(fcEvent.id) : "";
+    const hiddenId = document.getElementById("calendar-id");
+    if (hiddenId) hiddenId.value = cid;
+
+    const titleEl = document.getElementById("calendar-title");
+    if (titleEl) titleEl.value = fcEvent.title ?? "";
+
+    const desc = document.getElementById("calendar-description");
+    if (desc) desc.value = typeof xp.description === "string" ? xp.description : "";
+
+    const loc = document.getElementById("calendar-location");
+    if (loc) loc.value = typeof xp.location === "string" ? xp.location : "";
+
+    const categorySel = document.getElementById("calendar-category-id");
+    if (categorySel && xp.categoryId != null) {
+      categorySel.value = String(xp.categoryId);
+    }
+
+    const allDayEl = document.getElementById("calendar-all-day");
+    const allDay = Boolean(fcEvent.allDay ?? xp.allDay);
+    if (allDayEl) allDayEl.checked = allDay;
+
+    const start = fcEvent.start ?? null;
+    const end = fcEvent.end ?? null;
+    if (start) {
+      const s = document.getElementById("calendar-start-at");
+      if (s) s.value = toDatetimeLocalValue(start);
+    }
+    if (end) {
+      const displayEnd = allDay ? new Date(end.getTime() - 1) : end;
+      const e = document.getElementById("calendar-end-at");
+      if (e) e.value = toDatetimeLocalValue(displayEnd);
+    }
+
+    const isRepeatEl = document.getElementById("calendar-is-repeat");
+    if (isRepeatEl) isRepeatEl.checked = Boolean(xp.isRepeat);
+    const rt = document.getElementById("calendar-repeat-type");
+    if (rt && xp.repeatType) rt.value = String(xp.repeatType);
+
+    const reEnd = document.getElementById("calendar-repeat-end-at");
+    if (reEnd && xp.repeatEndAt) {
+      const d = new Date(String(xp.repeatEndAt));
+      if (!Number.isNaN(d.getTime())) reEnd.value = toDatetimeLocalValue(d);
+    }
+
+    const isAlertEl = document.getElementById("calendar-is-alert");
+    if (isAlertEl) isAlertEl.checked = Boolean(xp.isAlert);
+    const am = document.getElementById("calendar-alert-minutes");
+    if (am && xp.alertMinutesBefore != null) am.value = String(xp.alertMinutesBefore);
+
+    const vis = typeof xp.visibility === "string" ? xp.visibility : "PRIVATE";
+    visibilityRadios().forEach((r) => {
+      if (r instanceof HTMLInputElement) r.checked = r.value === vis;
+    });
+
+    const deptSelect = document.getElementById("calendar-share-depts");
+    if (deptSelect && Array.isArray(xp.shareDeptIds)) {
+      Array.from(deptSelect.options).forEach((opt) => {
+        opt.selected = xp.shareDeptIds.map(Number).includes(Number(opt.value));
+      });
+    }
+    const memberSelect = document.getElementById("calendar-share-members");
+    if (memberSelect && Array.isArray(xp.shareMemberIds)) {
+      Array.from(memberSelect.options).forEach((opt) => {
+        opt.selected = xp.shareMemberIds.map(Number).includes(Number(opt.value));
+      });
+    }
+  }
+
+  /** @param {EventModalMode} mode */
+  function setEventModalMode(mode) {
+    eventModalMode = mode;
+    if (!eventModalLabel) return;
+    eventModalLabel.textContent = mode === "edit" ? "일정 수정" : "일정 등록";
+
+    if (btnSubmit) btnSubmit.classList.toggle("hidden", mode === "edit");
+    if (btnUpdate) btnUpdate.classList.toggle("hidden", mode !== "edit");
+    if (btnDelete) btnDelete.classList.toggle("hidden", mode !== "edit");
+  }
+
+  /**
+   * 일정 모달 표시
+   * Tailwind `hidden`은 display:none !important 이므로 인라인 style로는 열리지 않음 → classList로 토글
+   */
+  function openEventModal() {
+    eventModal?.classList.remove("hidden");
+  }
+
+  function closeEventModal() {
+    eventModal?.classList.add("hidden");
+    resetEventForm();
+    setEventModalMode("create");
+  }
+
+  /** 반복 필드 영역 활성/비활성 */
+  function syncRepeatSection() {
+    const on = document.getElementById("calendar-is-repeat")?.checked ?? false;
+    const box = document.getElementById("calendar-repeat-fields");
+    if (!box) return;
+    box.classList.toggle("opacity-50", !on);
+    box.classList.toggle("pointer-events-none", !on);
+  }
+
+  /** 알림 분 선택 활성/비활성 */
+  function syncAlertSection() {
+    const on = document.getElementById("calendar-is-alert")?.checked ?? false;
+    const box = document.getElementById("calendar-alert-fields");
+    if (!box) return;
+    box.classList.toggle("opacity-50", !on);
+    box.classList.toggle("pointer-events-none", !on);
+  }
+
+  /** 공개 범위에 따른 공유 UI 표시 */
+  function syncVisibilityShares() {
+    const vis =
+      eventForm?.querySelector('input[name="visibility"]:checked')?.value ?? "PRIVATE";
+    const deptWrap = document.getElementById("calendar-share-dept-wrap");
+    const memberWrap = document.getElementById("calendar-share-member-wrap");
+    if (deptWrap) deptWrap.classList.toggle("hidden", vis !== "DEPARTMENT");
+    if (memberWrap) memberWrap.classList.toggle("hidden", vis !== "SPECIFIC");
+  }
+
+  // ---------------------------------------------------------------------------
+  // [카테고리] 목록 · 셀렉트 · 모달
+  // ---------------------------------------------------------------------------
+
+  const categoryModal = document.getElementById("categoryModal");
+  const categoryListEl = document.getElementById("category-list");
+  const categoryForm = document.getElementById("categoryForm");
+  const categoryFormError = document.getElementById("category-form-error");
+
+  function showCategoryFormError(msg) {
+    if (!categoryFormError) return;
+    categoryFormError.textContent = msg;
+    categoryFormError.classList.remove("hidden");
+  }
+
+  function clearCategoryFormError() {
+    if (!categoryFormError) return;
+    categoryFormError.textContent = "";
+    categoryFormError.classList.add("hidden");
+  }
+
+  function renderCategorySelectOptions() {
+    const sel = document.getElementById("calendar-category-id");
+    if (!sel) return;
+    const preserve = sel.value;
+    sel.innerHTML = '<option value="">선택 안 함</option>';
+    categoriesCache.forEach((c) => {
+      const id = c.categoryId ?? c.id;
+      const name = c.name ?? "";
+      if (id == null) return;
+      const opt = document.createElement("option");
+      opt.value = String(id);
+      opt.textContent = String(name);
+      sel.appendChild(opt);
+    });
+    if (preserve && Array.from(sel.options).some((o) => o.value === preserve)) {
+      sel.value = preserve;
+    }
+  }
+
+  /** 서버에서 카테고리 목록 조회 후 캐시·셀렉트 갱신 */
+  async function loadCategories() {
+    try {
+      const res = await fetch(API_CALENDAR_CATEGORIES, {
+        headers: { Accept: "application/json", ...getCsrfHeaders() },
+        credentials: "same-origin",
+      });
+      if (!res.ok) throw new Error("categories fetch failed");
+      const data = await res.json();
+      categoriesCache = Array.isArray(data) ? data : [];
+    } catch {
+      categoriesCache = [];
+    }
+    renderCategorySelectOptions();
+    renderCategoryListUl();
+  }
+
+  function renderCategoryListUl() {
+    if (!categoryListEl) return;
+    if (categoriesCache.length === 0) {
+      categoryListEl.innerHTML =
+        '<li class="py-6 text-center text-sm text-gray-500 dark:text-gray-400">등록된 카테고리가 없습니다.</li>';
+      return;
+    }
+    categoryListEl.innerHTML = categoriesCache
+      .map((c) => {
+        const id = c.categoryId ?? c.id;
+        const name = escapeHtml(String(c.name ?? ""));
+        const color = typeof c.color === "string" ? c.color : "#64748B";
+        return `
+      <li class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-800/40" data-category-id="${id}">
+        <div class="flex min-w-0 flex-1 items-center gap-3">
+          <span class="h-9 w-9 shrink-0 rounded-lg border border-gray-200 shadow-inner dark:border-gray-600" style="background-color:${escapeHtml(color)}" aria-hidden="true"></span>
+          <span class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">${name}</span>
+        </div>
+        <div class="flex shrink-0 gap-2">
+          <button type="button" class="btn-cat-edit rounded-lg border border-transparent px-3 py-1.5 text-xs font-medium text-brand-600 transition hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10">수정</button>
+          <button type="button" class="btn-cat-delete rounded-lg border border-transparent px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40">삭제</button>
+        </div>
+      </li>`;
+      })
+      .join("");
+  }
+
+  function resetCategoryForm() {
+    clearCategoryFormError();
+    const hid = document.getElementById("category-edit-id");
+    const nameInput = document.getElementById("category-name");
+    if (hid) hid.value = "";
+    if (nameInput) nameInput.value = "";
+    const firstColor = document.querySelector('input[name="categoryColor"]');
+    if (firstColor instanceof HTMLInputElement) firstColor.checked = true;
+  }
+
+  function fillCategoryFormFromItem(item) {
+    resetCategoryForm();
+    const hid = document.getElementById("category-edit-id");
+    const nameInput = document.getElementById("category-name");
+    const id = item.categoryId ?? item.id;
+    if (hid && id != null) hid.value = String(id);
+    if (nameInput) nameInput.value = String(item.name ?? "");
+    const col = typeof item.color === "string" ? item.color : "";
+    const radios = document.querySelectorAll('input[name="categoryColor"]');
+    let matched = false;
+    radios.forEach((r) => {
+      if (r instanceof HTMLInputElement && r.value === col) {
+        r.checked = true;
+        matched = true;
+      }
+    });
+    if (!matched && radios[0] instanceof HTMLInputElement) radios[0].checked = true;
+  }
+
+  function openCategoryModal() {
+    categoryModal?.classList.remove("hidden");
+    loadCategories();
+  }
+
+  function closeCategoryModal() {
+    categoryModal?.classList.add("hidden");
+    resetCategoryForm();
+  }
+
+  // ---------------------------------------------------------------------------
+  // [공유 대상] 부서·멤버 멀티 셀렉트 채우기 (API 스키마 유연 처리)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * @param {HTMLSelectElement} selectEl
+   * @param {unknown[]} items
+   * @param {(row: Record<string, unknown>) => { id: string; label: string }} pick
+   */
+  function populateMultiSelect(selectEl, items, pick) {
+    selectEl.innerHTML = "";
+    items.forEach((raw) => {
+      const row = raw && typeof raw === "object" ? /** @type {Record<string, unknown>} */ (raw) : {};
+      const { id, label } = pick(row);
+      if (!id) return;
+      const opt = document.createElement("option");
+      opt.value = id;
+      opt.textContent = label;
+      selectEl.appendChild(opt);
+    });
+  }
+
+  async function loadDeptAndMemberOptions() {
+    const deptSelect = document.getElementById("calendar-share-depts");
+    const memberSelect = document.getElementById("calendar-share-members");
+    try {
+      const [dRes, mRes] = await Promise.all([
+        fetch(API_DEPTS, { headers: { Accept: "application/json" }, credentials: "same-origin" }),
+        fetch(API_MEMBERS, { headers: { Accept: "application/json" }, credentials: "same-origin" }),
+      ]);
+      if (deptSelect && dRes.ok) {
+        const depts = await dRes.json();
+        const arr = Array.isArray(depts) ? depts : [];
+        populateMultiSelect(deptSelect, arr, (row) => ({
+          id: String(row.deptId ?? row.id ?? ""),
+          label: String(row.deptName ?? row.name ?? row.label ?? "부서"),
+        }));
+      }
+      if (memberSelect && mRes.ok) {
+        const members = await mRes.json();
+        const arr = Array.isArray(members) ? members : [];
+        populateMultiSelect(memberSelect, arr, (row) => ({
+          id: String(row.memberId ?? row.id ?? ""),
+          label: String(row.name ?? row.loginId ?? row.label ?? "멤버"),
+        }));
+      }
+    } catch {
+      /* API 미구현 시 빈 셀렉트 유지 */
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // [일정 API] 등록 · 수정 · 삭제
+  // ---------------------------------------------------------------------------
+
+  async function submitCreateEvent() {
+    if (!validateEventForm()) return;
+    const payload = collectEventPayload();
+    try {
+      const res = await fetch(API_CALENDAR_EVENTS, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
+        credentials: "same-origin",
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || "등록에 실패했습니다.");
+      }
+      calendarInstance?.refetchEvents();
+      closeEventModal();
+    } catch (e) {
+      showEventFormError(e instanceof Error ? e.message : "등록 요청 중 오류가 발생했습니다.");
+    }
+  }
+
+  async function submitUpdateEvent() {
+    if (!validateEventForm()) return;
+    const calendarId = document.getElementById("calendar-id")?.value;
+    if (!calendarId) {
+      showEventFormError("수정할 일정 ID가 없습니다.");
+      return;
+    }
+    const payload = collectEventPayload();
+    try {
+      const res = await fetch(`${API_CALENDAR_EVENTS}/${encodeURIComponent(calendarId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
+        credentials: "same-origin",
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || "수정에 실패했습니다.");
+      }
+      calendarInstance?.refetchEvents();
+      closeEventModal();
+    } catch (e) {
+      showEventFormError(e instanceof Error ? e.message : "수정 요청 중 오류가 발생했습니다.");
+    }
+  }
+
+  async function submitDeleteEvent() {
+    const calendarId = document.getElementById("calendar-id")?.value;
+    if (!calendarId) return;
+    if (!window.confirm("이 일정을 삭제할까요?")) return;
+    try {
+      const res = await fetch(`${API_CALENDAR_EVENTS}/${encodeURIComponent(calendarId)}`, {
+        method: "DELETE",
+        headers: { Accept: "application/json", ...getCsrfHeaders() },
+        credentials: "same-origin",
+      });
+      if (!res.ok) throw new Error("삭제에 실패했습니다.");
+      calendarInstance?.refetchEvents();
+      closeEventModal();
+    } catch (e) {
+      showEventFormError(e instanceof Error ? e.message : "삭제 요청 중 오류가 발생했습니다.");
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // [FullCalendar] 초기화
+  // ---------------------------------------------------------------------------
+
+  calendarInstance = new Calendar(calendarEl, {
     plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
     selectable: true,
     initialView: "dayGridMonth",
-    initialDate: `${newDate.getFullYear()}-${getDynamicMonth()}-07`,
     headerToolbar: {
       left: "prev,next addEventButton",
       center: "title",
       right: "dayGridMonth,timeGridWeek,timeGridDay",
     },
-    events: calendarEventsList,
-    select: calendarSelect,
-    eventClick: calendarEventClick,
-    dateClick: calendarAddEvent,
+    events: async (info, successCallback, failureCallback) => {
+      try {
+        const url = new URL(API_CALENDAR_EVENTS, window.location.origin);
+        url.searchParams.set("start", info.startStr);
+        url.searchParams.set("end", info.endStr);
+        const res = await fetch(url.toString(), {
+          headers: { Accept: "application/json", ...getCsrfHeaders() },
+          credentials: "same-origin",
+        });
+        if (!res.ok) throw new Error("fetch failed");
+        const data = await res.json();
+        const arr = Array.isArray(data) ? data : [];
+        successCallback(arr.map(mapCalendarDtoToFcEvent));
+      } catch {
+        successCallback([]);
+      }
+    },
+    select: (info) => {
+      setEventModalMode("create");
+      resetEventForm();
+      const allDay = info.allDay;
+      const allDayEl = document.getElementById("calendar-all-day");
+      if (allDayEl) allDayEl.checked = allDay;
+
+      let start = info.start;
+      let end = info.end;
+      if (allDay && end) {
+        end = new Date(end.getTime() - 1);
+      } else if (!end) {
+        end = new Date(start);
+        if (allDay) end.setHours(23, 59, 0, 0);
+        else end.setHours(start.getHours() + 1);
+      }
+
+      const startInput = document.getElementById("calendar-start-at");
+      const endInput = document.getElementById("calendar-end-at");
+      if (startInput) startInput.value = toDatetimeLocalValue(start);
+      if (endInput) endInput.value = toDatetimeLocalValue(end);
+
+      syncRepeatSection();
+      syncAlertSection();
+      syncVisibilityShares();
+      openEventModal();
+    },
+    dateClick: (info) => {
+      setEventModalMode("create");
+      resetEventForm();
+      const allDay = info.allDay;
+      const allDayEl = document.getElementById("calendar-all-day");
+      if (allDayEl) allDayEl.checked = allDay;
+      const start = info.date;
+      let end;
+      if (allDay) {
+        end = new Date(start);
+        end.setHours(23, 59, 0, 0);
+      } else {
+        end = new Date(start);
+        end.setHours(end.getHours() + 1);
+      }
+      const startInput = document.getElementById("calendar-start-at");
+      const endInput = document.getElementById("calendar-end-at");
+      if (startInput) startInput.value = toDatetimeLocalValue(start);
+      if (endInput) endInput.value = toDatetimeLocalValue(end);
+      syncRepeatSection();
+      syncAlertSection();
+      syncVisibilityShares();
+      openEventModal();
+    },
+    eventClick: (info) => {
+      info.jsEvent.preventDefault();
+      if (info.event.url) return;
+      setEventModalMode("edit");
+      fillFormFromFcEvent(info.event);
+      syncRepeatSection();
+      syncAlertSection();
+      syncVisibilityShares();
+      openEventModal();
+    },
     customButtons: {
       addEventButton: {
-        text: "Add Event +",
-        click: calendarAddEvent,
+        text: "일정 추가 +",
+        click: () => {
+          setEventModalMode("create");
+          resetEventForm();
+          const now = new Date();
+          const start = new Date(now);
+          start.setMinutes(0, 0, 0);
+          const end = new Date(start);
+          end.setHours(end.getHours() + 1);
+          const allDayEl = document.getElementById("calendar-all-day");
+          if (allDayEl) allDayEl.checked = false;
+          const startInput = document.getElementById("calendar-start-at");
+          const endInput = document.getElementById("calendar-end-at");
+          if (startInput) startInput.value = toDatetimeLocalValue(start);
+          if (endInput) endInput.value = toDatetimeLocalValue(end);
+          syncRepeatSection();
+          syncAlertSection();
+          syncVisibilityShares();
+          openEventModal();
+        },
       },
     },
-    eventClassNames({ event: calendarEvent }) {
-      const getColorValue = calendarsEvents[calendarEvent._def.extendedProps.calendar];
-      return [`event-fc-color`, `fc-bg-${getColorValue}`];
-    },
   });
 
-  calendar.render();
+  calendarInstance.render();
 
-  if (getModalUpdateBtnEl) {
-    getModalUpdateBtnEl.addEventListener("click", () => {
-      const getPublicID = getModalUpdateBtnEl.dataset.fcEventPublicId;
-      const getEvent = calendar.getEventById(getPublicID);
-      const getModalUpdatedCheckedRadioBtnEl = document.querySelector('input[name="event-level"]:checked');
-      if (getEvent) {
-        getEvent.setProp("title", getModalTitleEl?.value);
-        getEvent.setDates(getModalStartDateEl?.value, getModalEndDateEl?.value);
-        getEvent.setExtendedProp("calendar", getModalUpdatedCheckedRadioBtnEl?.value ?? "");
+  // 최초 카테고리·공유 옵션 (API 없어도 UI 동작)
+  loadCategories();
+  loadDeptAndMemberOptions();
+
+  // ---------------------------------------------------------------------------
+  // [이벤트 리스너] 일정 모달
+  // ---------------------------------------------------------------------------
+
+  btnSubmit?.addEventListener("click", submitCreateEvent);
+  btnUpdate?.addEventListener("click", submitUpdateEvent);
+  btnDelete?.addEventListener("click", submitDeleteEvent);
+  btnCancel?.addEventListener("click", closeEventModal);
+
+  document.querySelectorAll("#eventModal .modal-close-btn").forEach((btn) => {
+    btn.addEventListener("click", closeEventModal);
+  });
+
+  document.getElementById("calendar-is-repeat")?.addEventListener("change", syncRepeatSection);
+  document.getElementById("calendar-is-alert")?.addEventListener("change", syncAlertSection);
+  visibilityRadios().forEach((r) =>
+    r.addEventListener("change", syncVisibilityShares),
+  );
+
+  // ---------------------------------------------------------------------------
+  // [이벤트 리스너] 카테고리 모달
+  // ---------------------------------------------------------------------------
+
+  document.getElementById("btn-open-category-modal")?.addEventListener("click", openCategoryModal);
+  document.getElementById("btn-category-modal-close")?.addEventListener("click", closeCategoryModal);
+  document.getElementById("btn-category-cancel")?.addEventListener("click", closeCategoryModal);
+  document.getElementById("category-modal-backdrop")?.addEventListener("click", closeCategoryModal);
+  document.getElementById("btn-category-reset")?.addEventListener("click", resetCategoryForm);
+
+  categoryForm?.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    clearCategoryFormError();
+    const nameInput = document.getElementById("category-name");
+    const name = nameInput?.value?.trim() ?? "";
+    if (!name) {
+      showCategoryFormError("카테고리 이름을 입력해 주세요.");
+      nameInput?.focus();
+      return;
+    }
+    const colorRadio = document.querySelector('input[name="categoryColor"]:checked');
+    const color = colorRadio instanceof HTMLInputElement ? colorRadio.value : "";
+    if (!color) {
+      showCategoryFormError("색상을 선택해 주세요.");
+      return;
+    }
+    const editId = document.getElementById("category-edit-id")?.value ?? "";
+    const body = JSON.stringify({ name, color });
+    try {
+      let res;
+      if (editId) {
+        res = await fetch(`${API_CALENDAR_CATEGORIES}/${encodeURIComponent(editId)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
+          credentials: "same-origin",
+          body,
+        });
+      } else {
+        res = await fetch(API_CALENDAR_CATEGORIES, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
+          credentials: "same-origin",
+          body,
+        });
       }
-      closeModal();
-    });
-  }
-
-  if (getModalAddBtnEl) {
-    getModalAddBtnEl.addEventListener("click", () => {
-      const getModalCheckedRadioBtnEl = document.querySelector('input[name="event-level"]:checked');
-      calendar.addEvent({
-        id: Date.now(),
-        title: getModalTitleEl?.value,
-        start: getModalStartDateEl?.value,
-        end: getModalEndDateEl?.value,
-        allDay: true,
-        extendedProps: { calendar: getModalCheckedRadioBtnEl?.value ?? "" },
-      });
-      closeModal();
-    });
-  }
-
-  function resetModalFields() {
-    if (getModalTitleEl) getModalTitleEl.value = "";
-    if (getModalStartDateEl) getModalStartDateEl.value = "";
-    if (getModalEndDateEl) getModalEndDateEl.value = "";
-    const checked = document.querySelector('input[name="event-level"]:checked');
-    if (checked) checked.checked = false;
-  }
-
-  document.querySelectorAll(".modal-close-btn").forEach((btn) => {
-    btn.addEventListener("click", closeModal);
+      if (!res.ok) throw new Error("저장에 실패했습니다.");
+      resetCategoryForm();
+      await loadCategories();
+      calendarInstance?.refetchEvents();
+    } catch (e) {
+      showCategoryFormError(e instanceof Error ? e.message : "저장 중 오류가 발생했습니다.");
+    }
   });
 
-  window.addEventListener("click", (event) => {
-    if (event.target === document.getElementById("eventModal")) {
-      closeModal();
+  syncRepeatSection();
+  syncAlertSection();
+  syncVisibilityShares();
+
+  categoryListEl?.addEventListener("click", async (ev) => {
+    const target = ev.target instanceof Element ? ev.target : null;
+    const editBtn = target?.closest(".btn-cat-edit");
+    const delBtn = target?.closest(".btn-cat-delete");
+    const li = target?.closest("li[data-category-id]");
+    const idAttr = li?.getAttribute("data-category-id");
+    if (!idAttr) return;
+    const item = categoriesCache.find((c) => String(c.categoryId ?? c.id) === idAttr);
+    if (editBtn && item) {
+      fillCategoryFormFromItem(item);
+    }
+    if (delBtn) {
+      if (!window.confirm("이 카테고리를 삭제할까요?")) return;
+      try {
+        const res = await fetch(`${API_CALENDAR_CATEGORIES}/${encodeURIComponent(idAttr)}`, {
+          method: "DELETE",
+          headers: { Accept: "application/json", ...getCsrfHeaders() },
+          credentials: "same-origin",
+        });
+        if (!res.ok) throw new Error("삭제에 실패했습니다.");
+        resetCategoryForm();
+        await loadCategories();
+        calendarInstance?.refetchEvents();
+      } catch (e) {
+        showCategoryFormError(e instanceof Error ? e.message : "삭제 중 오류가 발생했습니다.");
+      }
     }
   });
 });
