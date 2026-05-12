@@ -34,15 +34,18 @@ public enum ErrorCode {
     MEMBER_LEFT(403, "퇴사한 회원입니다"),
     MEMBER_NOT_WAITING(400, "승인 대기 상태가 아닌 회원입니다"),
     INVALID_STATUS(400, "변경할 수 없는 상태값입니다"),
+    MEMBER_NOT_OWNER(400, "본인이 아닙니다"),
     
     // 기업
     COMPANY_NOT_FOUND(404, "해당 기업을 찾을 수 없습니다"),
+    COMPANY_ACCESS_DENIED(403, "해당 기업의 권한이 없습니다"),
     
     
     // 부서
     DEPT_NOT_FOUND(404, "해당 부서를 찾을 수 없습니다"),
     DUPLICATE_DEPT_NAME(409, "이미 존재하는 부서 이름입니다"),
     DEPT_IN_USE(409, "소속된 회원이 있어 부서를 삭제할 수 없습니다"),
+    DEPT_NOT_MATCH(400, "소속된 부서가 아닙니다"),
     
     // 직급
     POSITION_NOT_FOUND(404, "해당 직급을 찾을 수 없습니다"),
@@ -72,7 +75,12 @@ public enum ErrorCode {
 
     // 카테고리
     CATEGORY_NOT_FOUND(404, "해당 카테고리를 찾을 수 없습니다"),
-    DUPLICATE_CATEGORY_NAME(409, "이미 존재하는 카테고리입니다");
+    DUPLICATE_CATEGORY_NAME(409, "이미 존재하는 카테고리입니다"),
+
+    // 캘린더
+    CALENDAR_ACCESS_DENIED(403, "일정에 관한 권한이 없습니다"),
+    CALENDAR_NOT_OWNER(400, "일정의 작성자가 아닙니다"),
+    CALENDAR_NOT_FOUND(404, "해당 일정을 찾을 수 없습니다");
     
     // 2. 변수 정의
     private final int status;
