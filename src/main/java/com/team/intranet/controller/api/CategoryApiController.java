@@ -2,6 +2,10 @@ package com.team.intranet.controller.api;
 
 import java.util.List;
 
+import com.team.intranet.service.CategoryService;
+import com.team.intranet.dto.CategoryDto;
+import com.team.intranet.session.MemberSession;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -12,12 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.SessionAttribute;
-
-import org.springframework.web.bind.annotation.PathVariable;
-import java.util.List;
-
 import lombok.RequiredArgsConstructor;
-
 @Controller
 @RequestMapping("/api/categories")
 @RequiredArgsConstructor
