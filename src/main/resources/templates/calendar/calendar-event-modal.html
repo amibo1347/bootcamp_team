@@ -18,9 +18,9 @@
   >
     <!-- [헤더] -->
     <header
-      class="flex shrink-0 items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 sm:px-6 sm:py-5 dark:border-gray-800"
+      class="flex shrink-0 items-start border-b border-gray-100 px-5 py-4 sm:px-6 sm:py-5 dark:border-gray-800"
     >
-      <div class="min-w-0 pr-8">
+      <div class="min-w-0">
         <h2
           class="text-lg font-semibold text-gray-900 dark:text-white sm:text-xl"
           id="eventModalLabel"
@@ -31,15 +31,6 @@
           제목과 일시를 입력하고 저장하면 캘린더에 반영됩니다.
         </p>
       </div>
-      <button
-        type="button"
-        class="modal-close-btn -mr-1 -mt-1 shrink-0 rounded-full p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10 dark:hover:text-gray-200"
-        aria-label="모달 닫기"
-      >
-        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
     </header>
 
     <!-- [스크롤 영역] -->
@@ -104,17 +95,38 @@
                 class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white dark:placeholder:text-gray-500"
               />
             </div>
-            <div>
-              <label for="calendar-category-id" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                카테고리
-              </label>
-              <select
-                id="calendar-category-id"
-                name="categoryId"
-                class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white"
-              >
+            <!-- [콤보박스] 숨은 select 는 맨 앞·pointer-events-none 으로 트리거 클릭 가로채기 방지 / label 은 버튼 감싸 클릭 영역 통일 -->
+            <div class="relative z-30" data-cal-combobox data-cal-select-id="calendar-category-id">
+              <select id="calendar-category-id" name="categoryId" class="sr-only pointer-events-none" tabindex="-1" aria-hidden="true">
                 <option value="">선택 안 함</option>
               </select>
+              <label class="block cursor-pointer">
+                <span class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">카테고리</span>
+                <button
+                  type="button"
+                  id="calendar-category-trigger"
+                  class="calendar-combobox-trigger w-full"
+                  data-cal-combobox-trigger
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="calendar-category-listbox"
+                >
+                  <span class="min-w-0 flex-1 truncate text-left" data-cal-combobox-label>선택 안 함</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5 shrink-0 text-gray-400 dark:text-gray-500" aria-hidden="true">
+                    <path
+                      fill-rule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </label>
+              <div
+                id="calendar-category-listbox"
+                class="cal-combobox-panel hidden"
+                data-cal-combobox-panel
+                role="listbox"
+              ></div>
               <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                 막대 색은 카테고리 관리에서 지정한 색이 적용됩니다.
               </p>
@@ -185,20 +197,40 @@
             <span class="text-sm font-medium text-gray-800 dark:text-gray-200">반복 일정</span>
           </label>
           <div id="calendar-repeat-fields" class="grid gap-4 opacity-50 pointer-events-none sm:grid-cols-2">
-            <div>
-              <label for="calendar-repeat-type" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                반복 유형
-              </label>
-              <select
-                id="calendar-repeat-type"
-                name="repeatType"
-                class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white"
-              >
+            <div class="relative z-30" data-cal-combobox data-cal-select-id="calendar-repeat-type">
+              <select id="calendar-repeat-type" name="repeatType" class="sr-only pointer-events-none" tabindex="-1" aria-hidden="true">
                 <option value="DAILY">매일</option>
                 <option value="WEEKLY">매주</option>
                 <option value="MONTHLY">매월</option>
                 <option value="YEARLY">매년</option>
               </select>
+              <label class="block cursor-pointer">
+                <span class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">반복 유형</span>
+                <button
+                  type="button"
+                  id="calendar-repeat-trigger"
+                  class="calendar-combobox-trigger w-full"
+                  data-cal-combobox-trigger
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="calendar-repeat-listbox"
+                >
+                  <span class="min-w-0 flex-1 truncate text-left" data-cal-combobox-label>매일</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5 shrink-0 text-gray-400 dark:text-gray-500" aria-hidden="true">
+                    <path
+                      fill-rule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </label>
+              <div
+                id="calendar-repeat-listbox"
+                class="cal-combobox-panel hidden"
+                data-cal-combobox-panel
+                role="listbox"
+              ></div>
             </div>
             <div>
               <label for="calendar-repeat-end-at" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -231,22 +263,44 @@
             <span class="text-sm font-medium text-gray-800 dark:text-gray-200">시작 전 알림</span>
           </label>
           <div id="calendar-alert-fields" class="opacity-50 pointer-events-none">
-            <label for="calendar-alert-minutes" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              알림 시점
-            </label>
-            <select
-              id="calendar-alert-minutes"
-              name="alertMinutesBefore"
-              class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white"
-            >
-              <option value="5">5분 전</option>
-              <option value="10">10분 전</option>
-              <option value="15">15분 전</option>
-              <option value="30">30분 전</option>
-              <option value="60">1시간 전</option>
-              <option value="120">2시간 전</option>
-              <option value="1440">1일 전</option>
-            </select>
+            <div class="relative z-30" data-cal-combobox data-cal-select-id="calendar-alert-minutes">
+              <select id="calendar-alert-minutes" name="alertMinutesBefore" class="sr-only pointer-events-none" tabindex="-1" aria-hidden="true">
+                <option value="5">5분 전</option>
+                <option value="10">10분 전</option>
+                <option value="15">15분 전</option>
+                <option value="30">30분 전</option>
+                <option value="60">1시간 전</option>
+                <option value="120">2시간 전</option>
+                <option value="1440">1일 전</option>
+              </select>
+              <label class="block cursor-pointer">
+                <span class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">알림 시점</span>
+                <button
+                  type="button"
+                  id="calendar-alert-trigger"
+                  class="calendar-combobox-trigger w-full"
+                  data-cal-combobox-trigger
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="calendar-alert-listbox"
+                >
+                  <span class="min-w-0 flex-1 truncate text-left" data-cal-combobox-label>15분 전</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5 shrink-0 text-gray-400 dark:text-gray-500" aria-hidden="true">
+                    <path
+                      fill-rule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </label>
+              <div
+                id="calendar-alert-listbox"
+                class="cal-combobox-panel hidden"
+                data-cal-combobox-panel
+                role="listbox"
+              ></div>
+            </div>
           </div>
         </section>
 
@@ -283,31 +337,36 @@
           </div>
 
           <div id="calendar-share-dept-wrap" class="hidden space-y-2">
-            <label for="calendar-share-depts" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              공유 부서
-            </label>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Ctrl / ⌘ + 클릭으로 여러 부서 선택</p>
-            <select
-              id="calendar-share-depts"
-              name="shareDeptIds"
-              multiple
-              size="6"
-              class="max-h-40 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white"
-            ></select>
+            <div class="relative z-20 space-y-2">
+              <label for="calendar-share-depts" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                공유 부서
+              </label>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Ctrl / ⌘ + 클릭으로 여러 부서 선택</p>
+              <!-- 스타일: input.css `.calendar-native-select-multiple` -->
+              <select
+                id="calendar-share-depts"
+                name="shareDeptIds"
+                multiple
+                size="6"
+                class="calendar-native-select-multiple"
+              ></select>
+            </div>
           </div>
 
           <div id="calendar-share-member-wrap" class="hidden space-y-2">
-            <label for="calendar-share-members" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              공유 멤버
-            </label>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Ctrl / ⌘ + 클릭으로 여러 명 선택</p>
-            <select
-              id="calendar-share-members"
-              name="shareMemberIds"
-              multiple
-              size="6"
-              class="max-h-40 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white"
-            ></select>
+            <div class="relative z-20 space-y-2">
+              <label for="calendar-share-members" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                공유 멤버
+              </label>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Ctrl / ⌘ + 클릭으로 여러 명 선택</p>
+              <select
+                id="calendar-share-members"
+                name="shareMemberIds"
+                multiple
+                size="6"
+                class="calendar-native-select-multiple"
+              ></select>
+            </div>
           </div>
         </section>
       </form>

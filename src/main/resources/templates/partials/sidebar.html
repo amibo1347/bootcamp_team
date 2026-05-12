@@ -153,22 +153,26 @@
                     <!-- Menu Item Unified trash -->
                     <li th:if="${isAdmin}">
                         <a th:href="@{/subAdmin/unified-trash}" @click="page = 'unifiedTrash'"
-                            class="menu-item group -ml-2.5"
+                            class="menu-item group -ml-px"
                             :class="page === 'unifiedTrash' ? 'menu-item-active' : 'menu-item-inactive'">
-                            <!-- 통합 휴지통: 28×28·path 유지. 아이콘+텍스트 블록 전체를 -ml-2.5로 왼쪽 이동, 실루엣은 -translate-x-2로 추가 보정 -->
-                            <svg fill="none" width="28" height="28" viewBox="0 0 24 24"
-                                class="shrink-0 -translate-x-2"
-                                xmlns="http://www.w3.org/2000/svg" aria-hidden="true" stroke-width="1.5"
-                                stroke-linecap="round" stroke-linejoin="round"
-                                :class="page === 'unifiedTrash'
-                                    ? 'stroke-brand-500 dark:stroke-brand-400'
-                                    : 'stroke-gray-500 group-hover:stroke-gray-700 dark:stroke-gray-400 dark:group-hover:stroke-gray-300'">
-                                <path
-                                    d="M8 8.5h8v8.35a1.15 1.15 0 0 1-1.15 1.15h-5.7a1.15 1.15 0 0 1-1.15-1.15v-8.35z" />
-                                <path d="M9.35 10.25v6.5M12 10.25v6.5M14.65 10.25v6.5" />
-                                <path d="M7 7.65h10" />
-                                <path d="M11 5.1h2v2.55H11z" />
-                            </svg>
+                            <!-- 통합 휴지통: SVG는 28×28·path 그대로. 첫 flex 칼럼만 w-6(24px)로 고정해 위·아래 24px 아이콘과 라벨 시작선 일치 (넘치는 4px는 오른쪽으로만 보임) -->
+                            <span
+                                class="relative inline-flex h-7 w-6 shrink-0 flex-none items-center overflow-visible"
+                                aria-hidden="true">
+                                <svg fill="none" width="28" height="28" viewBox="0 0 24 24"
+                                    class="pointer-events-none absolute left-0 top-1/2 block -translate-x-px -translate-y-1/2"
+                                    xmlns="http://www.w3.org/2000/svg" stroke-width="1.5"
+                                    stroke-linecap="round" stroke-linejoin="round"
+                                    :class="page === 'unifiedTrash'
+                                        ? 'stroke-brand-500 dark:stroke-brand-400'
+                                        : 'stroke-gray-500 group-hover:stroke-gray-700 dark:stroke-gray-400 dark:group-hover:stroke-gray-300'">
+                                    <path
+                                        d="M8 8.5h8v8.35a1.15 1.15 0 0 1-1.15 1.15h-5.7a1.15 1.15 0 0 1-1.15-1.15v-8.35z" />
+                                    <path d="M9.35 10.25v6.5M12 10.25v6.5M14.65 10.25v6.5" />
+                                    <path d="M7 7.65h10" />
+                                    <path d="M11 5.1h2v2.55H11z" />
+                                </svg>
+                            </span>
                             <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">통합 휴지통</span>
                         </a>
                     </li>

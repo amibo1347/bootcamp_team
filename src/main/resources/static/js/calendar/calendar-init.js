@@ -11,10 +11,16 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!calendarEl) return;
 
   // ---------------------------------------------------------------------------
-  // [상수] REST 경로 — 백엔드 구현 전까지 실패 시 빈 목록·목업 없이 조용히 무시
+  // [상수] API 경로 — CalendarApiController / CategoryApiController 와 동일 경로 유지
+  // (변경 요청은 프로젝트 정책상 PUT/DELETE 대신 POST 하위 경로 사용)
   // ---------------------------------------------------------------------------
   const API_CALENDAR_EVENTS = "/api/calendar/events";
-  const API_CALENDAR_CATEGORIES = "/api/calendar/categories";
+  /** 일정 수정: POST 본문에 `id` + 필드 포함 (@PostMapping .../update) */
+  const API_CALENDAR_EVENTS_UPDATE = `${API_CALENDAR_EVENTS}/update`;
+  /** 일정 삭제: POST 본문 `{ id }` (@PostMapping .../delete) */
+  const API_CALENDAR_EVENTS_DELETE = `${API_CALENDAR_EVENTS}/delete`;
+  /** CategoryApiController: `/api/categories` — 생성·수정은 JSON이 아니라 form-urlencoded(@ModelAttribute) */
+  const API_CATEGORIES = "/api/categories";
   const API_DEPTS = "/api/depts";
   const API_MEMBERS = "/api/members";
 
@@ -26,6 +32,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /** @type {Array<Record<string, unknown>>} */
   let categoriesCache = [];
+
+  /** 일정 모달 콤보박스: document 전역 리스너 1회만 */
+  let eventModalComboboxGlobalsBound = false;
 
   // ---------------------------------------------------------------------------
   // [유틸] 날짜·CSRF·문자열 이스케이프
@@ -58,6 +67,55 @@ document.addEventListener("DOMContentLoaded", () => {
     const headerName = document.querySelector('meta[name="_csrf_header"]')?.getAttribute("content");
     if (!token || !headerName) return {};
     return { [headerName]: token };
+  }
+
+  /**
+   * 세션(로그인)이 필요한 API 호출 — `/calendar` 는 비로그인 허용이라 POST 가 302 → 로그인 HTML 로 이어지지 않도록 redirect 를 수동 처리
+   * @param {string} url
+   * @param {RequestInit} [init]
+   */
+  async function fetchSessionApi(url, init = {}) {
+    const rest = { ...init };
+    delete rest.redirect;
+    const res = await fetch(url, {
+      credentials: "same-origin",
+      ...rest,
+      redirect: "manual",
+    });
+    if (res.type === "opaqueredirect" || (res.status >= 300 && res.status < 400)) {
+      throw new Error("로그인이 필요합니다. 카테고리 저장·조회는 로그인한 뒤 이용해 주세요.");
+    }
+    return res;
+  }
+
+  /**
+   * API 실패 시 응답 본문에서 사용자 메시지 추출 (GlobalExceptionHandler JSON 의 message 등)
+   * @param {Response} res fetch Response (본문은 한 번만 읽음)
+   */
+  async function parseApiErrorBody(res) {
+    if (res.status === 401) return "로그인이 필요합니다.";
+    if (res.status === 403) return "접근 권한이 없습니다.";
+    const text = await res.text();
+    if (!text.trim()) return `요청 실패 (${res.status})`;
+    try {
+      const j = JSON.parse(text);
+      if (j && typeof j.message === "string") return j.message;
+    } catch {
+      /* 본문이 JSON이 아님 */
+    }
+    return text.trim();
+  }
+
+  /**
+   * CategoryDto 폼 필드 — CategoryApiController 의 @ModelAttribute 바인딩용 (body 에 넣으면 fetch 가 urlencoded Content-Type 설정)
+   * @param {{ name: string; color: string }} fields
+   * @returns {URLSearchParams}
+   */
+  function buildCategoryFormParams(fields) {
+    const p = new URLSearchParams();
+    p.set("name", fields.name);
+    p.set("color", fields.color);
+    return p;
   }
 
   /** XSS 방지용 간단 이스케이프 (카테고리 이름 등) */
@@ -291,6 +349,7 @@ document.addEventListener("DOMContentLoaded", () => {
     syncRepeatSection();
     syncAlertSection();
     syncVisibilityShares();
+    syncAllCalendarComboboxesFromSelects();
   }
 
   /**
@@ -314,8 +373,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (loc) loc.value = typeof xp.location === "string" ? xp.location : "";
 
     const categorySel = document.getElementById("calendar-category-id");
-    if (categorySel && xp.categoryId != null) {
-      categorySel.value = String(xp.categoryId);
+    if (categorySel instanceof HTMLSelectElement) {
+      categorySel.value = xp.categoryId != null ? String(xp.categoryId) : "";
     }
 
     const allDayEl = document.getElementById("calendar-all-day");
@@ -367,6 +426,8 @@ document.addEventListener("DOMContentLoaded", () => {
         opt.selected = xp.shareMemberIds.map(Number).includes(Number(opt.value));
       });
     }
+
+    syncAllCalendarComboboxesFromSelects();
   }
 
   /** @param {EventModalMode} mode */
@@ -385,10 +446,12 @@ document.addEventListener("DOMContentLoaded", () => {
    * Tailwind `hidden`은 display:none !important 이므로 인라인 style로는 열리지 않음 → classList로 토글
    */
   function openEventModal() {
+    closeAllCalendarComboboxPanels();
     eventModal?.classList.remove("hidden");
   }
 
   function closeEventModal() {
+    closeAllCalendarComboboxPanels();
     eventModal?.classList.add("hidden");
     resetEventForm();
     setEventModalMode("create");
@@ -420,6 +483,157 @@ document.addEventListener("DOMContentLoaded", () => {
     const memberWrap = document.getElementById("calendar-share-member-wrap");
     if (deptWrap) deptWrap.classList.toggle("hidden", vis !== "DEPARTMENT");
     if (memberWrap) memberWrap.classList.toggle("hidden", vis !== "SPECIFIC");
+  }
+
+  // ---------------------------------------------------------------------------
+  // [일정 모달] 단일 선택 커스텀 콤보박스 — 열린 목록 UI를 관리자 패널(managingBoard)과 동일 톤으로 통일
+  // 네이티브 <select> 의 OS 팝업은 CSS 로 꾸밀 수 없으므로, 숨은 select + 버튼 + listbox 패널로 대체한다.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * @param {HTMLElement} root `[data-cal-combobox]` 루트
+   */
+  function closeCalendarComboboxPanel(root) {
+    const panel = root.querySelector("[data-cal-combobox-panel]");
+    const trigger = root.querySelector("[data-cal-combobox-trigger]");
+    if (panel instanceof HTMLElement) {
+      panel.classList.add("hidden");
+      panel.style.display = "";
+      panel.style.position = "";
+      panel.style.left = "";
+      panel.style.top = "";
+      panel.style.width = "";
+      panel.style.zIndex = "";
+      panel.style.maxHeight = "";
+    }
+    if (trigger) trigger.setAttribute("aria-expanded", "false");
+  }
+
+  function closeAllCalendarComboboxPanels() {
+    document.querySelectorAll("#eventModal [data-cal-combobox]").forEach((r) => {
+      if (r instanceof HTMLElement) closeCalendarComboboxPanel(r);
+    });
+  }
+
+  /**
+   * @param {HTMLElement} root
+   */
+  function openCalendarComboboxPanel(root) {
+    closeAllCalendarComboboxPanels();
+    const panel = root.querySelector("[data-cal-combobox-panel]");
+    const trigger = root.querySelector("[data-cal-combobox-trigger]");
+    if (!(panel instanceof HTMLElement) || !(trigger instanceof HTMLElement)) return;
+    panel.classList.remove("hidden");
+    panel.style.display = "block";
+    trigger.setAttribute("aria-expanded", "true");
+    const applyPos = () => {
+      const r = trigger.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return;
+      panel.style.position = "fixed";
+      panel.style.left = `${r.left}px`;
+      panel.style.top = `${r.bottom + 4}px`;
+      panel.style.width = `${r.width}px`;
+      panel.style.zIndex = "100000";
+      panel.style.maxHeight = `min(14rem, calc(100vh - ${r.bottom + 12}px))`;
+    };
+    requestAnimationFrame(() => {
+      requestAnimationFrame(applyPos);
+    });
+  }
+
+  /**
+   * 숨은 select 의 option 을 기준으로 listbox 버튼을 다시 그린다.
+   * @param {HTMLElement} root
+   */
+  function rebuildCalendarComboboxPanel(root) {
+    const selectId = root.getAttribute("data-cal-select-id");
+    const sel = selectId ? document.getElementById(selectId) : null;
+    const panel = root.querySelector("[data-cal-combobox-panel]");
+    if (!(sel instanceof HTMLSelectElement) || !(panel instanceof HTMLElement)) return;
+    panel.innerHTML = "";
+    Array.from(sel.options).forEach((opt) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.role = "option";
+      b.setAttribute("data-cal-value", opt.value);
+      b.textContent = (opt.textContent ?? "").trim() || opt.value;
+      b.className = "cal-combobox-option";
+      b.setAttribute("aria-selected", String(sel.value === opt.value));
+      panel.appendChild(b);
+    });
+    const labelEl = root.querySelector("[data-cal-combobox-label]");
+    const cur = sel.options[sel.selectedIndex];
+    if (labelEl && cur) labelEl.textContent = (cur.textContent || "").trim();
+  }
+
+  /** 일정 모달 내 모든 콤보박스를 숨은 select 값과 동기화 */
+  function syncAllCalendarComboboxesFromSelects() {
+    document.querySelectorAll("#eventModal [data-cal-combobox]").forEach((r) => {
+      if (r instanceof HTMLElement) rebuildCalendarComboboxPanel(r);
+    });
+  }
+
+  /** 이벤트 위임: 루트별 트리거·패널만 초기화, document 는 1회만 */
+  function initEventModalCalendarComboboxes() {
+    document.querySelectorAll("#eventModal [data-cal-combobox]").forEach((root) => {
+      if (!(root instanceof HTMLElement)) return;
+      if (root.dataset.calComboboxInit === "1") return;
+      root.dataset.calComboboxInit = "1";
+      rebuildCalendarComboboxPanel(root);
+      const trigger = root.querySelector("[data-cal-combobox-trigger]");
+      const panel = root.querySelector("[data-cal-combobox-panel]");
+      const stop = (e) => {
+        e.stopPropagation();
+      };
+      trigger?.addEventListener("mousedown", stop);
+      trigger?.addEventListener("click", (e) => {
+        stop(e);
+        if (!(panel instanceof HTMLElement)) return;
+        const isOpen = !panel.classList.contains("hidden");
+        if (isOpen) closeCalendarComboboxPanel(root);
+        else openCalendarComboboxPanel(root);
+      });
+      panel?.addEventListener("click", (e) => {
+        const t = e.target;
+        const btn = t instanceof Element ? t.closest("button[role='option']") : null;
+        if (!btn || !panel.contains(btn)) return;
+        e.stopPropagation();
+        const selectId = root.getAttribute("data-cal-select-id");
+        const sel = selectId ? document.getElementById(selectId) : null;
+        if (!(sel instanceof HTMLSelectElement)) return;
+        sel.value = btn.getAttribute("data-cal-value") ?? "";
+        closeCalendarComboboxPanel(root);
+        sel.dispatchEvent(new Event("change", { bubbles: true }));
+        rebuildCalendarComboboxPanel(root);
+      });
+    });
+
+    if (eventModalComboboxGlobalsBound) return;
+    eventModalComboboxGlobalsBound = true;
+
+    document.addEventListener(
+      "click",
+      (e) => {
+        const t = e.target;
+        if (!(t instanceof Node)) return;
+        if (!eventModal || eventModal.classList.contains("hidden")) return;
+        document.querySelectorAll("#eventModal [data-cal-combobox]").forEach((root) => {
+          if (root instanceof HTMLElement && !root.contains(t)) closeCalendarComboboxPanel(root);
+        });
+      },
+      true,
+    );
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if (!eventModal || eventModal.classList.contains("hidden")) return;
+      closeAllCalendarComboboxPanels();
+    });
+
+    window.addEventListener("resize", () => {
+      if (!eventModal || eventModal.classList.contains("hidden")) return;
+      closeAllCalendarComboboxPanels();
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -461,14 +675,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (preserve && Array.from(sel.options).some((o) => o.value === preserve)) {
       sel.value = preserve;
     }
+    const catRoot = document.querySelector('#eventModal [data-cal-select-id="calendar-category-id"]');
+    if (catRoot instanceof HTMLElement) {
+      rebuildCalendarComboboxPanel(catRoot);
+      closeCalendarComboboxPanel(catRoot);
+    }
   }
 
   /** 서버에서 카테고리 목록 조회 후 캐시·셀렉트 갱신 */
   async function loadCategories() {
     try {
-      const res = await fetch(API_CALENDAR_CATEGORIES, {
+      const res = await fetchSessionApi(API_CATEGORIES, {
         headers: { Accept: "application/json", ...getCsrfHeaders() },
-        credentials: "same-origin",
       });
       if (!res.ok) throw new Error("categories fetch failed");
       const data = await res.json();
@@ -618,7 +836,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ---------------------------------------------------------------------------
-  // [일정 API] 등록 · 수정 · 삭제
+  // [일정 API] 등록 · 수정 · 삭제 — 모두 POST(수정/삭제는 전용 URL)
   // ---------------------------------------------------------------------------
 
   async function submitCreateEvent() {
@@ -649,10 +867,10 @@ document.addEventListener("DOMContentLoaded", () => {
       showEventFormError("수정할 일정 ID가 없습니다.");
       return;
     }
-    const payload = collectEventPayload();
+    const payload = { id: Number(calendarId), ...collectEventPayload() };
     try {
-      const res = await fetch(`${API_CALENDAR_EVENTS}/${encodeURIComponent(calendarId)}`, {
-        method: "PUT",
+      const res = await fetch(API_CALENDAR_EVENTS_UPDATE, {
+        method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
         credentials: "same-origin",
         body: JSON.stringify(payload),
@@ -673,10 +891,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!calendarId) return;
     if (!window.confirm("이 일정을 삭제할까요?")) return;
     try {
-      const res = await fetch(`${API_CALENDAR_EVENTS}/${encodeURIComponent(calendarId)}`, {
-        method: "DELETE",
-        headers: { Accept: "application/json", ...getCsrfHeaders() },
+      const res = await fetch(API_CALENDAR_EVENTS_DELETE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
         credentials: "same-origin",
+        body: JSON.stringify({ id: Number(calendarId) }),
       });
       if (!res.ok) throw new Error("삭제에 실패했습니다.");
       calendarInstance?.refetchEvents();
@@ -805,6 +1024,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   calendarInstance.render();
 
+  initEventModalCalendarComboboxes();
+
   // 최초 카테고리·공유 옵션 (API 없어도 UI 동작)
   loadCategories();
   loadDeptAndMemberOptions();
@@ -833,7 +1054,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------------------------------------------------------------------------
 
   document.getElementById("btn-open-category-modal")?.addEventListener("click", openCategoryModal);
-  document.getElementById("btn-category-modal-close")?.addEventListener("click", closeCategoryModal);
   document.getElementById("btn-category-cancel")?.addEventListener("click", closeCategoryModal);
   document.getElementById("category-modal-backdrop")?.addEventListener("click", closeCategoryModal);
 
@@ -855,13 +1075,12 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     try {
-      const res = await fetch(API_CALENDAR_CATEGORIES, {
+      const res = await fetchSessionApi(`${API_CATEGORIES}/new`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
-        credentials: "same-origin",
-        body: JSON.stringify({ name, color }),
+        headers: { Accept: "application/json", ...getCsrfHeaders() },
+        body: buildCategoryFormParams({ name, color }),
       });
-      if (!res.ok) throw new Error("등록에 실패했습니다.");
+      if (!res.ok) throw new Error(await parseApiErrorBody(res));
       resetCategoryAddForm();
       await loadCategories();
       calendarInstance?.refetchEvents();
@@ -893,13 +1112,12 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     try {
-      const res = await fetch(`${API_CALENDAR_CATEGORIES}/${encodeURIComponent(editId)}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
-        credentials: "same-origin",
-        body: JSON.stringify({ name, color }),
+      const res = await fetchSessionApi(`${API_CATEGORIES}/${encodeURIComponent(editId)}/edit`, {
+        method: "POST",
+        headers: { Accept: "application/json", ...getCsrfHeaders() },
+        body: buildCategoryFormParams({ name, color }),
       });
-      if (!res.ok) throw new Error("수정에 실패했습니다.");
+      if (!res.ok) throw new Error(await parseApiErrorBody(res));
       resetCategoryEditForm();
       await loadCategories();
       calendarInstance?.refetchEvents();
@@ -926,12 +1144,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (delBtn) {
       if (!window.confirm("이 카테고리를 삭제할까요?")) return;
       try {
-        const res = await fetch(`${API_CALENDAR_CATEGORIES}/${encodeURIComponent(idAttr)}`, {
-          method: "DELETE",
+        const res = await fetchSessionApi(`${API_CATEGORIES}/${encodeURIComponent(idAttr)}/delete`, {
+          method: "POST",
           headers: { Accept: "application/json", ...getCsrfHeaders() },
-          credentials: "same-origin",
         });
-        if (!res.ok) throw new Error("삭제에 실패했습니다.");
+        if (!res.ok) throw new Error(await parseApiErrorBody(res));
         const editingId = document.getElementById("category-edit-id")?.value;
         if (editingId === idAttr) resetCategoryEditForm();
         await loadCategories();

@@ -90,17 +90,20 @@
 
   /**
    * 첨부파일 1건을 삭제한다.
+   * 서버는 POST `/api/article-attachment/delete` + JSON `{ id }` 를 처리해야 한다(프로젝트는 DELETE 메서드 미사용).
    * @param {number} attachmentId 첨부파일 ID
    * @returns {Promise<void>}
    */
   async function deleteAttachment(attachmentId) {
-    const response = await fetch(`/api/article-attachment/${attachmentId}`, {
-      method: 'DELETE',
+    const response = await fetch('/api/article-attachment/delete', {
+      method: 'POST',
       headers: {
         ...getHeaders(),
+        'Content-Type': 'application/json',
         Accept: 'application/json, text/plain, */*',
       },
       credentials: 'same-origin',
+      body: JSON.stringify({ id: attachmentId }),
     });
 
     if (!response.ok) {
