@@ -1,5 +1,5 @@
 <!-- ======================================================== -->
-<!-- [일정 조회 페이지] : #calendar div에 FullCalendar 마운트. partials/calendar-event-modal로 이벤트 추가/수정 -->
+<!-- [일정 조회 페이지] : templates/calendar/calendar.html — 모달은 calendar/calendar-*-modal -->
 <!-- ======================================================== -->
 <!doctype html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
@@ -73,11 +73,11 @@
             </div>
 
             <!-- BEGIN MODAL : 일정 -->
-            <div th:replace="~{partials/calendar-event-modal}"></div>
+            <div th:replace="~{calendar/calendar-event-modal}"></div>
             <!-- END MODAL : 일정 -->
 
             <!-- BEGIN MODAL : 카테고리 -->
-            <div th:replace="~{partials/calendar-category-modal}"></div>
+            <div th:replace="~{calendar/calendar-category-modal}"></div>
             <!-- END MODAL : 카테고리 -->
           </div>
         </main>

@@ -428,7 +428,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const categoryModal = document.getElementById("categoryModal");
   const categoryListEl = document.getElementById("category-list");
-  const categoryForm = document.getElementById("categoryForm");
+  const categoryAddForm = document.getElementById("categoryAddForm");
+  const categoryEditForm = document.getElementById("categoryEditForm");
   const categoryFormError = document.getElementById("category-form-error");
 
   function showCategoryFormError(msg) {
@@ -506,25 +507,43 @@ document.addEventListener("DOMContentLoaded", () => {
       .join("");
   }
 
-  function resetCategoryForm() {
-    clearCategoryFormError();
-    const hid = document.getElementById("category-edit-id");
-    const nameInput = document.getElementById("category-name");
-    if (hid) hid.value = "";
+  /** 추가 폼만 초기화 */
+  function resetCategoryAddForm() {
+    const nameInput = document.getElementById("category-add-name");
     if (nameInput) nameInput.value = "";
-    const firstColor = document.querySelector('input[name="categoryColor"]');
-    if (firstColor instanceof HTMLInputElement) firstColor.checked = true;
+    const first = document.querySelector('input[name="categoryAddColor"]');
+    if (first instanceof HTMLInputElement) first.checked = true;
   }
 
-  function fillCategoryFormFromItem(item) {
-    resetCategoryForm();
+  /** 수정 폼만 초기화 */
+  function resetCategoryEditForm() {
     const hid = document.getElementById("category-edit-id");
-    const nameInput = document.getElementById("category-name");
+    const nameInput = document.getElementById("category-edit-name");
+    if (hid) hid.value = "";
+    if (nameInput) nameInput.value = "";
+    const first = document.querySelector('input[name="categoryEditColor"]');
+    if (first instanceof HTMLInputElement) first.checked = true;
+  }
+
+  /** 모달 닫기·오픈 시: 추가·수정 폼 모두 리셋 */
+  function resetCategoryForms() {
+    clearCategoryFormError();
+    resetCategoryAddForm();
+    resetCategoryEditForm();
+  }
+
+  /**
+   * 목록에서 수정 클릭 시 수정 섹션 폼만 채움 (추가 폼은 건드리지 않음)
+   * @param {Record<string, unknown>} item
+   */
+  function fillCategoryEditForm(item) {
+    const hid = document.getElementById("category-edit-id");
+    const nameInput = document.getElementById("category-edit-name");
     const id = item.categoryId ?? item.id;
     if (hid && id != null) hid.value = String(id);
     if (nameInput) nameInput.value = String(item.name ?? "");
     const col = typeof item.color === "string" ? item.color : "";
-    const radios = document.querySelectorAll('input[name="categoryColor"]');
+    const radios = document.querySelectorAll('input[name="categoryEditColor"]');
     let matched = false;
     radios.forEach((r) => {
       if (r instanceof HTMLInputElement && r.value === col) {
@@ -533,16 +552,18 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
     if (!matched && radios[0] instanceof HTMLInputElement) radios[0].checked = true;
+    document.getElementById("category-edit-name")?.focus();
   }
 
   function openCategoryModal() {
     categoryModal?.classList.remove("hidden");
+    resetCategoryForms();
     loadCategories();
   }
 
   function closeCategoryModal() {
     categoryModal?.classList.add("hidden");
-    resetCategoryForm();
+    resetCategoryForms();
   }
 
   // ---------------------------------------------------------------------------
@@ -815,49 +836,75 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-category-modal-close")?.addEventListener("click", closeCategoryModal);
   document.getElementById("btn-category-cancel")?.addEventListener("click", closeCategoryModal);
   document.getElementById("category-modal-backdrop")?.addEventListener("click", closeCategoryModal);
-  document.getElementById("btn-category-reset")?.addEventListener("click", resetCategoryForm);
 
-  categoryForm?.addEventListener("submit", async (ev) => {
+  /** 카테고리 신규 등록 (추가 폼) */
+  categoryAddForm?.addEventListener("submit", async (ev) => {
     ev.preventDefault();
     clearCategoryFormError();
-    const nameInput = document.getElementById("category-name");
+    const nameInput = document.getElementById("category-add-name");
     const name = nameInput?.value?.trim() ?? "";
     if (!name) {
       showCategoryFormError("카테고리 이름을 입력해 주세요.");
       nameInput?.focus();
       return;
     }
-    const colorRadio = document.querySelector('input[name="categoryColor"]:checked');
+    const colorRadio = document.querySelector('input[name="categoryAddColor"]:checked');
     const color = colorRadio instanceof HTMLInputElement ? colorRadio.value : "";
     if (!color) {
       showCategoryFormError("색상을 선택해 주세요.");
       return;
     }
-    const editId = document.getElementById("category-edit-id")?.value ?? "";
-    const body = JSON.stringify({ name, color });
     try {
-      let res;
-      if (editId) {
-        res = await fetch(`${API_CALENDAR_CATEGORIES}/${encodeURIComponent(editId)}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
-          credentials: "same-origin",
-          body,
-        });
-      } else {
-        res = await fetch(API_CALENDAR_CATEGORIES, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
-          credentials: "same-origin",
-          body,
-        });
-      }
-      if (!res.ok) throw new Error("저장에 실패했습니다.");
-      resetCategoryForm();
+      const res = await fetch(API_CALENDAR_CATEGORIES, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
+        credentials: "same-origin",
+        body: JSON.stringify({ name, color }),
+      });
+      if (!res.ok) throw new Error("등록에 실패했습니다.");
+      resetCategoryAddForm();
       await loadCategories();
       calendarInstance?.refetchEvents();
     } catch (e) {
-      showCategoryFormError(e instanceof Error ? e.message : "저장 중 오류가 발생했습니다.");
+      showCategoryFormError(e instanceof Error ? e.message : "등록 중 오류가 발생했습니다.");
+    }
+  });
+
+  /** 카테고리 수정 (수정 폼) */
+  categoryEditForm?.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    clearCategoryFormError();
+    const editId = document.getElementById("category-edit-id")?.value?.trim() ?? "";
+    if (!editId) {
+      showCategoryFormError("목록에서 수정할 카테고리를 먼저 선택해 주세요.");
+      return;
+    }
+    const nameInput = document.getElementById("category-edit-name");
+    const name = nameInput?.value?.trim() ?? "";
+    if (!name) {
+      showCategoryFormError("카테고리 이름을 입력해 주세요.");
+      nameInput?.focus();
+      return;
+    }
+    const colorRadio = document.querySelector('input[name="categoryEditColor"]:checked');
+    const color = colorRadio instanceof HTMLInputElement ? colorRadio.value : "";
+    if (!color) {
+      showCategoryFormError("색상을 선택해 주세요.");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_CALENDAR_CATEGORIES}/${encodeURIComponent(editId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
+        credentials: "same-origin",
+        body: JSON.stringify({ name, color }),
+      });
+      if (!res.ok) throw new Error("수정에 실패했습니다.");
+      resetCategoryEditForm();
+      await loadCategories();
+      calendarInstance?.refetchEvents();
+    } catch (e) {
+      showCategoryFormError(e instanceof Error ? e.message : "수정 중 오류가 발생했습니다.");
     }
   });
 
@@ -874,7 +921,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!idAttr) return;
     const item = categoriesCache.find((c) => String(c.categoryId ?? c.id) === idAttr);
     if (editBtn && item) {
-      fillCategoryFormFromItem(item);
+      fillCategoryEditForm(item);
     }
     if (delBtn) {
       if (!window.confirm("이 카테고리를 삭제할까요?")) return;
@@ -885,7 +932,8 @@ document.addEventListener("DOMContentLoaded", () => {
           credentials: "same-origin",
         });
         if (!res.ok) throw new Error("삭제에 실패했습니다.");
-        resetCategoryForm();
+        const editingId = document.getElementById("category-edit-id")?.value;
+        if (editingId === idAttr) resetCategoryEditForm();
         await loadCategories();
         calendarInstance?.refetchEvents();
       } catch (e) {
