@@ -6,7 +6,6 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -86,7 +85,7 @@ public class AlertApiController {
     }
 
     // 단일 삭제
-    @DeleteMapping("/{alertId}")
+    @PostMapping("/{alertId}")
     @ResponseBody
     public ResponseEntity<Void> deleteAlert(
             @PathVariable Long alertId,
@@ -99,7 +98,7 @@ public class AlertApiController {
     }
 
     // 전체 삭제
-    @DeleteMapping("")
+    @PostMapping("")
     @ResponseBody
     public ResponseEntity<Void> deleteAllMyAlerts(
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
