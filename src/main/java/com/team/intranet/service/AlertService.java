@@ -11,6 +11,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
+
 
 import com.team.intranet.dto.AlertDto;
 import com.team.intranet.entity.Alert;
@@ -22,14 +25,18 @@ import com.team.intranet.enums.ErrorCode;
 import com.team.intranet.enums.Preface;
 import com.team.intranet.enums.Visibility;
 import com.team.intranet.enums.member.Status;
+import com.team.intranet.event.ArticleCreatedEvent;
 import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.AlertRepository;
+import com.team.intranet.repository.ArticleRepository;
 import com.team.intranet.repository.CalendarRepository;
 import com.team.intranet.repository.MemberRepository;
 import com.team.intranet.session.MemberSession;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AlertService {
@@ -40,6 +47,7 @@ public class AlertService {
     private final AlertRepository alertRepository;
     private final MemberRepository memberRepository;
     private final CalendarRepository calendarRepository;
+    private final ArticleRepository articleRepository;
 
     // ============================================================
     // 일정 알림 (스케줄러)
@@ -114,23 +122,42 @@ public class AlertService {
     }
 
     // ============================================================
-    // 게시글 알림 — 호출자(예: ArticleService.createArticle) 트랜잭션과 분리
+    // 게시글 알림 — ArticleCreatedEvent 를 받아 메인 TX 커밋 이후에 발송
+    //   ※ AFTER_COMMIT 으로 분리한 이유: REQUIRES_NEW 로 같은 호출 스택에서 알림을 INSERT 하면
+    //     parent article 이 아직 미커밋이라 새 TX 의 FK 잠금 대기가 발생 → 응답 무한 지연(pending).
     // ============================================================
 
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void sendArticleNewAlert(Article article, Member recipient) {
-        Preface preface = Preface.ARTICLE_NEW;
-        Member sender = article.isAnonymous() ? null : article.getAuthor();   // 익명 게시판이면 sender 마스킹
+    public void handleArticleCreated(ArticleCreatedEvent event) {
+        if (event.getRecipientIds() == null || event.getRecipientIds().isEmpty()) return;
 
-        Alert alert = baseBuilder(preface, recipient)
-            .title(preface.getLabel() + " " + article.getTitle())
-            .content("새 글이 올라왔습니다")
-            .link(articleLink(article))
-            .article(article)
-            .sender(sender)
-            .expiresAt(LocalDateTime.now().plusDays(7))
-            .build();
-        alertRepository.save(alert);
+        Article article = articleRepository.findById(event.getArticleId()).orElse(null);
+        if (article == null) return; // 메인 TX 직후 삭제되는 케이스는 무시
+
+        Preface preface = Preface.ARTICLE_NEW;
+        Member sender = article.isAnonymous() ? null : article.getAuthor(); // 익명 게시판이면 sender 마스킹
+
+        for (Long recipientId : event.getRecipientIds()) {
+            try {
+                Member recipient = memberRepository.findById(recipientId).orElse(null);
+                if (recipient == null) continue;
+
+                Alert alert = baseBuilder(preface, recipient)
+                    .title(preface.getLabel() + " " + article.getTitle())
+                    .content("새 글이 올라왔습니다")
+                    .link(articleLink(article))
+                    .article(article)
+                    .sender(sender)
+                    .expiresAt(LocalDateTime.now().plusDays(7))
+                    .build();
+                alertRepository.save(alert);
+            } catch (Exception e) {
+                // 한 명에게 실패해도 다른 수신자/게시글 작성에는 영향 없음
+                log.warn("Failed to send ARTICLE_NEW alert (articleId={}, recipientId={}): {}",
+                    event.getArticleId(), recipientId, e.getMessage());
+            }
+        }
     }
 
     // ============================================================

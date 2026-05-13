@@ -96,6 +96,8 @@ public class CalendarService {
                 .isRepeat(dto.isRepeat())
                 .repeatType(dto.getRepeatType())
                 .repeatEndAt(dto.getRepeatEndAt())
+                .repeatWeekdays(dto.getRepeatWeekdays())
+                .repeatMonthDays(dto.getRepeatMonthDays())
                 .isAlert(dto.isAlert())
                 .alertMinutesBefore(dto.getAlertMinutesBefore())
                 .location(dto.getLocation())
@@ -156,6 +158,8 @@ public class CalendarService {
         calendar.setRepeat(dto.isRepeat());
         calendar.setRepeatType(dto.getRepeatType());
         calendar.setRepeatEndAt(dto.getRepeatEndAt());
+        calendar.setRepeatWeekdays(dto.getRepeatWeekdays());
+        calendar.setRepeatMonthDays(dto.getRepeatMonthDays());
         calendar.setAlert(dto.isAlert());
         calendar.setAlertMinutesBefore(dto.getAlertMinutesBefore());
         calendar.setLocation(dto.getLocation());

@@ -1,0 +1,95 @@
+<!-- [캘린더 일정 조회 모달] 클릭 시 먼저 뜨는 읽기 전용 화면. 수정·삭제는 별도 버튼으로 이동. -->
+<div
+  class="fixed inset-0 z-99999 flex hidden items-center justify-center overflow-y-auto p-4 sm:p-6"
+  id="viewModal"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="viewModalLabel"
+>
+  <!-- 배경 딤 -->
+  <div
+    class="modal-close-btn fixed inset-0 z-0 bg-gray-900/40 backdrop-blur-sm dark:bg-gray-950/60"
+  ></div>
+
+  <!-- 패널 -->
+  <div
+    class="relative z-10 flex w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-stroke bg-white shadow-2xl ring-1 ring-black/5 dark:border-strokedark dark:bg-boxdark dark:ring-white/10"
+    style="max-height: min(92vh, 760px)"
+  >
+    <!-- 헤더: 카테고리 컬러 막대 + 제목 -->
+    <header class="flex shrink-0 items-start gap-3 border-b border-gray-100 px-5 py-4 sm:px-6 sm:py-5 dark:border-gray-800">
+      <span id="view-category-bar" class="mt-1 h-6 w-1.5 shrink-0 rounded-full bg-brand-500"></span>
+      <div class="min-w-0 flex-1">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white sm:text-xl" id="viewModalLabel">
+          <span id="view-title">제목</span>
+        </h2>
+        <p id="view-category-name" class="mt-1 hidden text-xs font-medium text-gray-500 dark:text-gray-400"></p>
+      </div>
+    </header>
+
+    <!-- 본문 -->
+    <div class="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6 custom-scrollbar">
+      <!-- 설명 -->
+      <section id="view-description-wrap" class="hidden">
+        <h3 class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">설명</h3>
+        <p id="view-description" class="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-200"></p>
+      </section>
+
+      <!-- 일시 — 반복 없을 때만 노출 -->
+      <section id="view-time-wrap">
+        <h3 class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">일시</h3>
+        <div class="space-y-1 text-sm text-gray-700 dark:text-gray-200">
+          <div><span class="mr-2 inline-block w-12 text-gray-400">시작</span><span id="view-start-at"></span></div>
+          <div><span class="mr-2 inline-block w-12 text-gray-400">종료</span><span id="view-end-at"></span></div>
+        </div>
+      </section>
+
+      <!-- 반복 — 반복 있을 때만 노출. 일시 섹션은 숨김. -->
+      <section id="view-repeat-wrap" class="hidden">
+        <h3 class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">반복</h3>
+        <div class="space-y-1 text-sm text-gray-700 dark:text-gray-200">
+          <div><span class="mr-2 inline-block w-16 text-gray-400">반복 패턴</span><span id="view-repeat-pattern"></span></div>
+          <div><span class="mr-2 inline-block w-16 text-gray-400">반복 시작</span><span id="view-repeat-start"></span></div>
+          <div><span class="mr-2 inline-block w-16 text-gray-400">반복 종료</span><span id="view-repeat-end"></span></div>
+        </div>
+      </section>
+
+      <!-- 장소 -->
+      <section id="view-location-wrap" class="hidden">
+        <h3 class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">장소</h3>
+        <p id="view-location" class="text-sm text-gray-700 dark:text-gray-200"></p>
+      </section>
+
+      <!-- 공유 — 모두/부서별/특정 인원 -->
+      <section id="view-share-wrap">
+        <h3 class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">공유</h3>
+        <p id="view-share-summary" class="text-sm text-gray-700 dark:text-gray-200">나만 보기</p>
+        <div id="view-share-detail" class="mt-2 hidden flex-wrap gap-1.5"></div>
+      </section>
+
+      <!-- 알림 -->
+      <section id="view-alert-wrap" class="hidden">
+        <h3 class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">알림</h3>
+        <p id="view-alert-summary" class="text-sm text-gray-700 dark:text-gray-200"></p>
+      </section>
+    </div>
+
+    <!-- 하단 액션 -->
+    <footer class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50/90 px-5 py-4 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/80 sm:px-6">
+      <button type="button" id="btn-view-close"
+              class="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+        닫기
+      </button>
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <button type="button" id="btn-view-delete"
+                class="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-medium text-rose-600 shadow-sm transition hover:bg-rose-50 dark:border-rose-900/50 dark:bg-gray-800 dark:text-rose-400 dark:hover:bg-rose-950/40">
+          삭제
+        </button>
+        <button type="button" id="btn-view-edit"
+                class="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+          수정
+        </button>
+      </div>
+    </footer>
+  </div>
+</div>

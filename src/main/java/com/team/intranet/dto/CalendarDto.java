@@ -24,6 +24,8 @@ public class CalendarDto {
     private boolean isRepeat;
     private RepeatType repeatType;
     private LocalDateTime repeatEndAt;
+    private Integer repeatWeekdays;     // 매주: 요일 비트마스크 (MON=1, TUE=2, ..., SUN=64). null/0 이면 시작일 요일 단일.
+    private Integer repeatMonthDays;    // 매월: 일자 비트마스크 (1일=1<<0 .. 31일=1<<30). null/0 이면 시작일 일자 단일.
     private boolean isAlert;
     private Integer alertMinutesBefore;
     private String location;
@@ -36,6 +38,16 @@ public class CalendarDto {
     private List<Long> shareDeptIds;
     private List<Long> shareMemberIds;
 
+    /*
+     * Spring @ModelAttribute 폼 바인딩 별칭 setter.
+     * Lombok @Data 는 `boolean isRepeat/isAlert/allDay` 필드에 대해 setter 를 `setRepeat/setAlert/setAllDay`
+     * 로만 생성한다 → form key 가 `isRepeat=true` 처럼 들어오면 매핑이 실패해 항상 false 로 저장되는 버그가 있었다.
+     * 프론트가 보내는 키(`isRepeat`, `isAlert`, `allDay`)에 대응하도록 setIs- 형태 setter 를 명시한다.
+     */
+    public void setIsRepeat(boolean value) { this.isRepeat = value; }
+    public void setIsAlert(boolean value)  { this.isAlert = value; }
+    public void setIsAllDay(boolean value) { this.allDay = value; }
+
     public static CalendarDto from(Calendar calendar){
         CalendarDto dto = new CalendarDto();
         dto.setCalendarId(calendar.getCalendarId());
@@ -44,10 +56,12 @@ public class CalendarDto {
         dto.setStartAt(calendar.getStartAt());
         dto.setEndAt(calendar.getEndAt());
         dto.setAllDay(calendar.isAllDay());
-        dto.setRepeat(calendar.isRepeat());
+        dto.setIsRepeat(calendar.isRepeat());
         dto.setRepeatType(calendar.getRepeatType());
         dto.setRepeatEndAt(calendar.getRepeatEndAt());
-        dto.setAlert(calendar.isAlert());
+        dto.setRepeatWeekdays(calendar.getRepeatWeekdays());
+        dto.setRepeatMonthDays(calendar.getRepeatMonthDays());
+        dto.setIsAlert(calendar.isAlert());
         dto.setAlertMinutesBefore(calendar.getAlertMinutesBefore());
         dto.setLocation(calendar.getLocation());
         dto.setVisibility(calendar.getVisibility());

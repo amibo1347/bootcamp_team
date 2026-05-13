@@ -284,9 +284,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const shareDeptIds = Array.isArray(raw.shareDeptIds) ? raw.shareDeptIds : [];
     const ownerId = raw.memberId != null ? String(raw.memberId) : null;
     const ownerName = typeof raw.memberName === "string" ? raw.memberName : "";
+    // 반복 일정 occurrence 는 같은 calendarId 라도 FullCalendar 상에서 별개 이벤트로 그려야 함
+    // → fc id 에 occurrenceIndex 를 suffix 로 붙여 유니크화. 클릭 시 fetch 는 extendedProps.calendarId 사용.
+    const occIdx = raw.__occurrenceIndex;
+    const fcId = occIdx != null ? `${calendarId}#${occIdx}` : String(calendarId ?? "");
 
     return {
-      id: String(calendarId ?? ""),
+      id: fcId,
       title: typeof raw.title === "string" ? raw.title : "",
       start: raw.startAt ?? raw.start,
       end: raw.endAt ?? raw.end ?? raw.startAt ?? raw.start,
@@ -306,6 +310,8 @@ document.addEventListener("DOMContentLoaded", () => {
         isRepeat: Boolean(raw.isRepeat),
         repeatType: raw.repeatType ?? null,
         repeatEndAt: raw.repeatEndAt ?? null,
+        repeatWeekdays: raw.repeatWeekdays ?? null,
+        repeatMonthDays: raw.repeatMonthDays ?? null,
         isAlert: Boolean(raw.isAlert),
         alertMinutesBefore: raw.alertMinutesBefore ?? 15,
         shareMemberIds,
@@ -453,12 +459,22 @@ document.addEventListener("DOMContentLoaded", () => {
     const isRepeat = document.getElementById("calendar-is-repeat")?.checked ?? false;
     if (!p.has("isRepeat")) p.set("isRepeat", String(isRepeat));
     if (isRepeat) {
-      p.set("repeatType", document.getElementById("calendar-repeat-type")?.value ?? "DAILY");
+      const repeatType = document.getElementById("calendar-repeat-type")?.value ?? "DAILY";
+      p.set("repeatType", repeatType);
       const re = datetimeLocalToSpringParam(document.getElementById("calendar-repeat-end-at")?.value ?? "");
       if (re) p.set("repeatEndAt", re);
+      // 매주/매월 다중 선택 비트마스크 (0/빈 값이면 서버에서 시작일 기준 단일 반복)
+      const wkMask = repeatType === "WEEKLY" ? collectCalendarRepeatWeekdaysMask() : 0;
+      const mdMask = repeatType === "MONTHLY" ? collectCalendarRepeatMonthDaysMask() : 0;
+      if (wkMask > 0) p.set("repeatWeekdays", String(wkMask));
+      else p.delete("repeatWeekdays");
+      if (mdMask > 0) p.set("repeatMonthDays", String(mdMask));
+      else p.delete("repeatMonthDays");
     } else {
       p.delete("repeatType");
       p.delete("repeatEndAt");
+      p.delete("repeatWeekdays");
+      p.delete("repeatMonthDays");
     }
 
     const isAlert = document.getElementById("calendar-is-alert")?.checked ?? false;
@@ -493,6 +509,162 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     return p;
+  }
+
+  /**
+   * 반복 일정 펼치기 — DB 컬럼은 (repeat_type enum + repeat_end_at) 만 사용하는 단일 패턴 모델.
+   * DAILY  : 매일 (시작일부터 1일 간격)
+   * WEEKLY : 매주 같은 요일 (시작일의 요일 기준)
+   * MONTHLY: 매월 같은 일 (시작일의 일자 기준 — 다음 달에 해당 일자가 없으면 그 달 말일)
+   * YEARLY : 매년 같은 월·일 (윤년 2/29 → 평년 2/28 보정)
+   *
+   * @param {number} baseMs 원본 시작 시각(ms)
+   * @param {"DAILY"|"WEEKLY"|"MONTHLY"|"YEARLY"} type
+   * @param {number} i  0=원본, 1=첫 반복, ...
+   * @returns {Date}
+   */
+  function nextOccurrenceDate(baseMs, type, i) {
+    if (i === 0) return new Date(baseMs);
+    const d = new Date(baseMs);
+    switch (type) {
+      case "DAILY":
+        return new Date(baseMs + i * 86400000);
+      case "WEEKLY":
+        return new Date(baseMs + i * 7 * 86400000);
+      case "MONTHLY": {
+        const result = new Date(
+          d.getFullYear(), d.getMonth() + i, d.getDate(),
+          d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds(),
+        );
+        // 5월 31일 → 6월 31일은 7월 1일로 자동 넘어감 → 6월 30일로 보정
+        if (result.getDate() !== d.getDate()) result.setDate(0);
+        return result;
+      }
+      case "YEARLY": {
+        const result = new Date(
+          d.getFullYear() + i, d.getMonth(), d.getDate(),
+          d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds(),
+        );
+        // 윤년 2/29 → 평년 3/1 자동 넘어감 → 2/28 보정
+        if (result.getDate() !== d.getDate()) result.setDate(0);
+        return result;
+      }
+      default:
+        return new Date(baseMs);
+    }
+  }
+
+  /** JS Date.getDay() (Sun=0..Sat=6) → DB 비트마스크 (MON=1, TUE=2, ..., SUN=64) */
+  function jsDayToMaskBit(jsDay) {
+    // Mon..Sun = 1,2,4,8,16,32,64
+    const order = [64, 1, 2, 4, 8, 16, 32]; // index = getDay() (Sun=0)
+    return order[jsDay] ?? 0;
+  }
+
+  /**
+   * 반복 CalendarDto 한 건 → 뷰 범위와 겹치는 occurrence DTO 들로 펼침.
+   * - WEEKLY + repeatWeekdays(비트마스크) → 시작일~종료일 사이에서 매주 해당 요일들만
+   * - MONTHLY + repeatMonthDays(비트마스크) → 매월 해당 일자들만 (없으면 그 달 말일로 보정)
+   * - DAILY / YEARLY 또는 마스크가 0/null → 기존 단일 패턴 (시작일 기준)
+   *
+   * 비반복 일정이거나 type 이 비정상이면 원본 한 건 반환.
+   * 안전 상한: 최대 1500개 occurrence / repeat_end_at 없으면 뷰 끝 + 1년 안에서.
+   * @param {Record<string, unknown>} raw
+   * @param {Date} rangeStart
+   * @param {Date} rangeEndExclusive
+   * @returns {Record<string, unknown>[]}
+   */
+  function expandRepeatingCalendarDto(raw, rangeStart, rangeEndExclusive) {
+    const isRep = Boolean(raw?.isRepeat ?? raw?.repeat);
+    const rawType = String(raw?.repeatType ?? "").toUpperCase();
+    if (!isRep || !["DAILY", "WEEKLY", "MONTHLY", "YEARLY"].includes(rawType)) return [raw];
+
+    const baseStart = calendarDtoTimeToMillis(raw.startAt ?? raw.start);
+    const baseEnd = calendarDtoTimeToMillis(raw.endAt ?? raw.end ?? raw.startAt ?? raw.start);
+    if (Number.isNaN(baseStart)) return [raw];
+    const duration = Number.isNaN(baseEnd) ? 0 : Math.max(0, baseEnd - baseStart);
+
+    const repeatEndMs = calendarDtoTimeToMillis(raw.repeatEndAt);
+    const HARD_CAP = rangeEndExclusive.getTime() + 366 * 86400000;
+    const ceiling = Number.isNaN(repeatEndMs) ? HARD_CAP : Math.min(repeatEndMs, HARD_CAP);
+
+    const weekMask = Number(raw.repeatWeekdays ?? 0) || 0;
+    const monthMask = Number(raw.repeatMonthDays ?? 0) || 0;
+
+    const out = [];
+    const MAX = 1500;
+
+    /** occurrence push helper */
+    const push = (occMs, idx) => {
+      if (occMs + duration >= rangeStart.getTime() && occMs < rangeEndExclusive.getTime()) {
+        out.push({
+          ...raw,
+          startAt: new Date(occMs).toISOString(),
+          endAt: new Date(occMs + duration).toISOString(),
+          __occurrenceIndex: idx,
+        });
+      }
+    };
+
+    if (rawType === "WEEKLY" && weekMask > 0) {
+      // 시작일이 속한 주의 월요일 00:00:00 (시간/분/초는 시작일 그대로 유지) 부터 한 주씩 진행
+      const baseDate = new Date(baseStart);
+      const baseHours = baseDate.getHours(), baseMins = baseDate.getMinutes(), baseSecs = baseDate.getSeconds(), baseMs = baseDate.getMilliseconds();
+      // 월요일 기준 정렬: getDay()=Sun(0),Mon(1)..Sat(6) → Mon 기준 0~6
+      const monIndex = (baseDate.getDay() + 6) % 7;
+      const weekStart = new Date(baseDate);
+      weekStart.setDate(baseDate.getDate() - monIndex);
+      weekStart.setHours(baseHours, baseMins, baseSecs, baseMs);
+
+      let idx = 0;
+      outer: for (let w = 0; w < 260 /* 5년치 주 */ ; w++) {
+        for (let dow = 0; dow < 7; dow++) {
+          const bit = [1, 2, 4, 8, 16, 32, 64][dow]; // Mon..Sun
+          if ((weekMask & bit) !== bit) continue;
+          const d = new Date(weekStart);
+          d.setDate(weekStart.getDate() + w * 7 + dow);
+          const ms = d.getTime();
+          if (ms < baseStart) continue; // 시작일 이전 occurrence 제외
+          if (ms > ceiling) break outer;
+          push(ms, idx++);
+          if (idx >= MAX) break outer;
+        }
+        const probe = weekStart.getTime() + w * 7 * 86400000;
+        if (probe > rangeEndExclusive.getTime() + 7 * 86400000) break;
+      }
+    } else if (rawType === "MONTHLY" && monthMask > 0) {
+      // 매월 monthMask 에 표시된 일자(여러 개)들. 시작 월~종료까지 월 단위로 순회.
+      const baseDate = new Date(baseStart);
+      const baseHours = baseDate.getHours(), baseMins = baseDate.getMinutes(), baseSecs = baseDate.getSeconds(), baseMsField = baseDate.getMilliseconds();
+      let idx = 0;
+      outer: for (let m = 0; m < 120 /* 10년치 월 */ ; m++) {
+        for (let day = 1; day <= 31; day++) {
+          const bit = 1 << (day - 1);
+          if ((monthMask & bit) !== bit) continue;
+          const occ = new Date(baseDate.getFullYear(), baseDate.getMonth() + m, day, baseHours, baseMins, baseSecs, baseMsField);
+          // 해당 월에 그 일자가 없으면 다음 달로 넘어가버림 → 말일로 보정
+          if (occ.getDate() !== day) occ.setDate(0);
+          const ms = occ.getTime();
+          if (ms < baseStart) continue;
+          if (ms > ceiling) break outer;
+          push(ms, idx++);
+          if (idx >= MAX) break outer;
+        }
+        const probe = new Date(baseDate.getFullYear(), baseDate.getMonth() + m, 1).getTime();
+        if (probe > rangeEndExclusive.getTime() + 31 * 86400000) break;
+      }
+    } else {
+      // 기존 단일 패턴 (DAILY / WEEKLY 단일 / MONTHLY 단일 / YEARLY)
+      for (let i = 0; i < MAX; i++) {
+        const occ = nextOccurrenceDate(baseStart, /** @type {any} */ (rawType), i);
+        const occMs = occ.getTime();
+        if (occMs > ceiling) break;
+        push(occMs, i);
+        if (occMs > rangeEndExclusive.getTime()) break;
+      }
+    }
+
+    return out.length > 0 ? out : [raw];
   }
 
   /**
@@ -560,6 +732,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const reEnd = document.getElementById("calendar-repeat-end-at");
     const reMs = calendarDtoTimeToMillis(raw.repeatEndAt);
     if (reEnd && !Number.isNaN(reMs)) reEnd.value = toDatetimeLocalValue(new Date(reMs));
+
+    // 매주/매월 다중 선택 비트마스크 → 칩 상태 동기화
+    applyCalendarRepeatWeekdaysMask(Number(raw.repeatWeekdays ?? 0));
+    applyCalendarRepeatMonthDaysMask(Number(raw.repeatMonthDays ?? 0));
 
     const isAlertEl = document.getElementById("calendar-is-alert");
     if (isAlertEl) isAlertEl.checked = Boolean(raw.isAlert ?? raw.alert);
@@ -678,6 +854,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isAlert) isAlert.checked = false;
     const repeatType = document.getElementById("calendar-repeat-type");
     if (repeatType) repeatType.value = "DAILY";
+    applyCalendarRepeatWeekdaysMask(0);
+    applyCalendarRepeatMonthDaysMask(0);
     const alertMin = document.getElementById("calendar-alert-minutes");
     if (alertMin) alertMin.value = "15";
 
@@ -745,6 +923,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const rt = document.getElementById("calendar-repeat-type");
     if (rt && xp.repeatType) rt.value = String(xp.repeatType);
 
+    // 비트마스크 동기화 (편집 모달 진입 시) — 단건 fetch 가 정확한 값을 덮어쓰므로 여기서는 캐싱된 추정치
+    applyCalendarRepeatWeekdaysMask(Number(xp.repeatWeekdays ?? 0));
+    applyCalendarRepeatMonthDaysMask(Number(xp.repeatMonthDays ?? 0));
+
     const reEnd = document.getElementById("calendar-repeat-end-at");
     if (reEnd && xp.repeatEndAt) {
       const d = new Date(String(xp.repeatEndAt));
@@ -798,13 +980,108 @@ document.addEventListener("DOMContentLoaded", () => {
     setEventModalMode("create");
   }
 
-  /** 반복 필드 영역 활성/비활성 */
+  /** 반복 필드 영역 활성/비활성 + 유형별 요일/일자 패널 노출 */
   function syncRepeatSection() {
     const on = document.getElementById("calendar-is-repeat")?.checked ?? false;
     const box = document.getElementById("calendar-repeat-fields");
     if (!box) return;
     box.classList.toggle("opacity-50", !on);
     box.classList.toggle("pointer-events-none", !on);
+
+    const type = document.getElementById("calendar-repeat-type")?.value ?? "DAILY";
+    const wkWrap = document.getElementById("calendar-repeat-weekdays-wrap");
+    const mdWrap = document.getElementById("calendar-repeat-monthdays-wrap");
+    const yrWrap = document.getElementById("calendar-repeat-yearly-wrap");
+    if (wkWrap) wkWrap.classList.toggle("hidden", !(on && type === "WEEKLY"));
+    if (mdWrap) mdWrap.classList.toggle("hidden", !(on && type === "MONTHLY"));
+    if (yrWrap) yrWrap.classList.toggle("hidden", !(on && type === "YEARLY"));
+    if (on && type === "YEARLY") refreshCalendarRepeatYearlyLabel();
+  }
+
+  /** 매년 반복 안내 라벨 — 시작일 input 값을 보고 "M월 D일" 형태로 갱신 */
+  function refreshCalendarRepeatYearlyLabel() {
+    const label = document.getElementById("calendar-repeat-yearly-label");
+    if (!label) return;
+    const startVal = /** @type {HTMLInputElement|null} */ (document.getElementById("calendar-start-at"))?.value;
+    if (!startVal) {
+      label.textContent = "시작일을 선택해 주세요";
+      return;
+    }
+    const d = new Date(startVal);
+    if (Number.isNaN(d.getTime())) {
+      label.textContent = "시작일을 선택해 주세요";
+      return;
+    }
+    label.textContent = `${d.getMonth() + 1}월 ${d.getDate()}일`;
+  }
+
+  /**
+   * 1~31일 미니 그리드 한 번만 동적 생성. 클릭 시 aria-pressed 토글로 선택 상태 유지.
+   * 비트마스크는 폼 수집 시점에 DOM 에서 직접 합산하므로 별도 상태 변수 불필요.
+   */
+  function ensureCalendarRepeatMonthDaysGrid() {
+    const grid = document.getElementById("calendar-repeat-monthdays-grid");
+    if (!grid || grid.dataset.calInit === "1") return;
+    grid.dataset.calInit = "1";
+    let html = "";
+    for (let d = 1; d <= 31; d++) {
+      const bit = 1 << (d - 1);
+      html += `<button type="button" data-repeat-monthday="${bit}" aria-pressed="false" class="cal-monthday-btn">${d}</button>`;
+    }
+    grid.innerHTML = html;
+  }
+
+  /** 요일/일자 칩 클릭 위임 — aria-pressed 토글 */
+  function bindCalendarRepeatChipHandlers() {
+    const repeatBox = document.getElementById("calendar-repeat-fields");
+    if (!repeatBox || repeatBox.dataset.calChipBound === "1") return;
+    repeatBox.dataset.calChipBound = "1";
+    repeatBox.addEventListener("click", (e) => {
+      const t = e.target;
+      if (!(t instanceof HTMLElement)) return;
+      const chip = t.closest("[data-repeat-weekday], [data-repeat-monthday]");
+      if (!(chip instanceof HTMLElement)) return;
+      const pressed = chip.getAttribute("aria-pressed") === "true";
+      chip.setAttribute("aria-pressed", pressed ? "false" : "true");
+    });
+  }
+
+  /** 현재 선택된 요일 칩들의 비트마스크 합 (없으면 0) */
+  function collectCalendarRepeatWeekdaysMask() {
+    let mask = 0;
+    document.querySelectorAll('[data-repeat-weekday][aria-pressed="true"]').forEach((el) => {
+      const v = Number(/** @type {HTMLElement} */ (el).dataset.repeatWeekday ?? "0");
+      if (Number.isFinite(v)) mask |= v;
+    });
+    return mask;
+  }
+
+  /** 현재 선택된 일자 칩들의 비트마스크 합 (없으면 0) */
+  function collectCalendarRepeatMonthDaysMask() {
+    let mask = 0;
+    document.querySelectorAll('[data-repeat-monthday][aria-pressed="true"]').forEach((el) => {
+      const v = Number(/** @type {HTMLElement} */ (el).dataset.repeatMonthday ?? "0");
+      if (Number.isFinite(v)) mask |= v;
+    });
+    return mask;
+  }
+
+  /** 비트마스크 값으로 요일 칩들의 aria-pressed 동기화 */
+  function applyCalendarRepeatWeekdaysMask(mask) {
+    const m = Number(mask) || 0;
+    document.querySelectorAll("[data-repeat-weekday]").forEach((el) => {
+      const v = Number(/** @type {HTMLElement} */ (el).dataset.repeatWeekday ?? "0");
+      el.setAttribute("aria-pressed", String((m & v) === v && v !== 0));
+    });
+  }
+
+  /** 비트마스크 값으로 일자 칩들의 aria-pressed 동기화 */
+  function applyCalendarRepeatMonthDaysMask(mask) {
+    const m = Number(mask) || 0;
+    document.querySelectorAll("[data-repeat-monthday]").forEach((el) => {
+      const v = Number(/** @type {HTMLElement} */ (el).dataset.repeatMonthday ?? "0");
+      el.setAttribute("aria-pressed", String((m & v) === v && v !== 0));
+    });
   }
 
   /** 알림 분 선택 활성/비활성 */
@@ -1130,6 +1407,294 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeCategoryModal() {
     categoryModal?.classList.add("hidden");
     resetCategoryForms();
+  }
+
+  // ---------------------------------------------------------------------------
+  // [일정 조회 모달] 일정 클릭 시 먼저 뜨는 읽기 전용 화면 — 수정/삭제 진입은 별도 버튼
+  // ---------------------------------------------------------------------------
+
+  /** 마지막으로 조회한 일정 — view 모달의 [수정]/[삭제] 가 사용. */
+  let lastViewedCalendarDto = /** @type {Record<string, unknown>|null} */ (null);
+
+  const viewModal = document.getElementById("viewModal");
+
+  function closeCalendarViewModal() {
+    viewModal?.classList.add("hidden");
+    lastViewedCalendarDto = null;
+  }
+
+  /** Date → "YYYY. MM. DD. (요일) HH:mm" / 종일이면 "YYYY. MM. DD. (요일)" */
+  function formatCalendarDateTime(dateLike, allDay = false) {
+    if (dateLike == null) return "—";
+    const d = dateLike instanceof Date ? dateLike : new Date(String(dateLike));
+    if (Number.isNaN(d.getTime())) return "—";
+    const pad = (n) => String(n).padStart(2, "0");
+    const weekday = ["일", "월", "화", "수", "목", "금", "토"][d.getDay()];
+    const base = `${d.getFullYear()}. ${pad(d.getMonth() + 1)}. ${pad(d.getDate())}. (${weekday})`;
+    return allDay ? base : `${base} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  /** 반복 패턴 문자열 — DAILY/WEEKLY+mask/MONTHLY+mask/YEARLY */
+  function formatRepeatPattern(dto) {
+    const type = String(dto?.repeatType ?? "").toUpperCase();
+    const start = dto?.startAt ? new Date(String(dto.startAt)) : null;
+    switch (type) {
+      case "DAILY":
+        return "매일";
+      case "WEEKLY": {
+        const mask = Number(dto?.repeatWeekdays ?? 0) || 0;
+        if (mask > 0) {
+          const names = ["월", "화", "수", "목", "금", "토", "일"];
+          const bits = [1, 2, 4, 8, 16, 32, 64];
+          const picked = names.filter((_, i) => (mask & bits[i]) === bits[i]);
+          return `매주 ${picked.join("·")}`;
+        }
+        const w = start ? ["일", "월", "화", "수", "목", "금", "토"][start.getDay()] : "";
+        return w ? `매주 ${w}요일` : "매주";
+      }
+      case "MONTHLY": {
+        const mask = Number(dto?.repeatMonthDays ?? 0) || 0;
+        if (mask > 0) {
+          const days = [];
+          for (let d = 1; d <= 31; d++) if ((mask & (1 << (d - 1))) !== 0) days.push(`${d}일`);
+          return `매월 ${days.join("·")}`;
+        }
+        return start ? `매월 ${start.getDate()}일` : "매월";
+      }
+      case "YEARLY":
+        return start ? `매년 ${start.getMonth() + 1}월 ${start.getDate()}일` : "매년";
+      default:
+        return "반복";
+    }
+  }
+
+  /** 공유 정보 요약 + 디테일 (모두 / 부서 / 특정 인원) */
+  function renderCalendarViewShare(dto) {
+    const summaryEl = document.getElementById("view-share-summary");
+    const detailEl = document.getElementById("view-share-detail");
+    if (!summaryEl || !detailEl) return;
+    detailEl.innerHTML = "";
+    detailEl.classList.add("hidden");
+    const visibility = String(dto?.visibility ?? "PRIVATE");
+    switch (visibility) {
+      case "PRIVATE":
+        summaryEl.textContent = "나만 보기";
+        return;
+      case "COMPANY": {
+        // 특정 부서 케이스와 동일한 타원 칩 스타일로 "모든 인원" 한 개를 표시
+        summaryEl.textContent = "전사 공유";
+        const chip = document.createElement("span");
+        chip.className = "inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-200";
+        chip.textContent = "모든 인원";
+        detailEl.appendChild(chip);
+        detailEl.classList.remove("hidden");
+        detailEl.classList.add("flex");
+        return;
+      }
+      case "DEPARTMENT": {
+        const ids = Array.isArray(dto?.shareDeptIds) ? dto.shareDeptIds.map(String) : [];
+        if (ids.length === 0) {
+          summaryEl.textContent = "특정 부서 (선택 없음)";
+          return;
+        }
+        summaryEl.textContent = `특정 부서 ${ids.length}개`;
+        ids.forEach((id) => {
+          const name = deptDirectoryCache.get(id) ?? `부서 #${id}`;
+          const chip = document.createElement("span");
+          chip.className = "inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-200";
+          chip.textContent = name;
+          detailEl.appendChild(chip);
+        });
+        detailEl.classList.remove("hidden");
+        detailEl.classList.add("flex");
+        return;
+      }
+      case "SPECIFIC": {
+        const ids = Array.isArray(dto?.shareMemberIds) ? dto.shareMemberIds.map(String) : [];
+        if (ids.length === 0) {
+          summaryEl.textContent = "특정 인원 (선택 없음)";
+          return;
+        }
+        summaryEl.textContent = `특정 인원 ${ids.length}명`;
+        ids.forEach((id) => {
+          const meta = memberDirectoryCache.get(id);
+          const name = meta?.name ?? `#${id}`;
+          const sub = [meta?.deptName, meta?.positionName].filter(Boolean).join(" · ");
+          const chip = document.createElement("span");
+          chip.className = "inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700 dark:bg-gray-700/50 dark:text-gray-200";
+          chip.innerHTML = `<img src="${memberProfileUrl(id)}" alt="" class="h-4 w-4 rounded-full bg-gray-200 object-cover" onerror="this.onerror=null;this.src='/images/user/default_user.jpg'" />
+            <span>${escapeHtml(name)}</span>${sub ? `<span class="text-[10px] text-gray-400">${escapeHtml(sub)}</span>` : ""}`;
+          detailEl.appendChild(chip);
+        });
+        detailEl.classList.remove("hidden");
+        detailEl.classList.add("flex");
+        // 캐시에 없는 멤버가 있으면 한 번 메타 채우고 다시 그림
+        const missing = ids.filter((id) => !memberDirectoryCache.has(id));
+        if (missing.length > 0) {
+          fetchAndCacheMemberMeta().then(() => {
+            if (lastViewedCalendarDto === dto) renderCalendarViewShare(dto);
+          });
+        }
+        return;
+      }
+      default:
+        summaryEl.textContent = "—";
+    }
+  }
+
+  /**
+   * 일정 조회 모달 열기 — 단건 fetch 응답(CalendarDto) 받아 표시.
+   * 반복 일정이면 시간 정보 섹션을 숨기고 반복 패턴/반복 시작·종료를 보여준다.
+   * @param {Record<string, unknown>} dto
+   */
+  function openCalendarViewModal(dto) {
+    if (!viewModal) return;
+    lastViewedCalendarDto = dto;
+
+    // 카테고리 컬러 + 이름
+    const color = (dto?.categoryColor && typeof dto.categoryColor === "string") ? dto.categoryColor : "#465fff";
+    const bar = document.getElementById("view-category-bar");
+    if (bar) bar.style.backgroundColor = color;
+    const catName = document.getElementById("view-category-name");
+    if (catName) {
+      const cn = typeof dto.categoryName === "string" ? dto.categoryName : "";
+      if (cn) { catName.textContent = cn; catName.classList.remove("hidden"); }
+      else catName.classList.add("hidden");
+    }
+
+    // 제목
+    const titleEl = document.getElementById("view-title");
+    if (titleEl) titleEl.textContent = String(dto?.title ?? "(제목 없음)");
+
+    // 설명
+    const descWrap = document.getElementById("view-description-wrap");
+    const descEl = document.getElementById("view-description");
+    const desc = typeof dto?.description === "string" ? dto.description.trim() : "";
+    if (descWrap && descEl) {
+      if (desc) { descEl.textContent = desc; descWrap.classList.remove("hidden"); }
+      else descWrap.classList.add("hidden");
+    }
+
+    // 일시 / 반복 토글
+    const timeWrap = document.getElementById("view-time-wrap");
+    const repeatWrap = document.getElementById("view-repeat-wrap");
+    const allDay = Boolean(dto?.allDay);
+    const startMs = calendarDtoTimeToMillis(dto?.startAt);
+    const endMs = calendarDtoTimeToMillis(dto?.endAt);
+    const startDate = Number.isNaN(startMs) ? null : new Date(startMs);
+    const endDate = Number.isNaN(endMs) ? null : (allDay ? new Date(endMs - 1) : new Date(endMs));
+
+    const isRepeat = Boolean(dto?.isRepeat ?? dto?.repeat);
+    if (isRepeat) {
+      // 반복 — 일시 섹션 숨김, 반복 패턴/반복 시작·종료만 노출
+      timeWrap?.classList.add("hidden");
+      repeatWrap?.classList.remove("hidden");
+      const patternEl = document.getElementById("view-repeat-pattern");
+      const repStartEl = document.getElementById("view-repeat-start");
+      const repEndEl = document.getElementById("view-repeat-end");
+      if (patternEl) patternEl.textContent = formatRepeatPattern(dto);
+      if (repStartEl) repStartEl.textContent = startDate ? formatCalendarDateTime(startDate, allDay) : "—";
+      const reMs = calendarDtoTimeToMillis(dto?.repeatEndAt);
+      if (repEndEl) repEndEl.textContent = Number.isNaN(reMs) ? "지정 없음" : formatCalendarDateTime(new Date(reMs), false);
+    } else {
+      // 반복 없음 — 시작/종료 일시만 노출
+      repeatWrap?.classList.add("hidden");
+      timeWrap?.classList.remove("hidden");
+      const sEl = document.getElementById("view-start-at");
+      const eEl = document.getElementById("view-end-at");
+      if (sEl) sEl.textContent = startDate ? formatCalendarDateTime(startDate, allDay) : "—";
+      if (eEl) eEl.textContent = endDate ? formatCalendarDateTime(endDate, allDay) : "—";
+    }
+
+    // 장소
+    const locWrap = document.getElementById("view-location-wrap");
+    const locEl = document.getElementById("view-location");
+    const loc = typeof dto?.location === "string" ? dto.location.trim() : "";
+    if (locWrap && locEl) {
+      if (loc) { locEl.textContent = loc; locWrap.classList.remove("hidden"); }
+      else locWrap.classList.add("hidden");
+    }
+
+    // 공유
+    renderCalendarViewShare(dto);
+
+    // 알림
+    const alertWrap = document.getElementById("view-alert-wrap");
+    const alertEl = document.getElementById("view-alert-summary");
+    const isAlert = Boolean(dto?.isAlert ?? dto?.alert);
+    if (alertWrap && alertEl) {
+      if (isAlert && dto?.alertMinutesBefore != null) {
+        alertEl.textContent = `시작 ${dto.alertMinutesBefore}분 전`;
+        alertWrap.classList.remove("hidden");
+      } else {
+        alertWrap.classList.add("hidden");
+      }
+    }
+
+    viewModal.classList.remove("hidden");
+  }
+
+  /** 단건 fetch 가 실패했을 때 fallback — FullCalendar event 의 extendedProps 만으로 표시 */
+  function openCalendarViewModalFromFcEvent(fcEvent) {
+    const xp = fcEvent?.extendedProps ?? {};
+    const proxy = {
+      calendarId: xp.calendarId ?? fcEvent?.id,
+      title: fcEvent?.title,
+      description: xp.description,
+      categoryName: null,
+      categoryColor: xp.categoryColor,
+      startAt: fcEvent?.start ? fcEvent.start.toISOString() : null,
+      endAt: fcEvent?.end ? fcEvent.end.toISOString() : null,
+      allDay: xp.allDay,
+      visibility: xp.visibility,
+      shareDeptIds: xp.shareDeptIds,
+      shareMemberIds: xp.shareMemberIds,
+      location: xp.location,
+      isRepeat: xp.isRepeat,
+      repeatType: xp.repeatType,
+      repeatEndAt: xp.repeatEndAt,
+      repeatWeekdays: xp.repeatWeekdays,
+      repeatMonthDays: xp.repeatMonthDays,
+      isAlert: xp.isAlert,
+      alertMinutesBefore: xp.alertMinutesBefore,
+    };
+    openCalendarViewModal(proxy);
+  }
+
+  /** 조회 → 편집 전환 — 기존 편집 모달을 단건 dto 로 채워 띄움 */
+  async function openEditFromView() {
+    const dto = lastViewedCalendarDto;
+    if (!dto) return;
+    const id = dto.calendarId ?? dto.id;
+    if (id == null) return;
+    closeCalendarViewModal();
+    setEventModalMode("edit");
+    resetEventForm(false);
+    fillFormFromCalendarDto(/** @type {Record<string, unknown>} */ (dto));
+    syncRepeatSection();
+    syncAlertSection();
+    syncVisibilityShares();
+    openEventModal();
+  }
+
+  /** 조회 → 삭제 — 기존 삭제 API 그대로 사용 */
+  async function deleteFromView() {
+    const dto = lastViewedCalendarDto;
+    if (!dto) return;
+    const id = dto.calendarId ?? dto.id;
+    if (id == null) return;
+    if (!window.confirm("이 일정을 삭제할까요?")) return;
+    try {
+      const res = await fetchSessionApi(`${API_CALENDARS}/${encodeURIComponent(String(id))}/delete`, {
+        method: "POST",
+        headers: { Accept: "application/json", ...getCsrfHeaders() },
+      });
+      if (!res.ok) throw new Error(await parseApiErrorBody(res));
+      closeCalendarViewModal();
+      calendarInstance?.refetchEvents();
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "삭제 중 오류가 발생했습니다.");
+    }
   }
 
   /**
@@ -1678,7 +2243,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!res.ok) throw new Error(await parseApiErrorBody(res));
         const data = await res.json();
         const arr = Array.isArray(data) ? data : [];
-        const filtered = filterCalendarDtosByViewRange(arr, info.start, info.end);
+        // 반복 일정은 클라이언트에서 뷰 범위 내 occurrence 들로 펼침 (서버 DB 변경 없음)
+        const expanded = arr.flatMap((raw) => expandRepeatingCalendarDto(raw, info.start, info.end));
+        const filtered = filterCalendarDtosByViewRange(expanded, info.start, info.end);
         successCallback(filtered.map(mapCalendarDtoToFcEvent));
       } catch (e) {
         if (typeof failureCallback === "function") failureCallback(e instanceof Error ? e : new Error(String(e)));
@@ -1742,23 +2309,21 @@ document.addEventListener("DOMContentLoaded", () => {
       const idRaw = info.event.extendedProps?.calendarId ?? info.event.id;
       const id = idRaw != null && idRaw !== "" ? String(idRaw) : "";
       if (!id) return;
-      setEventModalMode("edit");
-      fillFormFromFcEvent(info.event);
+      // 클릭 시 먼저 "조회 모달" 표시. 수정 버튼 클릭 시 비로소 편집 모달로 전환.
       try {
         const res = await fetchSessionApi(`${API_CALENDARS}/${encodeURIComponent(id)}`, {
           headers: { Accept: "application/json", ...getCsrfHeaders() },
         });
         if (res.ok) {
           const dto = await res.json();
-          if (dto && typeof dto === "object") fillFormFromCalendarDto(/** @type {Record<string, unknown>} */ (dto));
+          openCalendarViewModal(/** @type {Record<string, unknown>} */ (dto));
+        } else {
+          // 단건 fetch 실패 시 fallback: extendedProps 만으로 표시
+          openCalendarViewModalFromFcEvent(info.event);
         }
       } catch {
-        /* 목록 이벤트만으로 폼 유지 */
+        openCalendarViewModalFromFcEvent(info.event);
       }
-      syncRepeatSection();
-      syncAlertSection();
-      syncVisibilityShares();
-      openEventModal();
     },
     customButtons: {
       /**
@@ -1832,7 +2397,22 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("calendar-is-repeat")?.addEventListener("change", syncRepeatSection);
+  // 반복 유형(콤보 안의 hidden select)이 바뀌면 요일/일자/매년 패널 노출 즉시 갱신
+  document.getElementById("calendar-repeat-type")?.addEventListener("change", syncRepeatSection);
+  // 시작일이 바뀌면 매년 반복 안내 라벨(M월 D일) 도 즉시 갱신
+  document.getElementById("calendar-start-at")?.addEventListener("change", refreshCalendarRepeatYearlyLabel);
+  document.getElementById("calendar-start-at")?.addEventListener("input", refreshCalendarRepeatYearlyLabel);
+  ensureCalendarRepeatMonthDaysGrid();
+  bindCalendarRepeatChipHandlers();
   document.getElementById("calendar-is-alert")?.addEventListener("change", syncAlertSection);
+
+  // [일정 조회 모달] 닫기 / 수정 / 삭제 / 배경 클릭 닫기
+  document.getElementById("btn-view-close")?.addEventListener("click", closeCalendarViewModal);
+  document.getElementById("btn-view-edit")?.addEventListener("click", openEditFromView);
+  document.getElementById("btn-view-delete")?.addEventListener("click", deleteFromView);
+  document.querySelectorAll("#viewModal .modal-close-btn").forEach((btn) => {
+    btn.addEventListener("click", closeCalendarViewModal);
+  });
   visibilityRadios().forEach((r) =>
     r.addEventListener("change", syncVisibilityShares),
   );

@@ -330,26 +330,37 @@ public class BoardService {
     @Transactional(readOnly = true)
     public boolean isAlertOn(MemberSession ms, Long boardId) {
         Board board = getReadableBoard(ms, boardId);
+
+        // NOTICE / POLICY 는 항상 ON 으로 간주 (개인 토글 무시)
+        if (isMandatoryAlert(board.getBoardType())) {
+            return true;
+        }
+
         Member me = memberRepository.findById(ms.getMemberId())
             .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
         return boardAlertPrefRepository.findByBoardAndMember(board, me)
             .map(BoardAlertPref::isEnabled)
-            .orElseGet(() -> isDefaultOn(board.getBoardType()));   // 미설정이면 기본값
+            .orElse(false);   // 일반 게시판은 미설정 시 OFF
     }
 
     @Transactional
     public boolean toggleAlert(MemberSession ms, Long boardId) {
         Board board = getReadableBoard(ms, boardId);
+
+        // NOTICE / POLICY 는 알림 OFF 자체를 금지
+        if (isMandatoryAlert(board.getBoardType())) {
+            throw new BusinessException(ErrorCode.ALERT_TOGGLE_NOT_ALLOWED);
+        }
+
         Member me = memberRepository.findById(ms.getMemberId())
             .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
-        boolean defaultOn = isDefaultOn(board.getBoardType());
         BoardAlertPref pref = boardAlertPrefRepository
             .findByBoardAndMember(board, me)
             .orElse(null);
 
-        boolean currentlyOn = (pref != null) ? pref.isEnabled() : defaultOn;
+        boolean currentlyOn = (pref != null) ? pref.isEnabled() : false;
         boolean next = !currentlyOn;
 
         if (pref == null) {
@@ -365,7 +376,8 @@ public class BoardService {
         return next;   // 프론트에 새 상태 응답
     }
 
-    private boolean isDefaultOn(BoardType type) {
+    // 사용자가 알림을 끌 수 없는 게시판 타입 (강제 수신)
+    private boolean isMandatoryAlert(BoardType type) {
         return type == BoardType.NOTICE || type == BoardType.POLICY;
     }
 }

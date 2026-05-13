@@ -196,6 +196,9 @@
             />
             <span class="text-sm font-medium text-gray-800 dark:text-gray-200">반복 일정</span>
           </label>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            매일 / 매주는 시작일의 요일, 매월은 시작일의 일자, 매년은 시작일의 월·일 기준으로 자동 반복됩니다.
+          </p>
           <div id="calendar-repeat-fields" class="grid gap-4 opacity-50 pointer-events-none sm:grid-cols-2">
             <div class="relative z-30" data-cal-combobox data-cal-select-id="calendar-repeat-type">
               <select id="calendar-repeat-type" name="repeatType" class="sr-only pointer-events-none" tabindex="-1" aria-hidden="true">
@@ -242,6 +245,42 @@
                 name="repeatEndAt"
                 class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white"
               />
+            </div>
+
+            <!-- 매주 반복 시 요일 다중 선택 (WEEKLY 일 때만 표시) -->
+            <div id="calendar-repeat-weekdays-wrap" class="hidden sm:col-span-2">
+              <span class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">반복 요일</span>
+              <div class="flex flex-wrap gap-2">
+                <!-- value 는 비트마스크용 정수: MON=1, TUE=2, WED=4, THU=8, FRI=16, SAT=32, SUN=64 -->
+                <button type="button" data-repeat-weekday="1"  class="cal-weekday-btn">월</button>
+                <button type="button" data-repeat-weekday="2"  class="cal-weekday-btn">화</button>
+                <button type="button" data-repeat-weekday="4"  class="cal-weekday-btn">수</button>
+                <button type="button" data-repeat-weekday="8"  class="cal-weekday-btn">목</button>
+                <button type="button" data-repeat-weekday="16" class="cal-weekday-btn">금</button>
+                <button type="button" data-repeat-weekday="32" class="cal-weekday-btn">토</button>
+                <button type="button" data-repeat-weekday="64" class="cal-weekday-btn">일</button>
+              </div>
+              <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">아무것도 선택하지 않으면 시작일의 요일이 자동 적용됩니다.</p>
+            </div>
+
+            <!-- 매월 반복 시 일자 다중 선택 (MONTHLY 일 때만 표시) — 1~31 미니 그리드 -->
+            <div id="calendar-repeat-monthdays-wrap" class="hidden sm:col-span-2">
+              <span class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">반복 일자</span>
+              <div id="calendar-repeat-monthdays-grid" class="grid grid-cols-7 gap-1.5">
+                <!-- 1~31 버튼은 calendar-init.js 에서 생성 -->
+              </div>
+              <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">아무것도 선택하지 않으면 시작일의 일자가 자동 적용됩니다. 해당 월에 그 일자가 없으면 그 달 말일로 조정됩니다.</p>
+            </div>
+
+            <!-- 매년 반복 안내 (YEARLY 일 때만 표시) — 별도 입력 없이 시작일의 월·일을 그대로 사용 -->
+            <div id="calendar-repeat-yearly-wrap" class="hidden sm:col-span-2">
+              <span class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">반복 기준</span>
+              <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-white/[0.04]">
+                <p class="text-sm text-gray-700 dark:text-gray-200">
+                  매년 <span id="calendar-repeat-yearly-label" class="font-semibold text-brand-600 dark:text-brand-400">시작일을 선택해 주세요</span> 에 반복됩니다.
+                </p>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">시작 일시의 월·일이 자동으로 사용됩니다. 윤년 2월 29일이라면 평년에는 2월 28일에 반복됩니다.</p>
+              </div>
             </div>
           </div>
         </section>
@@ -417,6 +456,9 @@
               </div>
             </div>
           </div>
+        </section>
+      </form>
+    </div>
 
     <!-- [하단 액션] 폼 밖에 두어 스크롤과 분리 -->
     <footer

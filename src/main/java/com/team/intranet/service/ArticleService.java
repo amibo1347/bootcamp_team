@@ -1,9 +1,8 @@
 package com.team.intranet.service;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -19,6 +18,7 @@ import com.team.intranet.enums.ErrorCode;
 import com.team.intranet.enums.board.AnonymousType;
 import com.team.intranet.enums.board.BoardType;
 import com.team.intranet.enums.member.Status;
+import com.team.intranet.event.ArticleCreatedEvent;
 import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.ArticleRepository;
 import com.team.intranet.repository.AttachmentRepository;
@@ -42,8 +42,8 @@ public class ArticleService {
     private final ArticleRepository articleRepository;
     private final MemberRepository memberRepository;
     private final AttachmentRepository attachmentRepository;
-    private final AlertService alertService;
     private final BoardAlertPrefRepository boardAlertPrefRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public Article createArticle(MemberSession ms, ArticleDto dto) {
@@ -81,42 +81,33 @@ public class ArticleService {
                 att.setArticle(saved);
             }
         }
-        // 알림 발송 — 실패해도 게시글 작성은 롤백되지 않도록 try/catch + REQUIRES_NEW (AlertService 측)
-        List<Member> recipients = resolveArticleAlertRecipients(board);
+        // 알림 발송은 메인 TX 커밋 이후로 미룬다.
+        //   ※ AlertService 의 @TransactionalEventListener(AFTER_COMMIT) 리스너가 수신자별로 처리.
+        //   ※ 엔티티 대신 id 만 담아 트랜잭션 경계를 안전하게 넘긴다.
         Long authorId = author.getMemberId();
-        for (Member r : recipients) {
-            if (r.getMemberId().equals(authorId)) continue;
-            try {
-                alertService.sendArticleNewAlert(saved, r);
-            } catch (Exception e) {
-                // 한 명에게 실패해도 다른 수신자/게시글 작성에는 영향 없음
-                log.warn("Failed to send ARTICLE_NEW alert (articleId={}, recipientId={}): {}",
-                    saved.getArticleId(), r.getMemberId(), e.getMessage());
-            }
+        List<Long> recipientIds = resolveArticleAlertRecipients(board).stream()
+            .map(Member::getMemberId)
+            .filter(id -> !id.equals(authorId))
+            .toList();
+        if (!recipientIds.isEmpty()) {
+            eventPublisher.publishEvent(new ArticleCreatedEvent(saved.getArticleId(), recipientIds));
         }
         return saved;
     }
 
-    // 게시판 타입별 기본값(NOTICE/POLICY = ON, 그 외 = OFF) + BoardAlertPref(사용자 토글) 조합으로 수신자 결정.
-    // 가입 승인(JOIN) 상태 회원만 대상. 휴직(ON_LEAVE)은 제외하는 정책.
+    // 게시판 타입별 수신자 결정.
+    //   - NOTICE/POLICY: 회사 전 직원 강제 수신 (알림 OFF 불가 — BoardAlertPref 무시)
+    //   - 그 외        : 명시적 ON 한 가입 회원만
+    //   가입 승인(JOIN) 상태 회원만 대상. 휴직(ON_LEAVE)은 제외하는 정책.
     private List<Member> resolveArticleAlertRecipients(Board board) {
         BoardType type = board.getBoardType();
-        boolean defaultOn = (type == BoardType.NOTICE || type == BoardType.POLICY);
+        boolean mandatoryAlert = (type == BoardType.NOTICE || type == BoardType.POLICY);
 
-        if (defaultOn) {
-            // 회사 가입 회원 전체 - 명시적 OFF 멤버
+        if (mandatoryAlert) {
             Long companyId = board.getCompany().getCompanyId();
-            Set<Long> optedOut = new HashSet<>(boardAlertPrefRepository.findOptedOutMemberIds(board));
-
-            return memberRepository
-                .findByStatusAndCompanyCompanyId(Status.JOIN, companyId)
-                .stream()
-                .filter(m -> !optedOut.contains(m.getMemberId()))
-                .toList();
-        } else {
-            // 명시적 ON 한 가입 회원만
-            return boardAlertPrefRepository.findOptedInMembers(board, Status.JOIN);
+            return memberRepository.findByStatusAndCompanyCompanyId(Status.JOIN, companyId);
         }
+        return boardAlertPrefRepository.findOptedInMembers(board, Status.JOIN);
     }
 
     public Page<ArticleDto> findArticlesByBoard(MemberSession ms, Long boardId, Pageable pageable) {
