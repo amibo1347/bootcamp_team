@@ -152,12 +152,57 @@
     return '#';
   }
 
+  /**
+   * 알림 한 줄(<a>) 공통·읽음·미읽음 Tailwind 클래스.
+   * - 저채도 slate/zinc, 배경은 호버 시에만 살짝.
+   * - 미읽음 표시: 왼쪽 작은 점 — 헤더 배지와 동일 bg-orange-500 (세로선 없음)
+   * - 제목·메타는 data-alert-part 로 읽음 여부에 따라 글자 농도만 달리 함.
+   */
   const CLS_ROW_BASE =
-    'group text-theme-sm relative flex flex-col gap-0.5 rounded-lg border border-transparent py-2.5 pr-9 pl-3 font-medium transition-colors ';
+    'group text-theme-sm relative flex items-start gap-2 rounded-lg py-2.5 pr-9 pl-3 transition-colors duration-150 ';
   const CLS_ROW_UNREAD =
-    'border-l-4 border-orange-400 bg-gray-50 text-gray-800 hover:bg-gray-100 dark:bg-white/[0.03] dark:text-white/90 dark:hover:bg-white/[0.06] ';
+    'bg-transparent hover:bg-zinc-100/40 dark:hover:bg-zinc-900/25 ';
   const CLS_ROW_READ =
-    'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 ';
+    'bg-transparent hover:bg-zinc-50/70 dark:hover:bg-white/[0.03] ';
+
+  /** 제목·메타를 감싸는 컬럼(점 옆 본문 영역) */
+  const CLS_ALERT_INNER = 'flex min-w-0 flex-1 flex-col gap-0.5';
+
+  /** 미읽음 점: 헤더 종 배지(#header-alert-badge)의 원 배경색(bg-orange-500)과 동일 톤 */
+  const CLS_DOT_UNREAD =
+    'pointer-events-none mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500 dark:bg-orange-500';
+  const CLS_DOT_READ =
+    'pointer-events-none mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-transparent';
+
+  const CLS_TITLE_UNREAD =
+    'line-clamp-2 text-left font-medium text-slate-900 dark:text-slate-100';
+  const CLS_TITLE_READ =
+    'line-clamp-2 text-left font-normal text-gray-500 dark:text-gray-400';
+  const CLS_META_UNREAD =
+    'text-theme-xs text-left text-slate-600/95 dark:text-slate-400';
+  const CLS_META_READ =
+    'text-theme-xs text-left text-gray-400 dark:text-gray-500';
+
+  /**
+   * 알림 링크 행의 읽음/미읽음 외형을 일괄 적용한다.
+   * @param {HTMLAnchorElement} a
+   * @param {boolean} read
+   */
+  function applyAlertRowAppearance(a, read) {
+    a.className = CLS_ROW_BASE + (read ? CLS_ROW_READ : CLS_ROW_UNREAD);
+    const dotSpan = a.querySelector('[data-alert-part="dot"]');
+    if (dotSpan) {
+      dotSpan.className = read ? CLS_DOT_READ : CLS_DOT_UNREAD;
+    }
+    const titleSpan = a.querySelector('[data-alert-part="title"]');
+    const metaSpan = a.querySelector('[data-alert-part="meta"]');
+    if (titleSpan) {
+      titleSpan.className = read ? CLS_TITLE_READ : CLS_TITLE_UNREAD;
+    }
+    if (metaSpan) {
+      metaSpan.className = read ? CLS_META_READ : CLS_META_UNREAD;
+    }
+  }
 
   /**
    * 한 알림 행(li) 생성 — 본문 링크 + 삭제 버튼
@@ -177,22 +222,33 @@
     a.href = linkHref(row);
     a.dataset.alertId = String(id);
     a.dataset.unread = read ? 'false' : 'true';
-    a.className = CLS_ROW_BASE + (read ? CLS_ROW_READ : CLS_ROW_UNREAD);
+
+    const dot = document.createElement('span');
+    dot.setAttribute('data-alert-part', 'dot');
+    dot.setAttribute('aria-hidden', 'true');
+
+    const inner = document.createElement('span');
+    inner.className = CLS_ALERT_INNER;
 
     const titleEl = document.createElement('span');
-    titleEl.className = 'line-clamp-2 text-left font-medium';
+    titleEl.setAttribute('data-alert-part', 'title');
+    titleEl.className = read ? CLS_TITLE_READ : CLS_TITLE_UNREAD;
     titleEl.textContent = displayTitle(row);
 
     const meta = document.createElement('span');
-    meta.className = 'text-theme-xs text-left text-gray-500 dark:text-gray-400';
+    meta.setAttribute('data-alert-part', 'meta');
+    meta.className = read ? CLS_META_READ : CLS_META_UNREAD;
     const timeStr = formatCreatedAt(
       /** @type {string | number[] | undefined} */ (row.createdAt)
     );
     const contentStr = displayContent(row);
     meta.textContent = [timeStr, contentStr].filter(Boolean).join(' · ');
 
-    a.appendChild(titleEl);
-    a.appendChild(meta);
+    inner.appendChild(titleEl);
+    inner.appendChild(meta);
+    a.appendChild(dot);
+    a.appendChild(inner);
+    applyAlertRowAppearance(a, read);
 
     const del = document.createElement('button');
     del.type = 'button';
@@ -387,7 +443,7 @@
     }
 
     a.dataset.unread = 'false';
-    a.className = CLS_ROW_BASE + CLS_ROW_READ;
+    applyAlertRowAppearance(a, true);
 
     const row = allRows.find(
       (r) => String(r.alertId) === id

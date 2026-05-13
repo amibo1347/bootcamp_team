@@ -110,7 +110,7 @@
                 </svg>
               </button>
             </div>
-            <!-- 알림 목록: alerts-header.js에서 GET /api/alerts로 동적 렌더링 -->
+            <!-- 알림 목록: alerts-header.js에서 GET /api/alerts로 동적 렌더링. 읽음/미읽음은 isRead(read)에 따라 CLS_ROW_* + 제목/메타 글자 농도 + 미읽음만 왼쪽 점(slate)으로 구분 -->
             <ul id="header-alert-list"
               class="custom-scrollbar -mx-1 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-1"></ul>
             <!-- 알림 목록 끝 -->
