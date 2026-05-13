@@ -1,0 +1,18 @@
+<!-- ================================================================ -->
+<!-- [위저드 스텝 3] 동적 본문 슬롯 — form-registry.js 가 양식별 fragment를 토글 -->
+<!-- ================================================================ -->
+<div xmlns:th="http://www.thymeleaf.org" th:fragment="wizardStepDraft" class="space-y-4">
+  <!-- [공통 제목] 시작 -->
+  <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+    <label for="approval-draft-title" class="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">제목</label>
+    <input id="approval-draft-title" type="text" maxlength="200" placeholder="결재 제목"
+      class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+  </div>
+  <!-- [공통 제목] 끝 -->
+
+  <!-- [동적 양식] 시작 -->
+  <div id="approval-dynamic-form-slot">
+    <th:block th:replace="~{approval/forms/vacation-form-fields :: vacationFormFields}"></th:block>
+  </div>
+  <!-- [동적 양식] 끝 -->
+</div>

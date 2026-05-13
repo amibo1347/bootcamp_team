@@ -1,0 +1,141 @@
+<!doctype html>
+<!-- ================================================================ -->
+<!-- [전자결재 셸] 탭 · 위저드 · 내 결재함 · 관리자 함 — approval-main.js 로 페이지 초기화 -->
+<!-- ================================================================ -->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>전자결재 | 인트라넷</title>
+  <meta name="_csrf" th:content="${_csrf.token}" />
+  <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+  <link rel="stylesheet" th:href="@{/css/output.css}" />
+  <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+</head>
+
+<body
+  x-data="{ page: 'approval', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
+  x-init="
+         darkMode = JSON.parse(localStorage.getItem('darkMode'));
+         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+  :class="{'dark bg-gray-900': darkMode === true}"
+  th:attr="data-is-admin=${session.memberSession != null and session.memberSession.isAdmin()},
+           data-member-id=${session.memberSession != null ? session.memberSession.memberId : ''}">
+  <!-- ===== Preloader Start ===== -->
+  <div th:replace="~{partials/preloader}"></div>
+  <!-- ===== Preloader End ===== -->
+
+  <!-- ===== Page Wrapper Start ===== -->
+  <div class="flex h-screen overflow-hidden">
+    <!-- ===== Sidebar Start ===== -->
+    <div th:replace="~{partials/sidebar}"></div>
+    <!-- ===== Sidebar End ===== -->
+
+    <!-- ===== Content Area Start ===== -->
+    <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+      <div th:replace="~{partials/overlay}"></div>
+
+      <!-- ===== Header Start ===== -->
+      <div th:replace="~{partials/header}"></div>
+      <!-- ===== Header End ===== -->
+
+      <!-- ===== Main Content Start ===== -->
+      <main class="space-y-8 p-8">
+        <h2 class="ml-2 text-2xl font-black text-gray-900 dark:text-white">전자결재</h2>
+
+        <!-- [탭] 전환 버튼 — 관리자 탭은 서버에서만 렌더 -->
+        <div class="flex flex-wrap gap-2 border-b border-gray-200 pb-4 dark:border-gray-800" role="tablist">
+          <button type="button" id="approval-tab-wizard" data-approval-tab="wizard"
+            class="rounded-lg px-4 py-2 text-sm font-medium bg-brand-500 text-white">
+            기안
+          </button>
+          <button type="button" id="approval-tab-my" data-approval-tab="my"
+            class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
+            내 결재함
+          </button>
+          <th:block th:if="${session.memberSession != null and session.memberSession.isAdmin()}">
+            <button type="button" id="approval-tab-pending" data-approval-tab="pending"
+              class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
+              대기함
+            </button>
+            <button type="button" id="approval-tab-completed" data-approval-tab="completed"
+              class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
+              완료함
+            </button>
+          </th:block>
+        </div>
+
+        <!-- 패널: 기안 위저드 -->
+        <section id="approval-panel-wizard" class="approval-panel space-y-6">
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            <ol class="mb-6 flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
+              <li><span id="approval-step-label-1" class="font-semibold text-brand-600 dark:text-brand-400">1. 양식</span></li>
+              <li aria-hidden="true">→</li>
+              <li><span id="approval-step-label-2">2. 결재자</span></li>
+              <li aria-hidden="true">→</li>
+              <li><span id="approval-step-label-3">3. 작성</span></li>
+            </ol>
+
+            <div id="approval-step-1" class="approval-wizard-step">
+              <th:block th:replace="~{approval/user/wizard-step-form :: wizardStepForm}"></th:block>
+            </div>
+            <div id="approval-step-2" class="approval-wizard-step hidden">
+              <th:block th:replace="~{approval/user/wizard-step-approver :: wizardStepApprover}"></th:block>
+            </div>
+            <div id="approval-step-3" class="approval-wizard-step hidden">
+              <th:block th:replace="~{approval/user/wizard-step-draft :: wizardStepDraft}"></th:block>
+            </div>
+
+            <div class="mt-8 flex flex-wrap justify-between gap-3">
+              <button type="button" id="approval-wizard-back"
+                class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                disabled>이전</button>
+              <div class="flex gap-2">
+                <button type="button" id="approval-wizard-next"
+                  class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">다음</button>
+                <button type="button" id="approval-wizard-submit"
+                  class="hidden rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">제출</button>
+              </div>
+            </div>
+            <p id="approval-wizard-message" class="mt-4 hidden text-sm text-green-600 dark:text-green-400" role="status"></p>
+          </div>
+        </section>
+
+        <!-- 패널: 내 결재함 -->
+        <section id="approval-panel-my" class="approval-panel hidden">
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">내 결재함</h3>
+            <th:block th:replace="~{approval/user/my-inbox-table :: myInboxTable}"></th:block>
+          </div>
+        </section>
+
+        <!-- 패널: 관리자 대기함 -->
+        <section id="approval-panel-pending" class="approval-panel hidden"
+          th:if="${session.memberSession != null and session.memberSession.isAdmin()}">
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            <th:block th:replace="~{approval/admin/pending-inbox :: pendingInbox}"></th:block>
+          </div>
+        </section>
+
+        <!-- 패널: 관리자 완료함 -->
+        <section id="approval-panel-completed" class="approval-panel hidden"
+          th:if="${session.memberSession != null and session.memberSession.isAdmin()}">
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            <th:block th:replace="~{approval/admin/completed-inbox :: completedInbox}"></th:block>
+          </div>
+        </section>
+      </main>
+      <!-- ===== Main Content End ===== -->
+    </div>
+    <!-- ===== Content Area End ===== -->
+  </div>
+  <!-- ===== Page Wrapper End ===== -->
+
+  <script type="module" src="/js/index.js"></script>
+  <script type="module" src="/js/approval/approval-main.js"></script>
+</body>
+
+</html>
