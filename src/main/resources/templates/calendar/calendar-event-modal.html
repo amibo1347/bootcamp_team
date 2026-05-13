@@ -320,7 +320,7 @@
               class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 p-3 transition has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 hover:border-gray-300 dark:border-gray-700 dark:has-[:checked]:border-brand-400 dark:has-[:checked]:bg-brand-500/15 dark:hover:border-gray-600"
             >
               <input type="radio" name="visibility" value="COMPANY" class="h-4 w-4 border-gray-300 text-brand-500 focus:ring-brand-500" />
-              <span class="text-sm font-medium text-gray-800 dark:text-gray-200">전사</span>
+              <span class="text-sm font-medium text-gray-800 dark:text-gray-200">모든 인원</span>
             </label>
             <label
               class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 p-3 transition has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 hover:border-gray-300 dark:border-gray-700 dark:has-[:checked]:border-brand-400 dark:has-[:checked]:bg-brand-500/15 dark:hover:border-gray-600"
@@ -336,41 +336,87 @@
             </label>
           </div>
 
+          <!-- 공유 부서 (특정 부서 선택 시 표시) — managingBoard 의 부서 선택 패턴 동일 -->
           <div id="calendar-share-dept-wrap" class="hidden space-y-2">
             <div class="relative z-20 space-y-2">
-              <label for="calendar-share-depts" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                공유 부서
-              </label>
-              <p class="text-xs text-gray-500 dark:text-gray-400">Ctrl / ⌘ + 클릭으로 여러 부서 선택</p>
-              <!-- 스타일: input.css `.calendar-native-select-multiple` -->
-              <select
-                id="calendar-share-depts"
-                name="shareDeptIds"
-                multiple
-                size="6"
-                class="calendar-native-select-multiple"
-              ></select>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">공유 부서</label>
+              <button type="button" data-toggle-target="calendarDeptPanel" aria-expanded="false"
+                      aria-controls="calendarDeptPanel"
+                      class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30">
+                <span class="truncate" data-cal-dept-summary>부서 선택</span>
+                <span data-toggle-arrow
+                      class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300"
+                      aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              </button>
+              <div id="calendarDeptPanel"
+                   class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
+                <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2 dark:border-gray-600 dark:text-gray-300">
+                  <input type="checkbox" data-select-all="calendarDeptId" checked
+                         class="h-4 w-4 rounded border-gray-300" />
+                  <span>전체 선택</span>
+                </label>
+                <!-- 부서 옵션은 calendar-init.js 가 /api/depts 응답으로 동적 채움 -->
+                <div id="calendar-dept-options" class="space-y-0"></div>
+              </div>
             </div>
           </div>
 
+          <!-- 공유 멤버 (특정 인원 선택 시 표시) — memberList 의 검색 폼 패턴 동일 -->
           <div id="calendar-share-member-wrap" class="hidden space-y-2">
-            <div class="relative z-20 space-y-2">
-              <label for="calendar-share-members" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                공유 멤버
-              </label>
-              <p class="text-xs text-gray-500 dark:text-gray-400">Ctrl / ⌘ + 클릭으로 여러 명 선택</p>
-              <select
-                id="calendar-share-members"
-                name="shareMemberIds"
-                multiple
-                size="6"
-                class="calendar-native-select-multiple"
-              ></select>
+            <div class="relative z-20 space-y-3">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">공유 멤버</label>
+              <div class="flex items-end gap-3">
+                <div class="flex-1">
+                  <input type="text" id="calendar-member-search" placeholder="이름을 입력하세요"
+                         class="w-full rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white" />
+                </div>
+                <button type="button" id="calendar-member-search-btn"
+                        class="flex h-[42px] shrink-0 items-center justify-center rounded-xl bg-indigo-400 py-2 px-6 font-medium text-white hover:bg-indigo-500">
+                  검색
+                </button>
+                <!-- 검색 결과 닫기 — 결과 표시 중에만 표시됨 (JS 가 hidden 토글) -->
+                <button type="button" id="calendar-member-search-close-btn"
+                        aria-label="검색 결과 닫기" title="검색 결과 닫기"
+                        class="hidden flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300 dark:hover:bg-white/5">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5" aria-hidden="true">
+                    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                  </svg>
+                </button>
+              </div>
+              <!-- 공유된 멤버 미리보기 (카카오톡 캘린더 공유 스타일) — 첫 4명 프로필 + N명 + 옵션 더보기 -->
+              <!-- 위치: 검색 input 과 검색 결과 사이 -->
+              <div id="calendar-member-summary"
+                   class="hidden flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-strokedark dark:bg-meta-4">
+                <div class="flex items-center gap-3">
+                  <div id="calendar-member-preview" class="flex"></div>
+                  <span id="calendar-member-count" class="text-sm font-medium text-gray-700 dark:text-gray-200">0명</span>
+                </div>
+                <button type="button" id="calendar-member-more-btn"
+                        class="flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400">
+                  <span>옵션 더보기</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                       class="h-4 w-4 transition-transform" data-member-more-arrow aria-hidden="true">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- 더보기 클릭 시 펼침 — 현재 공유 멤버 상세 리스트 (프로필 + 이름 + 부서/직급 + × 제거) -->
+              <ul id="calendar-member-detail-list"
+                  class="hidden max-h-48 space-y-1 overflow-y-auto rounded-lg border border-gray-200 bg-white p-1 dark:border-strokedark dark:bg-meta-4">
+              </ul>
+
+              <!-- 검색 결과 — row 우측의 "공유" / "해제" 버튼으로 선택. 검색 전엔 hidden.
+                   max-h 는 row 4개 분량(약 11rem)으로 잡아 5명부터 스크롤이 생기도록. -->
+              <div id="calendar-member-results"
+                   class="hidden max-h-44 overflow-y-auto rounded-lg border border-gray-300 bg-white p-2 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
+              </div>
             </div>
           </div>
-        </section>
-      </form>
-    </div>
 
     <!-- [하단 액션] 폼 밖에 두어 스크롤과 분리 -->
     <footer

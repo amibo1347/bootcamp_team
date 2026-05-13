@@ -1,7 +1,11 @@
 package com.team.intranet.controller.view;
 
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.SessionAttribute;
+
+import com.team.intranet.session.MemberSession;
 
 @Controller
 public class MainController {
@@ -22,7 +26,11 @@ public class MainController {
     }
 
     @GetMapping("/calendar")
-    public String calendar() {
+    public String calendar(
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+            Model model) {
+        // 일정 셀에서 본인 제외 처리를 위해 currentMemberId 를 meta 태그로 노출 (calendar.html)
+        model.addAttribute("currentMemberId", ms != null ? ms.getMemberId() : null);
         return "calendar/calendar";
     }
 

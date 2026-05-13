@@ -190,8 +190,19 @@ public class CalendarService {
             .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
         Dept myDept = me.getDept();
 
+        // 일정 셀에 공유자 프로필 동그라미·부서명 배지를 그리려면 목록 조회에도 shareIds 가 필요.
+        // 단건 조회(getCalendar) 와 동일하게 dept/member share 를 추가로 채워 응답한다.
         return calendarRepository.findAccessibleByMember(me, myDept).stream()
-                .map(CalendarDto::from)
+                .map(c -> {
+                    CalendarDto dto = CalendarDto.from(c);
+                    dto.setShareDeptIds(
+                        shareDeptRepository.findAllByCalendar(c).stream()
+                            .map(s -> s.getDept().getDeptId()).toList());
+                    dto.setShareMemberIds(
+                        shareMemberRepository.findAllByCalendar(c).stream()
+                            .map(s -> s.getMember().getMemberId()).toList());
+                    return dto;
+                })
                 .toList();
     }
 
