@@ -82,6 +82,20 @@ public enum ErrorCode {
     CALENDAR_NOT_OWNER(400, "일정의 작성자가 아닙니다"),
     CALENDAR_NOT_FOUND(404, "해당 일정을 찾을 수 없습니다"),
 
+    // 결재
+    FORM_TEMPLATE_NOT_FOUND(404, "해당 결재 양식을 찾을 수 없습니다"),
+    FORM_TEMPLATE_INACTIVE(400, "비활성 상태인 결재 양식입니다"),
+    DUPLICATE_FORM_CODE(409, "이미 존재하는 양식 코드입니다"),
+    
+    APPROVAL_NOT_FOUND(404, "해당 결재 문서를 찾을 수 없습니다"),
+    APPROVAL_ALREADY_PROCESSED(409, "이미 처리된 결재 문서입니다"),
+    NOT_APPROVER(403, "해당 결재의 결재자가 아닙니다"),
+    NOT_DRAFTER(403, "해당 결재의 신청자가 아닙니다"),
+    APPROVER_CANNOT_BE_SELF(400, "본인을 결재자로 지정할 수 없습니다"),
+    
+    VACATION_REQUEST_NOT_FOUND(404, "해당 휴가 신청을 찾을 수 없습니다"),
+    INVALID_VACATION_PERIOD(400, "휴가 시작일이 종료일보다 늦습니다"),
+
     // 알림
     ALERT_NOT_FOUND(404, "해당 알림을 찾을 수 없습니다"),
     ALERT_TOGGLE_NOT_ALLOWED(400, "이 게시판은 알림 설정을 변경할 수 없습니다");
