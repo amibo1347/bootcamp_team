@@ -1155,6 +1155,11 @@ document.addEventListener("DOMContentLoaded", () => {
           '<svg data-cal-toolbar-icon="tag" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.772 3.659c-.422-.422-.994-.659-1.591-.659H9.568z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z" /></svg>';
       }
     }
+    const todayBtn = calendarEl.querySelector(".fc-todayCal-button");
+    if (todayBtn) {
+      todayBtn.setAttribute("aria-label", "오늘 날짜로 이동");
+      todayBtn.setAttribute("title", "오늘");
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -1567,6 +1572,12 @@ document.addEventListener("DOMContentLoaded", () => {
    */
   function dateMarkerToJsDate(raw) {
     if (raw == null) return new Date();
+    // formatRange + 함수형 titleFormat 인 자: { start, end, date } 의 start 는 Date 가 아니라
+    // expandZonedMarker 결과( year/month/day + marker ) — marker 가 실제 날짜
+    if (typeof raw === "object" && raw !== null && "marker" in raw) {
+      const inner = /** @type {{ marker?: unknown }} */ (raw).marker;
+      if (inner != null) return dateMarkerToJsDate(inner);
+    }
     if (raw instanceof Date) {
       return Number.isNaN(raw.getTime()) ? new Date() : raw;
     }
@@ -1651,7 +1662,11 @@ document.addEventListener("DOMContentLoaded", () => {
       },
     },
     headerToolbar: {
-      left: "prev,next addEventButton categoryButton",
+      /**
+       * FC: 공백으로 덩어리 분리, 덩어리 안 쉼표는 한 fc-button-group 안에서 인접 배치.
+       * `prev,todayCal,next` = 이전·오늘·다음이 한 그룹(기존 prev,next 한 그룹 패턴 + 가운데 오늘).
+       */
+      left: "prev,todayCal,next addEventButton categoryButton",
       center: "title",
       right: "dayGridMonth,timeGridWeek,timeGridDay",
     },
@@ -1746,6 +1761,17 @@ document.addEventListener("DOMContentLoaded", () => {
       openEventModal();
     },
     customButtons: {
+      /**
+       * 오늘: FullCalendar 내장 today 툴바가 안 보일 때 대비한 커스텀 버튼.
+       * prev/next 날짜 이동은 headerToolbar 의 기본 prev·next 에만 위임(덮어쓰지 않음).
+       */
+      todayCal: {
+        text: "오늘",
+        hint: "오늘 날짜로 이동",
+        click: () => {
+          calendarInstance?.today();
+        },
+      },
       addEventButton: {
         /** 실제 표시는 decorateCalendarToolbarIcons 에서 SVG(+)로 교체 */
         text: " ",
