@@ -117,26 +117,50 @@
     }
 
     /*
-      오늘(todayCal) 버튼 — categoryButton 과 같은 톤. 텍스트 색을 명시해서 "오늘" 글자가 보이도록.
-      FullCalendar 기본 스타일은 흰 배경 + 옅은 텍스트라 우리 페이지에서 텍스트가 묻혀 빈 박스처럼 보이던 문제 해결.
+      오늘(todayCal) 버튼 — categoryButton 과 동일한 테두리·배경·호버.
+      라벨 텍스트는 FullCalendar 가 DOM 에 남기지만(기능·접근성 유지), 시각적으로는 숨기고 ::before 점만 표시.
+      점 색: DESIGN_RULES 포인트(indigo-600 / 다크 indigo-400).
     */
     #calendar .fc-todayCal-button {
+      position: relative;
       display: inline-flex !important;
       align-items: center;
       justify-content: center;
-      min-width: auto !important;
-      width: auto !important;
+      min-width: 2.5rem !important;
+      width: 2.5rem !important;
       min-height: 2.5rem;
-      padding: 0.5rem 0.875rem !important;
+      padding: 0.5rem !important;
       border-radius: 0.75rem;
       border: 1px solid rgb(229 231 235) !important;
       background-color: rgb(255 255 255) !important;
       color: rgb(55 65 81) !important;
-      font-size: 0.875rem;
-      font-weight: 500;
-      line-height: 1.25rem;
-      white-space: nowrap !important;
       box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      /* 텍스트만 있는 마크업일 때도 글자가 보이지 않게(점은 ::before 고정 크기) */
+      font-size: 0 !important;
+      line-height: 0 !important;
+    }
+
+    /* FC 가 넣는 "오늘" 텍스트 — 화면에서만 제거(스크린리더는 버튼 aria-label 사용, calendar-init.js) */
+    #calendar .fc-todayCal-button .fc-button-text {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    #calendar .fc-todayCal-button::before {
+      content: "";
+      display: block;
+      width: 0.4375rem;
+      height: 0.4375rem;
+      border-radius: 9999px;
+      background-color: rgb(79 70 229);
+      flex-shrink: 0;
     }
 
     #calendar .fc-todayCal-button:hover {
@@ -147,6 +171,10 @@
       border-color: rgb(55 65 81) !important;
       background-color: rgb(17 24 39) !important;
       color: rgb(229 231 235) !important;
+    }
+
+    .dark #calendar .fc-todayCal-button::before {
+      background-color: rgb(129 140 248);
     }
 
     .dark #calendar .fc-todayCal-button:hover {
