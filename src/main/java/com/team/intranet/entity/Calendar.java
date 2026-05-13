@@ -69,6 +69,23 @@ public class Calendar {
     @Column(name = "repeat_end_at")
     private LocalDateTime repeatEndAt; // 반복 종료 일시 (이 시점까지만 반복 생성)
 
+    /**
+     * 매주 반복 시 어느 요일에 반복할지 비트마스크.
+     * MON=1, TUE=2, WED=4, THU=8, FRI=16, SAT=32, SUN=64 (합산).
+     * 예: 월·수·금 = 1 + 4 + 16 = 21.
+     * null/0 이면 시작일의 요일만 사용(단일 요일 반복).
+     */
+    @Column(name = "repeat_weekdays")
+    private Integer repeatWeekdays;
+
+    /**
+     * 매월 반복 시 어느 일자에 반복할지 비트마스크 (1일 = 1<<0, 31일 = 1<<30).
+     * 예: 8일·21일 = (1<<7) | (1<<20) = 128 + 1048576 = 1048704.
+     * null/0 이면 시작일의 일자만 사용(단일 일자 반복).
+     */
+    @Column(name = "repeat_month_days")
+    private Integer repeatMonthDays;
+
     @Column(name = "is_alert")
     private boolean isAlert; // 알림 사용 여부 (프로젝트 내 알림창 연동용 플래그)
 

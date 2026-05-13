@@ -83,7 +83,8 @@ public enum ErrorCode {
     CALENDAR_NOT_FOUND(404, "해당 일정을 찾을 수 없습니다"),
 
     // 알림
-    ALERT_NOT_FOUND(404, "해당 알림을 찾을 수 없습니다");
+    ALERT_NOT_FOUND(404, "해당 알림을 찾을 수 없습니다"),
+    ALERT_TOGGLE_NOT_ALLOWED(400, "이 게시판은 알림 설정을 변경할 수 없습니다");
     
     // 2. 변수 정의
     private final int status;

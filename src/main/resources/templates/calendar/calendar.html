@@ -156,7 +156,8 @@
       </main>
       <!-- ===== Main Content End ===== -->
 
-      <!-- BEGIN MODAL : 일정 / 카테고리 — fixed 라 main 의 space-y 에 포함하지 않음 -->
+      <!-- BEGIN MODAL : 일정 조회 / 일정 편집 / 카테고리 — fixed 라 main 의 space-y 에 포함하지 않음 -->
+      <div th:replace="~{calendar/calendar-view-modal}"></div>
       <div th:replace="~{calendar/calendar-event-modal}"></div>
       <div th:replace="~{calendar/calendar-category-modal}"></div>
       <!-- END MODAL -->

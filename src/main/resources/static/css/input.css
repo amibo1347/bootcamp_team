@@ -262,6 +262,24 @@ layer(base);
   .cal-combobox-option[aria-selected="true"] {
     @apply bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-200;
   }
+
+  /* 매주 반복 요일 칩 — managingBoard 톤과 통일 */
+  .cal-weekday-btn {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 transition hover:bg-gray-50
+      dark:border-gray-600 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:bg-white/5;
+  }
+  .cal-weekday-btn[aria-pressed="true"] {
+    @apply border-brand-500 bg-brand-500 text-white hover:bg-brand-600;
+  }
+
+  /* 매월 반복 일자 셀 (1~31 미니 그리드) */
+  .cal-monthday-btn {
+    @apply inline-flex h-8 items-center justify-center rounded-md border border-gray-200 bg-white text-xs font-medium text-gray-700 transition hover:bg-gray-50
+      dark:border-gray-600 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:bg-white/5;
+  }
+  .cal-monthday-btn[aria-pressed="true"] {
+    @apply border-brand-500 bg-brand-500 text-white hover:bg-brand-600;
+  }
 }
 
 @utility menu-item {
