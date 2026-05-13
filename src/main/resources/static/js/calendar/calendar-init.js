@@ -991,8 +991,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const type = document.getElementById("calendar-repeat-type")?.value ?? "DAILY";
     const wkWrap = document.getElementById("calendar-repeat-weekdays-wrap");
     const mdWrap = document.getElementById("calendar-repeat-monthdays-wrap");
+    const yrWrap = document.getElementById("calendar-repeat-yearly-wrap");
     if (wkWrap) wkWrap.classList.toggle("hidden", !(on && type === "WEEKLY"));
     if (mdWrap) mdWrap.classList.toggle("hidden", !(on && type === "MONTHLY"));
+    if (yrWrap) yrWrap.classList.toggle("hidden", !(on && type === "YEARLY"));
+    if (on && type === "YEARLY") refreshCalendarRepeatYearlyLabel();
+  }
+
+  /** 매년 반복 안내 라벨 — 시작일 input 값을 보고 "M월 D일" 형태로 갱신 */
+  function refreshCalendarRepeatYearlyLabel() {
+    const label = document.getElementById("calendar-repeat-yearly-label");
+    if (!label) return;
+    const startVal = /** @type {HTMLInputElement|null} */ (document.getElementById("calendar-start-at"))?.value;
+    if (!startVal) {
+      label.textContent = "시작일을 선택해 주세요";
+      return;
+    }
+    const d = new Date(startVal);
+    if (Number.isNaN(d.getTime())) {
+      label.textContent = "시작일을 선택해 주세요";
+      return;
+    }
+    label.textContent = `${d.getMonth() + 1}월 ${d.getDate()}일`;
   }
 
   /**
@@ -2343,8 +2363,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("calendar-is-repeat")?.addEventListener("change", syncRepeatSection);
-  // 반복 유형(콤보 안의 hidden select)이 바뀌면 요일/일자 패널 노출 즉시 갱신
+  // 반복 유형(콤보 안의 hidden select)이 바뀌면 요일/일자/매년 패널 노출 즉시 갱신
   document.getElementById("calendar-repeat-type")?.addEventListener("change", syncRepeatSection);
+  // 시작일이 바뀌면 매년 반복 안내 라벨(M월 D일) 도 즉시 갱신
+  document.getElementById("calendar-start-at")?.addEventListener("change", refreshCalendarRepeatYearlyLabel);
+  document.getElementById("calendar-start-at")?.addEventListener("input", refreshCalendarRepeatYearlyLabel);
   ensureCalendarRepeatMonthDaysGrid();
   bindCalendarRepeatChipHandlers();
   document.getElementById("calendar-is-alert")?.addEventListener("change", syncAlertSection);
