@@ -1480,9 +1480,17 @@ document.addEventListener("DOMContentLoaded", () => {
       case "PRIVATE":
         summaryEl.textContent = "나만 보기";
         return;
-      case "COMPANY":
-        summaryEl.textContent = "모두 (전사 공유)";
+      case "COMPANY": {
+        // 특정 부서 케이스와 동일한 타원 칩 스타일로 "모든 인원" 한 개를 표시
+        summaryEl.textContent = "전사 공유";
+        const chip = document.createElement("span");
+        chip.className = "inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-200";
+        chip.textContent = "모든 인원";
+        detailEl.appendChild(chip);
+        detailEl.classList.remove("hidden");
+        detailEl.classList.add("flex");
         return;
+      }
       case "DEPARTMENT": {
         const ids = Array.isArray(dto?.shareDeptIds) ? dto.shareDeptIds.map(String) : [];
         if (ids.length === 0) {

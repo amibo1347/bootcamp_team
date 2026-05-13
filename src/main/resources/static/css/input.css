@@ -280,6 +280,19 @@ layer(base);
   .cal-monthday-btn[aria-pressed="true"] {
     @apply border-brand-500 bg-brand-500 text-white hover:bg-brand-600;
   }
+
+  /*
+   * [게시판 알림 토글]
+   *  - OFF: HTML 인라인 클래스(휴지통과 동일한 hover 톤) 그대로 사용.
+   *  - ON (aria-pressed="true"): 글쓰기 버튼과 동일한 indigo-400 풀채움 + 흰 아이콘 + hover 시 indigo-500.
+   *    인라인 hover utility 가 specificity 로 침범할 수 있으므로 `!` 로 강제 우선 적용.
+   */
+  .board-alert-toggle[aria-pressed="true"] {
+    @apply border-indigo-400! bg-indigo-400! text-white! shadow-sm
+      hover:border-indigo-500! hover:bg-indigo-500! hover:text-white!
+      dark:border-indigo-400! dark:bg-indigo-400! dark:text-white!
+      dark:hover:border-indigo-500! dark:hover:bg-indigo-500! dark:hover:text-white!;
+  }
 }
 
 @utility menu-item {
