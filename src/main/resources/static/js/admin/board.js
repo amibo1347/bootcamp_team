@@ -183,30 +183,31 @@
   }
 
   /**
-   * "전체 선택" 체크박스 ↔ 같은 그룹의 개별 체크박스 연동
-   * - 전체 선택 체크: 개별 체크박스 모두 disable + uncheck → 제출 시 빈 배열 → 백엔드 ALL
-   * - 전체 선택 해제: 개별 체크박스 enable (사용자가 직접 선택)
-   * - 사용자가 개별 체크박스를 직접 켜면 전체 선택은 자동 해제
+   * "전체 선택" 체크박스 ↔ 같은 그룹의 개별 체크박스 연동 (캘린더 공유 부서 선택과 동일 동작)
+   * - 전체 선택 체크: 개별 체크박스 모두 uncheck (disable 하지 않음 — 바로 다른 부서 클릭 가능)
+   *   제출 시 개별이 빈 배열 → 백엔드 ALL 해석은 그대로 유지
+   * - 사용자가 개별 체크박스를 켜면 → 전체 선택 자동 해제 + 해당 부서만 단독 선택 가능
+   * - 모든 개별 체크박스가 비면 → 전체 선택 자동 복귀(체크)
    */
   function initSelectAllControls() {
     document.querySelectorAll('input[data-select-all]').forEach((selectAll) => {
       const group = selectAll.dataset.selectAll;
       const individuals = document.querySelectorAll(`input[data-multi-group="${group}"]`);
 
-      const applyState = () => {
-        individuals.forEach((cb) => {
-          cb.disabled = selectAll.checked;
-          if (selectAll.checked) cb.checked = false;
-        });
-      };
-
-      applyState(); // 초기 상태 적용
-
-      selectAll.addEventListener('change', applyState);
+      selectAll.addEventListener('change', () => {
+        if (selectAll.checked) {
+          individuals.forEach((cb) => { cb.checked = false; });
+        }
+      });
 
       individuals.forEach((cb) => {
         cb.addEventListener('change', () => {
-          if (cb.checked) selectAll.checked = false;
+          if (cb.checked) {
+            selectAll.checked = false;
+          } else {
+            const anyChecked = Array.from(individuals).some((x) => x.checked);
+            if (!anyChecked) selectAll.checked = true;
+          }
         });
       });
     });

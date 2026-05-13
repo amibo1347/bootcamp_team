@@ -666,14 +666,66 @@ span.flatpickr-weekday,
 }
 /* 주·일 뷰: 왼쪽 축 열 너비만 간단히 지정 (이전 단순 규칙으로 복구) */
 .fc-timeGridWeek-view .fc-timegrid-axis,
-.fc-timeGridDay-view .fc-timegrid-axis {
+.fc-timeGridDay-view .fc-timegrid-axis,
+.fc-timeGridWeek-view .fc-timegrid-slot-label,
+.fc-timeGridDay-view .fc-timegrid-slot-label {
   min-width: 6rem !important;
   width: 6rem !important;
 }
+
+/*
+ * FullCalendar 가 <col style="width:43px"> 를 인라인으로 부여 → td width 6rem 가 무시됨.
+ * colgroup>col 자체에 width 를 강제해야 셀이 6rem 으로 그려지고 글자가 셀 안에 들어온다.
+ */
+.fc-timeGridWeek-view .fc-timegrid-slots colgroup col:first-child,
+.fc-timeGridDay-view .fc-timegrid-slots colgroup col:first-child,
+.fc-timeGridWeek-view .fc-scrollgrid-section-header colgroup col:first-child,
+.fc-timeGridDay-view .fc-scrollgrid-section-header colgroup col:first-child,
+.fc-timeGridWeek-view .fc-scrollgrid-section-body colgroup col:first-child,
+.fc-timeGridDay-view .fc-scrollgrid-section-body colgroup col:first-child {
+  width: 6rem !important;
+  min-width: 6rem !important;
+}
+
+/*
+ * [세로선 정리] fc-scrollgrid-shrink-frame 이 콘텐츠 폭으로 줄어들면서 frame 자체의
+ * 우측 보더가 글자 가운데에 그려진다 → frame/cushion 보더 제거 + width:100% 로 셀을 채워
+ * 글자가 셀 전체에서 가운데 정렬되도록 한다. 셀(td) 우측에만 1px 세로선을 남긴다.
+ */
+.fc-timeGridWeek-view .fc-timegrid-slot-label-frame,
+.fc-timeGridDay-view .fc-timegrid-slot-label-frame,
+.fc-timeGridWeek-view .fc-timegrid-slot-label-cushion,
+.fc-timeGridDay-view .fc-timegrid-slot-label-cushion {
+  width: 100% !important;
+  border: 0 !important;
+  box-sizing: border-box;
+}
+.fc-timeGridWeek-view .fc-timegrid-slot-label,
+.fc-timeGridDay-view .fc-timegrid-slot-label {
+  border-right: 1px solid #e5e7eb !important;
+  border-left: 0 !important;
+  box-sizing: border-box;
+}
+.dark .fc-timeGridWeek-view .fc-timegrid-slot-label,
+.dark .fc-timeGridDay-view .fc-timegrid-slot-label {
+  border-right-color: #374151 !important;
+}
+
 /* 같은 시간축 열의 '종일' 등 축 라벨도 셀 안에서 가운데 */
 .fc-timeGridWeek-view .fc-timegrid-axis .fc-timegrid-axis-cushion,
 .fc-timeGridDay-view .fc-timegrid-axis .fc-timegrid-axis-cushion {
   @apply flex items-center justify-center px-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400;
+}
+/*
+ * '종일' 라벨도 fc-scrollgrid-shrink-cushion 클래스 때문에 콘텐츠 폭으로 줄어들어 가운데 정렬이 무효 → 시간 라벨과 동일하게 width:100% 강제
+ */
+.fc-timeGridWeek-view .fc-timegrid-axis-frame,
+.fc-timeGridDay-view .fc-timegrid-axis-frame,
+.fc-timeGridWeek-view .fc-timegrid-axis-cushion,
+.fc-timeGridDay-view .fc-timegrid-axis-cushion {
+  width: 100% !important;
+  border: 0 !important;
+  box-sizing: border-box;
 }
 /* 주 뷰: 날짜 헤더(예: 5.10(일)) 셀 안 중앙 정렬 */
 .fc-timeGridWeek-view .fc-col-header-cell .fc-col-header-cell-cushion {

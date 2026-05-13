@@ -68,9 +68,14 @@ public class SubAdminController {
             HttpServletRequest request) {
 
         Long companyId = ms.getCompanyId();
+        
 
+
+        // 첫 진입(파라미터 없음) 시 기본값으로 JOIN(활성) 탭만 보여주도록 한다.
         List<Member> filteredMembers = memberService.findFilteredMembers(
-        companyId, keyword, deptId, statuses, positionId, sort
+        companyId, keyword, deptId,
+        (statuses == null || statuses.isEmpty()) ? List.of(Status.JOIN) : statuses,
+        positionId, sort
     );
 
         List<Dept> depts = deptService.findAll(companyId);

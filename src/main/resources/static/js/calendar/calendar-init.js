@@ -21,6 +21,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const API_DEPTS = "/api/depts";
   const API_MEMBERS = "/api/members";
 
+  /** 본인 회원 ID — calendar.html 의 <meta name="cal-current-member-id"> 에서 읽음 (비로그인이면 null) */
+  const CURRENT_MEMBER_ID = (() => {
+    const v = document.querySelector('meta[name="cal-current-member-id"]')?.getAttribute("content");
+    return v && v !== "null" ? String(v) : null;
+  })();
+
   /** @type {Calendar | null} */
   let calendarInstance = null;
 
@@ -169,6 +175,98 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
+   * 일정의 "공유자 목록" — owner + shareMemberIds 합집합에서 본인은 제외.
+   * (A↔B↔C 공유 시 각 사용자 화면에서 자기는 빠지고 나머지만 보이도록)
+   * @param {{ownerId?: string|null, shareMemberIds?: Array<string|number>}} xp
+   * @returns {string[]} 회원 ID 배열 (문자열)
+   */
+  function computeEventViewerIds(xp) {
+    const ids = new Set();
+    if (xp?.ownerId) ids.add(String(xp.ownerId));
+    if (Array.isArray(xp?.shareMemberIds)) {
+      xp.shareMemberIds.forEach((id) => {
+        if (id != null && String(id).trim() !== "") ids.add(String(id));
+      });
+    }
+    if (CURRENT_MEMBER_ID) ids.delete(CURRENT_MEMBER_ID);
+    return Array.from(ids);
+  }
+
+  /** 타원 배지 element 생성 헬퍼 — "모두" / 부서명 */
+  function makeOvalBadge(text) {
+    const el = document.createElement("span");
+    el.className =
+      "inline-flex shrink-0 items-center rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-semibold text-gray-700 ring-1 ring-gray-300 dark:bg-gray-900/70 dark:text-gray-100 dark:ring-gray-600";
+    el.textContent = text;
+    return el;
+  }
+
+  /**
+   * FullCalendar eventContent — 셀 안에 [전사/부서 배지] + [동그라미 최대 3] + [+N] + [제목] 가로 배치.
+   *  - visibility = COMPANY → "모두" 배지
+   *  - shareDeptIds 있음 → 부서명 배지 (여러 개면 첫 1 + "외 N")
+   *  - viewerIds (owner + shareMember − 본인) → 동그라미 최대 3개 + +N
+   *  - 위 모두 없음(개인/나만 보기)이면 기본 텍스트만
+   * @param {{event: any}} arg
+   */
+  function renderCalendarEventCellContent(arg) {
+    const ev = arg.event;
+    const xp = ev?.extendedProps ?? {};
+    const visibility = String(xp?.visibility ?? "PRIVATE");
+    const shareDeptIds = Array.isArray(xp?.shareDeptIds) ? xp.shareDeptIds.map(String) : [];
+    const viewerIds = computeEventViewerIds(xp);
+    const title = String(ev?.title ?? "");
+
+    const wrap = document.createElement("div");
+    wrap.className = "flex w-full min-w-0 items-center gap-1.5";
+
+    // 1) 전사 공유 → "모두" 배지
+    if (visibility === "COMPANY") {
+      wrap.appendChild(makeOvalBadge("모두"));
+    }
+
+    // 2) 부서 공유 → 부서명 배지(첫 1개) + 추가시 "외 N"
+    if (visibility === "DEPARTMENT" && shareDeptIds.length > 0) {
+      const firstName = deptDirectoryCache.get(shareDeptIds[0]) ?? "부서";
+      wrap.appendChild(makeOvalBadge(firstName));
+      if (shareDeptIds.length > 1) {
+        wrap.appendChild(makeOvalBadge(`외 ${shareDeptIds.length - 1}`));
+      }
+    }
+
+    // 3) 특정 인원 / owner 공유 → 동그라미 최대 3 + +N
+    if (viewerIds.length > 0) {
+      const stack = document.createElement("div");
+      stack.className = "flex shrink-0 items-center";
+      const VISIBLE = 3;
+      const shown = viewerIds.slice(0, VISIBLE);
+      const extra = Math.max(0, viewerIds.length - VISIBLE);
+      shown.forEach((id, idx) => {
+        const img = document.createElement("img");
+        img.src = memberProfileUrl(id);
+        img.alt = "";
+        img.className = `h-5 w-5 ${idx === 0 ? "" : "-ml-1.5"} shrink-0 rounded-full border border-white bg-gray-200 object-cover dark:border-gray-800`;
+        img.onerror = function () { this.onerror = null; this.src = "/images/user/default_user.jpg"; };
+        stack.appendChild(img);
+      });
+      if (extra > 0) {
+        const badge = document.createElement("span");
+        badge.className = "-ml-1.5 inline-flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full border border-white bg-gray-500/90 px-1 text-[10px] font-semibold text-white dark:border-gray-800";
+        badge.textContent = `+${extra}`;
+        stack.appendChild(badge);
+      }
+      wrap.appendChild(stack);
+    }
+
+    const text = document.createElement("span");
+    text.className = "fc-event-title min-w-0 truncate";
+    text.textContent = title;
+    wrap.appendChild(text);
+
+    return { domNodes: [wrap] };
+  }
+
+  /**
    * 서버 DTO 한 건을 FullCalendar 이벤트 객체로 매핑
    * @param {Record<string, unknown>} raw
    */
@@ -184,6 +282,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const calendarId = raw.calendarId ?? raw.id;
     const shareMemberIds = Array.isArray(raw.shareMemberIds) ? raw.shareMemberIds : [];
     const shareDeptIds = Array.isArray(raw.shareDeptIds) ? raw.shareDeptIds : [];
+    const ownerId = raw.memberId != null ? String(raw.memberId) : null;
+    const ownerName = typeof raw.memberName === "string" ? raw.memberName : "";
 
     return {
       id: String(calendarId ?? ""),
@@ -210,6 +310,8 @@ document.addEventListener("DOMContentLoaded", () => {
         alertMinutesBefore: raw.alertMinutesBefore ?? 15,
         shareMemberIds,
         shareDeptIds,
+        ownerId,
+        ownerName,
       },
     };
   }
@@ -274,21 +376,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const vis =
       eventForm?.querySelector('input[name="visibility"]:checked')?.value ?? "PRIVATE";
-    const deptSelect = document.getElementById("calendar-share-depts");
-    const memberSelect = document.getElementById("calendar-share-members");
     if (vis === "DEPARTMENT") {
-      const n = deptSelect?.selectedOptions?.length ?? 0;
-      if (n === 0) {
+      const allDeptSelected = !!document.querySelector(
+        '#calendarDeptPanel input[data-select-all="calendarDeptId"]:checked',
+      );
+      // "전체 선택" 체크 시에는 개별 0개여도 백엔드가 ALL 로 해석하므로 통과
+      const n = getSelectedCalendarDeptIds().length;
+      if (n === 0 && !allDeptSelected) {
         showEventFormError('공개 범위가 "특정 부서"일 때 공유 부서를 한 개 이상 선택해 주세요.');
-        deptSelect?.focus();
         return false;
       }
     }
     if (vis === "SPECIFIC") {
-      const n = memberSelect?.selectedOptions?.length ?? 0;
+      const n = getSelectedCalendarMemberIds().length;
       if (n === 0) {
         showEventFormError('공개 범위가 "특정 인원"일 때 공유 멤버를 한 명 이상 선택해 주세요.');
-        memberSelect?.focus();
+        document.getElementById("calendar-member-search")?.focus();
         return false;
       }
     }
@@ -374,25 +477,19 @@ document.addEventListener("DOMContentLoaded", () => {
     if (catVal) p.set("categoryId", catVal);
     else p.delete("categoryId");
 
-    const deptSelect = document.getElementById("calendar-share-depts");
-    const memberSelect = document.getElementById("calendar-share-members");
-    if (deptSelect && visibility === "DEPARTMENT") {
-      p.delete("shareDeptIds");
-      Array.from(deptSelect.selectedOptions).forEach((o) => {
-        const id = Number(o.value);
-        if (!Number.isNaN(id)) p.append("shareDeptIds", String(id));
+    p.delete("shareDeptIds");
+    if (visibility === "DEPARTMENT") {
+      getSelectedCalendarDeptIds().forEach((idStr) => {
+        const id = Number(idStr);
+        if (Number.isFinite(id)) p.append("shareDeptIds", String(id));
       });
-    } else {
-      p.delete("shareDeptIds");
     }
-    if (memberSelect && visibility === "SPECIFIC") {
-      p.delete("shareMemberIds");
-      Array.from(memberSelect.selectedOptions).forEach((o) => {
-        const id = Number(o.value);
-        if (!Number.isNaN(id)) p.append("shareMemberIds", String(id));
+    p.delete("shareMemberIds");
+    if (visibility === "SPECIFIC") {
+      getSelectedCalendarMemberIds().forEach((idStr) => {
+        const id = Number(idStr);
+        if (Number.isFinite(id)) p.append("shareMemberIds", String(id));
       });
-    } else {
-      p.delete("shareMemberIds");
     }
 
     return p;
@@ -477,20 +574,80 @@ document.addEventListener("DOMContentLoaded", () => {
     const shareDeptIds = Array.isArray(raw.shareDeptIds) ? raw.shareDeptIds : [];
     const shareMemberIds = Array.isArray(raw.shareMemberIds) ? raw.shareMemberIds : [];
 
-    const deptSelect = document.getElementById("calendar-share-depts");
-    if (deptSelect) {
-      Array.from(deptSelect.options).forEach((opt) => {
-        opt.selected = shareDeptIds.map(Number).includes(Number(opt.value));
-      });
-    }
-    const memberSelect = document.getElementById("calendar-share-members");
-    if (memberSelect) {
-      Array.from(memberSelect.options).forEach((opt) => {
-        opt.selected = shareMemberIds.map(Number).includes(Number(opt.value));
-      });
-    }
+    applySharedDeptSelectionToPanel(shareDeptIds);
+    applySharedMemberSelectionToPanel(shareMemberIds);
 
     syncAllCalendarComboboxesFromSelects();
+  }
+
+  /**
+   * 부서 패널의 체크 상태를 주어진 ID 배열로 동기화
+   * @param {Array<number|string>} ids
+   */
+  function applySharedDeptSelectionToPanel(ids) {
+    const set = new Set(ids.map(String));
+    const selectAll = document.querySelector('input[data-select-all="calendarDeptId"]');
+    document
+      .querySelectorAll('#calendarDeptPanel input[data-multi-group="calendarDeptId"]')
+      .forEach((cb) => {
+        if (cb instanceof HTMLInputElement) cb.checked = set.has(cb.value);
+      });
+    if (selectAll instanceof HTMLInputElement) {
+      selectAll.checked = set.size === 0;
+    }
+    refreshCalendarDeptSummary();
+  }
+
+  /**
+   * 선택된 멤버 ID 집합을 주어진 ID 배열로 교체 — 편집 모드/리셋 시 호출.
+   * 미리보기·상세 리스트·현재 검색 결과 row 체크 상태도 함께 동기화.
+   * 메타 정보가 캐시에 없는 ID 가 있으면 백그라운드로 한번 조회해 채운다.
+   * @param {Array<number|string>} ids
+   */
+  function applySharedMemberSelectionToPanel(ids) {
+    selectedMemberIds.clear();
+    ids.forEach((raw) => {
+      const id = String(raw ?? "").trim();
+      if (id) selectedMemberIds.add(id);
+    });
+    // 현재 그려져 있는 검색 결과 row 들의 버튼/배경도 동기화
+    document
+      .querySelectorAll('#calendar-member-results [data-result-row-id]')
+      .forEach((el) => {
+        if (el instanceof HTMLElement && el.dataset.resultRowId) {
+          updateMemberResultRow(el.dataset.resultRowId);
+        }
+      });
+    refreshSelectedMembersUI();
+
+    // 캐시에 없는 멤버가 있으면 회사 전체 검색 한 번 (q="") 후 캐시 채워서 다시 렌더
+    const missing = Array.from(selectedMemberIds).filter((id) => !memberDirectoryCache.has(id));
+    if (missing.length > 0) {
+      fetchAndCacheMemberMeta().then(() => refreshSelectedMembersUI());
+    }
+  }
+
+  /** 회사 전체 회원 메타 한 번 로딩 — 편집 모드 진입 시 선택된 멤버 메타 부족 보완 */
+  async function fetchAndCacheMemberMeta() {
+    try {
+      const res = await fetchSessionApi(API_MEMBERS, {
+        headers: { Accept: "application/json", ...getCsrfHeaders() },
+      });
+      if (!res.ok) return;
+      const list = await res.json();
+      const arr = Array.isArray(list) ? list : [];
+      arr.forEach((row) => {
+        const id = row?.memberId ?? row?.id;
+        if (id == null) return;
+        memberDirectoryCache.set(String(id), {
+          name: String(row?.name ?? "멤버"),
+          deptName: row?.deptName ?? null,
+          positionName: row?.positionName ?? null,
+        });
+      });
+    } catch {
+      /* 무시 */
+    }
   }
 
   /** @param {boolean} [clearCalendarId=true] */
@@ -528,10 +685,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (r instanceof HTMLInputElement) r.checked = r.value === "PRIVATE";
     });
 
-    const deptSelect = document.getElementById("calendar-share-depts");
-    const memberSelect = document.getElementById("calendar-share-members");
-    if (deptSelect) Array.from(deptSelect.options).forEach((o) => (o.selected = false));
-    if (memberSelect) Array.from(memberSelect.options).forEach((o) => (o.selected = false));
+    applySharedDeptSelectionToPanel([]);
+    applySharedMemberSelectionToPanel([]);
+    const searchInput = document.getElementById("calendar-member-search");
+    if (searchInput instanceof HTMLInputElement) searchInput.value = "";
+    const resultsBox = document.getElementById("calendar-member-results");
+    if (resultsBox) resultsBox.innerHTML = "";
+    showMemberResults(false);
 
     syncRepeatSection();
     syncAlertSection();
@@ -601,17 +761,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (r instanceof HTMLInputElement) r.checked = r.value === vis;
     });
 
-    const deptSelect = document.getElementById("calendar-share-depts");
-    if (deptSelect && Array.isArray(xp.shareDeptIds)) {
-      Array.from(deptSelect.options).forEach((opt) => {
-        opt.selected = xp.shareDeptIds.map(Number).includes(Number(opt.value));
-      });
+    if (Array.isArray(xp.shareDeptIds)) {
+      applySharedDeptSelectionToPanel(xp.shareDeptIds);
     }
-    const memberSelect = document.getElementById("calendar-share-members");
-    if (memberSelect && Array.isArray(xp.shareMemberIds)) {
-      Array.from(memberSelect.options).forEach((opt) => {
-        opt.selected = xp.shareMemberIds.map(Number).includes(Number(opt.value));
-      });
+    if (Array.isArray(xp.shareMemberIds)) {
+      applySharedMemberSelectionToPanel(xp.shareMemberIds);
     }
 
     syncAllCalendarComboboxesFromSelects();
@@ -1004,54 +1158,331 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ---------------------------------------------------------------------------
-  // [공유 대상] 부서·멤버 멀티 셀렉트 채우기 (API 스키마 유연 처리)
+  // [공유 대상] 부서 — managingBoard 권한 패널 패턴(체크박스 + data-multi-group + data-select-all)
+  // 멤버   — memberList 검색 폼 패턴(이름 LIKE 쿼리 + 결과 리스트)
   // ---------------------------------------------------------------------------
 
+  /** @type {Map<string, {name:string, deptName?:string|null, positionName?:string|null}>} */
+  const memberDirectoryCache = new Map();
+
+  /** 부서 ID → 부서명 매핑 (일정 셀 부서명 배지에서 사용) */
+  const deptDirectoryCache = new Map();
+
+  /** 선택된 멤버 ID (단일 진실 데이터 소스) — 검색 결과·미리보기·상세 리스트·폼 제출 모두 이 Set 을 본다 */
+  const selectedMemberIds = new Set();
+
+  /** 멤버 프로필 이미지 URL (MemberApiController 의 /api/member/{id}/profileImg) */
+  function memberProfileUrl(id) {
+    return `/api/member/${encodeURIComponent(String(id))}/profileImg`;
+  }
+
+  /** GET /api/depts → 체크박스 옵션 렌더 (전체 선택 라벨은 HTML 에 고정, 옵션만 갈아끼움) */
+  async function loadDeptOptions() {
+    const optionsBox = document.getElementById("calendar-dept-options");
+    if (!optionsBox) return;
+    try {
+      const res = await fetchSessionApi(API_DEPTS, {
+        headers: { Accept: "application/json", ...getCsrfHeaders() },
+      });
+      if (!res.ok) {
+        optionsBox.innerHTML = '<p class="px-2 py-2 text-xs text-gray-400">부서 목록을 불러오지 못했습니다.</p>';
+        return;
+      }
+      const list = await res.json();
+      const arr = Array.isArray(list) ? list : [];
+      // 부서명 캐시도 같이 채움 — 일정 셀 부서명 배지에서 사용
+      arr.forEach((row) => {
+        const id = row?.deptId ?? row?.id;
+        const name = row?.deptName ?? row?.name;
+        if (id != null && name) deptDirectoryCache.set(String(id), String(name));
+      });
+      if (arr.length === 0) {
+        optionsBox.innerHTML = '<p class="px-2 py-2 text-xs text-gray-400">등록된 부서가 없습니다.</p>';
+        return;
+      }
+      optionsBox.innerHTML = arr
+        .map((row) => {
+          const id = row?.deptId ?? row?.id;
+          const name = row?.deptName ?? row?.name ?? "부서";
+          if (id == null) return "";
+          return `
+            <label class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+              <input type="checkbox" data-multi-group="calendarDeptId" value="${escapeHtml(String(id))}" class="h-4 w-4 rounded border-gray-300" />
+              <span>${escapeHtml(String(name))}</span>
+            </label>`;
+        })
+        .join("");
+      bindCalendarMultiGroupHandlers("calendarDeptId");
+      refreshCalendarDeptSummary();
+      // 부서 캐시가 막 채워졌으니 이미 그려진 일정 셀이 부서명을 못 가져왔을 수 있음 → 다시 렌더
+      calendarInstance?.render();
+    } catch {
+      optionsBox.innerHTML = '<p class="px-2 py-2 text-xs text-gray-400">부서 목록을 불러오지 못했습니다.</p>';
+    }
+  }
+
   /**
-   * @param {HTMLSelectElement} selectEl
-   * @param {unknown[]} items
-   * @param {(row: Record<string, unknown>) => { id: string; label: string }} pick
+   * 검색 결과 한 row 마크업 — row 우측 "공유" / "해제" 타원 버튼이 단일 선택 UI.
+   * 선택된 상태면 옅은 브랜드 배경 + "해제" 회색 버튼, 아니면 흰 배경 + "공유" 브랜드 버튼.
+   * @param {any} row
    */
-  function populateMultiSelect(selectEl, items, pick) {
-    selectEl.innerHTML = "";
-    items.forEach((raw) => {
-      const row = raw && typeof raw === "object" ? /** @type {Record<string, unknown>} */ (raw) : {};
-      const { id, label } = pick(row);
-      if (!id) return;
-      const opt = document.createElement("option");
-      opt.value = id;
-      opt.textContent = label;
-      selectEl.appendChild(opt);
+  function renderMemberResultRow(row) {
+    const id = String(row?.memberId ?? row?.id ?? "");
+    if (!id) return "";
+    const name = String(row?.name ?? "");
+    const dept = row?.deptName ? String(row.deptName) : "";
+    const pos = row?.positionName ? String(row.positionName) : "";
+    const sub = [dept, pos].filter(Boolean).join(" · ");
+    const isShared = selectedMemberIds.has(id);
+    const rowBg = isShared ? "bg-brand-50 dark:bg-brand-500/15" : "";
+    const btnCls = isShared
+      ? "border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+      : "border-brand-500 bg-brand-500 text-white hover:bg-brand-600";
+    const btnText = isShared ? "해제" : "공유";
+    return `
+      <div data-result-row-id="${escapeHtml(id)}"
+           class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition ${rowBg}">
+        <img src="${memberProfileUrl(id)}" alt="" class="h-7 w-7 shrink-0 rounded-full bg-gray-200 object-cover" onerror="this.onerror=null;this.src='/images/user/default_user.jpg'" />
+        <div class="min-w-0 flex-1">
+          <span class="font-medium text-gray-900 dark:text-gray-100">${escapeHtml(name)}</span>
+          ${sub ? `<span class="ml-1 text-xs text-gray-400">${escapeHtml(sub)}</span>` : ""}
+        </div>
+        <button type="button" data-share-toggle="${escapeHtml(id)}"
+                class="shrink-0 rounded-full border ${btnCls} px-3 py-1 text-xs font-medium transition">
+          ${btnText}
+        </button>
+      </div>`;
+  }
+
+  /** 단일 row 의 시각만 갱신 — 토글 후 전체 재렌더 없이 해당 row 만 갱신해 깜빡임 방지 */
+  function updateMemberResultRow(id) {
+    const rowEl = document.querySelector(`[data-result-row-id="${CSS.escape(id)}"]`);
+    if (!(rowEl instanceof HTMLElement)) return;
+    const btn = rowEl.querySelector("[data-share-toggle]");
+    const isShared = selectedMemberIds.has(id);
+    rowEl.classList.toggle("bg-brand-50", isShared);
+    rowEl.classList.toggle("dark:bg-brand-500/15", isShared);
+    if (btn instanceof HTMLElement) {
+      btn.textContent = isShared ? "해제" : "공유";
+      btn.className =
+        "shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition " +
+        (isShared
+          ? "border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+          : "border-brand-500 bg-brand-500 text-white hover:bg-brand-600");
+    }
+  }
+
+  /** 결과 박스와 닫기 버튼을 함께 표시/숨김 (검색 결과 가시성 단일 진입점) */
+  function showMemberResults(show) {
+    const box = document.getElementById("calendar-member-results");
+    const closeBtn = document.getElementById("calendar-member-search-close-btn");
+    if (box) box.classList.toggle("hidden", !show);
+    if (closeBtn) closeBtn.classList.toggle("hidden", !show);
+  }
+
+  /** GET /api/members?q=... → 결과 리스트 렌더 (memberList 검색 결과 동일 톤) */
+  async function searchCalendarMembers() {
+    const box = document.getElementById("calendar-member-results");
+    if (!box) return;
+    showMemberResults(true);
+    const q = document.getElementById("calendar-member-search")?.value?.trim() ?? "";
+    try {
+      const url = q ? `${API_MEMBERS}?q=${encodeURIComponent(q)}` : API_MEMBERS;
+      const res = await fetchSessionApi(url, {
+        headers: { Accept: "application/json", ...getCsrfHeaders() },
+      });
+      if (!res.ok) {
+        box.innerHTML = '<p class="px-2 py-2 text-xs text-gray-400">검색에 실패했습니다.</p>';
+        return;
+      }
+      const list = await res.json();
+      const arr = Array.isArray(list) ? list : [];
+      arr.forEach((row) => {
+        const id = row?.memberId ?? row?.id;
+        if (id == null) return;
+        memberDirectoryCache.set(String(id), {
+          name: String(row?.name ?? "멤버"),
+          deptName: row?.deptName ?? null,
+          positionName: row?.positionName ?? null,
+        });
+      });
+      if (arr.length === 0) {
+        box.innerHTML = '<p class="px-2 py-3 text-sm text-gray-400">검색 결과가 없습니다.</p>';
+      } else {
+        box.innerHTML = arr.map((row) => renderMemberResultRow(row)).join("");
+      }
+    } catch {
+      box.innerHTML = '<p class="px-2 py-2 text-xs text-gray-400">검색에 실패했습니다.</p>';
+    }
+  }
+
+  /** 현재 화면에 체크된 부서 ID 배열 */
+  function getSelectedCalendarDeptIds() {
+    return Array.from(
+      document.querySelectorAll('#calendarDeptPanel input[data-multi-group="calendarDeptId"]:checked'),
+    ).map((cb) => /** @type {HTMLInputElement} */ (cb).value);
+  }
+
+  /** 현재 선택된 멤버 ID 배열 — selectedMemberIds Set 이 단일 진실 소스 */
+  function getSelectedCalendarMemberIds() {
+    return Array.from(selectedMemberIds);
+  }
+
+  /** 트리거 라벨: 선택 안 됨 → "부서 선택", 1개 → "{이름}", 2개 이상 → "{첫이름} 외 N개" */
+  function refreshCalendarDeptSummary() {
+    const label = document.querySelector('[data-cal-dept-summary]');
+    if (!label) return;
+    const checkedLabels = Array.from(
+      document.querySelectorAll('#calendarDeptPanel input[data-multi-group="calendarDeptId"]:checked'),
+    ).map((cb) => cb.parentElement?.querySelector("span")?.textContent?.trim() ?? "");
+    const allSelected = document.querySelector('#calendarDeptPanel input[data-select-all="calendarDeptId"]')?.checked;
+    if (checkedLabels.length === 0) {
+      label.textContent = allSelected ? "전체 부서" : "부서 선택";
+    } else if (checkedLabels.length === 1) {
+      label.textContent = checkedLabels[0];
+    } else {
+      label.textContent = `${checkedLabels[0]} 외 ${checkedLabels.length - 1}개`;
+    }
+  }
+
+  /**
+   * 선택 미리보기·상세 리스트 재렌더 (selectedMemberIds 변경 시 호출).
+   * 카카오톡 캘린더 공유 스타일: 앞 4명 프로필 동그라미 + N명 + 옵션 더보기.
+   */
+  function refreshSelectedMembersUI() {
+    const ids = Array.from(selectedMemberIds);
+    const summary = document.getElementById("calendar-member-summary");
+    const previewBox = document.getElementById("calendar-member-preview");
+    const countEl = document.getElementById("calendar-member-count");
+    const moreBtn = document.getElementById("calendar-member-more-btn");
+    const detailList = document.getElementById("calendar-member-detail-list");
+
+    if (summary) summary.classList.toggle("hidden", ids.length === 0);
+    if (moreBtn) moreBtn.classList.toggle("hidden", ids.length === 0);
+    if (countEl) countEl.textContent = `${ids.length}명`;
+
+    // 동그라미 미리보기: 앞 4명만, 5명 이상이면 +N 배지
+    if (previewBox) {
+      const VISIBLE = 4;
+      const shown = ids.slice(0, VISIBLE);
+      const extra = Math.max(0, ids.length - VISIBLE);
+      previewBox.innerHTML =
+        shown
+          .map((id, idx) => {
+            const meta = memberDirectoryCache.get(id);
+            const name = meta?.name ?? "";
+            const ring = idx === 0 ? "" : "-ml-2";
+            return `<img src="${memberProfileUrl(id)}" alt="${escapeHtml(name)}" title="${escapeHtml(name)}"
+                         class="h-7 w-7 ${ring} shrink-0 rounded-full border-2 border-white bg-gray-200 object-cover dark:border-gray-800"
+                         onerror="this.onerror=null;this.src='/images/user/default_user.jpg'" />`;
+          })
+          .join("") +
+        (extra > 0
+          ? `<span class="-ml-2 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-white bg-gray-300 text-[10px] font-semibold text-gray-700 dark:border-gray-800 dark:bg-gray-600 dark:text-gray-100">+${extra}</span>`
+          : "");
+    }
+
+    // 상세 리스트: 현재 펼침 상태 유지
+    if (detailList) {
+      detailList.innerHTML = ids
+        .map((id) => {
+          const meta = memberDirectoryCache.get(id);
+          const name = meta?.name ?? `#${id}`;
+          const sub = [meta?.deptName, meta?.positionName].filter(Boolean).join(" · ");
+          return `
+            <li class="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-gray-50 dark:hover:bg-white/5" data-detail-member-id="${escapeHtml(id)}">
+              <img src="${memberProfileUrl(id)}" alt="" class="h-9 w-9 shrink-0 rounded-full bg-gray-200 object-cover" onerror="this.onerror=null;this.src='/images/user/default_user.jpg'" />
+              <div class="min-w-0 flex-1">
+                <div class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">${escapeHtml(name)}</div>
+                ${sub ? `<div class="truncate text-xs text-gray-400">${escapeHtml(sub)}</div>` : ""}
+              </div>
+              <button type="button" data-detail-remove="${escapeHtml(id)}" aria-label="제거"
+                      class="rounded-full p-1 text-gray-400 transition hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-950/40">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                </svg>
+              </button>
+            </li>`;
+        })
+        .join("");
+      // 선택자가 0명이면 펼침 자체 의미가 없으므로 자동 접기
+      if (ids.length === 0) {
+        detailList.classList.add("hidden");
+        document.querySelector("[data-member-more-arrow]")?.classList.remove("rotate-180");
+      }
+    }
+  }
+
+  /**
+   * "전체 선택" ↔ 개별 체크박스 연동 (board.js initSelectAllControls 와 동일 규칙)
+   * - 전체 체크: 개별 모두 해제 (제출 시 빈 배열 = 백엔드 ALL 해석)
+   * - 개별 체크: 전체 해제
+   * - 모두 해제: 전체 자동 복귀
+   * @param {string} groupId data-multi-group 값
+   */
+  function bindCalendarMultiGroupHandlers(groupId) {
+    const selectAll = document.querySelector(`input[data-select-all="${groupId}"]`);
+    const individuals = document.querySelectorAll(`input[data-multi-group="${groupId}"]`);
+    if (!(selectAll instanceof HTMLInputElement)) {
+      individuals.forEach((cb) => {
+        if (!(cb instanceof HTMLInputElement)) return;
+        if (cb.dataset.calMultiBound === "1") return;
+        cb.dataset.calMultiBound = "1";
+        cb.addEventListener("change", () => {
+          if (groupId === "calendarDeptId") refreshCalendarDeptSummary();
+        });
+      });
+      return;
+    }
+    // selectAll 자체 리스너: 1회만 바인딩
+    if (selectAll.dataset.calMultiBound !== "1") {
+      selectAll.dataset.calMultiBound = "1";
+      selectAll.addEventListener("change", () => {
+        if (selectAll.checked) {
+          document
+            .querySelectorAll(`input[data-multi-group="${groupId}"]`)
+            .forEach((cb) => {
+              if (cb instanceof HTMLInputElement) cb.checked = false;
+            });
+        }
+        if (groupId === "calendarDeptId") refreshCalendarDeptSummary();
+      });
+    }
+    individuals.forEach((cb) => {
+      if (!(cb instanceof HTMLInputElement)) return;
+      if (cb.dataset.calMultiBound === "1") return;
+      cb.dataset.calMultiBound = "1";
+      cb.addEventListener("change", () => {
+        if (cb.checked) {
+          selectAll.checked = false;
+        } else {
+          const anyChecked = Array.from(
+            document.querySelectorAll(`input[data-multi-group="${groupId}"]`),
+          ).some((x) => x instanceof HTMLInputElement && x.checked);
+          if (!anyChecked) selectAll.checked = true;
+        }
+        if (groupId === "calendarDeptId") refreshCalendarDeptSummary();
+      });
     });
   }
 
-  async function loadDeptAndMemberOptions() {
-    const deptSelect = document.getElementById("calendar-share-depts");
-    const memberSelect = document.getElementById("calendar-share-members");
-    try {
-      const [dRes, mRes] = await Promise.all([
-        fetch(API_DEPTS, { headers: { Accept: "application/json" }, credentials: "same-origin" }),
-        fetch(API_MEMBERS, { headers: { Accept: "application/json" }, credentials: "same-origin" }),
-      ]);
-      if (deptSelect && dRes.ok) {
-        const depts = await dRes.json();
-        const arr = Array.isArray(depts) ? depts : [];
-        populateMultiSelect(deptSelect, arr, (row) => ({
-          id: String(row.deptId ?? row.id ?? ""),
-          label: String(row.deptName ?? row.name ?? row.label ?? "부서"),
-        }));
-      }
-      if (memberSelect && mRes.ok) {
-        const members = await mRes.json();
-        const arr = Array.isArray(members) ? members : [];
-        populateMultiSelect(memberSelect, arr, (row) => ({
-          id: String(row.memberId ?? row.id ?? ""),
-          label: String(row.name ?? row.loginId ?? row.label ?? "멤버"),
-        }));
-      }
-    } catch {
-      /* API 미구현 시 빈 셀렉트 유지 */
-    }
+  /** data-toggle-target 패널 토글 (board.js initPermissionPanelToggles 와 동일) */
+  function initCalendarToggleTargets() {
+    document.querySelectorAll('#eventModal button[data-toggle-target]').forEach((button) => {
+      if (!(button instanceof HTMLElement)) return;
+      if (button.dataset.calToggleBound === "1") return;
+      button.dataset.calToggleBound = "1";
+      const panelId = button.getAttribute("data-toggle-target");
+      const panel = panelId ? document.getElementById(panelId) : null;
+      const arrow = button.querySelector("[data-toggle-arrow]");
+      if (!panel) return;
+      button.addEventListener("click", () => {
+        const willOpen = panel.classList.contains("hidden");
+        panel.classList.toggle("hidden", !willOpen);
+        button.setAttribute("aria-expanded", willOpen ? "true" : "false");
+        if (arrow) arrow.classList.toggle("rotate-180", willOpen);
+      });
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -1183,6 +1614,11 @@ document.addEventListener("DOMContentLoaded", () => {
      * 주간/일간 타임그리드는 기존 슬롯 레이아웃 유지.
      */
     eventDisplay: "block",
+    /**
+     * 일정 셀 커스텀 렌더 — 공유 일정이면 텍스트 좌측에 공유자 프로필 동그라미(최대 3) + 인원 배지.
+     * 본인은 동그라미 목록에서 제외 (A↔B↔C 공유 시 각 사용자 화면에서 자기 자신은 빠진다).
+     */
+    eventContent: (arg) => renderCalendarEventCellContent(arg),
     views: {
       dayGridMonth: {
         /** "3p" 등 월 뷰 접두 시간 숨김 (시간은 주간/일간·모달에서 확인) */
@@ -1350,10 +1786,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   initEventModalCalendarComboboxes();
+  initCalendarToggleTargets();
 
-  // 최초 카테고리·공유 옵션 (API 없어도 UI 동작)
+  // 최초 카테고리·부서 옵션 (API 없어도 UI 동작) — 멤버는 검색 시점에 호출
   loadCategories();
-  loadDeptAndMemberOptions();
+  loadDeptOptions();
 
   // ---------------------------------------------------------------------------
   // [이벤트 리스너] 일정 모달
@@ -1373,6 +1810,64 @@ document.addEventListener("DOMContentLoaded", () => {
   visibilityRadios().forEach((r) =>
     r.addEventListener("change", syncVisibilityShares),
   );
+
+  // 멤버 검색: 버튼 + Enter (memberList 의 form submit 패턴과 동일 동작)
+  document.getElementById("calendar-member-search-btn")?.addEventListener("click", searchCalendarMembers);
+  document.getElementById("calendar-member-search")?.addEventListener("keydown", (e) => {
+    if (e instanceof KeyboardEvent && e.key === "Enter") {
+      e.preventDefault();
+      searchCalendarMembers();
+    }
+  });
+
+  // 검색 결과 닫기 — 결과 박스/닫기 버튼 숨김 + input 비움 (선택된 멤버 미리보기는 유지)
+  document.getElementById("calendar-member-search-close-btn")?.addEventListener("click", () => {
+    const resultsBox = document.getElementById("calendar-member-results");
+    if (resultsBox) resultsBox.innerHTML = "";
+    showMemberResults(false);
+    const searchInput = document.getElementById("calendar-member-search");
+    if (searchInput instanceof HTMLInputElement) {
+      searchInput.value = "";
+      searchInput.focus();
+    }
+  });
+
+  // 검색 결과 row 우측 "공유" / "해제" 타원 버튼 클릭 (위임)
+  document.getElementById("calendar-member-results")?.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLElement)) return;
+    const btn = t.closest("[data-share-toggle]");
+    if (!(btn instanceof HTMLElement)) return;
+    const id = btn.dataset.shareToggle ?? "";
+    if (!id) return;
+    if (selectedMemberIds.has(id)) selectedMemberIds.delete(id);
+    else selectedMemberIds.add(id);
+    updateMemberResultRow(id);
+    refreshSelectedMembersUI();
+  });
+
+  // "옵션 더보기" 버튼: 상세 리스트 펼치기/접기 (화살표 회전)
+  document.getElementById("calendar-member-more-btn")?.addEventListener("click", () => {
+    const detailList = document.getElementById("calendar-member-detail-list");
+    const arrow = document.querySelector("[data-member-more-arrow]");
+    if (!detailList) return;
+    const willOpen = detailList.classList.contains("hidden");
+    detailList.classList.toggle("hidden", !willOpen);
+    arrow?.classList.toggle("rotate-180", willOpen);
+  });
+
+  // 상세 리스트 × 버튼: 해당 멤버 공유 해제 + 검색 결과에 보이면 row 버튼/배경도 동기화
+  document.getElementById("calendar-member-detail-list")?.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLElement)) return;
+    const removeBtn = t.closest("[data-detail-remove]");
+    if (!(removeBtn instanceof HTMLElement)) return;
+    const id = removeBtn.dataset.detailRemove ?? "";
+    if (!id) return;
+    selectedMemberIds.delete(id);
+    updateMemberResultRow(id);
+    refreshSelectedMembersUI();
+  });
 
   // ---------------------------------------------------------------------------
   // [이벤트 리스너] 카테고리 모달 (열기는 FullCalendar 툴바 categoryButton)
