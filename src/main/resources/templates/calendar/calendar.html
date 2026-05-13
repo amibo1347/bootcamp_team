@@ -115,6 +115,43 @@
     .dark #calendar .fc-categoryButton-button:hover {
       background-color: rgb(31 41 55) !important;
     }
+
+    /*
+      오늘(todayCal) 버튼 — categoryButton 과 같은 톤. 텍스트 색을 명시해서 "오늘" 글자가 보이도록.
+      FullCalendar 기본 스타일은 흰 배경 + 옅은 텍스트라 우리 페이지에서 텍스트가 묻혀 빈 박스처럼 보이던 문제 해결.
+    */
+    #calendar .fc-todayCal-button {
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      min-width: auto !important;
+      width: auto !important;
+      min-height: 2.5rem;
+      padding: 0.5rem 0.875rem !important;
+      border-radius: 0.75rem;
+      border: 1px solid rgb(229 231 235) !important;
+      background-color: rgb(255 255 255) !important;
+      color: rgb(55 65 81) !important;
+      font-size: 0.875rem;
+      font-weight: 500;
+      line-height: 1.25rem;
+      white-space: nowrap !important;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+
+    #calendar .fc-todayCal-button:hover {
+      background-color: rgb(249 250 251) !important;
+    }
+
+    .dark #calendar .fc-todayCal-button {
+      border-color: rgb(55 65 81) !important;
+      background-color: rgb(17 24 39) !important;
+      color: rgb(229 231 235) !important;
+    }
+
+    .dark #calendar .fc-todayCal-button:hover {
+      background-color: rgb(31 41 55) !important;
+    }
   </style>
 </head>
 
