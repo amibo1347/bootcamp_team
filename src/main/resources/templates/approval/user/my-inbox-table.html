@@ -1,0 +1,43 @@
+<!-- ================================================================ -->
+<!-- [내 결재함] 테이블 뼈대 — 행은 user/my-inbox.js 가 채움 -->
+<!-- ================================================================ -->
+<div xmlns:th="http://www.thymeleaf.org" th:fragment="myInboxTable" class="space-y-4">
+  <!-- [필터] 서버 enum 기준 상태만 노출 -->
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      <label for="approval-my-status-filter" class="text-sm text-gray-600 dark:text-gray-400">상태</label>
+      <select id="approval-my-status-filter"
+        class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white">
+        <!-- JS가 PENDING/APPROVED/REJECTED 필터 옵션 삽입 -->
+      </select>
+    </div>
+    <span id="approval-my-inbox-count" class="text-xs text-gray-500 dark:text-gray-400">총 0건</span>
+  </div>
+  <!-- [필터] 끝 -->
+
+  <!-- [목록 테이블] 시작 -->
+  <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+      <thead class="bg-gray-50 dark:bg-white/[0.03]">
+        <tr>
+          <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">문서번호</th>
+          <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">제목</th>
+          <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">상태</th>
+          <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">기안일</th>
+        </tr>
+      </thead>
+      <tbody id="approval-my-inbox-body" class="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-white/[0.02]">
+        <!-- JS 삽입 -->
+      </tbody>
+    </table>
+  </div>
+  <!-- [목록 테이블] 끝 -->
+
+  <!-- [빈 상태] 시작 -->
+  <div id="approval-my-inbox-empty" class="hidden">
+    <div class="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 py-12 text-center dark:border-gray-700 dark:bg-white/[0.03]" role="status">
+      <p class="text-sm text-gray-500 dark:text-gray-400">표시할 결재 문서가 없습니다.</p>
+    </div>
+  </div>
+  <!-- [빈 상태] 끝 -->
+</div>

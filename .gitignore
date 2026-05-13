@@ -50,3 +50,6 @@ src/main/resources/application.properties
 
 # Cursor Rules
 .cursorrules
+
+# Cursor settings and internal files
+team/.cursor/
