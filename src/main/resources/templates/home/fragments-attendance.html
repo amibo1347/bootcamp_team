@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <body>
+    <!-- [카드] 출퇴근 기록 — 시계 · 출근/퇴근하기 · 진행 바 · 기록 시각 -->
+    <section
+      th:fragment="attendanceCard"
+      class="flex h-full min-h-0 flex-col rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+    >
+      <header
+        class="flex shrink-0 items-center justify-between border-b border-gray-100 px-3.5 py-2.5 dark:border-gray-700"
+      >
+        <h2 class="text-sm font-semibold text-gray-800 dark:text-white">
+          출퇴근 기록
+        </h2>
+        <span
+          id="home-dashboard-date"
+          class="text-xs text-gray-500 dark:text-gray-400"
+        ></span>
+      </header>
+      <div class="flex min-h-0 flex-1 flex-col gap-2.5 p-3.5">
+        <div
+          class="rounded-lg bg-gray-50 px-3 py-2.5 text-center text-xl font-mono font-semibold tracking-tight text-gray-900 shadow-inner dark:bg-gray-900/60 dark:text-white"
+          id="home-dashboard-time"
+          aria-live="polite"
+        >
+          --:--:--
+        </div>
+        <div class="flex gap-2.5">
+          <button
+            type="button"
+            id="home-btn-checkin"
+            class="flex-1 rounded-lg bg-emerald-600 px-2.5 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+          >
+            출근하기
+          </button>
+          <button
+            type="button"
+            id="home-btn-checkout"
+            class="flex-1 rounded-lg bg-slate-600 px-2.5 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+          >
+            퇴근하기
+          </button>
+        </div>
+        <!-- [근무 진행] 버튼 바로 아래 — 실시간 채움(8h 기준) -->
+        <div class="shrink-0" aria-label="근무 시간 진행">
+          <div class="mb-1 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <span>근무 진행</span>
+            <span id="home-work-progress-label">0%</span>
+          </div>
+          <div
+            id="home-work-progress-track"
+            class="h-2 w-full overflow-hidden rounded-full bg-gradient-to-r from-brand-100 via-brand-50 to-brand-100 shadow-inner ring-1 ring-brand-200/60 dark:from-brand-950/80 dark:via-brand-900/50 dark:to-brand-950/80 dark:ring-brand-800/50"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            aria-label="근무 시간 진행률"
+          >
+            <div
+              id="home-work-progress-fill"
+              class="h-full max-w-full rounded-full bg-brand-600 shadow-sm transition-[width] duration-500 ease-out dark:bg-brand-500"
+              style="width: 0%"
+            ></div>
+          </div>
+        </div>
+        <dl
+          class="grid shrink-0 grid-cols-2 gap-2.5 text-xs text-gray-600 dark:text-gray-300"
+        >
+          <div class="rounded-lg border border-gray-100 p-2.5 dark:border-gray-600">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">출근</dt>
+            <dd id="home-checkin-display" class="mt-1 font-mono text-sm text-gray-900 dark:text-white">—</dd>
+          </div>
+          <div class="rounded-lg border border-gray-100 p-2.5 dark:border-gray-600">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">퇴근</dt>
+            <dd id="home-checkout-display" class="mt-1 font-mono text-sm text-gray-900 dark:text-white">—</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <body>
+    <!-- [카드] 오늘의 일정 — 가까운 순 3건, 본문만 스크롤 -->
+    <section
+      th:fragment="todayCard"
+      class="flex h-full min-h-0 flex-col rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+    >
+      <header
+        class="flex shrink-0 items-center justify-between border-b border-gray-100 px-3.5 py-2.5 dark:border-gray-700"
+      >
+        <h2 class="text-sm font-semibold text-gray-800 dark:text-white">
+          오늘의 일정
+        </h2>
+        <span class="text-xs text-gray-500 dark:text-gray-400">가까운 순</span>
+      </header>
+      <div
+        class="min-h-0 flex-1 overflow-y-auto px-3 py-2.5"
+        id="home-today-list"
+        aria-label="오늘의 일정 목록"
+      ></div>
+    </section>
+  </body>
+</html>
