@@ -30,15 +30,14 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
     // 일정 알림 스캐너용 — 대상 캘린더 전체의 발송 기록을 한 번에 로드 (중복 발송 방지)
     List<Alert> findByCalendarIn(Collection<Calendar> calendars);
 
-    // 같은 게시글의 댓글/답글 알림 중 안 읽은 것 일괄 읽음 처리.
+    // 같은 게시글의 댓글/답글 알림 일괄 삭제 (읽음 = 삭제 정책)
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("UPDATE Alert a SET a.isRead = true, a.readAt = :now " +
+    @Query("DELETE FROM Alert a " +
            "WHERE a.recipient = :recipient AND a.article.articleId = :articleId " +
-           "AND a.preface IN (:prefaces) AND a.isRead = false")
-    int markReadByRecipientAndArticleAndPrefaces(
+           "AND a.preface IN (:prefaces)")
+    int deleteByRecipientAndArticleAndPrefaces(
         @Param("recipient") Member recipient,
         @Param("articleId") Long articleId,
-        @Param("prefaces") Collection<Preface> prefaces,
-        @Param("now") LocalDateTime now
+        @Param("prefaces") Collection<Preface> prefaces
     );
 }

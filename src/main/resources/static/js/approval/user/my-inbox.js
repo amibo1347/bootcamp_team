@@ -1,10 +1,22 @@
 /**
- * 내 결재함 Mock 목록 컨트롤러
- * - approval-client를 통해 목록을 가져오고 상태 필터와 배지를 렌더링한다.
+ * 내 결재함 목록 컨트롤러
+ * - approval-client를 통해 목록을 가져오고 상태 필터·결재선 드롭다운을 렌더링한다.
+ * - 결재자 셀은 최종(마지막 단계) 결재자만 표시.
+ * - 셀 클릭 시 같은 셀 아래에 absolute 오버레이로 단계별 결재선을 띄움(다른 row 를 덮음).
  */
 
 import { listMyApprovals } from '../api/approval-client.js';
-import { USER_STATUS_FILTERS, renderApprovalStatusBadge } from '../common/status-badges.js';
+import {
+  USER_STATUS_FILTERS,
+  approvalStatusBadgeClass,
+  approvalStatusLabel,
+  renderApprovalStatusBadge,
+} from '../common/status-badges.js';
+import {
+  renderApproverCell,
+  renderApproverDropdown,
+  bindApproverDropdownToggle,
+} from '../common/approver-cell.js';
 
 /**
  * HTML 이스케이프
@@ -37,34 +49,7 @@ function renderFilterOptions(filter) {
 }
 
 /**
- * 내 결재함 행을 렌더링한다.
- * @param {HTMLElement} tbody
- * @param {Array<Record<string, unknown>>} items
- */
-/**
- * 결재자 프로필 이미지 + 이름 셀 HTML.
- * @param {Record<string, unknown>} row
- * @returns {string}
- */
-function renderApproverCell(row) {
-  const id = row.approverMemberId;
-  const name = row.approverName ? String(row.approverName) : '';
-  const img = id != null
-    ? `<img src="/api/member/${encodeURIComponent(String(id))}/profileImg" alt="" class="h-8 w-8 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700" />`
-    : '';
-  return `
-    <td class="px-4 py-3">
-      <div class="flex items-center gap-2">
-        ${img}
-        <span class="text-sm text-gray-800 dark:text-gray-200">${escapeHtml(name)}</span>
-      </div>
-    </td>`;
-}
-
-/**
- * 사유(approverComment) 셀. 18자 초과 시 잘라서 보여주고 전체는 title 속성으로 hover 노출.
- * @param {Record<string, unknown>} row
- * @returns {string}
+ * 사유 셀. 18자 초과 시 자르고 hover 시 전체 노출.
  */
 function renderCommentCell(row) {
   const raw = typeof row.approverComment === 'string' ? row.approverComment.trim() : '';
@@ -79,6 +64,7 @@ function renderRows(tbody, items) {
   tbody.innerHTML = '';
   items.forEach((row) => {
     const tr = document.createElement('tr');
+    tr.dataset.approvalId = String(row.approvalId);
     tr.innerHTML = `
       <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-800 dark:text-gray-200">${escapeHtml(row.approvalId)}</td>
       <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">${escapeHtml(row.title)}</td>
@@ -105,10 +91,10 @@ export function initMyInbox(options = {}) {
     renderFilterOptions(filter);
   }
 
-  /**
-   * 선택된 상태 필터로 목록을 다시 조회한다.
-   * @returns {Promise<void>}
-   */
+  if (tbody instanceof HTMLElement) {
+    bindApproverDropdownToggle(tbody);
+  }
+
   async function refresh() {
     if (!tbody) return;
     const status = filter instanceof HTMLSelectElement ? filter.value : 'ALL';
@@ -130,3 +116,12 @@ export function initMyInbox(options = {}) {
 
   return { refresh };
 }
+
+// 외부에서 helper 가 필요할 수 있어 재export (approval-main.js 의 완료함에서 동일 셀 사용)
+export {
+  renderApproverCell,
+  renderApproverDropdown,
+  bindApproverDropdownToggle,
+  approvalStatusBadgeClass,
+  approvalStatusLabel,
+};

@@ -6,6 +6,10 @@
 
 import * as approvalClient from './api/approval-client.js';
 import { renderApprovalStatusBadge } from './common/status-badges.js';
+import {
+  renderApproverCell,
+  bindApproverDropdownToggle,
+} from './common/approver-cell.js';
 import { initMyInbox } from './user/my-inbox.js';
 import { initApprovalWizard } from './user/wizard-controller.js';
 import { populateVacationTypeOptions } from './forms/vacation-form.js';
@@ -109,15 +113,32 @@ function renderCompletedRows(filterValue) {
   tbody.innerHTML = '';
   rows.forEach((row) => {
     const tr = document.createElement('tr');
+    tr.dataset.approvalId = String(row.approvalId);
     const commentRaw = typeof row.approverComment === 'string' ? row.approverComment.trim() : '';
     const commentTrunc = commentRaw.length > 18 ? `${commentRaw.slice(0, 18)}…` : commentRaw;
     const commentCell = commentRaw
       ? `<td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-300" title="${escapeHtml(commentRaw)}">${escapeHtml(commentTrunc)}</td>`
       : `<td class="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">—</td>`;
+
+    // 신청자 셀 — 사진 + 이름만 (부서/직급 없음)
+    const drafterId = row.drafterMemberId;
+    const drafterImg = drafterId != null
+      ? `<img src="/api/member/${encodeURIComponent(String(drafterId))}/profileImg" alt="" class="h-8 w-8 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700" />`
+      : '';
+    const drafterCell = `
+      <td class="px-4 py-3">
+        <div class="flex items-center gap-2">
+          ${drafterImg}
+          <span class="truncate text-sm text-gray-800 dark:text-gray-200">${escapeHtml(row.drafterName || '')}</span>
+        </div>
+      </td>`;
+
     tr.innerHTML = `
       <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-800 dark:text-gray-200">${escapeHtml(row.approvalId)}</td>
       <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">${escapeHtml(row.title)}</td>
+      ${drafterCell}
       <td class="px-4 py-3">${renderApprovalStatusBadge(String(row.status || ''))}</td>
+      ${renderApproverCell(row)}
       ${commentCell}
       <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(formatDateTime(row.processedAt))}</td>`;
     tbody.appendChild(tr);
@@ -167,6 +188,12 @@ function bindEvents() {
     const value = event.target instanceof HTMLSelectElement ? event.target.value : 'ALL';
     renderCompletedRows(value);
   });
+
+  // 완료함 결재자 셀 클릭 → 단계별 드롭다운(오버레이) 토글
+  const completedBody = document.getElementById('approval-completed-body');
+  if (completedBody instanceof HTMLElement) {
+    bindApproverDropdownToggle(completedBody);
+  }
 
   document.getElementById('approval-pending-body')?.addEventListener('click', async (event) => {
     const target = event.target;
@@ -224,6 +251,15 @@ async function initializeApprovalPage() {
         await refreshCompleted();
       },
     });
+
+    // URL hash 기반 초기 탭 진입 (예: /approval#pending — 결재 신청 알림 클릭 경로)
+    const hash = (window.location.hash || '').replace('#', '');
+    if (hash && ['wizard', 'my', 'pending', 'completed'].includes(hash)) {
+      activateTab(/** @type {'wizard'|'my'|'pending'|'completed'} */ (hash));
+      if (hash === 'my') void myInboxController?.refresh();
+      if (hash === 'pending') void refreshPending();
+      if (hash === 'completed') void refreshCompleted();
+    }
   } catch (error) {
     console.error('[approval-main] 초기 로드 실패', error);
   }

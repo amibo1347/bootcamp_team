@@ -2,9 +2,12 @@ package com.team.intranet.service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -232,6 +235,21 @@ public class ApprovalService {
                 currentLine.setStatus(ApprovalStatus.REJECTED);
                 currentLine.setProcessedAt(now);
                 currentLine.setComment(req.getComment());
+
+                // 반려 전파: 현재 단계 이후의 PENDING line 들도 REJECTED 로 일괄 변경
+                // (드롭다운에 "대기" 로 남아 있는 시각적 불일치 방지)
+                int currentLevelInt = approval.getCurrentLevel();
+                List<ApprovalLine> allLines = approvalLineRepository
+                    .findByApproval_ApprovalIdOrderByLevelAsc(approval.getApprovalId());
+                for (ApprovalLine line : allLines) {
+                    if (line.getLevel() != null
+                        && line.getLevel() > currentLevelInt
+                        && line.getStatus() == ApprovalStatus.PENDING) {
+                        line.setStatus(ApprovalStatus.REJECTED);
+                        line.setProcessedAt(now);
+                    }
+                }
+
                 approval.setStatus(ApprovalStatus.REJECTED);
                 approval.setApproverComment(req.getComment());
                 approval.setProcessedAt(now);
@@ -269,7 +287,8 @@ public class ApprovalService {
         long total = all.size();
         int from = Math.min((p - 1) * DEFAULT_PAGE_SIZE, all.size());
         int to = Math.min(from + DEFAULT_PAGE_SIZE, all.size());
-        List<ApprovalRow> items = all.subList(from, to).stream().map(ApprovalRow::from).toList();
+        List<Approval> slice = all.subList(from, to);
+        List<ApprovalRow> items = toRowsWithLines(slice);
         int totalPages = (int) Math.max(1, Math.ceil((double) total / DEFAULT_PAGE_SIZE));
         return new ApprovalPageResponse(items, p, DEFAULT_PAGE_SIZE, total, totalPages);
     }
@@ -282,21 +301,36 @@ public class ApprovalService {
             .filter(a -> a.getStatus() == ApprovalStatus.PENDING
                 || a.getStatus() == ApprovalStatus.IN_PROGRESS)
             .toList();
-        List<ApprovalRow> items = rows.stream().map(ApprovalRow::from).toList();
+        List<ApprovalRow> items = toRowsWithLines(rows);
         return new ApprovalListResponse(items, items.size());
     }
 
-    // 관리자 완료함: 본인이 결재자였던 결재 중 APPROVED/REJECTED/ON_HOLD
+    // 관리자 완료함: 본인이 어느 단계든 처리한(승인/반려/보류) 결재.
+    // 1차 승인 후 다음 단계로 넘어간 IN_PROGRESS 도 포함 — "내가 승인한 이후 어떻게 진행되는지" 확인 용도.
     public ApprovalListResponse listCompletedForAdmin(MemberSession ms) {
-        List<ApprovalRow> items = approvalRepository
-            .findByApprover_MemberIdOrderByDraftedAtDesc(ms.getMemberId())
-            .stream()
-            .filter(a -> a.getStatus() == ApprovalStatus.APPROVED
-                || a.getStatus() == ApprovalStatus.REJECTED
-                || a.getStatus() == ApprovalStatus.ON_HOLD)
-            .map(ApprovalRow::from)
-            .toList();
+        List<Approval> rows = approvalRepository
+            .findProcessedByMember(ms.getMemberId(), ApprovalStatus.PENDING);
+        List<ApprovalRow> items = toRowsWithLines(rows);
         return new ApprovalListResponse(items, items.size());
+    }
+
+    /**
+     * Approval 목록을 ApprovalRow 로 변환하면서 결재선(ApprovalLine) 도 한 번의 IN 쿼리로 함께 로드.
+     * 결재함 행 클릭 시 단계별 결재자 드롭다운 노출에 사용된다.
+     */
+    private List<ApprovalRow> toRowsWithLines(List<Approval> approvals) {
+        if (approvals == null || approvals.isEmpty()) return List.of();
+        List<Long> ids = approvals.stream().map(Approval::getApprovalId).toList();
+        Map<Long, List<ApprovalLine>> linesByApproval = approvalLineRepository
+            .findByApproval_ApprovalIdInOrderByApproval_ApprovalIdAscLevelAsc(ids)
+            .stream()
+            .collect(Collectors.groupingBy(l -> l.getApproval().getApprovalId()));
+        return approvals.stream()
+            .map(a -> ApprovalRow.from(
+                a,
+                linesByApproval.getOrDefault(a.getApprovalId(), Collections.emptyList())
+            ))
+            .toList();
     }
 
     // ===== Approver Candidates =====
