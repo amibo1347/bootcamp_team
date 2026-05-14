@@ -207,6 +207,44 @@ public class AlertService {
     }
 
     // ============================================================
+    // 결재 알림 — 신청 시 결재자에게 1건
+    // ============================================================
+
+    /**
+     * 결재 신청 시 결재자에게 알림 발송 — ID 기반.
+     * 별도 TX + 실패 격리 (호출자 TX 가 LAZY 프록시를 갖고 들어와도 안전).
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void sendApprovalRequestAlert(Long recipientMemberId, Long drafterMemberId,
+                                         String formName, String approvalTitle) {
+        if (recipientMemberId == null) return;
+        if (drafterMemberId != null && drafterMemberId.equals(recipientMemberId)) return;
+
+        try {
+            Member recipient = memberRepository.findById(recipientMemberId).orElse(null);
+            if (recipient == null) return;
+            Member sender = drafterMemberId != null
+                ? memberRepository.findById(drafterMemberId).orElse(null)
+                : null;
+
+            String safeFormName = (formName == null || formName.isBlank()) ? "결재" : formName;
+            String title = "[" + safeFormName + "] " + (approvalTitle == null ? "" : approvalTitle);
+
+            Alert alert = baseBuilder(Preface.APPROVAL_REQUEST, recipient)
+                .title(title)
+                .content("결재할 문서가 도착했습니다")
+                .link("/approval")
+                .sender(sender)
+                .expiresAt(LocalDateTime.now().plusDays(14))
+                .build();
+            alertRepository.save(alert);
+        } catch (Exception e) {
+            log.warn("Failed to send APPROVAL_REQUEST alert (recipientId={}): {}",
+                recipientMemberId, e.getMessage());
+        }
+    }
+
+    // ============================================================
     // 알림함 (사용자용 — 조회 / 읽음 / 삭제)
     // ============================================================
 
@@ -237,9 +275,21 @@ public class AlertService {
         Member me = loadMember(ms);
         Alert alert = alertRepository.findByAlertIdAndRecipient(alertId, me)
             .orElseThrow(() -> new BusinessException(ErrorCode.ALERT_NOT_FOUND));
+        LocalDateTime now = LocalDateTime.now();
         if (!alert.isRead()) {
             alert.setRead(true);
-            alert.setReadAt(LocalDateTime.now());
+            alert.setReadAt(now);
+        }
+        // 댓글/답글 알림이면 같은 게시글의 다른 댓글·답글 알림도 같이 읽음 처리
+        if (alert.getArticle() != null
+            && (alert.getPreface() == Preface.ARTICLE_COMMENT
+                || alert.getPreface() == Preface.COMMENT_REPLY)) {
+            alertRepository.markReadByRecipientAndArticleAndPrefaces(
+                me,
+                alert.getArticle().getArticleId(),
+                List.of(Preface.ARTICLE_COMMENT, Preface.COMMENT_REPLY),
+                now
+            );
         }
     }
 

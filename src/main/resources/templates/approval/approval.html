@@ -14,6 +14,22 @@
   <meta name="_csrf_header" th:content="${_csrf.headerName}" />
   <link rel="stylesheet" th:href="@{/css/output.css}" />
   <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+  <!-- [전자결재 전용] : 글로벌 utility 가 숨긴 네이티브 달력 picker 를 복구.
+       output.css 가 재빌드 되면 이 블록은 잉여 (input.css 에서 .flatpickr-input 으로 스코프 됨). -->
+  <style>
+    #approval-panel-wizard input[type="date"]::-webkit-calendar-picker-indicator {
+      display: block;
+      -webkit-appearance: auto;
+      appearance: auto;
+      opacity: 1;
+      cursor: pointer;
+    }
+    #approval-panel-wizard input[type="date"]::-webkit-inner-spin-button {
+      display: block;
+      -webkit-appearance: auto;
+      appearance: auto;
+    }
+  </style>
 </head>
 
 <body

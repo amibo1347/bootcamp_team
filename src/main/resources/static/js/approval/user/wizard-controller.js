@@ -1,6 +1,7 @@
 /**
  * 전자결재 3스텝 위저드 컨트롤러
- * - 양식 선택, 결재자 선택, 동적 양식 작성, Mock POST 제출 흐름을 담당한다.
+ * - 1: 양식 선택, 2: 결재선 선택(드롭다운 → 모달), 3: 양식 본문 작성·제출
+ * - 결재선은 1~4인 옵션. 선택 즉시 모달이 열려 후보 중 N명을 단계 순서로 고른다.
  */
 
 import { submitApproval } from '../api/approval-client.js';
@@ -9,12 +10,19 @@ import {
   getApprovalFormDefinition,
   resetRegisteredApprovalForms,
 } from '../forms/form-registry.js';
+import { openApproverLineModal } from './approver-line-modal.js';
 
 /** @type {number} */
 let wizardStep = 1;
 
 /** @type {Array<Record<string, unknown>>} */
 let formTemplates = [];
+
+/** @type {Array<Record<string, unknown>>} */
+let approverCandidates = [];
+
+/** @type {number[]} 선택된 결재선 (memberId 순서 = 단계) */
+let currentApprovalLine = [];
 
 /**
  * HTML 이스케이프
@@ -129,20 +137,110 @@ function renderFormTemplates(templates) {
 }
 
 /**
- * 결재자 후보 select를 렌더링한다.
- * @param {Array<Record<string, unknown>>} candidates
+ * 결재자 선택 드롭다운을 결재선 타입 옵션으로 채운다.
+ * (옵션 자체로 결재자를 고르지 않는다 — 선택 시 모달이 열린다.)
  */
-function renderApproverCandidates(candidates) {
+function renderApprovalLineSelect() {
+  const select = document.getElementById('approval-approver-select');
+  if (!(select instanceof HTMLSelectElement)) return;
+  select.innerHTML = `
+    <option value="">결재선 선택</option>
+    <option value="1">1인 결재선</option>
+    <option value="2">2인 결재선</option>
+    <option value="3">3인 결재선</option>
+    <option value="4">4인 결재선</option>
+  `;
+  select.value = '';
+}
+
+/**
+ * 결재선 미리보기 영역을 select 바로 아래에 동적 inject (1회만).
+ */
+function ensureApprovalLineSummary() {
+  if (document.getElementById('approval-line-summary')) return;
+  const select = document.getElementById('approval-approver-select');
+  if (!select) return;
+  const summary = document.createElement('div');
+  summary.id = 'approval-line-summary';
+  summary.className = 'mt-3 hidden rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm dark:border-strokedark dark:bg-meta-4';
+  select.insertAdjacentElement('afterend', summary);
+}
+
+/**
+ * 선택된 결재선을 화면 요약에 반영.
+ */
+function renderApprovalLineSummary() {
+  ensureApprovalLineSummary();
+  const box = document.getElementById('approval-line-summary');
+  if (!box) return;
+
+  if (currentApprovalLine.length === 0) {
+    box.classList.add('hidden');
+    box.innerHTML = '';
+    return;
+  }
+
+  box.classList.remove('hidden');
+  const items = currentApprovalLine.map((id, idx) => {
+    const c = approverCandidates.find((x) => Number(x.memberId) === Number(id));
+    const name = c ? String(c.name || '') : `#${id}`;
+    const meta = c ? [c.deptName, c.positionName].filter(Boolean).join(' / ') : '';
+    const isFinal = idx === currentApprovalLine.length - 1;
+    const stage = isFinal ? `${idx + 1}단계 (최종)` : `${idx + 1}단계`;
+    return `
+      <div class="flex items-center gap-2 rounded-lg bg-white px-3 py-2 ring-1 ring-gray-200 dark:bg-boxdark dark:ring-gray-700">
+        <span class="shrink-0 rounded bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-300">${escapeHtml(stage)}</span>
+        <div class="min-w-0">
+          <p class="truncate text-sm font-semibold text-gray-900 dark:text-white">${escapeHtml(name)}</p>
+          ${meta ? `<p class="truncate text-xs text-gray-400">${escapeHtml(meta)}</p>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+  box.innerHTML = `
+    <div class="flex items-start justify-between gap-3">
+      <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">선택된 결재선</span>
+      <button type="button" id="approval-line-cancel"
+              class="shrink-0 text-xs font-medium text-rose-500 hover:text-rose-600">
+        취소
+      </button>
+    </div>
+    <div class="mt-2 flex flex-wrap gap-2">${items}</div>
+  `;
+
+  document.getElementById('approval-line-cancel')?.addEventListener('click', () => {
+    currentApprovalLine = [];
+    const select = document.getElementById('approval-approver-select');
+    if (select instanceof HTMLSelectElement) select.value = '';
+    renderApprovalLineSummary();
+  });
+}
+
+/**
+ * 결재선 select change 이벤트: 1~4인 결재선 선택 시 모달 오픈.
+ */
+function bindApprovalLineSelect() {
   const select = document.getElementById('approval-approver-select');
   if (!(select instanceof HTMLSelectElement)) return;
 
-  select.innerHTML = '<option value="">결재자를 선택하세요</option>';
-  candidates.forEach((candidate, index) => {
-    const option = document.createElement('option');
-    option.value = String(candidate.memberId || '');
-    option.textContent = `${candidate.name || ''} (${candidate.deptName || ''})`;
-    if (index === 0) option.selected = true;
-    select.appendChild(option);
+  select.addEventListener('change', () => {
+    const v = select.value;
+    if (!v) {
+      currentApprovalLine = [];
+      renderApprovalLineSummary();
+      return;
+    }
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 1 || n > 4) return;
+
+    openApproverLineModal({
+      maxCount: n,
+      candidates: approverCandidates,
+      onConfirm: (line) => {
+        currentApprovalLine = Array.isArray(line) ? line.slice() : [];
+        renderApprovalLineSummary();
+      },
+    });
   });
 }
 
@@ -161,7 +259,12 @@ function validateCurrentStep() {
   if (wizardStep === 2) {
     const select = document.getElementById('approval-approver-select');
     if (!(select instanceof HTMLSelectElement) || !select.value) {
-      setWizardMessage('결재자를 선택하세요.', 'error');
+      setWizardMessage('결재선을 선택하세요.', 'error');
+      return false;
+    }
+    const expected = Number(select.value);
+    if (currentApprovalLine.length !== expected) {
+      setWizardMessage(`${expected}인 결재선을 모두 지정하세요.`, 'error');
       return false;
     }
   }
@@ -178,14 +281,15 @@ function validateCurrentStep() {
 function buildSubmitPayload(memberId) {
   const selected = getSelectedTemplate();
   const definition = getApprovalFormDefinition(getSelectedFormCode());
-  const approver = document.getElementById('approval-approver-select');
   const title = document.getElementById('approval-draft-title');
 
   const titleText = title instanceof HTMLInputElement ? title.value.trim() : '';
   if (!titleText) {
     return { valid: false, message: '제목을 입력하세요.', payload: {} };
   }
-
+  if (currentApprovalLine.length === 0) {
+    return { valid: false, message: '결재선을 선택하세요.', payload: {} };
+  }
   if (!definition) {
     return { valid: false, message: '지원하지 않는 양식입니다.', payload: {} };
   }
@@ -195,16 +299,19 @@ function buildSubmitPayload(memberId) {
     return { valid: false, message: formValidation.message, payload: {} };
   }
 
+  const formCode = String(selected?.formCode || '');
   return {
     valid: true,
     message: '',
     payload: {
       formTemplateId: selected ? Number(selected.id) : null,
-      formCode: selected?.formCode || '',
-      approverMemberId: approver instanceof HTMLSelectElement ? Number(approver.value) : null,
+      formCode,
+      // 1인이면 백엔드 하위호환을 위해 approverMemberId 도 같이 전송.
+      approverMemberId: currentApprovalLine[currentApprovalLine.length - 1],
+      approvalLine: currentApprovalLine.slice(),
       title: titleText,
       drafterMemberId: memberId ?? null,
-      [String(selected?.formCode || '').toLowerCase()]: definition.serialize(document),
+      [formCode.toLowerCase()]: definition.serialize(document),
     },
   };
 }
@@ -216,6 +323,10 @@ function resetWizard() {
   const title = document.getElementById('approval-draft-title');
   if (title instanceof HTMLInputElement) title.value = '';
   resetRegisteredApprovalForms();
+  currentApprovalLine = [];
+  const select = document.getElementById('approval-approver-select');
+  if (select instanceof HTMLSelectElement) select.value = '';
+  renderApprovalLineSummary();
   showWizardStep(1);
 }
 
@@ -226,8 +337,14 @@ function resetWizard() {
  */
 export function initApprovalWizard(options) {
   formTemplates = Array.isArray(options.templates) ? options.templates : [];
+  approverCandidates = Array.isArray(options.candidates) ? options.candidates : [];
+  currentApprovalLine = [];
+
   renderFormTemplates(formTemplates);
-  renderApproverCandidates(Array.isArray(options.candidates) ? options.candidates : []);
+  renderApprovalLineSelect();
+  ensureApprovalLineSummary();
+  renderApprovalLineSummary();
+  bindApprovalLineSelect();
   showWizardStep(1);
 
   document.getElementById('approval-form-template-list')?.addEventListener('change', () => {
