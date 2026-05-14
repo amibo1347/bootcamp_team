@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <body>
+    <!--
+      [플로팅 쪽지함] FAB 위 / z-index 최상단
+      - 가로: 이전 max 대비 3/4(뷰포트 계산식 동일 비율). 세로(목록 max/min-h)는 유지.
+    -->
+    <div th:fragment="floatingInbox">
+      <div
+        id="home-note-backdrop"
+        class="fixed inset-0 z-[10050] hidden bg-gray-900/45 backdrop-blur-[2px]"
+        aria-hidden="true"
+      ></div>
+
+      <div
+        id="home-note-stack"
+        class="pointer-events-none fixed bottom-6 right-6 z-[10080] flex w-[min(calc((100vw-2rem)*0.75),19.5rem)] flex-col items-end gap-3 sm:bottom-8 sm:right-8 sm:w-[min(calc((100vw-3rem)*0.75),24rem)] lg:w-[min(calc((100vw-3rem)*0.75),27rem)]"
+      >
+        <div
+          id="home-note-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="home-note-inbox-title"
+          class="pointer-events-auto hidden w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 dark:border-gray-600 dark:bg-gray-900 dark:ring-white/10"
+        >
+          <header
+            class="flex items-center gap-2.5 bg-brand-600 px-3 py-3 text-white dark:bg-brand-700 sm:gap-3 sm:px-4 sm:py-3.5"
+          >
+            <span class="flex shrink-0 text-white" aria-hidden="true">
+              <svg class="h-5 w-5 sm:h-6 sm:w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </span>
+            <div class="min-w-0 flex-1 text-center">
+              <h2 id="home-note-inbox-title" class="inline text-sm font-semibold tracking-tight sm:text-base">
+                쪽지함
+              </h2>
+              <span
+                id="home-note-badge"
+                class="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-white/20 px-1.5 py-0.5 text-xs font-bold tabular-nums sm:ml-2 sm:min-w-[1.5rem] sm:px-2 sm:text-sm"
+                >0</span>
+            </div>
+            <button
+              type="button"
+              id="home-note-close"
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/90 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40 sm:h-10 sm:w-10 sm:rounded-xl"
+              aria-label="닫기"
+            >
+              <svg class="h-5 w-5 sm:h-6 sm:w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          </header>
+          <div
+            id="home-note-list"
+            class="max-h-[min(50vh,22rem)] min-h-[10rem] divide-y divide-gray-100 overflow-y-auto dark:divide-gray-700 sm:max-h-[min(55vh,26rem)] sm:min-h-[12rem]"
+            aria-label="쪽지 목록"
+          ></div>
+          <footer class="border-t border-gray-100 p-2.5 dark:border-gray-700 sm:p-3">
+            <div class="flex items-center gap-2 sm:gap-2.5">
+              <input
+                type="text"
+                id="home-note-input"
+                class="min-w-0 flex-1 rounded-full border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:focus:ring-brand-900 sm:px-4"
+                placeholder="메시지 입력..."
+                autocomplete="off"
+              />
+              <button
+                type="button"
+                id="home-note-send"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white shadow-md hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 sm:h-11 sm:w-11"
+                aria-label="전송"
+              >
+                <svg class="h-4 w-4 sm:h-[1.125rem] sm:w-[1.125rem]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-4-4l4 4-4 4" />
+                </svg>
+              </button>
+            </div>
+          </footer>
+        </div>
+
+        <button
+          type="button"
+          id="home-note-fab"
+          class="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg ring-2 ring-white/40 transition hover:bg-brand-700 focus:outline-none focus:ring-4 focus:ring-brand-300 dark:ring-gray-900/50 dark:focus:ring-brand-900 sm:h-16 sm:w-16"
+          aria-haspopup="dialog"
+          aria-controls="home-note-panel"
+          aria-expanded="false"
+          title="쪽지함"
+        >
+          <span class="sr-only">쪽지함 열기</span>
+          <svg class="h-7 w-7 sm:h-8 sm:w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </body>
+</html>

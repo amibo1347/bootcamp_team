@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <body>
+    <!--
+      [홈 대시보드] 2×2 그리드 조립
+      - 상단: 출퇴근 | 공지 / 하단: 오늘 일정 | 주간
+      - gap은 넉넉하되 한 단계씩 조밀하게, 그리드 행은 minmax(0,1fr)로 동일 비율·No-Scroll(min-h-0)
+    -->
+    <div
+      th:fragment="mainDashboard"
+      class="flex h-full min-h-0 flex-col"
+      id="home-dashboard-root"
+    >
+      <!-- 카드 블록: max-w로 가로 살짝 축소·화면 중앙 정렬 (No-Scroll 체인 유지) -->
+      <div
+        class="mx-auto flex min-h-0 flex-1 flex-col w-full max-w-[min(100%,46rem)] sm:max-w-[min(100%,50rem)] lg:max-w-[min(100%,56rem)] xl:max-w-[min(100%,60rem)]"
+      >
+        <div
+          class="grid min-h-0 flex-1 grid-cols-1 grid-rows-[repeat(4,minmax(0,1fr))] gap-5 sm:gap-6 lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-6 xl:gap-8"
+        >
+          <div th:replace="~{home/fragments-attendance :: attendanceCard}"></div>
+          <div th:replace="~{home/fragments-notice :: noticeCard}"></div>
+          <div th:replace="~{home/fragments-today :: todayCard}"></div>
+          <div th:replace="~{home/fragments-week :: weekCard}"></div>
+        </div>
+      </div>
+
+      <div th:replace="~{home/fragments-inbox :: floatingInbox}"></div>
+    </div>
+  </body>
+</html>

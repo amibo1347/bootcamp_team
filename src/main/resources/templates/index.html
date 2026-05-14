@@ -13,7 +13,9 @@
   <link rel="stylesheet" th:href="@{/css/output.css}" />
   <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
   </head>
+  <!-- [레이아웃] True No-Scroll: 뷰포트 높이 고정 + 바깥 스크롤 차단 -->
   <body
+    class="h-screen overflow-hidden"
     x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
     x-init="
          darkMode = JSON.parse(localStorage.getItem('darkMode'));
@@ -31,9 +33,8 @@
   <!-- ===== Sidebar End ===== -->
 
       <!-- ===== Content Area Start ===== -->
-      <div
-        class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto"
-      >
+      <!-- [Strict No-Scroll] 세로 스크롤은 이 컬럼에서 발생하지 않음. flex-1 + min-h-0로 자식 flex 높이 수축 허용 -->
+      <div class="relative flex min-h-0 flex-1 flex-col overflow-hidden">
   <!-- Small Device Overlay Start -->
   <div th:replace="~{partials/overlay}"></div>
   <!-- Small Device Overlay End -->
@@ -43,13 +44,10 @@
   <!-- ===== Header End ===== -->
 
         <!-- ===== Main Content Start ===== -->
-        <main>
-          <div class="relative overflow-hidden p-5 rounded-md shadow-sm bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700">
-            <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">메인 콘텐츠 영역</h3>
-            <p class="text-gray-600 dark:text-gray-300">이곳에 페이지별 주요 콘텐츠가 들어갑니다.</p>
-            <div class="mt-6">
-              <a href="#" class="text-blue-500 hover:underline dark:text-blue-400">더 알아보기</a>
-            </div>
+        <!-- [메인] flex-1 min-h-0: 카드 그리드가 남는 높이를 채우고 내부 overflow만 스크롤 -->
+        <main class="flex min-h-0 flex-1 flex-col bg-gray-50/80 dark:bg-gray-900/40">
+          <div class="flex min-h-0 flex-1 flex-col p-6 sm:p-8 lg:px-12 lg:py-10 xl:px-16 xl:py-12">
+            <div th:replace="~{home/dashboard :: mainDashboard}"></div>
           </div>
         </main>
         <!-- ===== Main Content End ===== -->
@@ -57,6 +55,7 @@
       <!-- ===== Content Area End ===== -->
     </div>
     <!-- ===== Page Wrapper End ===== -->
-    <script type="module" src="/js/index.js"></script>
+    <script type="module" th:src="@{/js/index.js}"></script>
+    <script type="module" th:src="@{/js/index-home.js}"></script>
   </body>
 </html>

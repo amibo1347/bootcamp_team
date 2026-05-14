@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <body>
+    <!-- [카드] 주간 일정(월~금) — 그리드 셀 내 스크롤 허용(일정 다량 시) -->
+    <section
+      th:fragment="weekCard"
+      class="flex h-full min-h-0 flex-col rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+    >
+      <header
+        class="flex shrink-0 items-center justify-between border-b border-gray-100 px-3.5 py-2.5 dark:border-gray-700"
+      >
+        <h2 class="text-sm font-semibold text-gray-800 dark:text-white">
+          주간 일정
+        </h2>
+        <span
+          id="home-week-range-label"
+          class="text-xs text-gray-500 dark:text-gray-400"
+        ></span>
+      </header>
+      <div class="min-h-0 flex-1 overflow-y-auto p-2.5 sm:p-3">
+        <div
+          id="home-week-calendar"
+          class="grid min-h-[7.5rem] grid-cols-5 gap-1.5 sm:min-h-[9rem] sm:gap-2"
+          role="grid"
+          aria-label="월요일부터 금요일까지 주간 일정"
+        ></div>
+      </div>
+    </section>
+  </body>
+</html>
