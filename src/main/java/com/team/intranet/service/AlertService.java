@@ -244,6 +244,42 @@ public class AlertService {
         }
     }
 
+    /**
+     * 결재 처리 결과 알림 — 최종 처리(승인/반려/보류) 시 기안자에게 발송.
+     * resultLabel 예: "승인", "반려", "보류".
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void sendApprovalResultAlert(Long drafterMemberId, Long processorMemberId,
+                                        String formName, String approvalTitle,
+                                        String resultLabel) {
+        if (drafterMemberId == null) return;
+        if (processorMemberId != null && processorMemberId.equals(drafterMemberId)) return;
+
+        try {
+            Member recipient = memberRepository.findById(drafterMemberId).orElse(null);
+            if (recipient == null) return;
+            Member sender = processorMemberId != null
+                ? memberRepository.findById(processorMemberId).orElse(null)
+                : null;
+
+            String safeFormName = (formName == null || formName.isBlank()) ? "결재" : formName;
+            String safeResult = (resultLabel == null || resultLabel.isBlank()) ? "처리" : resultLabel;
+            String title = "[" + safeFormName + "] " + (approvalTitle == null ? "" : approvalTitle);
+
+            Alert alert = baseBuilder(Preface.APPROVAL_RESULT, recipient)
+                .title(title)
+                .content("결재가 " + safeResult + "되었습니다")
+                .link("/approval#my")
+                .sender(sender)
+                .expiresAt(LocalDateTime.now().plusDays(14))
+                .build();
+            alertRepository.save(alert);
+        } catch (Exception e) {
+            log.warn("Failed to send APPROVAL_RESULT alert (drafterId={}): {}",
+                drafterMemberId, e.getMessage());
+        }
+    }
+
     // ============================================================
     // 알림함 (사용자용 — 조회 / 읽음 / 삭제)
     // ============================================================

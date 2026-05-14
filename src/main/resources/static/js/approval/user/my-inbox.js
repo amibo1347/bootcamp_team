@@ -1,8 +1,8 @@
 /**
  * 내 결재함 목록 컨트롤러
- * - approval-client를 통해 목록을 가져오고 상태 필터·결재선 드롭다운을 렌더링한다.
- * - 결재자 셀은 최종(마지막 단계) 결재자만 표시.
- * - 셀 클릭 시 같은 셀 아래에 absolute 오버레이로 단계별 결재선을 띄움(다른 row 를 덮음).
+ * - approval-client를 통해 목록을 가져오고 상태 필터·페이지네이션·결재선 드롭다운을 렌더링한다.
+ * - 결재자 셀은 최종(마지막 단계) 결재자만 표시. 셀 클릭 시 단계별 결재선이 오버레이로 펼쳐진다.
+ * - 행의 제목 클릭 시 상세 모달을 연다.
  */
 
 import { listMyApprovals } from '../api/approval-client.js';
@@ -17,6 +17,7 @@ import {
   renderApproverDropdown,
   bindApproverDropdownToggle,
 } from '../common/approver-cell.js';
+import { openApprovalDetailModal } from './approval-detail-modal.js';
 
 /**
  * HTML 이스케이프
@@ -67,7 +68,9 @@ function renderRows(tbody, items) {
     tr.dataset.approvalId = String(row.approvalId);
     tr.innerHTML = `
       <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-800 dark:text-gray-200">${escapeHtml(row.approvalId)}</td>
-      <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">${escapeHtml(row.title)}</td>
+      <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
+        <button type="button" class="approval-detail-trigger text-left underline-offset-2 hover:underline">${escapeHtml(row.title)}</button>
+      </td>
       <td class="px-4 py-3">${renderApprovalStatusBadge(String(row.status || ''))}</td>
       ${renderApproverCell(row)}
       ${renderCommentCell(row)}
@@ -86,6 +89,10 @@ export function initMyInbox(options = {}) {
   const emptyWrap = document.getElementById('approval-my-inbox-empty');
   const filter = document.getElementById('approval-my-status-filter');
   const count = document.getElementById('approval-my-inbox-count');
+  const pagination = document.getElementById('approval-my-inbox-pagination');
+  const pageInfo = document.getElementById('approval-my-inbox-page-info');
+  const prevBtn = document.getElementById('approval-my-inbox-prev');
+  const nextBtn = document.getElementById('approval-my-inbox-next');
 
   if (filter instanceof HTMLSelectElement && filter.options.length === 0) {
     renderFilterOptions(filter);
@@ -93,6 +100,33 @@ export function initMyInbox(options = {}) {
 
   if (tbody instanceof HTMLElement) {
     bindApproverDropdownToggle(tbody);
+    tbody.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const trigger = target.closest('.approval-detail-trigger');
+      if (!(trigger instanceof HTMLElement)) return;
+      const row = trigger.closest('tr');
+      const id = Number(row?.dataset.approvalId);
+      if (Number.isFinite(id)) openApprovalDetailModal(id);
+    });
+  }
+
+  // 현재 페이지 상태. 필터 변경 시 1로 리셋.
+  let currentPage = 1;
+  let totalPages = 1;
+
+  function syncPagination() {
+    if (!pagination) return;
+    if (totalPages <= 1) {
+      pagination.classList.add('hidden');
+      pagination.classList.remove('flex');
+      return;
+    }
+    pagination.classList.remove('hidden');
+    pagination.classList.add('flex');
+    if (pageInfo) pageInfo.textContent = `${currentPage} / ${totalPages}`;
+    if (prevBtn instanceof HTMLButtonElement) prevBtn.disabled = currentPage <= 1;
+    if (nextBtn instanceof HTMLButtonElement) nextBtn.disabled = currentPage >= totalPages;
   }
 
   async function refresh() {
@@ -101,16 +135,34 @@ export function initMyInbox(options = {}) {
     const response = await listMyApprovals({
       memberId: options.memberId ?? undefined,
       status: status === 'ALL' ? null : status,
-      page: 1,
+      page: currentPage,
     });
     const items = Array.isArray(response.items) ? response.items : [];
+    totalPages = Math.max(1, Number(response.totalPages) || 1);
+    if (currentPage > totalPages) {
+      currentPage = totalPages;
+    }
 
     renderRows(tbody, items);
     emptyWrap?.classList.toggle('hidden', items.length > 0);
     if (count) count.textContent = `총 ${response.total ?? items.length}건`;
+    syncPagination();
   }
 
   filter?.addEventListener('change', () => {
+    currentPage = 1;
+    void refresh();
+  });
+
+  prevBtn?.addEventListener('click', () => {
+    if (currentPage <= 1) return;
+    currentPage -= 1;
+    void refresh();
+  });
+
+  nextBtn?.addEventListener('click', () => {
+    if (currentPage >= totalPages) return;
+    currentPage += 1;
     void refresh();
   });
 

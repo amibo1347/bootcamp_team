@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.team.intranet.dto.approval.ApprovalDetailResponse;
 import com.team.intranet.dto.approval.ApprovalListResponse;
 import com.team.intranet.dto.approval.ApprovalPageResponse;
 import com.team.intranet.dto.approval.ApprovalProcessRequest;
@@ -208,6 +209,7 @@ public class ApprovalService {
                     if ("VACATION".equalsIgnoreCase(approval.getFormTemplate().getFormCode())) {
                         registerVacationOnCalendar(approval);
                     }
+                    sendResultAlertSafe(approval, ms.getMemberId(), "승인");
                 } else {
                     int nextLevel = approval.getCurrentLevel() + 1;
                     ApprovalLine nextLine = approvalLineRepository
@@ -253,6 +255,7 @@ public class ApprovalService {
                 approval.setStatus(ApprovalStatus.REJECTED);
                 approval.setApproverComment(req.getComment());
                 approval.setProcessedAt(now);
+                sendResultAlertSafe(approval, ms.getMemberId(), "반려");
             }
             case "HOLD" -> {
                 currentLine.setStatus(ApprovalStatus.ON_HOLD);
@@ -261,11 +264,53 @@ public class ApprovalService {
                 approval.setStatus(ApprovalStatus.ON_HOLD);
                 approval.setApproverComment(req.getComment());
                 approval.setProcessedAt(now);
+                sendResultAlertSafe(approval, ms.getMemberId(), "보류");
             }
             default -> throw new BusinessException(ErrorCode.INVALID_STATUS);
         }
 
         return new ApprovalProcessResponse(true, approval.getApprovalId(), approval.getStatus());
+    }
+
+    // ===== Detail =====
+
+    /**
+     * 결재 단건 상세. 권한: 기안자 본인 또는 결재선에 포함된 결재자.
+     * 양식별 본문(휴가/일반/지출)을 분기 조회하여 응답에 동봉한다.
+     */
+    public ApprovalDetailResponse getApprovalDetail(MemberSession ms, Long approvalId) {
+        if (approvalId == null) {
+            throw new BusinessException(ErrorCode.APPROVAL_NOT_FOUND);
+        }
+        Approval approval = approvalRepository.findById(approvalId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.APPROVAL_NOT_FOUND));
+
+        List<ApprovalLine> lines = approvalLineRepository
+            .findByApproval_ApprovalIdOrderByLevelAsc(approvalId);
+
+        Long me = ms.getMemberId();
+        boolean isDrafter = approval.getDrafter() != null
+            && me.equals(approval.getDrafter().getMemberId());
+        boolean isApproverOnLine = lines.stream()
+            .anyMatch(l -> l.getApprover() != null && me.equals(l.getApprover().getMemberId()));
+        if (!isDrafter && !isApproverOnLine) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        String code = approval.getFormTemplate().getFormCode() == null
+            ? "" : approval.getFormTemplate().getFormCode().toUpperCase();
+
+        VacationRequest vacation = "VACATION".equals(code)
+            ? vacationRepository.findByApproval_ApprovalId(approvalId).orElse(null)
+            : null;
+        GenericRequest generic = "GENERIC".equals(code)
+            ? genericRequestRepository.findByApproval_ApprovalId(approvalId).orElse(null)
+            : null;
+        ExpenseRequest expense = "EXPENSE".equals(code)
+            ? expenseRequestRepository.findByApproval_ApprovalId(approvalId).orElse(null)
+            : null;
+
+        return ApprovalDetailResponse.of(approval, lines, vacation, generic, expense);
     }
 
     // ===== Lists =====
@@ -390,6 +435,25 @@ public class ApprovalService {
         Role finalRole = approvers.get(approvers.size() - 1).getRole();
         if (finalRole != Role.SUB_ADMIN && finalRole != Role.ADMIN && finalRole != Role.MASTER) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    /**
+     * 결재 결과(승인/반려/보류) 알림 발송. 알림 실패가 결재 트랜잭션을 깨지 않도록 try 로 흡수.
+     * REQUIRES_NEW 의 commit 시 발생할 수 있는 예외도 함께 잡는다.
+     */
+    private void sendResultAlertSafe(Approval approval, Long processorMemberId, String resultLabel) {
+        try {
+            alertService.sendApprovalResultAlert(
+                approval.getDrafter().getMemberId(),
+                processorMemberId,
+                approval.getFormTemplate().getName(),
+                approval.getTitle(),
+                resultLabel
+            );
+        } catch (Exception e) {
+            log.warn("APPROVAL_RESULT 알림 발송 실패 (approvalId={}, result={}): {}",
+                approval.getApprovalId(), resultLabel, e.getMessage());
         }
     }
 

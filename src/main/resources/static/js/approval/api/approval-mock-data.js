@@ -275,6 +275,47 @@ export async function mockProcessApproval(body) {
   return delay({ ok: true, approvalId: id, status: row.status });
 }
 
+/**
+ * Mock: 결재 단건 상세. payload(본문 양식별 필드)를 그대로 펼쳐서 응답한다.
+ * @param {number} approvalId
+ */
+export async function mockGetApprovalDetail(approvalId) {
+  const id = Number(approvalId);
+  const row = approvalRows.find((r) => r.approvalId === id);
+  if (!row) {
+    return delay({
+      approvalId: id,
+      title: '(Mock) 문서를 찾을 수 없습니다',
+      status: 'PENDING',
+      approvers: [],
+      vacation: null,
+      generic: null,
+      expense: null,
+    });
+  }
+  const payload = row.payload || {};
+  const body = {
+    vacation: row.formCode === 'VACATION' ? payload : null,
+    generic: row.formCode === 'GENERIC' ? payload : null,
+    expense: row.formCode === 'EXPENSE' ? payload : null,
+  };
+  return delay({
+    approvalId: row.approvalId,
+    title: row.title,
+    status: row.status,
+    formTemplateId: row.formTemplateId,
+    formCode: row.formCode,
+    formName: row.formCode,
+    drafterMemberId: row.drafterMemberId,
+    drafterName: row.drafterName,
+    approverComment: row.approverComment,
+    draftedAt: row.draftedAt,
+    processedAt: row.processedAt,
+    approvers: [],
+    ...body,
+  });
+}
+
 /** 테스트용: Mock 저장소 초기화 */
 export function resetMockApprovalsForTests() {
   seedApprovals();

@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.SessionAttribute;
 
+import com.team.intranet.dto.approval.ApprovalDetailResponse;
 import com.team.intranet.dto.approval.ApprovalListResponse;
 import com.team.intranet.dto.approval.ApprovalPageResponse;
 import com.team.intranet.dto.approval.ApprovalProcessRequest;
@@ -94,7 +96,15 @@ public class ApprovalApiController {
         return approvalService.listCompletedForAdmin(ms);
     }
 
-    // 결재 처리 (APPROVE | REJECT). HOLD 는 프론트 Mock 전용.
+    // 결재 단건 상세 (헤더 + 결재선 + 양식별 본문). 권한: 기안자 본인 또는 결재선에 포함된 결재자.
+    @GetMapping("/{approvalId}")
+    public ApprovalDetailResponse getDetail(
+            @SessionAttribute("memberSession") MemberSession ms,
+            @PathVariable("approvalId") Long approvalId) {
+        return approvalService.getApprovalDetail(ms, approvalId);
+    }
+
+    // 결재 처리 (APPROVE | REJECT | HOLD).
     @PostMapping("/process")
     public ApprovalProcessResponse process(
             @SessionAttribute("memberSession") MemberSession ms,

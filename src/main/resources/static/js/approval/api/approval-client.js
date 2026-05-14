@@ -16,6 +16,7 @@ import {
   mockListCompletedForAdmin,
   mockProcessApproval,
   mockGetVacationTypes,
+  mockGetApprovalDetail,
 } from './approval-mock-data.js';
 
 /**
@@ -173,5 +174,16 @@ export function processApproval(body) {
   return tryRealThenMock(
     () => fetchJsonPost(`${APPROVAL_API_BASE}/process`, body),
     () => mockProcessApproval(body),
+  );
+}
+
+/**
+ * 결재 단건 상세 (헤더 + 결재선 + 양식별 본문).
+ * @param {number} approvalId
+ */
+export function getApprovalDetail(approvalId) {
+  return tryRealThenMock(
+    () => fetchJsonGet(`${APPROVAL_API_BASE}/${encodeURIComponent(String(approvalId))}`),
+    () => mockGetApprovalDetail(approvalId),
   );
 }
