@@ -15,6 +15,7 @@ import {
   mockListPendingForAdmin,
   mockListCompletedForAdmin,
   mockProcessApproval,
+  mockGetVacationTypes,
 } from './approval-mock-data.js';
 
 /**
@@ -97,6 +98,17 @@ export function getApproverCandidates() {
   return tryRealThenMock(
     () => fetchJsonGet(`${APPROVAL_API_BASE}/approver-candidates`),
     () => mockGetApproverCandidates(),
+  );
+}
+
+/**
+ * 휴가 유형(VacationType enum) 옵션 조회.
+ * @returns {Promise<Array<{ name: string, description: string }>>}
+ */
+export function getVacationTypes() {
+  return tryRealThenMock(
+    () => fetchJsonGet(`${APPROVAL_API_BASE}/vacation-types`),
+    () => mockGetVacationTypes(),
   );
 }
 

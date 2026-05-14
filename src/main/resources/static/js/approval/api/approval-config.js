@@ -4,8 +4,8 @@
  * - 실 API 연동 시 false로 두고 tryRealThenMock 경로에서 fetch 실패 시 Mock 폴백
  */
 
-/** @type {boolean} Mock 전용 모드 (기본 true 권장 — 백엔드 API 미구현 시) */
-export const USE_APPROVAL_MOCK = true;
+/** @type {boolean} Mock 전용 모드 (백엔드 시드 INSERT 완료되면 false 로 전환) */
+export const USE_APPROVAL_MOCK = false;
 
 /**
  * 실제 API 베이스 경로 (향후 컨트롤러가 생기면 여기만 조정)

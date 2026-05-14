@@ -41,6 +41,40 @@ function renderFilterOptions(filter) {
  * @param {HTMLElement} tbody
  * @param {Array<Record<string, unknown>>} items
  */
+/**
+ * 결재자 프로필 이미지 + 이름 셀 HTML.
+ * @param {Record<string, unknown>} row
+ * @returns {string}
+ */
+function renderApproverCell(row) {
+  const id = row.approverMemberId;
+  const name = row.approverName ? String(row.approverName) : '';
+  const img = id != null
+    ? `<img src="/api/member/${encodeURIComponent(String(id))}/profileImg" alt="" class="h-8 w-8 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700" />`
+    : '';
+  return `
+    <td class="px-4 py-3">
+      <div class="flex items-center gap-2">
+        ${img}
+        <span class="text-sm text-gray-800 dark:text-gray-200">${escapeHtml(name)}</span>
+      </div>
+    </td>`;
+}
+
+/**
+ * 사유(approverComment) 셀. 18자 초과 시 잘라서 보여주고 전체는 title 속성으로 hover 노출.
+ * @param {Record<string, unknown>} row
+ * @returns {string}
+ */
+function renderCommentCell(row) {
+  const raw = typeof row.approverComment === 'string' ? row.approverComment.trim() : '';
+  if (!raw) {
+    return `<td class="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">—</td>`;
+  }
+  const trunc = raw.length > 18 ? `${raw.slice(0, 18)}…` : raw;
+  return `<td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-300" title="${escapeHtml(raw)}">${escapeHtml(trunc)}</td>`;
+}
+
 function renderRows(tbody, items) {
   tbody.innerHTML = '';
   items.forEach((row) => {
@@ -49,6 +83,8 @@ function renderRows(tbody, items) {
       <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-800 dark:text-gray-200">${escapeHtml(row.approvalId)}</td>
       <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">${escapeHtml(row.title)}</td>
       <td class="px-4 py-3">${renderApprovalStatusBadge(String(row.status || ''))}</td>
+      ${renderApproverCell(row)}
+      ${renderCommentCell(row)}
       <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(formatDate(row.draftedAt))}</td>`;
     tbody.appendChild(tr);
   });

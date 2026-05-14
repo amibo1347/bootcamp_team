@@ -8,13 +8,15 @@
     <div class="grid gap-3 sm:grid-cols-2">
       <div>
         <label for="vacation-type" class="mb-1 block text-xs text-gray-600 dark:text-gray-400">유형</label>
-        <input id="vacation-type" type="text" placeholder="예: 연차"
-          class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+        <select id="vacation-type"
+          class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white">
+          <option value="">선택하세요</option>
+        </select>
       </div>
       <div>
         <label for="vacation-days" class="mb-1 block text-xs text-gray-600 dark:text-gray-400">일수</label>
-        <input id="vacation-days" type="number" min="0.5" step="0.5" value="1"
-          class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+        <input id="vacation-days" type="number" min="0" step="0.5" value="0" readonly
+          class="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm cursor-not-allowed dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
       </div>
       <div>
         <label for="vacation-start" class="mb-1 block text-xs text-gray-600 dark:text-gray-400">시작일</label>

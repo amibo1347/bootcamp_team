@@ -26,7 +26,14 @@ public class Approval {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "approver_id", nullable = false)
-    private Member approver; // 결재자 (승인/반려 처리하는 사람)
+    private Member approver; // 현재 단계 결재자 캐시 (실제 결재선은 ApprovalLine 참고)
+
+    // 결재선 진행 추적용
+    @Column(name = "current_level", nullable = false)
+    private Integer currentLevel; // 현재 진행 중인 단계 (1~maxLevel)
+
+    @Column(name = "max_level", nullable = false)
+    private Integer maxLevel;     // 총 결재 단계 수 (1~4)
 
     @Column(name = "title", nullable = false, length = 200)
     private String title;   // 결재 문서 제목
@@ -43,5 +50,9 @@ public class Approval {
 
     @Column(name = "processed_at")
     private LocalDateTime processedAt; // 결재자가 승인/반려를 처리한 시간
+    
+    @ManyToOne
+    @JoinColumn(name = "company_id", nullable = false)
+    private Company company;
 
 }

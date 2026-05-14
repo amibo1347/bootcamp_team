@@ -24,14 +24,30 @@ function delay(value) {
 export const MOCK_FORM_TEMPLATES = [
   { id: 1, formCode: 'VACATION', name: '휴가 신청', isActive: true },
   { id: 2, formCode: 'GENERIC', name: '일반 기안', isActive: true },
+  { id: 3, formCode: 'EXPENSE', name: '지출결의서', isActive: true },
 ];
 
-/** 결재자 후보 (고정) */
-export const MOCK_APPROVER_CANDIDATES = [
-  { memberId: 501, name: '김결재', deptName: '경영지원' },
-  { memberId: 502, name: '이승인', deptName: '인사' },
-  { memberId: 503, name: '박검토', deptName: '총무' },
+/** 결재자 후보 — 백엔드 응답을 사용. mock 후보는 두지 않는다. */
+export const MOCK_APPROVER_CANDIDATES = [];
+
+/** VacationType enum 미러 (백엔드 API 실패 시 폴백) */
+export const MOCK_VACATION_TYPES = [
+  { name: 'ANNUAL_PAID_LEAVE', description: '연차유급휴가' },
+  { name: 'SICK_LEAVE', description: '병가' },
+  { name: 'MATERNITY_LEAVE', description: '출산전후휴가' },
+  { name: 'PATERNITY_LEAVE', description: '배우자출산휴가' },
+  { name: 'MENSTRUAL_LEAVE', description: '생리휴가' },
+  { name: 'FAMILY_CARE_LEAVE', description: '가족돌봄휴가' },
+  { name: 'SPECIAL_LEAVE', description: '경조사휴가' },
+  { name: 'REFRESH_LEAVE', description: '리프레시휴가' },
+  { name: 'SUMMER_VACATION', description: '하계휴가' },
+  { name: 'REPLACEMENT_HOLIDAY', description: '대체휴일' },
+  { name: 'ETC', description: '기타' },
 ];
+
+export function mockGetVacationTypes() {
+  return delay(MOCK_VACATION_TYPES.slice());
+}
 
 /** @type {MockApprovalRow[]} */
 let approvalRows = [];
@@ -200,7 +216,9 @@ export async function mockSubmitApproval(payload) {
   const formTemplateId = Number(payload.formTemplateId);
   const tmpl = MOCK_FORM_TEMPLATES.find((t) => t.id === formTemplateId) ?? MOCK_FORM_TEMPLATES[0];
   const approverMemberId = Number(payload.approverMemberId);
-  const approver = MOCK_APPROVER_CANDIDATES.find((c) => c.memberId === approverMemberId) ?? MOCK_APPROVER_CANDIDATES[0];
+  const approver = MOCK_APPROVER_CANDIDATES.find((c) => c.memberId === approverMemberId)
+    ?? MOCK_APPROVER_CANDIDATES[0]
+    ?? { memberId: Number.isFinite(approverMemberId) ? approverMemberId : 9999, name: '결재자' };
   const drafterMemberId = payload.drafterMemberId != null ? Number(payload.drafterMemberId) : 101;
   const drafterName = typeof payload.drafterName === 'string' ? payload.drafterName : '나기안';
   const title = typeof payload.title === 'string' ? payload.title : '[기안] 제목 없음';

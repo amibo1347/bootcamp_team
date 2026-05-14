@@ -4,15 +4,16 @@
  * - ON_HOLD는 관리자 Mock 데모에서만 보조로 표시한다.
  */
 
-/** @typedef {'PENDING'|'APPROVED'|'REJECTED'|'ON_HOLD'} ApprovalDisplayStatus */
+/** @typedef {'PENDING'|'IN_PROGRESS'|'APPROVED'|'REJECTED'|'ON_HOLD'} ApprovalDisplayStatus */
 
-/** 내 결재함 필터 — ON_HOLD는 Mock 데모 전용(서버 enum 없음) */
+/** 내 결재함 필터 — 진행중(IN_PROGRESS) 는 2인 이상 결재선에서 1차 승인 후 단계 상태 */
 export const USER_STATUS_FILTERS = [
   { value: 'ALL', label: '전체' },
   { value: 'PENDING', label: '대기' },
+  { value: 'IN_PROGRESS', label: '진행중' },
   { value: 'APPROVED', label: '승인' },
   { value: 'REJECTED', label: '반려' },
-  { value: 'ON_HOLD', label: '보류(M)' },
+  { value: 'ON_HOLD', label: '보류' },
 ];
 
 /**
@@ -23,9 +24,10 @@ export const USER_STATUS_FILTERS = [
 export function approvalStatusLabel(status) {
   const labels = {
     PENDING: '대기',
+    IN_PROGRESS: '진행중',
     APPROVED: '승인',
     REJECTED: '반려',
-    ON_HOLD: '보류(M)',
+    ON_HOLD: '보류',
   };
   return labels[status] || status;
 }
@@ -39,6 +41,8 @@ export function approvalStatusBadgeClass(status) {
   switch (status) {
     case 'PENDING':
       return 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200';
+    case 'IN_PROGRESS':
+      return 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200';
     case 'APPROVED':
       return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200';
     case 'REJECTED':

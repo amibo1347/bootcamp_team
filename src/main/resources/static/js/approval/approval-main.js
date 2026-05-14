@@ -8,6 +8,7 @@ import * as approvalClient from './api/approval-client.js';
 import { renderApprovalStatusBadge } from './common/status-badges.js';
 import { initMyInbox } from './user/my-inbox.js';
 import { initApprovalWizard } from './user/wizard-controller.js';
+import { populateVacationTypeOptions } from './forms/vacation-form.js';
 
 /** @type {{ refresh: () => Promise<void> }|null} */
 let myInboxController = null;
@@ -68,7 +69,7 @@ async function refreshPending() {
         <div class="flex flex-wrap gap-1">
           <button type="button" data-act="APPROVE" class="approval-act rounded bg-emerald-600 px-2 py-1 text-xs text-white hover:bg-emerald-700">승인</button>
           <button type="button" data-act="REJECT" class="approval-act rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700">반려</button>
-          <button type="button" data-act="HOLD" class="approval-act rounded bg-violet-600 px-2 py-1 text-xs text-white hover:bg-violet-700" title="Mock 전용">보류(M)</button>
+          <button type="button" data-act="HOLD" class="approval-act rounded bg-violet-600 px-2 py-1 text-xs text-white hover:bg-violet-700">보류</button>
         </div>
       </td>`;
     tbody.appendChild(tr);
@@ -108,10 +109,16 @@ function renderCompletedRows(filterValue) {
   tbody.innerHTML = '';
   rows.forEach((row) => {
     const tr = document.createElement('tr');
+    const commentRaw = typeof row.approverComment === 'string' ? row.approverComment.trim() : '';
+    const commentTrunc = commentRaw.length > 18 ? `${commentRaw.slice(0, 18)}…` : commentRaw;
+    const commentCell = commentRaw
+      ? `<td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-300" title="${escapeHtml(commentRaw)}">${escapeHtml(commentTrunc)}</td>`
+      : `<td class="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">—</td>`;
     tr.innerHTML = `
       <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-800 dark:text-gray-200">${escapeHtml(row.approvalId)}</td>
       <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">${escapeHtml(row.title)}</td>
       <td class="px-4 py-3">${renderApprovalStatusBadge(String(row.status || ''))}</td>
+      ${commentCell}
       <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(formatDateTime(row.processedAt))}</td>`;
     tbody.appendChild(tr);
   });
@@ -174,7 +181,13 @@ function bindEvents() {
 
     let comment = '';
     if (action === 'REJECT' || action === 'HOLD') {
-      comment = window.prompt(action === 'HOLD' ? '보류 사유(M)' : '반려 사유', '') || '';
+      const reason = window.prompt(action === 'HOLD' ? '보류 사유' : '반려 사유', '');
+      if (reason === null) return;
+      comment = reason.trim();
+      if (!comment) {
+        window.alert(action === 'HOLD' ? '보류 사유를 입력하세요.' : '반려 사유를 입력하세요.');
+        return;
+      }
     }
 
     await approvalClient.processApproval({ approvalId, action, comment });
@@ -192,10 +205,13 @@ async function initializeApprovalPage() {
   const memberId = getMemberIdFromDom();
 
   try {
-    const [templates, candidates] = await Promise.all([
+    const [templates, candidates, vacationTypes] = await Promise.all([
       approvalClient.getFormTemplates(),
       approvalClient.getApproverCandidates(),
+      approvalClient.getVacationTypes(),
     ]);
+
+    populateVacationTypeOptions(document, Array.isArray(vacationTypes) ? vacationTypes : []);
 
     myInboxController = initMyInbox({ memberId });
     initApprovalWizard({

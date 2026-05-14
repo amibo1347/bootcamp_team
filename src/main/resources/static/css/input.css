@@ -377,10 +377,12 @@ layer(base);
 }
 
 @layer utilities {
-  input[type="date"]::-webkit-inner-spin-button,
-  input[type="time"]::-webkit-inner-spin-button,
-  input[type="date"]::-webkit-calendar-picker-indicator,
-  input[type="time"]::-webkit-calendar-picker-indicator {
+  /* flatpickr 가 붙은 입력만 네이티브 picker 인디케이터를 숨긴다.
+     (일반 type=date 입력은 OS 기본 캘린더 팝업을 유지) */
+  input.flatpickr-input[type="date"]::-webkit-inner-spin-button,
+  input.flatpickr-input[type="time"]::-webkit-inner-spin-button,
+  input.flatpickr-input[type="date"]::-webkit-calendar-picker-indicator,
+  input.flatpickr-input[type="time"]::-webkit-calendar-picker-indicator {
     display: none;
     -webkit-appearance: none;
   }
