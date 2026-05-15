@@ -10,12 +10,13 @@ import com.team.intranet.entity.FormTemplate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FormTemplateDto {
-    
+
     private Long formTemplateId;
     private String formCode;
     private String name;
     private String content;
     private boolean isActive;
+    private String fieldSchema;   // B안 진입용 필드 정의 JSON. A안에선 null.
 
     public static FormTemplateDto from(FormTemplate form){
         FormTemplateDto dto = new FormTemplateDto();
@@ -24,6 +25,7 @@ public class FormTemplateDto {
         dto.setName(form.getName());
         dto.setContent(form.getContent());
         dto.setActive(form.isActive());
+        dto.setFieldSchema(form.getFieldSchema());
         return dto;
     }
 }

@@ -44,6 +44,45 @@ public class FormTemplateService {
             .toList();
     }
 
+    /**
+     * 관리자용 전체 목록.
+     * - 회사 양식 (비활성 포함) 전체
+     * - 회사가 fork 하지 않은 시스템 디폴트 (비활성 포함) — fork 진입점 노출용
+     * 회사가 fork 한 formCode 는 회사 사본만 보이고 시스템 디폴트는 숨김.
+     */
+    public List<FormTemplate> listAllForAdmin(MemberSession ms) {
+        if (!ms.isAdmin()) {
+            throw new BusinessException(ErrorCode.NO_AUTHORITY);
+        }
+        Company company = companyRepository.findById(ms.getCompanyId())
+            .orElseThrow(() -> new BusinessException(ErrorCode.COMPANY_NOT_FOUND));
+
+        List<FormTemplate> companyOwned = formTemplateRepository.findAllByCompany(company);
+        Set<String> ownedCodes = companyOwned.stream()
+            .map(FormTemplate::getFormCode)
+            .collect(Collectors.toSet());
+
+        List<FormTemplate> defaults = formTemplateRepository.findAllByCompanyIsNull().stream()
+            .filter(t -> !ownedCodes.contains(t.getFormCode()))
+            .toList();
+
+        return Stream.concat(companyOwned.stream(), defaults.stream()).toList();
+    }
+
+    /** 관리자용 단건 조회 — 회사 양식 또는 시스템 디폴트 둘 다 허용. 권한·소속 검증 포함. */
+    public FormTemplate getByIdForAdmin(MemberSession ms, Long id) {
+        if (!ms.isAdmin()) {
+            throw new BusinessException(ErrorCode.NO_AUTHORITY);
+        }
+        FormTemplate t = formTemplateRepository.findById(id)
+            .orElseThrow(() -> new BusinessException(ErrorCode.FORM_TEMPLATE_NOT_FOUND));
+        if (t.getCompany() != null
+            && !t.getCompany().getCompanyId().equals(ms.getCompanyId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+        return t;
+    }
+
     // 회사 양식이 있으면 그것, 없으면 시스템 디폴트
     public FormTemplate getByFormCode(MemberSession ms, String formCode){
         Company company = companyRepository.findById(ms.getCompanyId())
@@ -65,6 +104,10 @@ public class FormTemplateService {
         if (!ms.isAdmin()) {
             throw new BusinessException(ErrorCode.NO_AUTHORITY);
         }
+        if (dto.getFormCode() == null || dto.getFormCode().isBlank()
+            || dto.getName() == null || dto.getName().isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
 
         Company company = companyRepository.findById(ms.getCompanyId())
             .orElseThrow(() -> new BusinessException(ErrorCode.COMPANY_NOT_FOUND));
@@ -79,6 +122,7 @@ public class FormTemplateService {
             .name(dto.getName())
             .content(dto.getContent())
             .isActive(true)
+            .fieldSchema(dto.getFieldSchema())
             .build();
 
         return formTemplateRepository.save(form);
@@ -96,11 +140,32 @@ public class FormTemplateService {
         FormTemplate form = formTemplateRepository.findByFormTemplateIdAndCompany(id, company)
             .orElseThrow(() -> new BusinessException(ErrorCode.FORM_TEMPLATE_NOT_FOUND));
 
-        form.setName(dto.getName());
+        if (dto.getName() != null && !dto.getName().isBlank()) {
+            form.setName(dto.getName());
+        }
         form.setContent(dto.getContent());
         form.setActive(dto.isActive());
+        // fieldSchema 는 null 일 때 그대로 유지 — A안 단계에선 화면에서 채우지 않음.
+        if (dto.getFieldSchema() != null) {
+            form.setFieldSchema(dto.getFieldSchema());
+        }
 
         return form;
+    }
+
+    /** 회사 양식 삭제. 시스템 디폴트는 삭제 불가 (회사 사본만 본인 회사 권한으로 삭제 가능). */
+    @Transactional
+    public void deleteTemplate(MemberSession ms, Long id) {
+        if (!ms.isAdmin()) {
+            throw new BusinessException(ErrorCode.NO_AUTHORITY);
+        }
+        Company company = companyRepository.findById(ms.getCompanyId())
+            .orElseThrow(() -> new BusinessException(ErrorCode.COMPANY_NOT_FOUND));
+
+        FormTemplate form = formTemplateRepository.findByFormTemplateIdAndCompany(id, company)
+            .orElseThrow(() -> new BusinessException(ErrorCode.FORM_TEMPLATE_NOT_FOUND));
+
+        formTemplateRepository.delete(form);
     }
 
     // 시스템 디폴트를 회사 스코프로 복사 (커스터마이즈 진입점)
@@ -126,6 +191,7 @@ public class FormTemplateService {
             .name(systemDefault.getName())
             .content(systemDefault.getContent())
             .isActive(true)
+            .fieldSchema(systemDefault.getFieldSchema())
             .build();
 
         return formTemplateRepository.save(fork);

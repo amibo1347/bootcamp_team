@@ -187,3 +187,54 @@ export function getApprovalDetail(approvalId) {
     () => mockGetApprovalDetail(approvalId),
   );
 }
+
+// ===== Admin: 양식 관리 =====
+// admin 엔드포인트는 Mock 폴백 없이 실 API 만 호출 (관리자 페이지에서만 사용).
+
+const ADMIN_TEMPLATE_BASE = `${APPROVAL_API_BASE}/admin/form-templates`;
+
+/** 관리자용 전체 양식 목록 (회사 양식 + fork 안 한 시스템 디폴트, 비활성 포함). */
+export function listAdminFormTemplates() {
+  return fetchJsonGet(ADMIN_TEMPLATE_BASE);
+}
+
+/**
+ * 관리자용 단건 조회.
+ * @param {number|string} id
+ */
+export function getAdminFormTemplate(id) {
+  return fetchJsonGet(`${ADMIN_TEMPLATE_BASE}/${encodeURIComponent(String(id))}`);
+}
+
+/**
+ * 시스템 디폴트 → 회사 사본 복사 (커스터마이즈 진입).
+ * @param {string} formCode
+ */
+export function forkFormTemplate(formCode) {
+  return fetchJsonPost(`${ADMIN_TEMPLATE_BASE}/fork`, { formCode });
+}
+
+/**
+ * 새 양식 생성.
+ * @param {{ formCode: string, name: string, content?: string, fieldSchema?: string|null }} dto
+ */
+export function createFormTemplate(dto) {
+  return fetchJsonPost(ADMIN_TEMPLATE_BASE, dto);
+}
+
+/**
+ * 양식 수정 (회사 사본만 가능).
+ * @param {number|string} id
+ * @param {{ name?: string, content?: string, isActive?: boolean, fieldSchema?: string|null }} dto
+ */
+export function updateFormTemplate(id, dto) {
+  return fetchJsonPost(`${ADMIN_TEMPLATE_BASE}/${encodeURIComponent(String(id))}`, dto);
+}
+
+/**
+ * 양식 삭제 (회사 사본만 가능 — 시스템 디폴트는 다시 노출됨).
+ * @param {number|string} id
+ */
+export function deleteFormTemplate(id) {
+  return fetchJsonPost(`${ADMIN_TEMPLATE_BASE}/${encodeURIComponent(String(id))}/delete`, {});
+}

@@ -11,9 +11,11 @@ public interface FormTemplateRepository extends JpaRepository<FormTemplate, Long
     Optional<FormTemplate> findByCompanyAndFormCode(Company company, String formCode);
     Optional<FormTemplate> findByFormTemplateIdAndCompany(Long formTemplateId, Company company);
     List<FormTemplate> findAllByCompanyAndIsActiveTrue(Company company);
+    List<FormTemplate> findAllByCompany(Company company); // 관리자 목록 — 비활성 포함
     boolean existsByCompanyAndFormCode(Company company, String formCode);
 
     // 시스템 디폴트 양식 (company_id IS NULL)
     Optional<FormTemplate> findByCompanyIsNullAndFormCode(String formCode);
     List<FormTemplate> findAllByCompanyIsNullAndIsActiveTrue();
+    List<FormTemplate> findAllByCompanyIsNull(); // 관리자 목록 — 비활성 포함
 }

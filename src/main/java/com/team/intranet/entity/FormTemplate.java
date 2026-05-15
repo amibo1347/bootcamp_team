@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -43,6 +44,12 @@ public class FormTemplate {
 
     @Column(name = "is_active", nullable = false)
     private boolean isActive;   // 노출 여부(false면 선택에서 숨김)
+
+    // B안(필드 동적 커스터마이즈) 진입을 위해 미리 추가. A안 단계에선 항상 null.
+    // 비어 있으면 formCode(VACATION/GENERIC/EXPENSE)에 맞는 기본 필드를 사용.
+    @Lob
+    @Column(name = "field_schema", columnDefinition = "CLOB")
+    private String fieldSchema;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id")

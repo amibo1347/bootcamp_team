@@ -1,0 +1,172 @@
+<!doctype html>
+<!-- ================================================================ -->
+<!-- [결재 양식 관리] admin 전용. 시스템 디폴트는 fork, 회사 사본은 수정·삭제 -->
+<!-- ================================================================ -->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <title>결재 양식 관리</title>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+    <style>
+        /* 부서/직급 페이지와 동일 — Tailwind 빌드 여부와 무관하게 적용 */
+        .btn-delete-hover:hover {
+            background-color: #fda4af;
+        }
+    </style>
+</head>
+
+<body
+    x-data="{ page: 'approvalTemplates', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-init="
+         darkMode = JSON.parse(localStorage.getItem('darkMode'));
+         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}"
+    th:attr="data-is-admin=${session.memberSession != null and session.memberSession.isAdmin()},
+             data-member-id=${session.memberSession != null ? session.memberSession.memberId : ''}">
+
+    <!-- ===== 로딩 화면 ===== -->
+    <div th:replace="~{partials/preloader}"></div>
+
+    <!-- ===== Page Wrapper Start ===== -->
+    <div class="flex h-screen overflow-hidden">
+        <!-- ===== 사이드바 ===== -->
+        <div th:replace="~{partials/sidebar}"></div>
+
+        <!-- ===== Content Area Start ===== -->
+        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+            <div th:replace="~{partials/overlay}"></div>
+            <div th:replace="~{partials/header}"></div>
+
+            <!-- ===== Main Content Start ===== -->
+            <main class="p-8 space-y-8">
+                <h2 class="ml-2 text-2xl font-black text-gray-900 dark:text-white">결재 양식 관리</h2>
+
+                <!-- [상단 안내 + 신규 생성 진입] -->
+                <section
+                    class="p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark flex flex-wrap items-center justify-between gap-6">
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">양식 생성·커스터마이즈</h2>
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-300">
+                            시스템 디폴트 양식(휴가/지출/일반)은 직접 수정할 수 없습니다. <span class="font-medium text-indigo-500">"복사하여 커스터마이즈"</span>로 회사 사본을 만든 뒤 수정해 주세요.
+                        </p>
+                    </div>
+
+                    <button type="button" id="approval-template-create"
+                        class="px-8 py-3 bg-indigo-400 text-white font-medium rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm flex-shrink-0">
+                        새 양식 만들기
+                    </button>
+                </section>
+
+                <!-- [양식 목록] -->
+                <section
+                    class="p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <h2 class="mb-6 text-xl font-semibold text-black dark:text-white">양식 목록</h2>
+
+                    <div
+                        class="flex min-h-[400px] flex-col rounded-xl border border-gray-400 dark:border-gray-700">
+                        <div class="flex-1" id="approval-template-list">
+                            <!-- JS 가 렌더링. 초기에는 placeholder 표시. -->
+                            <div id="approval-template-loading" class="p-20 text-center text-gray-400 dark:text-gray-300">
+                                불러오는 중...
+                            </div>
+                            <div id="approval-template-empty" class="hidden p-20 text-center text-gray-400 dark:text-gray-300">
+                                등록된 양식이 없습니다.
+                            </div>
+                        </div>
+                        <div class="flex-1 bg-white dark:bg-boxdark"></div>
+                    </div>
+                </section>
+            </main>
+            <!-- ===== Main Content End ===== -->
+        </div>
+        <!-- ===== Content Area End ===== -->
+    </div>
+    <!-- ===== Page Wrapper End ===== -->
+
+    <!-- ============================================================ -->
+    <!-- [모달] 양식 생성 / 수정 공통                                  -->
+    <!-- 캘린더 모달(calendar-event-modal.html)과 동일한 z-index/백드롭 패턴 -->
+    <!-- ============================================================ -->
+    <div id="approval-template-modal"
+        class="fixed inset-0 z-99999 hidden flex items-center justify-center overflow-y-auto p-4 sm:p-6"
+        role="dialog" aria-modal="true" aria-labelledby="approval-template-modal-title">
+
+        <!-- 배경 딤 -->
+        <div id="approval-template-modal-backdrop"
+            class="fixed inset-0 z-0 bg-gray-900/40 backdrop-blur-sm dark:bg-gray-950/60"></div>
+
+        <!-- 패널 -->
+        <div class="relative z-10 flex w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-stroke bg-white shadow-2xl ring-1 ring-black/5 dark:border-strokedark dark:bg-boxdark dark:ring-white/10"
+            style="max-height: min(92vh, 720px)">
+
+            <!-- 헤더 -->
+            <header class="flex shrink-0 items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
+                <h3 id="approval-template-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white sm:text-xl">양식 수정</h3>
+                <button type="button" id="approval-template-modal-close" aria-label="닫기"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none">×</button>
+            </header>
+
+            <!-- 본문 (스크롤) -->
+            <div class="min-h-0 flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+                <form id="approval-template-form" class="space-y-5">
+                    <input type="hidden" id="template-id" />
+
+                    <div>
+                        <label for="template-form-code" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                            양식 코드 <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="text" id="template-form-code" placeholder="예: VACATION, BUSINESS_TRIP"
+                            class="h-12 w-full rounded-lg border border-gray-400 bg-white px-4 text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-300 dark:border-gray-600 dark:bg-meta-4 dark:text-white dark:placeholder:text-gray-300" />
+                        <p class="mt-1 text-xs text-gray-400">알파벳·숫자·언더스코어만 가능. 회사 안에서 중복 불가. 생성 후 수정 불가.</p>
+                    </div>
+
+                    <div>
+                        <label for="template-name" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                            양식명 <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="text" id="template-name" placeholder="예: 휴가 신청서"
+                            class="h-12 w-full rounded-lg border border-gray-400 bg-white px-4 text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-300 dark:border-gray-600 dark:bg-meta-4 dark:text-white dark:placeholder:text-gray-300" />
+                    </div>
+
+                    <div>
+                        <label for="template-content" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">설명</label>
+                        <textarea id="template-content" rows="3" placeholder="양식에 대한 설명을 입력하세요. (선택)"
+                            class="w-full rounded-lg border border-gray-400 bg-white px-4 py-3 text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-300 dark:border-gray-600 dark:bg-meta-4 dark:text-white dark:placeholder:text-gray-300"></textarea>
+                    </div>
+
+                    <label class="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                        <input type="checkbox" id="template-is-active" checked
+                            class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer" />
+                        노출 활성화 (체크 해제 시 신청 위저드에서 숨겨집니다)
+                    </label>
+
+                    <p id="approval-template-message" class="hidden text-sm text-rose-500" role="status"></p>
+                </form>
+            </div>
+
+            <!-- 푸터 -->
+            <footer class="flex shrink-0 items-center justify-end gap-3 border-t border-gray-100 px-6 py-4 dark:border-gray-800">
+                <button type="button" id="approval-template-modal-cancel"
+                    class="px-8 py-2.5 bg-gray-200 font-medium text-gray-500 rounded-xl shadow-sm transition-all hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+                    취소
+                </button>
+                <button type="button" id="approval-template-submit"
+                    class="px-8 py-2.5 bg-indigo-400 text-white font-medium rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm">
+                    저장
+                </button>
+            </footer>
+        </div>
+    </div>
+
+    <script type="module" src="/js/index.js"></script>
+    <script type="module" src="/js/approval/admin/template-manage.js"></script>
+</body>
+
+</html>
