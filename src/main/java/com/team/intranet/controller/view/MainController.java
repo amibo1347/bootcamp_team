@@ -11,7 +11,9 @@ import com.team.intranet.session.MemberSession;
 public class MainController {
 
     @GetMapping({ "/", "/index", "" })
-    public String index() {
+    public String index(Model model) {
+        // 출퇴근 카드(fragments-attendance) Thymeleaf 표현식용 — 실제 출근 여부는 추후 서비스에서 설정
+        model.addAttribute("hasTodayCheckIn", Boolean.FALSE);
         return "index";
     }
 

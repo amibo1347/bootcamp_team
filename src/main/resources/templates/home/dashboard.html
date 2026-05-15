@@ -1,31 +1,51 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-  <body>
-    <!--
+
+<body>
+  <!--
       [홈 대시보드] 2×2 그리드 조립
       - 상단: 출퇴근 | 공지 / 하단: 오늘 일정 | 주간
       - gap은 넉넉하되 한 단계씩 조밀하게, 그리드 행은 minmax(0,1fr)로 동일 비율·No-Scroll(min-h-0)
     -->
+  <div th:fragment="mainDashboard" class="flex w-full min-w-0 min-h-0 max-lg:h-auto flex-col lg:h-full" id="home-dashboard-root">
+    <!-- 카드 블록: max-w로 가로 살짝 축소·화면 중앙 정렬 (No-Scroll 체인 유지) -->
     <div
-      th:fragment="mainDashboard"
-      class="flex h-full min-h-0 flex-col"
-      id="home-dashboard-root"
-    >
-      <!-- 카드 블록: max-w로 가로 살짝 축소·화면 중앙 정렬 (No-Scroll 체인 유지) -->
+      class="mx-auto flex w-full min-w-0 min-h-0 max-w-[min(100%,46rem)] max-lg:flex-none flex-col sm:max-w-[min(100%,50rem)] lg:max-w-[min(100%,56rem)] lg:flex-1 xl:max-w-[min(100%,60rem)]">
       <div
-        class="mx-auto flex min-h-0 flex-1 flex-col w-full max-w-[min(100%,46rem)] sm:max-w-[min(100%,50rem)] lg:max-w-[min(100%,56rem)] xl:max-w-[min(100%,60rem)]"
-      >
-        <div
-          class="grid min-h-0 flex-1 grid-cols-1 grid-rows-[repeat(4,minmax(0,1fr))] gap-5 sm:gap-6 lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-6 xl:gap-8"
-        >
-          <div th:replace="~{home/fragments-attendance :: attendanceCard}"></div>
-          <div th:replace="~{home/fragments-notice :: noticeCard}"></div>
-          <div th:replace="~{home/fragments-today :: todayCard}"></div>
-          <div th:replace="~{home/fragments-week :: weekCard}"></div>
+        class="grid min-h-0 w-full min-w-0 grid-cols-1 gap-5 max-lg:auto-rows-auto max-lg:grid-rows-[repeat(4,auto)] max-lg:flex-none sm:gap-6 lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:flex-1 lg:gap-6 xl:gap-8">
+        <!-- 좌상단 열: 유저 스트립(flex-1로 남는 높이 흡수) + 출퇴근 카드(shrink-0, 내용 높이만) -->
+        <div class="flex min-h-0 min-w-0 max-lg:h-auto flex-col gap-1.5 lg:h-full">
+          <div th:if="${session != null and session.memberSession != null}"
+            class="flex min-h-[3rem] flex-1 flex-col justify-center rounded-lg border border-gray-200 bg-gray-50/90 px-3 py-3 dark:border-gray-600 dark:bg-gray-900/40">
+            <!-- [유저 요약] 한 줄: 이름(강조) → 직급 → 부서 / flex-row + items-baseline -->
+            <p class="flex w-full min-w-0 flex-row flex-nowrap items-baseline justify-start gap-x-1.5">
+              <span
+                class="shrink-0 text-xl font-bold leading-snug text-gray-900 dark:text-white sm:text-2xl"
+                th:text="${session.memberSession.name}"
+                >이름</span>
+              <span
+                class="shrink-0 text-xs font-normal leading-snug text-gray-500 dark:text-gray-400 sm:text-sm"
+                th:if="${session.memberSession.positionName != null}"
+                th:text="${session.memberSession.positionName}">직급</span>
+              <span
+                class="min-w-0 truncate text-xs font-normal leading-snug text-gray-500 dark:text-gray-400 sm:text-sm"
+                th:if="${session.memberSession.deptName != null}" th:text="${session.memberSession.deptName}">부서</span>
+            </p>
+          </div>
+          <div th:unless="${session != null and session.memberSession != null}" class="min-h-0 flex-1"
+            aria-hidden="true"></div>
+          <div class="shrink-0">
+            <div th:replace="~{home/fragments-attendance :: attendanceCard}"></div>
+          </div>
         </div>
+        <div th:replace="~{home/fragments-notice :: noticeCard}"></div>
+        <div th:replace="~{home/fragments-today :: todayCard}"></div>
+        <div th:replace="~{home/fragments-week :: weekCard}"></div>
       </div>
-
-      <div th:replace="~{home/fragments-inbox :: floatingInbox}"></div>
     </div>
-  </body>
+
+    <div th:replace="~{home/fragments-inbox :: floatingChat}"></div>
+  </div>
+</body>
+
 </html>

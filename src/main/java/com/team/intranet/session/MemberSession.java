@@ -24,6 +24,7 @@ import lombok.Getter;
         private final Long positionId;       // 직급 id
         private final Integer positionLevel;    // 직급 레벨 (추가)
         private final Long deptId;          // 부서 id (추가)
+        private final String deptName;    // 부서명 (대시보드 등 표시용)
 
         // 엔티티를 세션 객체로 변환하는 생성자
         public MemberSession(Member member) {
@@ -38,6 +39,7 @@ import lombok.Getter;
             this.positionName = member.getPosition().getPositionName();
             this.positionLevel = member.getPosition().getPositionLevel();
             this.deptId = member.getDept() != null ? member.getDept().getDeptId() : null;
+            this.deptName = member.getDept() != null ? member.getDept().getDeptName() : null;
         }
 
     public boolean isAdmin() {
