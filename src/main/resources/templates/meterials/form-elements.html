@@ -1572,7 +1572,8 @@
         };
       }
     </script>
-</body>
+    <th:block th:replace="~{partials/floating-chat :: floatingChatGlobal}"></th:block>
     <script type="module" src="/js/index.js"></script>
+    <script type="module" th:src="@{/js/floating-chat.js}"></script>
   </body>
 </html>

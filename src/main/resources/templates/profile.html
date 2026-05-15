@@ -405,6 +405,8 @@
   <div th:replace="~{partials/profile/profile-info-modal}"></div>
   <div th:replace="~{partials/profile/profile-address-modal}"></div>
     <!-- END MODAL -->
+    <th:block th:replace="~{partials/floating-chat :: floatingChatGlobal}"></th:block>
     <script type="module" src="/js/index.js"></script>
+    <script type="module" th:src="@{/js/floating-chat.js}"></script>
   </body>
 </html>

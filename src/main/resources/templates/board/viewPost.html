@@ -149,7 +149,9 @@
         </div>
     </div>
 
+    <th:block th:replace="~{partials/floating-chat :: floatingChatGlobal}"></th:block>
     <script type="module" src="/js/index.js"></script>
+    <script type="module" th:src="@{/js/floating-chat.js}"></script>
     <script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
     <script src="/js/board/detail.js"></script>
     <script src="/js/board/comments.js"></script>
