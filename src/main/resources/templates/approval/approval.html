@@ -29,6 +29,36 @@
       -webkit-appearance: auto;
       appearance: auto;
     }
+
+    /* [B안] 동적 양식 — 12 컬럼 그리드. admin 캔버스의 (row, col, span) 좌표를 그대로 신청 화면에서 재현. */
+    [data-approval-form-section="DYNAMIC"] {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+      grid-auto-rows: minmax(76px, auto);
+    }
+    [data-approval-form-section="DYNAMIC"].hidden {
+      display: none;
+    }
+    /* 모바일: 1 컬럼 stack. inline grid-column 보다 specificity 높이려고 !important. */
+    @media (max-width: 640px) {
+      [data-approval-form-section="DYNAMIC"] > * {
+        grid-column: 1 / -1 !important;
+        grid-row: auto !important;
+      }
+    }
+
+    /* 결재 상세 모달의 동적 본문 — 동일 12 컬럼 그리드 */
+    .approval-detail-dynamic-body {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 640px) {
+      .approval-detail-dynamic-body > * {
+        grid-column: 1 / -1 !important;
+      }
+    }
   </style>
 </head>
 

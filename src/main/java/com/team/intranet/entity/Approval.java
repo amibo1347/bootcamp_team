@@ -50,9 +50,14 @@ public class Approval {
 
     @Column(name = "processed_at")
     private LocalDateTime processedAt; // 결재자가 승인/반려를 처리한 시간
-    
+
     @ManyToOne
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
+    // B안: 결재 시점 양식 schema 스냅샷 (JSON). 양식이 나중에 수정·삭제돼도 결재 본문 렌더는 원형 유지.
+    // 시스템 디폴트(VACATION/GENERIC/EXPENSE) 결재는 NULL — 기존 fixed 본문 테이블 분기로 처리.
+    @Lob
+    @Column(name = "schema_snapshot", columnDefinition = "CLOB")
+    private String schemaSnapshot;
 }

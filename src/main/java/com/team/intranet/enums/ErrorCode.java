@@ -85,7 +85,7 @@ public enum ErrorCode {
     // 결재
     FORM_TEMPLATE_NOT_FOUND(404, "해당 결재 양식을 찾을 수 없습니다"),
     FORM_TEMPLATE_INACTIVE(400, "비활성 상태인 결재 양식입니다"),
-    DUPLICATE_FORM_CODE(409, "이미 존재하는 양식 코드입니다"),
+    DUPLICATE_FORM_CODE(409, "이미 사용 중인 양식 코드입니다. 시스템 양식이면 '복사하여 커스터마이즈'를 사용하세요"),
     
     APPROVAL_NOT_FOUND(404, "해당 결재 문서를 찾을 수 없습니다"),
     APPROVAL_ALREADY_PROCESSED(409, "이미 처리된 결재 문서입니다"),

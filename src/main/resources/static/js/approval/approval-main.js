@@ -6,9 +6,14 @@
 
 import * as approvalClient from './api/approval-client.js';
 import { renderApprovalStatusBadge } from './common/status-badges.js';
+import {
+  renderApproverCell,
+  bindApproverDropdownToggle,
+} from './common/approver-cell.js';
 import { initMyInbox } from './user/my-inbox.js';
 import { initApprovalWizard } from './user/wizard-controller.js';
 import { populateVacationTypeOptions } from './forms/vacation-form.js';
+import { openApprovalDetailModal } from './user/approval-detail-modal.js';
 
 /** @type {{ refresh: () => Promise<void> }|null} */
 let myInboxController = null;
@@ -63,8 +68,14 @@ async function refreshPending() {
     tr.dataset.approvalId = String(row.approvalId);
     tr.innerHTML = `
       <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-800 dark:text-gray-200">${escapeHtml(row.approvalId)}</td>
-      <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">${escapeHtml(row.title)}</td>
+      <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(row.formCode || '')}</td>
+      <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
+        <button type="button" class="approval-detail-trigger text-left underline-offset-2 hover:underline">${escapeHtml(row.title)}</button>
+      </td>
       <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">${escapeHtml(row.drafterName)}</td>
+      <td class="px-4 py-3">${renderApprovalStatusBadge(String(row.status || ''))}</td>
+      ${renderApproverCell(row)}
+      <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(formatDateTime(row.draftedAt))}</td>
       <td class="px-4 py-3">
         <div class="flex flex-wrap gap-1">
           <button type="button" data-act="APPROVE" class="approval-act rounded bg-emerald-600 px-2 py-1 text-xs text-white hover:bg-emerald-700">승인</button>
@@ -109,15 +120,34 @@ function renderCompletedRows(filterValue) {
   tbody.innerHTML = '';
   rows.forEach((row) => {
     const tr = document.createElement('tr');
+    tr.dataset.approvalId = String(row.approvalId);
     const commentRaw = typeof row.approverComment === 'string' ? row.approverComment.trim() : '';
     const commentTrunc = commentRaw.length > 18 ? `${commentRaw.slice(0, 18)}…` : commentRaw;
     const commentCell = commentRaw
       ? `<td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-300" title="${escapeHtml(commentRaw)}">${escapeHtml(commentTrunc)}</td>`
       : `<td class="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">—</td>`;
+
+    // 신청자 셀 — 사진 + 이름만 (부서/직급 없음)
+    const drafterId = row.drafterMemberId;
+    const drafterImg = drafterId != null
+      ? `<img src="/api/member/${encodeURIComponent(String(drafterId))}/profileImg" alt="" class="h-8 w-8 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700" />`
+      : '';
+    const drafterCell = `
+      <td class="px-4 py-3">
+        <div class="flex items-center gap-2">
+          ${drafterImg}
+          <span class="truncate text-sm text-gray-800 dark:text-gray-200">${escapeHtml(row.drafterName || '')}</span>
+        </div>
+      </td>`;
+
     tr.innerHTML = `
       <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-800 dark:text-gray-200">${escapeHtml(row.approvalId)}</td>
-      <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">${escapeHtml(row.title)}</td>
+      <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
+        <button type="button" class="approval-detail-trigger text-left underline-offset-2 hover:underline">${escapeHtml(row.title)}</button>
+      </td>
+      ${drafterCell}
       <td class="px-4 py-3">${renderApprovalStatusBadge(String(row.status || ''))}</td>
+      ${renderApproverCell(row)}
       ${commentCell}
       <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(formatDateTime(row.processedAt))}</td>`;
     tbody.appendChild(tr);
@@ -168,9 +198,42 @@ function bindEvents() {
     renderCompletedRows(value);
   });
 
+  // 완료함 결재자 셀 클릭 → 단계별 드롭다운(오버레이) 토글
+  const completedBody = document.getElementById('approval-completed-body');
+  if (completedBody instanceof HTMLElement) {
+    bindApproverDropdownToggle(completedBody);
+  }
+
+  // 대기함도 결재선 셀 드롭다운 토글 활성화 (새 컬럼)
+  const pendingBody = document.getElementById('approval-pending-body');
+  if (pendingBody instanceof HTMLElement) {
+    bindApproverDropdownToggle(pendingBody);
+  }
+
+  // 완료함 행 제목 클릭 → 상세 모달
+  document.getElementById('approval-completed-body')?.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const trigger = target.closest('.approval-detail-trigger');
+    if (!(trigger instanceof HTMLElement)) return;
+    const row = trigger.closest('tr');
+    const id = Number(row?.dataset.approvalId);
+    if (Number.isFinite(id)) openApprovalDetailModal(id);
+  });
+
   document.getElementById('approval-pending-body')?.addEventListener('click', async (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
+
+    // 제목 클릭 → 상세 모달 (액션 버튼보다 먼저 처리)
+    const detailTrigger = target.closest('.approval-detail-trigger');
+    if (detailTrigger instanceof HTMLElement) {
+      const row = detailTrigger.closest('tr');
+      const id = Number(row?.dataset.approvalId);
+      if (Number.isFinite(id)) openApprovalDetailModal(id);
+      return;
+    }
+
     const actionButton = target.closest('.approval-act');
     if (!(actionButton instanceof HTMLElement)) return;
 
@@ -224,6 +287,15 @@ async function initializeApprovalPage() {
         await refreshCompleted();
       },
     });
+
+    // URL hash 기반 초기 탭 진입 (예: /approval#pending — 결재 신청 알림 클릭 경로)
+    const hash = (window.location.hash || '').replace('#', '');
+    if (hash && ['wizard', 'my', 'pending', 'completed'].includes(hash)) {
+      activateTab(/** @type {'wizard'|'my'|'pending'|'completed'} */ (hash));
+      if (hash === 'my') void myInboxController?.refresh();
+      if (hash === 'pending') void refreshPending();
+      if (hash === 'completed') void refreshCompleted();
+    }
   } catch (error) {
     console.error('[approval-main] 초기 로드 실패', error);
   }

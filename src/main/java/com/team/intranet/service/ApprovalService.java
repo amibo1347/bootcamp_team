@@ -2,13 +2,19 @@ package com.team.intranet.service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.team.intranet.dto.approval.ApprovalDetailResponse;
 import com.team.intranet.dto.approval.ApprovalListResponse;
 import com.team.intranet.dto.approval.ApprovalPageResponse;
 import com.team.intranet.dto.approval.ApprovalProcessRequest;
@@ -21,6 +27,7 @@ import com.team.intranet.dto.approval.ExpensePayload;
 import com.team.intranet.dto.approval.GenericPayload;
 import com.team.intranet.dto.approval.VacationPayload;
 import com.team.intranet.entity.Approval;
+import com.team.intranet.entity.ApprovalFieldValue;
 import com.team.intranet.entity.ApprovalLine;
 import com.team.intranet.entity.Calendar;
 import com.team.intranet.entity.ExpenseRequest;
@@ -35,6 +42,7 @@ import com.team.intranet.enums.Visibility;
 import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.Status;
 import com.team.intranet.exception.BusinessException;
+import com.team.intranet.repository.ApprovalFieldValueRepository;
 import com.team.intranet.repository.ApprovalLineRepository;
 import com.team.intranet.repository.ApprovalRepository;
 import com.team.intranet.repository.CalendarRepository;
@@ -66,6 +74,8 @@ public class ApprovalService {
     private final MemberRepository memberRepository;
     private final CalendarRepository calendarRepository;
     private final AlertService alertService;
+    private final ApprovalFieldValueRepository fieldValueRepository;
+    private final ObjectMapper objectMapper;
 
     // ===== Submit =====
 
@@ -140,12 +150,19 @@ public class ApprovalService {
                 .build());
         }
 
-        String code = template.getFormCode() == null ? "" : template.getFormCode().toUpperCase();
-        switch (code) {
-            case "VACATION" -> saveVacationBody(approval, req.getVacation());
-            case "GENERIC"  -> saveGenericBody(approval, req.getGeneric());
-            case "EXPENSE"  -> saveExpenseBody(approval, req.getExpense());
-            default -> { /* 본문 없는 양식이면 헤더만 저장 */ }
+        // 본문 분기:
+        //  - 회사 사본 + fieldSchema 있는 양식 = B안 동적 경로 (스냅샷 캡처 + 필드값 저장)
+        //  - 그 외 = 시스템 디폴트 fixed 본문 분기
+        if (isDynamicTemplate(template)) {
+            saveDynamicBody(approval, template, req.getDynamicFields());
+        } else {
+            String code = template.getFormCode() == null ? "" : template.getFormCode().toUpperCase();
+            switch (code) {
+                case "VACATION" -> saveVacationBody(approval, req.getVacation());
+                case "GENERIC"  -> saveGenericBody(approval, req.getGeneric());
+                case "EXPENSE"  -> saveExpenseBody(approval, req.getExpense());
+                default -> { /* 본문 없는 양식이면 헤더만 저장 */ }
+            }
         }
 
         // 1단계 결재자에게 알림 발송. 알림이 실패해도 결재 저장은 영향 없도록 호출 측에서도 흡수.
@@ -205,6 +222,7 @@ public class ApprovalService {
                     if ("VACATION".equalsIgnoreCase(approval.getFormTemplate().getFormCode())) {
                         registerVacationOnCalendar(approval);
                     }
+                    sendResultAlertSafe(approval, ms.getMemberId(), "승인");
                 } else {
                     int nextLevel = approval.getCurrentLevel() + 1;
                     ApprovalLine nextLine = approvalLineRepository
@@ -232,9 +250,25 @@ public class ApprovalService {
                 currentLine.setStatus(ApprovalStatus.REJECTED);
                 currentLine.setProcessedAt(now);
                 currentLine.setComment(req.getComment());
+
+                // 반려 전파: 현재 단계 이후의 PENDING line 들도 REJECTED 로 일괄 변경
+                // (드롭다운에 "대기" 로 남아 있는 시각적 불일치 방지)
+                int currentLevelInt = approval.getCurrentLevel();
+                List<ApprovalLine> allLines = approvalLineRepository
+                    .findByApproval_ApprovalIdOrderByLevelAsc(approval.getApprovalId());
+                for (ApprovalLine line : allLines) {
+                    if (line.getLevel() != null
+                        && line.getLevel() > currentLevelInt
+                        && line.getStatus() == ApprovalStatus.PENDING) {
+                        line.setStatus(ApprovalStatus.REJECTED);
+                        line.setProcessedAt(now);
+                    }
+                }
+
                 approval.setStatus(ApprovalStatus.REJECTED);
                 approval.setApproverComment(req.getComment());
                 approval.setProcessedAt(now);
+                sendResultAlertSafe(approval, ms.getMemberId(), "반려");
             }
             case "HOLD" -> {
                 currentLine.setStatus(ApprovalStatus.ON_HOLD);
@@ -243,11 +277,60 @@ public class ApprovalService {
                 approval.setStatus(ApprovalStatus.ON_HOLD);
                 approval.setApproverComment(req.getComment());
                 approval.setProcessedAt(now);
+                sendResultAlertSafe(approval, ms.getMemberId(), "보류");
             }
             default -> throw new BusinessException(ErrorCode.INVALID_STATUS);
         }
 
         return new ApprovalProcessResponse(true, approval.getApprovalId(), approval.getStatus());
+    }
+
+    // ===== Detail =====
+
+    /**
+     * 결재 단건 상세. 권한: 기안자 본인 또는 결재선에 포함된 결재자.
+     * 양식별 본문(휴가/일반/지출)을 분기 조회하여 응답에 동봉한다.
+     */
+    public ApprovalDetailResponse getApprovalDetail(MemberSession ms, Long approvalId) {
+        if (approvalId == null) {
+            throw new BusinessException(ErrorCode.APPROVAL_NOT_FOUND);
+        }
+        Approval approval = approvalRepository.findById(approvalId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.APPROVAL_NOT_FOUND));
+
+        List<ApprovalLine> lines = approvalLineRepository
+            .findByApproval_ApprovalIdOrderByLevelAsc(approvalId);
+
+        Long me = ms.getMemberId();
+        boolean isDrafter = approval.getDrafter() != null
+            && me.equals(approval.getDrafter().getMemberId());
+        boolean isApproverOnLine = lines.stream()
+            .anyMatch(l -> l.getApprover() != null && me.equals(l.getApprover().getMemberId()));
+        if (!isDrafter && !isApproverOnLine) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        // 동적 본문 결재(B안): schemaSnapshot 이 있으면 양식 후속 변경과 무관하게 그 스냅샷 + 필드값으로 응답.
+        if (approval.getSchemaSnapshot() != null && !approval.getSchemaSnapshot().isBlank()) {
+            List<ApprovalFieldValue> values = fieldValueRepository
+                .findByApproval_ApprovalIdOrderByFieldValueIdAsc(approvalId);
+            return ApprovalDetailResponse.ofDynamic(approval, lines, values);
+        }
+
+        String code = approval.getFormTemplate().getFormCode() == null
+            ? "" : approval.getFormTemplate().getFormCode().toUpperCase();
+
+        VacationRequest vacation = "VACATION".equals(code)
+            ? vacationRepository.findByApproval_ApprovalId(approvalId).orElse(null)
+            : null;
+        GenericRequest generic = "GENERIC".equals(code)
+            ? genericRequestRepository.findByApproval_ApprovalId(approvalId).orElse(null)
+            : null;
+        ExpenseRequest expense = "EXPENSE".equals(code)
+            ? expenseRequestRepository.findByApproval_ApprovalId(approvalId).orElse(null)
+            : null;
+
+        return ApprovalDetailResponse.of(approval, lines, vacation, generic, expense);
     }
 
     // ===== Lists =====
@@ -269,7 +352,8 @@ public class ApprovalService {
         long total = all.size();
         int from = Math.min((p - 1) * DEFAULT_PAGE_SIZE, all.size());
         int to = Math.min(from + DEFAULT_PAGE_SIZE, all.size());
-        List<ApprovalRow> items = all.subList(from, to).stream().map(ApprovalRow::from).toList();
+        List<Approval> slice = all.subList(from, to);
+        List<ApprovalRow> items = toRowsWithLines(slice);
         int totalPages = (int) Math.max(1, Math.ceil((double) total / DEFAULT_PAGE_SIZE));
         return new ApprovalPageResponse(items, p, DEFAULT_PAGE_SIZE, total, totalPages);
     }
@@ -282,21 +366,36 @@ public class ApprovalService {
             .filter(a -> a.getStatus() == ApprovalStatus.PENDING
                 || a.getStatus() == ApprovalStatus.IN_PROGRESS)
             .toList();
-        List<ApprovalRow> items = rows.stream().map(ApprovalRow::from).toList();
+        List<ApprovalRow> items = toRowsWithLines(rows);
         return new ApprovalListResponse(items, items.size());
     }
 
-    // 관리자 완료함: 본인이 결재자였던 결재 중 APPROVED/REJECTED/ON_HOLD
+    // 관리자 완료함: 본인이 어느 단계든 처리한(승인/반려/보류) 결재.
+    // 1차 승인 후 다음 단계로 넘어간 IN_PROGRESS 도 포함 — "내가 승인한 이후 어떻게 진행되는지" 확인 용도.
     public ApprovalListResponse listCompletedForAdmin(MemberSession ms) {
-        List<ApprovalRow> items = approvalRepository
-            .findByApprover_MemberIdOrderByDraftedAtDesc(ms.getMemberId())
-            .stream()
-            .filter(a -> a.getStatus() == ApprovalStatus.APPROVED
-                || a.getStatus() == ApprovalStatus.REJECTED
-                || a.getStatus() == ApprovalStatus.ON_HOLD)
-            .map(ApprovalRow::from)
-            .toList();
+        List<Approval> rows = approvalRepository
+            .findProcessedByMember(ms.getMemberId(), ApprovalStatus.PENDING);
+        List<ApprovalRow> items = toRowsWithLines(rows);
         return new ApprovalListResponse(items, items.size());
+    }
+
+    /**
+     * Approval 목록을 ApprovalRow 로 변환하면서 결재선(ApprovalLine) 도 한 번의 IN 쿼리로 함께 로드.
+     * 결재함 행 클릭 시 단계별 결재자 드롭다운 노출에 사용된다.
+     */
+    private List<ApprovalRow> toRowsWithLines(List<Approval> approvals) {
+        if (approvals == null || approvals.isEmpty()) return List.of();
+        List<Long> ids = approvals.stream().map(Approval::getApprovalId).toList();
+        Map<Long, List<ApprovalLine>> linesByApproval = approvalLineRepository
+            .findByApproval_ApprovalIdInOrderByApproval_ApprovalIdAscLevelAsc(ids)
+            .stream()
+            .collect(Collectors.groupingBy(l -> l.getApproval().getApprovalId()));
+        return approvals.stream()
+            .map(a -> ApprovalRow.from(
+                a,
+                linesByApproval.getOrDefault(a.getApprovalId(), Collections.emptyList())
+            ))
+            .toList();
     }
 
     // ===== Approver Candidates =====
@@ -356,6 +455,25 @@ public class ApprovalService {
         Role finalRole = approvers.get(approvers.size() - 1).getRole();
         if (finalRole != Role.SUB_ADMIN && finalRole != Role.ADMIN && finalRole != Role.MASTER) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    /**
+     * 결재 결과(승인/반려/보류) 알림 발송. 알림 실패가 결재 트랜잭션을 깨지 않도록 try 로 흡수.
+     * REQUIRES_NEW 의 commit 시 발생할 수 있는 예외도 함께 잡는다.
+     */
+    private void sendResultAlertSafe(Approval approval, Long processorMemberId, String resultLabel) {
+        try {
+            alertService.sendApprovalResultAlert(
+                approval.getDrafter().getMemberId(),
+                processorMemberId,
+                approval.getFormTemplate().getName(),
+                approval.getTitle(),
+                resultLabel
+            );
+        } catch (Exception e) {
+            log.warn("APPROVAL_RESULT 알림 발송 실패 (approvalId={}, result={}): {}",
+                approval.getApprovalId(), resultLabel, e.getMessage());
         }
     }
 
@@ -436,6 +554,63 @@ public class ApprovalService {
             .reason(payload.getVacationType())
             .build();
         vacationRepository.save(v);
+    }
+
+    /** B안: 회사 사본 + fieldSchema 있는 양식이면 동적 경로 사용. */
+    private boolean isDynamicTemplate(FormTemplate t) {
+        return t.getCompany() != null
+            && t.getFieldSchema() != null
+            && !t.getFieldSchema().isBlank();
+    }
+
+    /**
+     * B안 동적 본문 저장:
+     *  1. 양식의 fieldSchema 를 결재 문서에 스냅샷으로 박아둠 (양식 수정·삭제와 무관하게 원형 유지)
+     *  2. fieldSchema 의 각 필드에 대해 required 검증 후 ApprovalFieldValue 행으로 저장.
+     *     multi-select 처럼 값이 여러 개면 같은 field_key 로 여러 row.
+     */
+    private void saveDynamicBody(Approval approval, FormTemplate template,
+                                 Map<String, List<String>> dynamicFields) {
+        approval.setSchemaSnapshot(template.getFieldSchema());
+
+        List<Map<String, Object>> schema;
+        try {
+            schema = objectMapper.readValue(
+                template.getFieldSchema(),
+                new TypeReference<List<Map<String, Object>>>() {}
+            );
+        } catch (Exception e) {
+            log.warn("fieldSchema 파싱 실패 (templateId={}): {}",
+                template.getFormTemplateId(), e.getMessage());
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
+
+        Map<String, List<String>> values = dynamicFields == null ? Map.of() : dynamicFields;
+
+        for (Map<String, Object> field : schema) {
+            Object keyObj = field.get("key");
+            if (keyObj == null) continue;
+            String key = String.valueOf(keyObj);
+
+            Object requiredObj = field.get("required");
+            boolean required = requiredObj instanceof Boolean && (Boolean) requiredObj;
+
+            List<String> vals = values.getOrDefault(key, List.of()).stream()
+                .filter(v -> v != null && !v.isBlank())
+                .toList();
+
+            if (required && vals.isEmpty()) {
+                throw new BusinessException(ErrorCode.INVALID_STATUS);
+            }
+
+            for (String v : vals) {
+                fieldValueRepository.save(ApprovalFieldValue.builder()
+                    .approval(approval)
+                    .fieldKey(key)
+                    .fieldValue(v)
+                    .build());
+            }
+        }
     }
 
     // VacationType 자유 텍스트 입력을 enum 으로 매핑. 정확 일치 우선, description 부분 일치 fallback, ETC 최후.

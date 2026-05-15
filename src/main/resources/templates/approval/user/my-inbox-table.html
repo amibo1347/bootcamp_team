@@ -42,4 +42,17 @@
     </div>
   </div>
   <!-- [빈 상태] 끝 -->
+
+  <!-- [페이지네이션] 페이지 1개 이하일 때는 숨김 -->
+  <div id="approval-my-inbox-pagination" class="hidden items-center justify-center gap-2 pt-2">
+    <button type="button" id="approval-my-inbox-prev"
+      class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+      이전
+    </button>
+    <span id="approval-my-inbox-page-info" class="text-xs text-gray-500 dark:text-gray-400">1 / 1</span>
+    <button type="button" id="approval-my-inbox-next"
+      class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+      다음
+    </button>
+  </div>
 </div>

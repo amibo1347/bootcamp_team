@@ -233,7 +233,7 @@ public class AlertService {
             Alert alert = baseBuilder(Preface.APPROVAL_REQUEST, recipient)
                 .title(title)
                 .content("결재할 문서가 도착했습니다")
-                .link("/approval")
+                .link("/approval#pending")
                 .sender(sender)
                 .expiresAt(LocalDateTime.now().plusDays(14))
                 .build();
@@ -241,6 +241,42 @@ public class AlertService {
         } catch (Exception e) {
             log.warn("Failed to send APPROVAL_REQUEST alert (recipientId={}): {}",
                 recipientMemberId, e.getMessage());
+        }
+    }
+
+    /**
+     * 결재 처리 결과 알림 — 최종 처리(승인/반려/보류) 시 기안자에게 발송.
+     * resultLabel 예: "승인", "반려", "보류".
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void sendApprovalResultAlert(Long drafterMemberId, Long processorMemberId,
+                                        String formName, String approvalTitle,
+                                        String resultLabel) {
+        if (drafterMemberId == null) return;
+        if (processorMemberId != null && processorMemberId.equals(drafterMemberId)) return;
+
+        try {
+            Member recipient = memberRepository.findById(drafterMemberId).orElse(null);
+            if (recipient == null) return;
+            Member sender = processorMemberId != null
+                ? memberRepository.findById(processorMemberId).orElse(null)
+                : null;
+
+            String safeFormName = (formName == null || formName.isBlank()) ? "결재" : formName;
+            String safeResult = (resultLabel == null || resultLabel.isBlank()) ? "처리" : resultLabel;
+            String title = "[" + safeFormName + "] " + (approvalTitle == null ? "" : approvalTitle);
+
+            Alert alert = baseBuilder(Preface.APPROVAL_RESULT, recipient)
+                .title(title)
+                .content("결재가 " + safeResult + "되었습니다")
+                .link("/approval#my")
+                .sender(sender)
+                .expiresAt(LocalDateTime.now().plusDays(14))
+                .build();
+            alertRepository.save(alert);
+        } catch (Exception e) {
+            log.warn("Failed to send APPROVAL_RESULT alert (drafterId={}): {}",
+                drafterMemberId, e.getMessage());
         }
     }
 
@@ -270,37 +306,34 @@ public class AlertService {
         return alertRepository.countByRecipientAndIsReadFalse(me);
     }
 
+    /**
+     * 알림 "읽음" — 정책상 즉시 삭제.
+     * 댓글/답글 알림이면 같은 게시글의 다른 댓글·답글 알림도 일괄 삭제.
+     */
     @Transactional
     public void markAsRead(MemberSession ms, Long alertId) {
         Member me = loadMember(ms);
         Alert alert = alertRepository.findByAlertIdAndRecipient(alertId, me)
             .orElseThrow(() -> new BusinessException(ErrorCode.ALERT_NOT_FOUND));
-        LocalDateTime now = LocalDateTime.now();
-        if (!alert.isRead()) {
-            alert.setRead(true);
-            alert.setReadAt(now);
-        }
-        // 댓글/답글 알림이면 같은 게시글의 다른 댓글·답글 알림도 같이 읽음 처리
+
         if (alert.getArticle() != null
             && (alert.getPreface() == Preface.ARTICLE_COMMENT
                 || alert.getPreface() == Preface.COMMENT_REPLY)) {
-            alertRepository.markReadByRecipientAndArticleAndPrefaces(
+            alertRepository.deleteByRecipientAndArticleAndPrefaces(
                 me,
                 alert.getArticle().getArticleId(),
-                List.of(Preface.ARTICLE_COMMENT, Preface.COMMENT_REPLY),
-                now
+                List.of(Preface.ARTICLE_COMMENT, Preface.COMMENT_REPLY)
             );
+        } else {
+            alertRepository.delete(alert);
         }
     }
 
+    /** "전체 읽음" — 정책상 전체 삭제와 동일. */
     @Transactional
     public void markAllAsRead(MemberSession ms) {
         Member me = loadMember(ms);
-        LocalDateTime now = LocalDateTime.now();
-        alertRepository.findByRecipientAndIsReadFalseOrderByCreatedAtDesc(me).forEach(a -> {
-            a.setRead(true);
-            a.setReadAt(now);
-        });
+        alertRepository.deleteAllByRecipient(me);
     }
 
     @Transactional

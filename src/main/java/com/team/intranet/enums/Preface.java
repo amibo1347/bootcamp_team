@@ -11,7 +11,8 @@ public enum Preface {
     ARTICLE_COMMENT("[새 댓글]"),
     COMMENT_REPLY("[답글]"),
     CALENDAR_ALERT("[일정 알림]"),
-    APPROVAL_REQUEST("[결재 요청]");
+    APPROVAL_REQUEST("[결재 요청]"),
+    APPROVAL_RESULT("[결재 결과]");
 
     private final String label;
 }

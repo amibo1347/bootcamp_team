@@ -46,5 +46,9 @@ import lombok.Getter;
          return role == Role.ADMIN || role == Role.MASTER || role == Role.SUB_ADMIN;
     }
 
-    
+    /** 진짜 ADMIN 이상(ADMIN/MASTER) — SUB_ADMIN 은 배제. 양식 관리 같이 인트라넷 관리자 전용 화면용. */
+    public boolean isAdminOrMaster() {
+         return role == Role.ADMIN || role == Role.MASTER;
+    }
+
 }

@@ -7,6 +7,7 @@
     <select id="approval-completed-filter"
       class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white">
       <option value="ALL">전체</option>
+      <option value="IN_PROGRESS">진행중</option>
       <option value="APPROVED">승인</option>
       <option value="REJECTED">반려</option>
       <option value="ON_HOLD">보류</option>
@@ -18,7 +19,9 @@
         <tr>
           <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">번호</th>
           <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">제목</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">신청자</th>
           <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">상태</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">결재자</th>
           <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">사유</th>
           <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">처리일</th>
         </tr>

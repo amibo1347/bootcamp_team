@@ -1,5 +1,5 @@
 <!-- [사이드바] : 좌측 고정 내비게이션. sidebarToggle 상태에 따라 축소(90px)/확장(290px) 전환 -->
-<aside xmlns:th="http://www.thymeleaf.org" th:with="ms=${session.memberSession}, isAdmin=${ms != null and ms.isAdmin()}"
+<aside xmlns:th="http://www.thymeleaf.org" th:with="ms=${session.memberSession}, isAdmin=${ms != null and ms.isAdmin()}, isAdminOrMaster=${ms != null and ms.isAdminOrMaster()}"
     :class="sidebarToggle ? 'translate-x-0 lg:w-[90px]' : '-translate-x-full'"
     class="sidebar fixed left-0 top-0 z-9999 flex h-screen w-[290px] flex-col overflow-y-hidden border-r border-gray-200 bg-white px-5 dark:border-gray-800 dark:bg-black lg:static lg:translate-x-0">
     <!-- SIDEBAR HEADER -->
@@ -41,6 +41,12 @@
                 syncActiveFromPath() {
                     // 현재 URL과 persist된 탭 상태를 맞춤 (레이아웃 body의 page와 별개 스코프 보정)
                     const path = window.location.pathname || '';
+                    // 양식 관리(/approval/templates) 가 /approval prefix 와 겹치므로 더 구체적인 것을 먼저 체크
+                    if (path === '/approval/templates' || path.startsWith('/approval/templates/')) {
+                        this.selected = 'Approval';
+                        this.page = 'approvalTemplates';
+                        return;
+                    }
                     if (path === '/approval' || path.startsWith('/approval/')) {
                         this.selected = 'Approval';
                         this.page = 'approval';
@@ -271,12 +277,14 @@
                     <!-- Menu Item Calendar -->
 
                     <!--
-                      [전자결재 메뉴] 링크 대상은 GET /approval 이다.
-                      ViewController·컨트롤러에 해당 경로가 없으면 404이므로, 페이지를 열려면 백엔드에 매핑을 추가해야 한다.
-                      (프론트는 템플릿·정적 리소스만 수정 가능한 경우 이 주석으로 안내한다.)
+                      [전자결재 메뉴]
+                      - 일반 사용자: 단일 링크 (카테고리 없음, 클릭 → /approval)
+                      - 관리자(isAdmin): 카테고리(드롭다운) — 하위 "전자결재" / "양식 관리"
                     -->
-                    <!-- Menu Item Approval -->
-                    <li>
+
+                    <!-- Menu Item Approval (일반 사용자 / SUB_ADMIN - 카테고리 없음, 단일 링크) -->
+                    <!-- 양식 관리는 ADMIN/MASTER 전용이라 SUB_ADMIN 한테는 드롭다운 의미가 없음 -->
+                    <li th:if="${not isAdminOrMaster}">
                         <a th:href="@{/approval}" @click="page = 'approval'; selected = 'Approval'"
                             class="menu-item group"
                             :class="page === 'approval' ? 'menu-item-active' : 'menu-item-inactive'">
@@ -289,6 +297,49 @@
                             </svg>
                             <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">전자결재</span>
                         </a>
+                    </li>
+
+                    <!-- Menu Item Approval (ADMIN/MASTER - 카테고리 + 드롭다운, 양식 관리 포함) -->
+                    <li th:if="${isAdminOrMaster}">
+                        <a th:href="@{/}" @click.prevent="selected = (selected === 'Approval' ? '' : 'Approval')"
+                            class="menu-item group"
+                            :class="(selected === 'Approval') || (page === 'approval' || page === 'approvalTemplates') ? 'menu-item-active' : 'menu-item-inactive'">
+                            <svg :class="(selected === 'Approval') || (page === 'approval' || page === 'approvalTemplates') ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"
+                                width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" clip-rule="evenodd"
+                                    d="M6.75 3.75C5.50736 3.75 4.5 4.75736 4.5 6V18C4.5 19.2426 5.50736 20.25 6.75 20.25H17.25C18.4926 20.25 19.5 19.2426 19.5 18V9C19.5 8.80109 19.421 8.61032 19.2803 8.46967L13.5303 2.71967C13.3897 2.57902 13.1989 2.5 13 2.5H6.75ZM6 6C6 5.58579 6.33579 5.25 6.75 5.25H12V9C12 10.2426 13.0074 11.25 14.25 11.25H18V18C18 18.4142 17.6642 18.75 17.25 18.75H6.75C6.33579 18.75 6 18.4142 6 18V6ZM17.6893 9.75H14.25C13.8358 9.75 13.5 9.41421 13.5 9V5.31066L17.6893 9.75Z"
+                                    fill="" />
+                            </svg>
+                            <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">전자결재</span>
+                            <svg class="menu-item-arrow"
+                                :class="[(selected === 'Approval') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive', sidebarToggle ? 'lg:hidden' : '' ]"
+                                width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4.79175 7.39584L10.0001 12.6042L15.2084 7.39585" stroke="currentColor"
+                                    stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </a>
+
+                        <div class="overflow-hidden" :class="(selected === 'Approval') ? 'block' : 'hidden'">
+                            <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
+                                class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+                                <li>
+                                    <a th:href="@{/approval}" class="menu-dropdown-item group"
+                                        :class="page === 'approval' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                                        @click="page = 'approval'; selected = 'Approval'">
+                                        전자결재
+                                    </a>
+                                </li>
+                                <li>
+                                    <a th:href="@{/approval/templates}" class="menu-dropdown-item group"
+                                        :class="page === 'approvalTemplates' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                                        @click="page = 'approvalTemplates'; selected = 'Approval'">
+                                        양식 관리
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </li>
                     <!-- Menu Item Approval -->
 
