@@ -225,7 +225,7 @@ export function createFormTemplate(dto) {
 /**
  * 양식 수정 (회사 사본만 가능).
  * @param {number|string} id
- * @param {{ name?: string, content?: string, isActive?: boolean, fieldSchema?: string|null }} dto
+ * @param {{ name?: string, content?: string, active?: boolean, fieldSchema?: string|null }} dto
  */
 export function updateFormTemplate(id, dto) {
   return fetchJsonPost(`${ADMIN_TEMPLATE_BASE}/${encodeURIComponent(String(id))}`, dto);

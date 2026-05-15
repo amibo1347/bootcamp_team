@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team.intranet.dto.approval.ApprovalDetailResponse;
 import com.team.intranet.dto.approval.ApprovalListResponse;
 import com.team.intranet.dto.approval.ApprovalPageResponse;
@@ -25,6 +27,7 @@ import com.team.intranet.dto.approval.ExpensePayload;
 import com.team.intranet.dto.approval.GenericPayload;
 import com.team.intranet.dto.approval.VacationPayload;
 import com.team.intranet.entity.Approval;
+import com.team.intranet.entity.ApprovalFieldValue;
 import com.team.intranet.entity.ApprovalLine;
 import com.team.intranet.entity.Calendar;
 import com.team.intranet.entity.ExpenseRequest;
@@ -39,6 +42,7 @@ import com.team.intranet.enums.Visibility;
 import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.Status;
 import com.team.intranet.exception.BusinessException;
+import com.team.intranet.repository.ApprovalFieldValueRepository;
 import com.team.intranet.repository.ApprovalLineRepository;
 import com.team.intranet.repository.ApprovalRepository;
 import com.team.intranet.repository.CalendarRepository;
@@ -70,6 +74,8 @@ public class ApprovalService {
     private final MemberRepository memberRepository;
     private final CalendarRepository calendarRepository;
     private final AlertService alertService;
+    private final ApprovalFieldValueRepository fieldValueRepository;
+    private final ObjectMapper objectMapper;
 
     // ===== Submit =====
 
@@ -144,12 +150,19 @@ public class ApprovalService {
                 .build());
         }
 
-        String code = template.getFormCode() == null ? "" : template.getFormCode().toUpperCase();
-        switch (code) {
-            case "VACATION" -> saveVacationBody(approval, req.getVacation());
-            case "GENERIC"  -> saveGenericBody(approval, req.getGeneric());
-            case "EXPENSE"  -> saveExpenseBody(approval, req.getExpense());
-            default -> { /* 본문 없는 양식이면 헤더만 저장 */ }
+        // 본문 분기:
+        //  - 회사 사본 + fieldSchema 있는 양식 = B안 동적 경로 (스냅샷 캡처 + 필드값 저장)
+        //  - 그 외 = 시스템 디폴트 fixed 본문 분기
+        if (isDynamicTemplate(template)) {
+            saveDynamicBody(approval, template, req.getDynamicFields());
+        } else {
+            String code = template.getFormCode() == null ? "" : template.getFormCode().toUpperCase();
+            switch (code) {
+                case "VACATION" -> saveVacationBody(approval, req.getVacation());
+                case "GENERIC"  -> saveGenericBody(approval, req.getGeneric());
+                case "EXPENSE"  -> saveExpenseBody(approval, req.getExpense());
+                default -> { /* 본문 없는 양식이면 헤더만 저장 */ }
+            }
         }
 
         // 1단계 결재자에게 알림 발송. 알림이 실패해도 결재 저장은 영향 없도록 호출 측에서도 흡수.
@@ -295,6 +308,13 @@ public class ApprovalService {
             .anyMatch(l -> l.getApprover() != null && me.equals(l.getApprover().getMemberId()));
         if (!isDrafter && !isApproverOnLine) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        // 동적 본문 결재(B안): schemaSnapshot 이 있으면 양식 후속 변경과 무관하게 그 스냅샷 + 필드값으로 응답.
+        if (approval.getSchemaSnapshot() != null && !approval.getSchemaSnapshot().isBlank()) {
+            List<ApprovalFieldValue> values = fieldValueRepository
+                .findByApproval_ApprovalIdOrderByFieldValueIdAsc(approvalId);
+            return ApprovalDetailResponse.ofDynamic(approval, lines, values);
         }
 
         String code = approval.getFormTemplate().getFormCode() == null
@@ -534,6 +554,63 @@ public class ApprovalService {
             .reason(payload.getVacationType())
             .build();
         vacationRepository.save(v);
+    }
+
+    /** B안: 회사 사본 + fieldSchema 있는 양식이면 동적 경로 사용. */
+    private boolean isDynamicTemplate(FormTemplate t) {
+        return t.getCompany() != null
+            && t.getFieldSchema() != null
+            && !t.getFieldSchema().isBlank();
+    }
+
+    /**
+     * B안 동적 본문 저장:
+     *  1. 양식의 fieldSchema 를 결재 문서에 스냅샷으로 박아둠 (양식 수정·삭제와 무관하게 원형 유지)
+     *  2. fieldSchema 의 각 필드에 대해 required 검증 후 ApprovalFieldValue 행으로 저장.
+     *     multi-select 처럼 값이 여러 개면 같은 field_key 로 여러 row.
+     */
+    private void saveDynamicBody(Approval approval, FormTemplate template,
+                                 Map<String, List<String>> dynamicFields) {
+        approval.setSchemaSnapshot(template.getFieldSchema());
+
+        List<Map<String, Object>> schema;
+        try {
+            schema = objectMapper.readValue(
+                template.getFieldSchema(),
+                new TypeReference<List<Map<String, Object>>>() {}
+            );
+        } catch (Exception e) {
+            log.warn("fieldSchema 파싱 실패 (templateId={}): {}",
+                template.getFormTemplateId(), e.getMessage());
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
+
+        Map<String, List<String>> values = dynamicFields == null ? Map.of() : dynamicFields;
+
+        for (Map<String, Object> field : schema) {
+            Object keyObj = field.get("key");
+            if (keyObj == null) continue;
+            String key = String.valueOf(keyObj);
+
+            Object requiredObj = field.get("required");
+            boolean required = requiredObj instanceof Boolean && (Boolean) requiredObj;
+
+            List<String> vals = values.getOrDefault(key, List.of()).stream()
+                .filter(v -> v != null && !v.isBlank())
+                .toList();
+
+            if (required && vals.isEmpty()) {
+                throw new BusinessException(ErrorCode.INVALID_STATUS);
+            }
+
+            for (String v : vals) {
+                fieldValueRepository.save(ApprovalFieldValue.builder()
+                    .approval(approval)
+                    .fieldKey(key)
+                    .fieldValue(v)
+                    .build());
+            }
+        }
     }
 
     // VacationType 자유 텍스트 입력을 enum 으로 매핑. 정확 일치 우선, description 부분 일치 fallback, ETC 최후.

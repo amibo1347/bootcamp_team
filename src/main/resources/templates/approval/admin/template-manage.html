@@ -19,6 +19,90 @@
         .btn-delete-hover:hover {
             background-color: #fda4af;
         }
+
+        /* === 양식 캔버스 (12 컬럼 그리드) === */
+        #template-canvas {
+            position: relative;
+            width: 100%;
+            min-height: 240px;
+            /* 12칸 세로줄 배경 — 사용자가 grid 경계를 시각적으로 확인 */
+            background-image:
+                repeating-linear-gradient(
+                    to right,
+                    transparent 0,
+                    transparent calc(100% / 12 - 1px),
+                    rgba(99, 102, 241, 0.18) calc(100% / 12 - 1px),
+                    rgba(99, 102, 241, 0.18) calc(100% / 12)
+                );
+            background-size: 100% 100%;
+        }
+        .canvas-card {
+            position: absolute;
+            box-sizing: border-box;
+            border-radius: 10px;
+            border: 2px solid rgb(165, 180, 252);
+            background-color: white;
+            padding: 8px 10px;
+            cursor: move;
+            user-select: none;
+            touch-action: none; /* Interact.js 권장 */
+            transition: box-shadow 0.15s, border-color 0.15s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+        .dark .canvas-card { background-color: rgb(31,41,55); border-color: rgb(99,102,241); color: rgb(243,244,246); }
+        .canvas-card:hover { box-shadow: 0 4px 12px rgba(99,102,241,0.18); }
+        .canvas-card.is-selected {
+            border-color: rgb(99, 102, 241);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.35);
+        }
+        .canvas-card.is-computed { border-style: dashed; background-color: #f5f3ff; }
+        .dark .canvas-card.is-computed { background-color: rgba(99,102,241,0.08); }
+        .canvas-card .card-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .dark .canvas-card .card-label { color: #e5e7eb; }
+        .canvas-card .card-meta {
+            font-size: 10px;
+            color: #6b7280;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .canvas-card .card-actions {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            display: none;
+            gap: 2px;
+        }
+        .canvas-card.is-selected .card-actions,
+        .canvas-card:hover .card-actions { display: flex; }
+        .canvas-card .card-actions button {
+            width: 18px; height: 18px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 4px;
+            background-color: rgba(255,255,255,0.9);
+            color: #6b7280;
+            font-size: 12px;
+            line-height: 1;
+        }
+        .canvas-card .card-actions button:hover { background-color: #fee2e2; color: #ef4444; }
+        /* Interact.js 가 width/height 를 inline style 로 넣음 — 리사이즈 핸들 시각 */
+        .canvas-card .resize-handle-right {
+            position: absolute;
+            top: 0; right: 0; bottom: 0;
+            width: 6px;
+            cursor: ew-resize;
+            background: linear-gradient(to right, transparent, rgba(99,102,241,0.25));
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
     </style>
 </head>
 
@@ -54,7 +138,7 @@
                     <div class="flex-1 min-w-0">
                         <h2 class="text-xl font-semibold text-gray-900 dark:text-white">양식 생성·커스터마이즈</h2>
                         <p class="mt-2 text-sm text-gray-500 dark:text-gray-300">
-                            시스템 디폴트 양식(휴가/지출/일반)은 직접 수정할 수 없습니다. <span class="font-medium text-indigo-500">"복사하여 커스터마이즈"</span>로 회사 사본을 만든 뒤 수정해 주세요.
+                            시스템 디폴트 양식(휴가/지출/일반)은 직접 수정할 수 없습니다. <span class="font-medium text-indigo-500">"복사"</span>로 회사 사본을 만든 뒤 수정해 주세요.
                         </p>
                     </div>
 
@@ -102,9 +186,9 @@
         <div id="approval-template-modal-backdrop"
             class="fixed inset-0 z-0 bg-gray-900/40 backdrop-blur-sm dark:bg-gray-950/60"></div>
 
-        <!-- 패널 -->
-        <div class="relative z-10 flex w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-stroke bg-white shadow-2xl ring-1 ring-black/5 dark:border-strokedark dark:bg-boxdark dark:ring-white/10"
-            style="max-height: min(92vh, 720px)">
+        <!-- 패널 — 캔버스(12컬럼) 가 충분히 보이도록 4xl 로 확장 -->
+        <div class="relative z-10 flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-stroke bg-white shadow-2xl ring-1 ring-black/5 dark:border-strokedark dark:bg-boxdark dark:ring-white/10"
+            style="max-height: min(92vh, 820px)">
 
             <!-- 헤더 -->
             <header class="flex shrink-0 items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
@@ -147,6 +231,99 @@
                         노출 활성화 (체크 해제 시 신청 위저드에서 숨겨집니다)
                     </label>
 
+                    <!-- ============================================================ -->
+                    <!-- [B안] 필드 등록 + 12컬럼 그리드 캔버스 (드래그·리사이즈·스냅) -->
+                    <!-- 시스템 디폴트(VACATION/GENERIC/EXPENSE) 는 fork 후 사본만 편집 -->
+                    <!-- ============================================================ -->
+                    <div class="border-t border-gray-200 pt-5 dark:border-gray-700">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            필드 등록 · 배치
+                        </label>
+
+                        <!-- 안내 -->
+                        <div class="mb-3 rounded-lg border border-indigo-100 bg-indigo-50/60 p-3 text-xs text-indigo-800 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-200">
+                            <p class="font-medium">결재 신청 화면에는 "제목" 입력란이 자동으로 들어갑니다.</p>
+                            <p class="mt-1 text-indigo-700/80 dark:text-indigo-300/80">
+                                아래 폼으로 필드를 등록하면 캔버스에 카드로 추가됩니다. 카드를 마우스로 끌어 위치를 옮기고, 우측 가장자리를 잡아 가로 폭(1~12칸)을 조절하세요. 카드를 클릭하면 위 폼에서 수정할 수 있습니다.
+                            </p>
+                        </div>
+
+                        <!-- 등록 폼 -->
+                        <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-white/[0.02]">
+                            <div class="mb-3 flex items-center justify-between">
+                                <span id="template-register-title" class="text-sm font-semibold text-gray-700 dark:text-gray-300">새 필드 등록</span>
+                                <button type="button" id="template-register-cancel"
+                                    class="hidden text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                                    선택 해제 (새로 등록)
+                                </button>
+                            </div>
+
+                            <div class="grid gap-3 sm:grid-cols-2">
+                                <div class="sm:col-span-2">
+                                    <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">화면에 표시될 이름 *</label>
+                                    <input id="reg-label" type="text" placeholder="예: 휴가 종류"
+                                        class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-gray-600 dark:bg-meta-4 dark:text-white" />
+                                </div>
+                                <div>
+                                    <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">입력 형식</label>
+                                    <select id="reg-type"
+                                        class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-gray-600 dark:bg-meta-4 dark:text-white">
+                                        <!-- JS 가 채움 -->
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">키 (시스템용, 자동 생성됨)</label>
+                                    <input id="reg-key" type="text" placeholder="field_1"
+                                        class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-gray-600 dark:bg-meta-4 dark:text-white" />
+                                </div>
+                                <div id="reg-options-wrap" class="hidden sm:col-span-2">
+                                    <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">선택지 (콤마로 구분)</label>
+                                    <input id="reg-options" type="text" placeholder="예: 연차, 반차(오전), 반차(오후)"
+                                        class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-gray-600 dark:bg-meta-4 dark:text-white" />
+                                </div>
+                                <div id="reg-rows-wrap" class="hidden">
+                                    <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">높이 (줄 수, 2~20)</label>
+                                    <input id="reg-rows" type="number" min="2" max="20" value="4"
+                                        class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-gray-600 dark:bg-meta-4 dark:text-white" />
+                                </div>
+                                <div id="reg-computed-wrap" class="hidden sm:col-span-2 rounded-lg border border-purple-200 bg-purple-50/40 p-3 dark:border-purple-500/30 dark:bg-purple-500/10">
+                                    <label class="mb-1 block text-xs font-medium text-purple-700 dark:text-purple-300">자동 계산식</label>
+                                    <select id="reg-computed-fn"
+                                        class="mb-2 h-9 w-full rounded border border-purple-300 bg-white px-2 text-sm dark:border-purple-500/50 dark:bg-meta-4 dark:text-white">
+                                        <!-- JS 가 채움 -->
+                                    </select>
+                                    <p id="reg-computed-hint" class="text-xs text-purple-700 dark:text-purple-300">사용할 함수를 선택하면 신청 화면에서 자동 계산됩니다.</p>
+                                    <div id="reg-computed-args" class="mt-2 grid gap-2">
+                                        <!-- JS 가 채움: 함수 인자별 다른 필드 키 선택 -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+                                <label class="flex cursor-pointer items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <input id="reg-required" type="checkbox" class="h-4 w-4 cursor-pointer" />
+                                    필수 입력
+                                </label>
+                                <button type="button" id="reg-submit"
+                                    style="background-color: #6366f1; color: #ffffff;"
+                                    class="px-5 py-2 text-sm font-medium rounded-lg transition-all active:scale-95 hover:brightness-110">
+                                    필드 등록
+                                </button>
+                            </div>
+                            <p id="reg-message" class="mt-2 hidden text-xs text-rose-500" role="status"></p>
+                        </div>
+
+                        <!-- 캔버스 -->
+                        <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-white/[0.02]">
+                            <div id="template-canvas">
+                                <!-- JS 가 카드들을 absolute 좌표로 배치 -->
+                            </div>
+                            <p id="template-canvas-empty" class="mt-2 text-center text-xs text-gray-400">
+                                등록된 필드가 없습니다. 위 폼에서 필드를 만들어 주세요.
+                            </p>
+                        </div>
+                    </div>
+
                     <p id="approval-template-message" class="hidden text-sm text-rose-500" role="status"></p>
                 </form>
             </div>
@@ -165,6 +342,8 @@
         </div>
     </div>
 
+    <!-- 드래그/리사이즈 라이브러리 — 캔버스 카드 조작용. 약 30KB. -->
+    <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
     <script type="module" src="/js/index.js"></script>
     <script type="module" src="/js/approval/admin/template-manage.js"></script>
 </body>

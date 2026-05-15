@@ -7,7 +7,7 @@
 import { submitApproval } from '../api/approval-client.js';
 import {
   activateApprovalFormSection,
-  getApprovalFormDefinition,
+  getApprovalFormDefinitionForTemplate,
   resetRegisteredApprovalForms,
 } from '../forms/form-registry.js';
 import { openApproverLineModal } from './approver-line-modal.js';
@@ -83,6 +83,20 @@ function getSelectedFormCode() {
 }
 
 /**
+ * 현재 선택된 양식에 맞는 본문 섹션을 활성화한다 (B안 동적 분기 포함).
+ */
+function activateSectionForSelected() {
+  const selected = getSelectedTemplate();
+  const def = getApprovalFormDefinitionForTemplate(selected);
+  if (def) {
+    activateApprovalFormSection(def.formCode, document, selected);
+  } else {
+    // 본문 없는 양식 — 모든 섹션 숨김
+    activateApprovalFormSection('', document);
+  }
+}
+
+/**
  * 현재 스텝 화면과 버튼 상태를 갱신한다.
  * @param {number} nextStep
  */
@@ -116,9 +130,9 @@ function renderFormTemplates(templates) {
   if (!root) return;
   root.innerHTML = '';
 
-  const activeTemplates = templates.filter(
-    (template) => template.isActive !== false && getApprovalFormDefinition(String(template.formCode || '')),
-  );
+  // active 양식 모두 표시. 시스템 디폴트 + 회사 사본(B안 동적 포함) + 본문 없는 양식 전부.
+  // Jackson 직렬화상 boolean isActive → JSON property "active" 라 t.active 로 판정.
+  const activeTemplates = templates.filter((template) => template.active !== false);
   activeTemplates.forEach((template, index) => {
     const label = document.createElement('label');
     const checked = index === 0 ? 'checked' : '';
@@ -133,7 +147,7 @@ function renderFormTemplates(templates) {
     root.appendChild(label);
   });
 
-  activateApprovalFormSection(getSelectedFormCode());
+  activateSectionForSelected();
 }
 
 /**
@@ -280,7 +294,7 @@ function validateCurrentStep() {
  */
 function buildSubmitPayload(memberId) {
   const selected = getSelectedTemplate();
-  const definition = getApprovalFormDefinition(getSelectedFormCode());
+  const definition = getApprovalFormDefinitionForTemplate(selected);
   const title = document.getElementById('approval-draft-title');
 
   const titleText = title instanceof HTMLInputElement ? title.value.trim() : '';
@@ -290,28 +304,39 @@ function buildSubmitPayload(memberId) {
   if (currentApprovalLine.length === 0) {
     return { valid: false, message: '결재선을 선택하세요.', payload: {} };
   }
-  if (!definition) {
-    return { valid: false, message: '지원하지 않는 양식입니다.', payload: {} };
+  if (!selected) {
+    return { valid: false, message: '양식을 선택하세요.', payload: {} };
   }
 
-  const formValidation = definition.validate(document);
-  if (!formValidation.valid) {
-    return { valid: false, message: formValidation.message, payload: {} };
+  // 본문 분기: definition === DYNAMIC → dynamicFields 키, fixed → vacation/generic/expense 키, 없음 → 본문 키 생략
+  let bodyPayload = {};
+  if (definition) {
+    const formValidation = definition.validate(document);
+    if (!formValidation.valid) {
+      return { valid: false, message: formValidation.message, payload: {} };
+    }
+    const serialized = definition.serialize(document);
+    if (definition.formCode === 'DYNAMIC') {
+      // serializeDynamicForm 결과: { dynamicFields: {...} } — 그대로 spread
+      bodyPayload = serialized;
+    } else {
+      bodyPayload = { [String(selected.formCode).toLowerCase()]: serialized };
+    }
   }
 
-  const formCode = String(selected?.formCode || '');
+  const formCode = String(selected.formCode || '');
   return {
     valid: true,
     message: '',
     payload: {
-      formTemplateId: selected ? Number(selected.id) : null,
+      formTemplateId: Number(selected.id),
       formCode,
       // 1인이면 백엔드 하위호환을 위해 approverMemberId 도 같이 전송.
       approverMemberId: currentApprovalLine[currentApprovalLine.length - 1],
       approvalLine: currentApprovalLine.slice(),
       title: titleText,
       drafterMemberId: memberId ?? null,
-      [formCode.toLowerCase()]: definition.serialize(document),
+      ...bodyPayload,
     },
   };
 }
@@ -348,7 +373,7 @@ export function initApprovalWizard(options) {
   showWizardStep(1);
 
   document.getElementById('approval-form-template-list')?.addEventListener('change', () => {
-    activateApprovalFormSection(getSelectedFormCode());
+    activateSectionForSelected();
   });
 
   document.getElementById('approval-wizard-next')?.addEventListener('click', () => {

@@ -149,6 +149,68 @@ function renderGenericBody(g) {
 }
 
 /**
+ * 본문(B안 동적). schemaSnapshot 으로 그려야 양식이 후에 수정·삭제돼도 결재 본문이 원형 유지된다.
+ * 12 컬럼 그리드 (admin 캔버스에서 박은 row/col/span 좌표 그대로 재현). 모바일은 CSS 가 1 컬럼으로 stack.
+ */
+function renderDynamicBody(schemaJson, values) {
+  let schema = [];
+  try {
+    const parsed = JSON.parse(schemaJson);
+    if (Array.isArray(parsed)) schema = parsed;
+  } catch (err) {
+    return `<p class="text-xs text-rose-500">양식 스냅샷을 읽을 수 없습니다.</p>`;
+  }
+  if (schema.length === 0) return '';
+
+  const vmap = (values && typeof values === 'object') ? values : {};
+  const rows = schema.map((field) => {
+    const key = String(field?.key || '');
+    const label = String(field?.label || key);
+    const type = String(field?.type || 'text');
+    const vals = Array.isArray(vmap[key]) ? vmap[key] : [];
+
+    // 좌표 — row/col/span 우선, 없으면 옛 width 호환
+    const span = Number.isFinite(field?.span)
+      ? Math.max(1, Math.min(12, Number(field.span)))
+      : (field?.width === 'half' ? 6 : 12);
+    const col = Number.isFinite(field?.col)
+      ? Math.max(1, Math.min(12, Number(field.col)))
+      : 1;
+    const rowStyle = Number.isFinite(field?.row) ? `grid-row: ${Number(field.row)};` : '';
+    const gridStyle = `grid-column: ${col} / span ${span}; ${rowStyle}`;
+
+    let displayed;
+    if (vals.length === 0) {
+      displayed = '<span class="text-gray-400">—</span>';
+    } else if (type === 'checkbox') {
+      displayed = esc(vals[0] === 'true' ? '예' : '아니오');
+    } else if (type === 'multi-select' || vals.length > 1) {
+      displayed = esc(vals.join(', '));
+    } else {
+      displayed = esc(vals[0]);
+    }
+
+    const computedBadge = type === 'computed'
+      ? '<span class="ml-1 inline-flex items-center rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">자동</span>'
+      : '';
+
+    return `
+      <div style="${gridStyle}" class="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-white/[0.03]">
+        <dt class="text-xs text-gray-500">${esc(label)}${computedBadge}</dt>
+        <dd class="mt-1 ${type === 'textarea' ? 'whitespace-pre-wrap' : ''} text-sm font-medium text-gray-900 dark:text-white">${displayed}</dd>
+      </div>`;
+  }).join('');
+
+  return `
+    <div>
+      <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">본문</h3>
+      <dl class="approval-detail-dynamic-body">
+        ${rows}
+      </dl>
+    </div>`;
+}
+
+/**
  * 결재선 표시.
  */
 function renderApprovalLine(approvers, currentLevel, overallStatus) {
@@ -189,8 +251,12 @@ function renderDetail(detail) {
     subtitle.textContent = `${detail.formName || detail.formCode || ''} · 기안자: ${drafter || '—'}`;
   }
 
+  // B안: schemaSnapshot 이 있으면 동적 본문 (양식 후속 변경과 무관). 아니면 기존 fixed 본문 분기.
   const code = String(detail.formCode || '').toUpperCase();
-  const body = code === 'VACATION' ? renderVacationBody(detail.vacation)
+  const isDynamic = !!(detail.schemaSnapshot && String(detail.schemaSnapshot).trim());
+  const body = isDynamic
+    ? renderDynamicBody(detail.schemaSnapshot, detail.dynamicValues)
+    : code === 'VACATION' ? renderVacationBody(detail.vacation)
     : code === 'EXPENSE' ? renderExpenseBody(detail.expense)
     : code === 'GENERIC' ? renderGenericBody(detail.generic)
     : '';

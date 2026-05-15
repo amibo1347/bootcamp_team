@@ -2,9 +2,13 @@ package com.team.intranet.dto.approval;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.team.intranet.entity.Approval;
+import com.team.intranet.entity.ApprovalFieldValue;
 import com.team.intranet.entity.ApprovalLine;
 import com.team.intranet.entity.ExpenseRequest;
 import com.team.intranet.entity.GenericRequest;
@@ -48,6 +52,11 @@ public class ApprovalDetailResponse {
     private GenericBody generic;
     private ExpenseBody expense;
 
+    // B안: 동적 본문. schemaSnapshot 은 결재 시점 양식 JSON, dynamicValues 는 field_key → 값 리스트.
+    // 양식이 후에 수정·삭제돼도 결재 본문 렌더는 schemaSnapshot 으로 원형 유지.
+    private String schemaSnapshot;
+    private Map<String, List<String>> dynamicValues;
+
     public static ApprovalDetailResponse of(
         Approval a,
         List<ApprovalLine> lines,
@@ -55,6 +64,32 @@ public class ApprovalDetailResponse {
         GenericRequest generic,
         ExpenseRequest expense
     ) {
+        return baseBuilder(a, lines)
+            .vacation(vacation == null ? null : VacationBody.from(vacation))
+            .generic(generic == null ? null : GenericBody.from(generic))
+            .expense(expense == null ? null : ExpenseBody.from(expense))
+            .build();
+    }
+
+    /** B안: 동적 본문 결재 응답. fixed 본문은 모두 null. */
+    public static ApprovalDetailResponse ofDynamic(
+        Approval a,
+        List<ApprovalLine> lines,
+        List<ApprovalFieldValue> values
+    ) {
+        Map<String, List<String>> grouped = values == null ? Map.of()
+            : values.stream().collect(Collectors.groupingBy(
+                ApprovalFieldValue::getFieldKey,
+                LinkedHashMap::new,
+                Collectors.mapping(ApprovalFieldValue::getFieldValue, Collectors.toList())
+            ));
+        return baseBuilder(a, lines)
+            .schemaSnapshot(a.getSchemaSnapshot())
+            .dynamicValues(grouped)
+            .build();
+    }
+
+    private static ApprovalDetailResponseBuilder baseBuilder(Approval a, List<ApprovalLine> lines) {
         return ApprovalDetailResponse.builder()
             .approvalId(a.getApprovalId())
             .title(a.getTitle())
@@ -71,11 +106,7 @@ public class ApprovalDetailResponse {
             .processedAt(a.getProcessedAt())
             .currentLevel(a.getCurrentLevel())
             .maxLevel(a.getMaxLevel())
-            .approvers(lines == null ? List.of() : lines.stream().map(ApprovalLineRow::from).toList())
-            .vacation(vacation == null ? null : VacationBody.from(vacation))
-            .generic(generic == null ? null : GenericBody.from(generic))
-            .expense(expense == null ? null : ExpenseBody.from(expense))
-            .build();
+            .approvers(lines == null ? List.of() : lines.stream().map(ApprovalLineRow::from).toList());
     }
 
     @Getter

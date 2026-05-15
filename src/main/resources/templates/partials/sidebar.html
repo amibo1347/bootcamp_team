@@ -1,5 +1,5 @@
 <!-- [사이드바] : 좌측 고정 내비게이션. sidebarToggle 상태에 따라 축소(90px)/확장(290px) 전환 -->
-<aside xmlns:th="http://www.thymeleaf.org" th:with="ms=${session.memberSession}, isAdmin=${ms != null and ms.isAdmin()}"
+<aside xmlns:th="http://www.thymeleaf.org" th:with="ms=${session.memberSession}, isAdmin=${ms != null and ms.isAdmin()}, isAdminOrMaster=${ms != null and ms.isAdminOrMaster()}"
     :class="sidebarToggle ? 'translate-x-0 lg:w-[90px]' : '-translate-x-full'"
     class="sidebar fixed left-0 top-0 z-9999 flex h-screen w-[290px] flex-col overflow-y-hidden border-r border-gray-200 bg-white px-5 dark:border-gray-800 dark:bg-black lg:static lg:translate-x-0">
     <!-- SIDEBAR HEADER -->
@@ -282,8 +282,9 @@
                       - 관리자(isAdmin): 카테고리(드롭다운) — 하위 "전자결재" / "양식 관리"
                     -->
 
-                    <!-- Menu Item Approval (일반 사용자 - 카테고리 없음) -->
-                    <li th:if="${not isAdmin}">
+                    <!-- Menu Item Approval (일반 사용자 / SUB_ADMIN - 카테고리 없음, 단일 링크) -->
+                    <!-- 양식 관리는 ADMIN/MASTER 전용이라 SUB_ADMIN 한테는 드롭다운 의미가 없음 -->
+                    <li th:if="${not isAdminOrMaster}">
                         <a th:href="@{/approval}" @click="page = 'approval'; selected = 'Approval'"
                             class="menu-item group"
                             :class="page === 'approval' ? 'menu-item-active' : 'menu-item-inactive'">
@@ -298,8 +299,8 @@
                         </a>
                     </li>
 
-                    <!-- Menu Item Approval (관리자 - 카테고리 + 드롭다운) -->
-                    <li th:if="${isAdmin}">
+                    <!-- Menu Item Approval (ADMIN/MASTER - 카테고리 + 드롭다운, 양식 관리 포함) -->
+                    <li th:if="${isAdminOrMaster}">
                         <a th:href="@{/}" @click.prevent="selected = (selected === 'Approval' ? '' : 'Approval')"
                             class="menu-item group"
                             :class="(selected === 'Approval') || (page === 'approval' || page === 'approvalTemplates') ? 'menu-item-active' : 'menu-item-inactive'">

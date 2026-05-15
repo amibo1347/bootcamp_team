@@ -11,11 +11,11 @@ import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 결재 양식 관리 페이지 (admin 전용).
+ * 결재 양식 관리 페이지 (ADMIN/MASTER 전용).
  * 진입: GET /approval/templates
  *
- * 권한 검사: memberSession.isAdmin() (ADMIN / MASTER / SUB_ADMIN).
- * 일반 사용자가 직접 URL 로 들어오면 NO_AUTHORITY.
+ * 권한 검사: memberSession.isAdminOrMaster() — SUB_ADMIN 은 배제.
+ * 일반 사용자/SUB_ADMIN 가 직접 URL 로 들어오면 NO_AUTHORITY.
  */
 @Controller
 @RequiredArgsConstructor
@@ -24,7 +24,7 @@ public class ApprovalTemplateViewController {
     @GetMapping("/approval/templates")
     public String templateManage(HttpSession session) {
         Object raw = session.getAttribute("memberSession");
-        if (!(raw instanceof MemberSession ms) || !ms.isAdmin()) {
+        if (!(raw instanceof MemberSession ms) || !ms.isAdminOrMaster()) {
             throw new BusinessException(ErrorCode.NO_AUTHORITY);
         }
         return "approval/admin/template-manage";
