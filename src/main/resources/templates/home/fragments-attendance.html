@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
   <body>
-    <!-- [카드] 출퇴근 기록 — 시계 · 출근/퇴근하기 · 진행 바 · 기록 시각 -->
+    <!-- [카드] 출퇴근 기록 — 로그 박스(시각+버튼) · 진행 바 · 기록 시각 -->
+    <!-- hasTodayCheckIn: 백엔드에서 오늘 출근 기록 여부(boolean)를 내려주면 SSR 버튼 노출이 맞춰짐(없으면 null→미출근으로 처리) -->
+    <!-- 조각 인자 기본값(hasTodayCheckIn=false) 문법은 파서/버전에 따라 TemplateInputException 유발 가능 → 모델 속성 hasTodayCheckIn 사용 -->
     <section
       th:fragment="attendanceCard"
-      class="flex h-full min-h-0 flex-col rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+      id="home-attendance-card"
+      class="flex w-full min-h-0 flex-col rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+      th:data-home-server-check-in="${hasTodayCheckIn}"
     >
       <header
         class="flex shrink-0 items-center justify-between border-b border-gray-100 px-3.5 py-2.5 dark:border-gray-700"
@@ -17,31 +21,37 @@
           class="text-xs text-gray-500 dark:text-gray-400"
         ></span>
       </header>
-      <div class="flex min-h-0 flex-1 flex-col gap-2.5 p-3.5">
-        <div
-          class="rounded-lg bg-gray-50 px-3 py-2.5 text-center text-xl font-mono font-semibold tracking-tight text-gray-900 shadow-inner dark:bg-gray-900/60 dark:text-white"
-          id="home-dashboard-time"
-          aria-live="polite"
-        >
-          --:--:--
-        </div>
-        <div class="flex gap-2.5">
-          <button
-            type="button"
-            id="home-btn-checkin"
-            class="flex-1 rounded-lg bg-emerald-600 px-2.5 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+      <!-- flex-1 제거: 그리드 행에서 남는 높이를 여기서 먹지 않음 → 기록 박스 아래 빈 영역 제거 -->
+      <div class="flex shrink-0 flex-col gap-2 px-3.5 pb-1 pt-2.5">
+        <!-- [로그 박스] 2열 그리드 = 하단 출근/퇴근 기록 박스와 동일 열 정렬 → 우측 버튼 폭 = 퇴근 박스 폭 -->
+        <div class="grid shrink-0 grid-cols-2 items-center gap-2.5">
+          <div
+            id="home-dashboard-time"
+            class="min-w-0 w-full rounded-lg bg-gray-50 px-2 py-2 text-center text-lg font-mono font-semibold tracking-tight text-gray-900 shadow-inner dark:bg-gray-900/60 dark:text-white"
+            aria-live="polite"
           >
-            출근하기
-          </button>
-          <button
-            type="button"
-            id="home-btn-checkout"
-            class="flex-1 rounded-lg bg-slate-600 px-2.5 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-          >
-            퇴근하기
-          </button>
+            --:--:--
+          </div>
+          <div class="flex min-w-0 w-full items-stretch">
+            <button
+              type="button"
+              id="home-btn-checkin"
+              th:hidden="${hasTodayCheckIn == true}"
+              class="w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            >
+              출근
+            </button>
+            <button
+              type="button"
+              id="home-btn-checkout"
+              th:hidden="${hasTodayCheckIn != true}"
+              class="w-full rounded-lg bg-slate-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            >
+              퇴근
+            </button>
+          </div>
         </div>
-        <!-- [근무 진행] 버튼 바로 아래 — 실시간 채움(8h 기준) -->
+        <!-- [근무 진행] 로그 박스 아래 — 실시간 채움(8h 기준) -->
         <div class="shrink-0" aria-label="근무 시간 진행">
           <div class="mb-1 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
             <span>근무 진행</span>
@@ -66,13 +76,13 @@
         <dl
           class="grid shrink-0 grid-cols-2 gap-2.5 text-xs text-gray-600 dark:text-gray-300"
         >
-          <div class="rounded-lg border border-gray-100 p-2.5 dark:border-gray-600">
+          <div class="rounded-lg border border-gray-100 p-2 dark:border-gray-600">
             <dt class="font-medium text-gray-500 dark:text-gray-400">출근</dt>
-            <dd id="home-checkin-display" class="mt-1 font-mono text-sm text-gray-900 dark:text-white">—</dd>
+            <dd id="home-checkin-display" class="mt-0.5 font-mono text-sm text-gray-900 dark:text-white">—</dd>
           </div>
-          <div class="rounded-lg border border-gray-100 p-2.5 dark:border-gray-600">
+          <div class="rounded-lg border border-gray-100 p-2 dark:border-gray-600">
             <dt class="font-medium text-gray-500 dark:text-gray-400">퇴근</dt>
-            <dd id="home-checkout-display" class="mt-1 font-mono text-sm text-gray-900 dark:text-white">—</dd>
+            <dd id="home-checkout-display" class="mt-0.5 font-mono text-sm text-gray-900 dark:text-white">—</dd>
           </div>
         </dl>
       </div>

@@ -100,6 +100,7 @@ function updateWorkProgress(checkinAt, checkoutAt, fillEl, trackEl, labelEl) {
 
 /**
  * 출퇴근 Mock + 근무 시간 프로그레스 바
+ * - 버튼 노출: 출근 전에는 출근만, 출근 후에는 퇴근만(Thymeleaf SSR + 클라이언트에서 hidden 동기화)
  * @param {{
  *   checkinBtn: HTMLButtonElement;
  *   checkoutBtn: HTMLButtonElement;
@@ -109,8 +110,10 @@ function updateWorkProgress(checkinAt, checkoutAt, fillEl, trackEl, labelEl) {
  *   trackEl: HTMLElement | null;
  *   labelEl: HTMLElement | null;
  * }} els
+ * @param {{ serverHasCheckIn?: boolean }} [options] serverHasCheckIn: 조각 data-home-server-check-in 과 동일(이미 출근 처리된 SSR)
  */
-function setupAttendanceCard(els) {
+function setupAttendanceCard(els, options = {}) {
+  const { serverHasCheckIn = false } = options;
   let checkinAt = /** @type {Date | null} */ (null);
   let checkoutAt = /** @type {Date | null} */ (null);
   let progressTimer = /** @type {number | null} */ (null);
@@ -119,10 +122,27 @@ function setupAttendanceCard(els) {
     updateWorkProgress(checkinAt, checkoutAt, els.fillEl, els.trackEl, els.labelEl);
   };
 
+  /**
+   * 출근/퇴근 버튼 표시·비활성 상태를 checkinAt/checkoutAt 에 맞춥니다.
+   */
   const refreshButtons = () => {
+    els.checkinBtn.hidden = checkinAt !== null;
+    els.checkoutBtn.hidden = checkinAt === null || checkoutAt !== null;
     els.checkinBtn.disabled = checkinAt !== null;
     els.checkoutBtn.disabled = checkoutAt !== null || checkinAt === null;
   };
+
+  // SSR 로 이미 출근한 경우: 목업 진행률용 시각(당일 09:00, 미래면 전일)으로만 채움 — 실제 연동 시 서버 시각으로 교체
+  if (serverHasCheckIn) {
+    const nine = new Date();
+    nine.setHours(9, 0, 0, 0);
+    if (nine.getTime() > Date.now()) {
+      nine.setDate(nine.getDate() - 1);
+    }
+    checkinAt = nine;
+    els.checkinDisplay.textContent = formatTime(checkinAt);
+    progressTimer = window.setInterval(tickProgress, 1000);
+  }
 
   els.checkinBtn.addEventListener('click', () => {
     if (checkinAt) return;
@@ -432,6 +452,9 @@ function initHomeDashboard() {
   const dateEl = document.getElementById('home-dashboard-date');
   if (clockEl) startClock(clockEl, dateEl);
 
+  const attendanceCard = document.getElementById('home-attendance-card');
+  const serverHasCheckIn = attendanceCard?.getAttribute('data-home-server-check-in') === 'true';
+
   const checkinBtn = document.getElementById('home-btn-checkin');
   const checkoutBtn = document.getElementById('home-btn-checkout');
   const checkinDisplay = document.getElementById('home-checkin-display');
@@ -445,15 +468,18 @@ function initHomeDashboard() {
     checkinDisplay &&
     checkoutDisplay
   ) {
-    setupAttendanceCard({
-      checkinBtn,
-      checkoutBtn,
-      checkinDisplay,
-      checkoutDisplay,
-      fillEl,
-      trackEl,
-      labelEl,
-    });
+    setupAttendanceCard(
+      {
+        checkinBtn,
+        checkoutBtn,
+        checkinDisplay,
+        checkoutDisplay,
+        fillEl,
+        trackEl,
+        labelEl,
+      },
+      { serverHasCheckIn },
+    );
   }
 
   const todayList = document.getElementById('home-today-list');
