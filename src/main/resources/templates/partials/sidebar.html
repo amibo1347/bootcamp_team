@@ -688,3 +688,11 @@
         <!-- Sidebar Menu -->
     </div>
 </aside>
+
+<!--
+  공통 채팅 패널 + 스크립트.
+  ※ sidebar 가 모든 페이지에 include 되므로 여기 두면 자동으로 어디서나 채팅 FAB/패널이 노출된다.
+  ※ 페이지 별로 따로 chat partial 을 include 할 필요 없음.
+-->
+<th:block th:replace="~{partials/chat :: floatingChat}"></th:block>
+<th:block th:replace="~{partials/chat :: chatScript}"></th:block>
