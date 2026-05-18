@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -94,6 +95,20 @@ public class SubAdminApiController {
         memberService.updateMemberInfo(ms, memberId, deptId, positionId, imgBytes, phone, email, name, parseBirthDay(birthDay));
 
         return "redirect:/admin/memberList";
+    }
+
+    // 인사이동: 다수 회원의 부서/직급을 일괄 변경
+    @PostMapping("/reassign")
+    @ResponseBody
+    @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
+    public ResponseEntity<Void> reassignMembers(
+            @RequestParam("memberIds") List<Long> memberIds,
+            @RequestParam(value = "deptId", required = false) Long deptId,
+            @RequestParam(value = "positionId", required = false) Long positionId,
+            @SessionAttribute("memberSession") MemberSession ms) {
+
+        memberService.reassignMembers(ms, memberIds, deptId, positionId);
+        return ResponseEntity.ok().build();
     }
 
     // 상태 처리

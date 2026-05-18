@@ -121,6 +121,29 @@ public class MemberService {
     }
 
     /**
+     * 인사이동: 선택된 회원들의 부서/직급을 일괄 변경.
+     *  - deptId 가 null 이면 부서는 변경하지 않고 직급만 바꾼다(반대도 동일).
+     *  - 둘 다 null 이거나 memberIds 가 비어있으면 BusinessException.
+     */
+    @Transactional
+    public void reassignMembers(MemberSession ms, List<Long> memberIds, Long deptId, Long positionId) {
+        if (memberIds == null || memberIds.isEmpty()) {
+            throw new BusinessException(ErrorCode.MEMBER_NOT_FOUND);
+        }
+        if (deptId == null && positionId == null) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
+
+        Dept dept = (deptId != null) ? findDeptAndValidateOwner(ms, deptId) : null;
+        Position position = (positionId != null) ? findPositionAndValidateOwner(ms, positionId) : null;
+
+        for (Long memberId : memberIds) {
+            Member target = findMemberAndValidateOwner(ms, memberId);
+            target.reassign(dept, position);
+        }
+    }
+
+    /**
      * 회원 정보 수정
      */
     @Transactional

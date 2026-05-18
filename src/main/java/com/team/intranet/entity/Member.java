@@ -143,6 +143,17 @@ public class Member {
         this.role = position.getRole();
     }
 
+    // 인사이동: 부서/직급만 일괄 변경. dept 또는 position 이 null 이면 해당 항목은 유지한다.
+    public void reassign(Dept dept, Position position) {
+        if (dept != null) {
+            this.dept = dept;
+        }
+        if (position != null) {
+            this.position = position;
+            this.role = position.getRole();
+        }
+    }
+
     public void reject() {
         this.status = Status.REJECT;
         this.statusChangedAt = LocalDateTime.now();

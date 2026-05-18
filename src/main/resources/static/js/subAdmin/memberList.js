@@ -131,10 +131,13 @@ document.addEventListener('DOMContentLoaded', () => {
 window.openEditModal = (button) => {
     document.querySelector('#editEmpId').value = button.dataset.memberId || '';
     document.querySelector('#editName').value = button.dataset.memberName || '';
+    // 부서/직급은 readonly 표시. hidden(#editDept,#editPosition) 에는 id 를, display 인풋에는 이름을 채운다.
     document.querySelector('#editDept').value = button.dataset.deptId || '';
     document.querySelector('#editPosition').value = button.dataset.positionId || '';
-    document.querySelector('#editDept').dispatchEvent(new Event('change', { bubbles: true }));
-    document.querySelector('#editPosition').dispatchEvent(new Event('change', { bubbles: true }));
+    const deptDisplay = document.querySelector('#editDeptDisplay');
+    const positionDisplay = document.querySelector('#editPositionDisplay');
+    if (deptDisplay) deptDisplay.value = button.dataset.deptName || '미지정';
+    if (positionDisplay) positionDisplay.value = button.dataset.positionName || '미지정';
     document.querySelector('#editEmail').value = button.dataset.email || '';
     document.querySelector('#editPhone').value = button.dataset.phone || '';
     document.querySelector('#editBirth').value = button.dataset.birth || '';
@@ -380,6 +383,14 @@ window.restoreMember = async (memberId) => {
  * @param {('JOIN'|'ON_LEAVE'|'LEAVE')} status 전환할 상태 값
  */
 window.selectStatusTab = (status) => {
+    // 인사이동 모드는 JOIN 탭 한정. 다른 탭으로 이동 시 모드 OFF.
+    if (isReassignMode && status !== 'JOIN') {
+        isReassignMode = false;
+        applyReassignModeUI();
+        document.querySelectorAll('.js-reassign-member-check').forEach((c) => { c.checked = false; });
+        updateReassignSelectedCount();
+    }
+
     const statusInput = document.getElementById('statusInput');
     if (statusInput) statusInput.value = status;
 
@@ -440,6 +451,10 @@ function loadMemberList() {
                 // 카드 헤더가 상태별 탭(JOIN / ON_LEAVE / LEAVE)으로 교체된 이후에는
                 // 별도의 제목 갱신 로직이 필요 없다. 부서 필터는 검색 폼의 select 가 그대로 표현한다.
                 // 버튼(수정/삭제 등) 이벤트는 document 레벨 위임이므로 별도 재초기화 불필요.
+
+                // fragment 가 갈아끼워지면 체크박스가 새로 그려지므로 인사이동 모드 가시성을 다시 적용한다.
+                applyReassignModeUI();
+                updateReassignSelectedCount();
             }
         })
         .catch(error => {
@@ -458,3 +473,138 @@ function submitWithSort(sortValue) {
         loadMemberList(); // 정렬 값 세팅 후 AJAX 호출
     }
 }
+
+// ============================================================================
+// 인사이동: 다수 회원 일괄 부서/직급 변경
+//  - 토글 버튼 [인사이동] 클릭 → 체크박스 + 부서/직급 선택 패널 노출
+//  - [등록] 버튼 → 선택된 회원들에 대해 일괄 reassign API 호출
+//  - 활성(JOIN) 탭에서만 의미가 있으므로 휴직/퇴사 탭에서는 토글 후에도 체크박스가 없다 (체크박스 자체가 렌더링되지 않음).
+// ============================================================================
+
+let isReassignMode = false;
+
+/**
+ * 인사이동 모드 토글.
+ *  - 카드 행/카드 헤더의 .js-reassign-toggle 요소들의 hidden 클래스를 일괄 토글.
+ *  - 하단 부서/직급 선택 패널(#reassignPanel) 도 같이 토글.
+ *  - OFF 전환 시 모든 체크박스 해제 + 카운트 0 으로 리셋.
+ */
+window.toggleReassignMode = () => {
+    isReassignMode = !isReassignMode;
+    applyReassignModeUI();
+
+    if (!isReassignMode) {
+        // OFF 시 상태 초기화
+        document.querySelectorAll('.js-reassign-member-check').forEach((c) => { c.checked = false; });
+        const all = document.querySelector('#reassignSelectAll');
+        if (all) all.checked = false;
+        updateReassignSelectedCount();
+    }
+};
+
+/** 현재 isReassignMode 값을 DOM 에 반영. fragment 갱신 후에도 재호출해서 체크박스 가시성을 유지한다. */
+function applyReassignModeUI() {
+    document.querySelectorAll('.js-reassign-toggle').forEach((el) => {
+        el.classList.toggle('hidden', !isReassignMode);
+    });
+    const panel = document.querySelector('#reassignPanel');
+    if (panel) panel.classList.toggle('hidden', !isReassignMode);
+
+    const btn = document.querySelector('#reassignToggleBtn');
+    if (btn) {
+        btn.textContent = isReassignMode ? '취소' : '인사이동';
+        btn.classList.toggle('bg-indigo-400', !isReassignMode);
+        btn.classList.toggle('hover:bg-indigo-500', !isReassignMode);
+        btn.classList.toggle('bg-gray-300', isReassignMode);
+        btn.classList.toggle('hover:bg-gray-400', isReassignMode);
+        btn.classList.toggle('text-white', !isReassignMode);
+        btn.classList.toggle('text-gray-700', isReassignMode);
+    }
+}
+
+/** 전체선택 체크박스 클릭 핸들러. 현재 화면에 보이는 모든 회원 체크박스를 동일 상태로. */
+window.onReassignSelectAll = (master) => {
+    const checked = !!master.checked;
+    document.querySelectorAll('.js-reassign-member-check').forEach((c) => { c.checked = checked; });
+    updateReassignSelectedCount();
+};
+
+/** 개별 회원 체크박스 클릭 시: 전체선택 체크박스 상태 동기화 + 카운트 갱신. */
+window.onReassignMemberCheck = () => {
+    const all = document.querySelectorAll('.js-reassign-member-check');
+    const checkedCount = Array.from(all).filter((c) => c.checked).length;
+    const master = document.querySelector('#reassignSelectAll');
+    if (master) master.checked = all.length > 0 && checkedCount === all.length;
+    updateReassignSelectedCount();
+};
+
+/** 선택된 회원 수 표시 텍스트 갱신. */
+function updateReassignSelectedCount() {
+    const label = document.querySelector('#reassignSelectedCount');
+    if (!label) return;
+    const count = document.querySelectorAll('.js-reassign-member-check:checked').length;
+    label.textContent = `선택 ${count}명`;
+}
+
+/**
+ * [등록] 버튼: 선택된 회원들의 부서/직급을 일괄 변경.
+ *  - 부서/직급 둘 다 비어있으면 진행 불가.
+ *  - 둘 중 하나만 선택된 경우 그 한 쪽만 일괄 변경 (백엔드 reassignMembers 가 null 허용).
+ */
+window.submitReassign = async () => {
+    const selected = Array.from(document.querySelectorAll('.js-reassign-member-check:checked'))
+        .map((c) => c.value)
+        .filter((v) => v);
+    if (selected.length === 0) {
+        alert('이동 대상 직원을 선택하세요.');
+        return;
+    }
+
+    const deptId = document.querySelector('#reassignDeptSelect')?.value || '';
+    const positionId = document.querySelector('#reassignPositionSelect')?.value || '';
+    if (!deptId && !positionId) {
+        alert('변경할 부서 또는 직급을 선택하세요.');
+        return;
+    }
+
+    if (!confirm(`선택된 ${selected.length}명의 부서/직급을 변경합니다. 계속하시겠습니까?`)) return;
+
+    const token = document.querySelector('meta[name="_csrf"]')?.content;
+    const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+    const formData = new URLSearchParams();
+    selected.forEach((id) => formData.append('memberIds', id));
+    if (deptId) formData.append('deptId', deptId);
+    if (positionId) formData.append('positionId', positionId);
+
+    try {
+        const response = await fetch('/api/subAdmin/reassign', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                [header]: token
+            },
+            body: formData.toString()
+        });
+
+        if (response.ok) {
+            alert('인사이동이 완료되었습니다.');
+            // 모드는 유지하되 선택 상태만 초기화 (연속 작업 편의)
+            document.querySelectorAll('.js-reassign-member-check').forEach((c) => { c.checked = false; });
+            const all = document.querySelector('#reassignSelectAll');
+            if (all) all.checked = false;
+            const deptSel = document.querySelector('#reassignDeptSelect');
+            const posSel = document.querySelector('#reassignPositionSelect');
+            if (deptSel) { deptSel.value = ''; deptSel.dispatchEvent(new Event('change', { bubbles: true })); }
+            if (posSel) { posSel.value = ''; posSel.dispatchEvent(new Event('change', { bubbles: true })); }
+            updateReassignSelectedCount();
+            loadMemberList();
+        } else {
+            const errorText = await response.text();
+            alert(`인사이동 실패: ${errorText || '서버 오류가 발생했습니다.'}`);
+        }
+    } catch (error) {
+        console.error('Reassign Error:', error);
+        alert('서버와 통신 중 오류가 발생했습니다.');
+    }
+};
