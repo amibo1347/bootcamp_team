@@ -40,10 +40,14 @@ public class SubAdminApiController {
     private final MemberService memberService;
     private final ArticleService articleService;
 
-    /** 통합 휴지통: 회사 단위 소프트 삭제 글 목록 (SUB_ADMIN 계열 전용 경로 보호 후 서비스에서 isAdmin 검증 병행). */
+    /**
+     * 통합 휴지통: 소프트 삭제 글 목록.
+     * ※ 모든 인증된 회원이 호출 가능. 권한 분기는 ArticleService 에서 처리한다
+     *   — TRASH_MANAGEMENT 보유자는 회사 전체, 그 외는 본인 작성 글만.
+     */
     @GetMapping("/articles/trash")
     @ResponseBody
-    @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN') or hasRole('MASTER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<ArticleUnifiedTrashDto>> listUnifiedTrash(
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {

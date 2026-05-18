@@ -1,5 +1,18 @@
 <!-- [사이드바] : 좌측 고정 내비게이션. sidebarToggle 상태에 따라 축소(90px)/확장(290px) 전환 -->
-<aside xmlns:th="http://www.thymeleaf.org" th:with="ms=${session.memberSession}, isAdmin=${ms != null and ms.isAdmin()}, isAdminOrMaster=${ms != null and ms.isAdminOrMaster()}"
+<aside xmlns:th="http://www.thymeleaf.org"
+    th:with="ms=${session.memberSession},
+             isAdmin=${ms != null and ms.isAdmin()},
+             isAdminOrMaster=${ms != null and ms.isAdminOrMaster()},
+             isCompanyAdmin=${ms != null and ms.isCompanyAdmin()},
+             canWaiting=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).WAITING_APPROVAL)},
+             canMember=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).MEMBER_MANAGEMENT)},
+             canDept=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).DEPT_MANAGEMENT)},
+             canPosition=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).POSITION_MANAGEMENT)},
+             canBoard=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).BOARD_MANAGEMENT)},
+             canApprovalTemplate=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).APPROVAL_TEMPLATE_MANAGEMENT)},
+             canTrashAll=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).TRASH_MANAGEMENT)},
+             staffVisible=${canWaiting or canMember},
+             organizationVisible=${canDept or canPosition}"
     :class="sidebarToggle ? 'translate-x-0 lg:w-[90px]' : '-translate-x-full'"
     class="sidebar fixed left-0 top-0 z-9999 flex h-screen w-[290px] flex-col overflow-y-hidden border-r border-gray-200 bg-white px-5 dark:border-gray-800 dark:bg-black lg:static lg:translate-x-0">
     <!-- SIDEBAR HEADER -->
@@ -82,6 +95,11 @@
                         this.page = 'position';
                         return;
                     }
+                    if (path.includes('/admin/permission/list')) {
+                        this.selected = '';
+                        this.page = 'permission';
+                        return;
+                    }
                     if (path.includes('/subAdmin/unified-trash')) {
                         this.page = 'unifiedTrash';
                         this.selected = '';
@@ -126,7 +144,8 @@
 
                 <ul class="flex flex-col gap-4 mb-6">
                     <!-- Menu Item Staff -->
-                    <li th:if="${isAdmin}">
+                    <!-- 카테고리: 하위 메뉴(승인 대기 / 조직도 구성) 중 하나라도 권한 있으면 표시 -->
+                    <li th:if="${staffVisible}">
                         <!-- 1. @click 로직 수정: selected 변수에 'Staff'라는 이름만 저장/해제 -->
                         <a th:href="@{/}" @click.prevent="selected = (selected === 'Staff' ? '' : 'Staff')"
                             class="menu-item group"
@@ -157,14 +176,14 @@
                         <div class="overflow-hidden" :class="(selected === 'Staff') ? 'block' : 'hidden'">
                             <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
                                 class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
-                                <li>
+                                <li th:if="${canWaiting}">
                                     <a th:href="@{/admin/waitingList}" class="menu-dropdown-item group"
                                         :class="page=== 'waiting' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
                                         @click="page = 'waiting'">
                                         승인 대기 목록
                                     </a>
                                 </li>
-                                <li>
+                                <li th:if="${canMember}">
                                     <a th:href="@{/admin/memberList}" class="menu-dropdown-item group"
                                         :class="page=== 'members' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
                                         @click="page = 'members'">
@@ -180,8 +199,9 @@
                     <!--
                       조직도 구성 페이지 내부의 "신규 부서" / "신규 직급" 진입은 그대로 유지 (이중 경로).
                       카테고리 키는 syncActiveFromPath() 에 이미 매핑된 'Organization' 을 재사용한다.
+                      하위(부서/직급) 중 하나라도 권한 있으면 카테고리 표시.
                     -->
-                    <li th:if="${isAdmin}">
+                    <li th:if="${organizationVisible}">
                         <a th:href="@{/}" @click.prevent="selected = (selected === 'Organization' ? '' : 'Organization')"
                             class="menu-item group"
                             :class="(selected === 'Organization') || (page === 'department' || page === 'position') ? 'menu-item-active' : 'menu-item-inactive'">
@@ -205,14 +225,14 @@
                         <div class="overflow-hidden" :class="(selected === 'Organization') ? 'block' : 'hidden'">
                             <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
                                 class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
-                                <li>
+                                <li th:if="${canDept}">
                                     <a th:href="@{/admin/dept/list}" class="menu-dropdown-item group"
                                         :class="page === 'department' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
                                         @click="page = 'department'; selected = 'Organization'">
                                         부서 관리
                                     </a>
                                 </li>
-                                <li>
+                                <li th:if="${canPosition}">
                                     <a th:href="@{/admin/position/list}" class="menu-dropdown-item group"
                                         :class="page === 'position' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
                                         @click="page = 'position'; selected = 'Organization'">
@@ -224,10 +244,10 @@
                     </li>
                     <!-- Menu Item Organization -->
 
-                    <!-- Menu Item Permission (권한 관리) -->
-                    <li th:if="${isAdmin}">
-                        <a href="#"
-                            @click.prevent="page = 'permission'; selected = ''"
+                    <!-- Menu Item Permission (권한 관리) - 기업 대표(ADMIN) 단독 전용 -->
+                    <li th:if="${isCompanyAdmin}">
+                        <a th:href="@{/admin/permission/list}"
+                            @click="page = 'permission'; selected = ''"
                             class="menu-item group"
                             :class="page === 'permission' ? 'menu-item-active' : 'menu-item-inactive'">
                             <svg :class="page === 'permission' ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"
@@ -240,8 +260,12 @@
                             <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">권한 관리</span>
                         </a>
                     </li>
-                    <!-- Menu Item Unified trash -->
-                    <li th:if="${isAdmin}">
+                    <!--
+                      Menu Item Unified trash.
+                      ※ 메뉴 자체는 로그인된 모든 회원에게 노출 — 자기 작성 글 휴지통은 누구나 확인 가능.
+                      ※ TRASH_MANAGEMENT 권한 보유자만 회사 전체 삭제 글을 볼 수 있다 (서비스 단에서 분기).
+                    -->
+                    <li th:if="${ms != null}">
                         <a th:href="@{/subAdmin/unified-trash}" @click="page = 'unifiedTrash'"
                             class="menu-item group -ml-px"
                             :class="page === 'unifiedTrash' ? 'menu-item-active' : 'menu-item-inactive'">
@@ -295,9 +319,9 @@
                       - 관리자(isAdmin): 카테고리(드롭다운) — 하위 "전자결재" / "양식 관리"
                     -->
 
-                    <!-- Menu Item Approval (일반 사용자 / SUB_ADMIN - 카테고리 없음, 단일 링크) -->
-                    <!-- 양식 관리는 ADMIN/MASTER 전용이라 SUB_ADMIN 한테는 드롭다운 의미가 없음 -->
-                    <li th:if="${not isAdminOrMaster}">
+                    <!-- Menu Item Approval (양식 관리 권한 없음 — 카테고리 없이 단일 링크) -->
+                    <!-- ADMIN/MASTER 와 APPROVAL_TEMPLATE_MANAGEMENT 보유 SUB_ADMIN 은 드롭다운 분기로 진입 -->
+                    <li th:if="${not canApprovalTemplate}">
                         <a th:href="@{/approval}" @click="page = 'approval'; selected = 'Approval'"
                             class="menu-item group"
                             :class="page === 'approval' ? 'menu-item-active' : 'menu-item-inactive'">
@@ -312,8 +336,8 @@
                         </a>
                     </li>
 
-                    <!-- Menu Item Approval (ADMIN/MASTER - 카테고리 + 드롭다운, 양식 관리 포함) -->
-                    <li th:if="${isAdminOrMaster}">
+                    <!-- Menu Item Approval (양식 관리 권한 보유 — 카테고리 + 드롭다운, 양식 관리 포함) -->
+                    <li th:if="${canApprovalTemplate}">
                         <a th:href="@{/}" @click.prevent="selected = (selected === 'Approval' ? '' : 'Approval')"
                             class="menu-item group"
                             :class="(selected === 'Approval') || (page === 'approval' || page === 'approvalTemplates') ? 'menu-item-active' : 'menu-item-inactive'">
@@ -376,8 +400,8 @@
                     </li>
                     <!-- Menu Item Profile -->
 
-                    <!-- Menu Item Tables -->
-                    <li th:if="${isAdmin}">
+                    <!-- Menu Item Tables (게시판 관리) -->
+                    <li th:if="${canBoard}">
                         <a th:href="@{/}" @click.prevent="selected = (selected === 'Tables' ? '':'Tables')"
                             class="menu-item group"
                             :class="(selected === 'Tables') || (page === 'basicTables' || page === 'dataTables') ? 'menu-item-active' : 'menu-item-inactive'">

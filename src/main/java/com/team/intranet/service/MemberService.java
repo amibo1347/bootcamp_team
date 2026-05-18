@@ -2,8 +2,10 @@ package com.team.intranet.service;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,6 +20,7 @@ import com.team.intranet.entity.Position;
 import com.team.intranet.enums.ErrorCode;
 import com.team.intranet.enums.member.MemberType;
 import com.team.intranet.enums.member.Status;
+import com.team.intranet.enums.member.SubAdminPermission;
 import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.ArticleRepository;
 import com.team.intranet.repository.CommentRepository;
@@ -117,6 +120,28 @@ public class MemberService {
             case ON_LEAVE -> target.onLeave();
             case JOIN -> target.reinstate(); // ON_LEAVE -> JOIN 복직
             default -> throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
+    }
+
+    /**
+     * 회원별 예외 권한(extra) 일괄 교체.
+     *  - 선택된 회원 모두에게 동일한 권한 집합을 설정한다 (교체 의미).
+     *  - permissions 가 null/empty 면 해당 회원들의 모든 예외 권한 해제.
+     *  - 권한 관리 페이지는 ADMIN 만 접근하므로 호출 측에서 차단되어야 한다.
+     */
+    @Transactional
+    public void updateExtraPermissions(MemberSession ms, List<Long> memberIds, Set<SubAdminPermission> permissions) {
+        if (memberIds == null || memberIds.isEmpty()) {
+            throw new BusinessException(ErrorCode.MEMBER_NOT_FOUND);
+        }
+
+        Set<SubAdminPermission> normalized = (permissions == null || permissions.isEmpty())
+            ? EnumSet.noneOf(SubAdminPermission.class)
+            : EnumSet.copyOf(permissions);
+
+        for (Long memberId : memberIds) {
+            Member target = findMemberAndValidateOwner(ms, memberId);
+            target.replaceExtraPermissions(normalized);
         }
     }
 

@@ -3,7 +3,10 @@
     import com.team.intranet.entity.Member;
     import com.team.intranet.entity.Company;
     import com.team.intranet.enums.member.Role;
+    import com.team.intranet.enums.member.SubAdminPermission;
     import java.io.Serializable;
+    import java.util.EnumSet;
+    import java.util.Set;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,7 +14,7 @@ import lombok.Getter;
     @Getter
     @AllArgsConstructor
     public class MemberSession implements Serializable {
-        private static final long serialVersionUID = 1L; // 직렬화 버전 체크용
+        private static final long serialVersionUID = 2L; // 직렬화 버전 체크용 (permissions 필드 추가로 bump)
 
         private final Long memberId;        // DB 식별자
         private final String loginId;       // 로그인 아이디
@@ -25,6 +28,12 @@ import lombok.Getter;
         private final Integer positionLevel;    // 직급 레벨 (추가)
         private final Long deptId;          // 부서 id (추가)
         private final String deptName;    // 부서명 (대시보드 등 표시용)
+        /**
+         * 실효 권한 스냅샷 = 직급 권한 ∪ 회원 예외 권한.
+         *  - ADMIN/MASTER 는 hasPermission() 에서 자동 통과하므로 비어 있어도 됨.
+         *  - 권한 변경은 다음 로그인 시 반영(운영 단순화).
+         */
+        private final Set<SubAdminPermission> permissions;
 
         // 엔티티를 세션 객체로 변환하는 생성자
         public MemberSession(Member member) {
@@ -40,6 +49,18 @@ import lombok.Getter;
             this.positionLevel = member.getPosition().getPositionLevel();
             this.deptId = member.getDept() != null ? member.getDept().getDeptId() : null;
             this.deptName = member.getDept() != null ? member.getDept().getDeptName() : null;
+
+            // 실효 권한: 직급 권한 ∪ 회원 예외 권한.
+            EnumSet<SubAdminPermission> effective = EnumSet.noneOf(SubAdminPermission.class);
+            Set<SubAdminPermission> positionPerms = member.getPosition().getPermissions();
+            if (positionPerms != null && !positionPerms.isEmpty()) {
+                effective.addAll(positionPerms);
+            }
+            Set<SubAdminPermission> extraPerms = member.getExtraPermissions();
+            if (extraPerms != null && !extraPerms.isEmpty()) {
+                effective.addAll(extraPerms);
+            }
+            this.permissions = effective;
         }
 
     public boolean isAdmin() {
@@ -49,6 +70,21 @@ import lombok.Getter;
     /** 진짜 ADMIN 이상(ADMIN/MASTER) — SUB_ADMIN 은 배제. 양식 관리 같이 인트라넷 관리자 전용 화면용. */
     public boolean isAdminOrMaster() {
          return role == Role.ADMIN || role == Role.MASTER;
+    }
+
+    /** 기업 대표(ADMIN) 만 — MASTER/SUB_ADMIN/USER 모두 배제. 권한 관리 페이지처럼 ADMIN 단독 전용. */
+    public boolean isCompanyAdmin() {
+         return role == Role.ADMIN;
+    }
+
+    /**
+     * SUB_ADMIN 세부 권한 체크. ADMIN/MASTER 는 무조건 통과.
+     *  - USER 는 SUB_ADMIN 메뉴 자체가 사이드바에서 안 나오지만, 안전장치로 false 반환.
+     */
+    public boolean hasPermission(SubAdminPermission permission) {
+        if (role == Role.ADMIN || role == Role.MASTER) return true;
+        if (role != Role.SUB_ADMIN) return false;
+        return permissions != null && permissions.contains(permission);
     }
 
 }

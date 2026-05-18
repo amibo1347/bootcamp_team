@@ -8,8 +8,6 @@ function getCsrfToken() {
 async function createPosition(companyId) {
     const positionNameInput = document.getElementById('positionNameInput');
     const positionName = positionNameInput.value;
-    const isAdminCheckbox = document.getElementById('isAdminCheck');
-    const isAdmin = isAdminCheckbox.checked;
     const positionLevelInput = document.getElementById('positionLevelInput');
     const positionLevel = parseInt(positionLevelInput.value, 10) || 0;
 
@@ -18,7 +16,8 @@ async function createPosition(companyId) {
         return;
     }
 
-    const data = { companyId: companyId, positionName: positionName, isAdmin: isAdmin, positionLevel: positionLevel };
+    // isAdmin 은 항상 false: 권한 부여는 [권한 관리] 페이지에서 한다.
+    const data = { companyId: companyId, positionName: positionName, isAdmin: false, positionLevel: positionLevel };
     const { token, header } = getCsrfToken();
 
     try {
@@ -39,7 +38,6 @@ async function createPosition(companyId) {
 
             positionNameInput.value = ''; // 입력창만 비우기
             positionLevelInput.value = '';
-            isAdminCheckbox.checked = false;
             alert("직급이 생성되었습니다.");
         } else {
             alert("생성 실패");
@@ -50,10 +48,10 @@ async function createPosition(companyId) {
 }
 
 // 1. 수정 모드 <-> 일반 모드 전환 함수
+//    ※ 관리자 체크박스는 제거되었음. 이름/레벨만 토글한다.
 function toggleEditMode(positionId, isEdit) {
     const textSpan = document.getElementById(`pos-name-text-${positionId}`);
     const inputField = document.getElementById(`pos-name-input-${positionId}`);
-    const adminCheckbox = document.getElementById(`pos-isAdmin-${positionId}`);
     const levelTextSpan = document.getElementById(`pos-level-text-${positionId}`);
     const levelInputField = document.getElementById(`pos-level-input-${positionId}`);
 
@@ -73,11 +71,6 @@ function toggleEditMode(positionId, isEdit) {
         deleteBtn.classList.add('hidden');
         cancelBtn.classList.remove('hidden');
 
-        if(adminCheckbox && textSpan) {
-            adminCheckbox.removeAttribute('disabled'); // 체크박스 활성화
-            adminCheckbox.checked = textSpan.dataset.isAdmin === 'true'; // 체크박스 상태 반영
-        }
-
         if (levelTextSpan && levelInputField) {
             levelTextSpan.classList.add('hidden');
             levelInputField.classList.remove('hidden');
@@ -88,11 +81,6 @@ function toggleEditMode(positionId, isEdit) {
         textSpan.classList.remove('hidden');
         inputField.classList.add('hidden');
         inputField.value = textSpan.innerText; // 입력값 초기화
-
-        if (adminCheckbox && textSpan) {
-            adminCheckbox.setAttribute('disabled', 'disabled'); // 체크박스 비활성화
-            adminCheckbox.checked = textSpan.dataset.isAdmin === 'true';
-        }
 
         if (levelTextSpan && levelInputField) {
             levelTextSpan.classList.remove('hidden');
@@ -108,13 +96,16 @@ function toggleEditMode(positionId, isEdit) {
 }
 
 // 2. AJAX로 수정한 이름 저장하기
+//    ※ 관리자 여부(isAdmin)는 사용자가 직접 토글하지 않는다.
+//    ※ 서버는 isAdmin 파라미터를 받으면 기존 값 유지를 위해 현재 직급의 role 을 사용한다.
 async function savePosition(positionId) {
     const inputField = document.getElementById(`pos-name-input-${positionId}`);
     const newPositionName = inputField.value.trim();
-    const adminCheckbox = document.getElementById(`pos-isAdmin-${positionId}`);
-    const isAdmin = adminCheckbox ? adminCheckbox.checked : false;
     const levelInputField = document.getElementById(`pos-level-input-${positionId}`);
     const positionLevel = levelInputField ? (parseInt(levelInputField.value, 10) || 0) : 0;
+    // 현재 행에 표시된 뱃지로 관리자 여부를 다시 보낸다 (이름/레벨만 수정 의도이므로 권한 상태는 유지).
+    const textSpan = document.getElementById(`pos-name-text-${positionId}`);
+    const isAdmin = textSpan && textSpan.dataset.isAdmin === 'true';
 
     if (newPositionName === "") {
         alert("직급명을 입력해주세요.");

@@ -500,19 +500,20 @@
                         ※ 부서/직급 변경은 [인사이동] 일괄 변경 플로우로만 수행하기로 결정.
                         ※ 백엔드 updateMember API 가 deptId/positionId 를 required 로 받으므로
                           기존 값을 그대로 다시 보내기 위해 hidden input 으로 보존한다.
+                        ※ 표시는 input(readOnly) 대신 회원 행과 동일한 배지/텍스트 패턴 — 한눈에 "수정 불가"임이 보이도록.
                     -->
                     <div class="flex items-center gap-4">
                         <label class="w-24 font-medium text-gray-600 dark:text-gray-300">부서</label>
                         <input type="hidden" id="editDept" name="deptId">
-                        <input type="text" id="editDeptDisplay" readonly tabindex="-1"
-                            class="flex-1 rounded border border-stroke bg-gray-100 dark:bg-meta-4 py-2 px-4 text-black dark:text-white cursor-not-allowed focus:outline-none">
+                        <span id="editDeptDisplay"
+                            class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">부서명</span>
                     </div>
 
                     <div class="flex items-center gap-4">
                         <label class="w-24 font-medium text-gray-600 dark:text-gray-300">직급</label>
                         <input type="hidden" id="editPosition" name="positionId">
-                        <input type="text" id="editPositionDisplay" readonly tabindex="-1"
-                            class="flex-1 rounded border border-stroke bg-gray-100 dark:bg-meta-4 py-2 px-4 text-black dark:text-white cursor-not-allowed focus:outline-none">
+                        <span id="editPositionDisplay"
+                            class="text-sm font-medium text-gray-700 dark:text-gray-200">직급명</span>
                     </div>
 
                     <div class="flex items-center gap-4">

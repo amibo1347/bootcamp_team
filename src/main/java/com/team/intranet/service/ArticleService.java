@@ -18,6 +18,7 @@ import com.team.intranet.enums.ErrorCode;
 import com.team.intranet.enums.board.AnonymousType;
 import com.team.intranet.enums.board.BoardType;
 import com.team.intranet.enums.member.Status;
+import com.team.intranet.enums.member.SubAdminPermission;
 import com.team.intranet.event.ArticleCreatedEvent;
 import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.ArticleRepository;
@@ -147,14 +148,15 @@ public class ArticleService {
     }
 
     /**
-     * SUB_ADMIN 이상({@link MemberSession#isAdmin()}) 전용. 동일 회사 소속 게시판의 삭제 글만 집계한다.
+     * 통합 휴지통 조회.
+     * ※ TRASH_MANAGEMENT 권한 보유자 → 회사 전체 삭제 글.
+     * ※ 그 외 일반 회원 → 본인 작성 글 중 삭제분만 (자기 글 복구/조회 용도).
      */
     @Transactional(readOnly = true)
     public Page<ArticleUnifiedTrashDto> findDeletedArticlesForCompanyUnified(MemberSession ms, Pageable pageable) {
-        if (!ms.isAdmin()) {
-            throw new BusinessException(ErrorCode.NOT_ADMIN_ROLE);
-        }
-        Page<Article> page = articleRepository.findDeletedByCompanyId(ms.getCompanyId(), pageable);
+        Page<Article> page = ms.hasPermission(SubAdminPermission.TRASH_MANAGEMENT)
+            ? articleRepository.findDeletedByCompanyId(ms.getCompanyId(), pageable)
+            : articleRepository.findDeletedByCompanyIdAndAuthorId(ms.getCompanyId(), ms.getMemberId(), pageable);
         return page.map(ArticleUnifiedTrashDto::from);
     }
 
@@ -207,8 +209,8 @@ public class ArticleService {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
 
-        // 3. 권한: 작성자 본인 OR 관리자
-        if (!article.isAuthor(ms.getMemberId()) && !ms.isAdmin()) {
+        // 3. 권한: 작성자 본인 OR TRASH_MANAGEMENT 보유자(ADMIN/MASTER 는 자동 통과).
+        if (!article.isAuthor(ms.getMemberId()) && !ms.hasPermission(SubAdminPermission.TRASH_MANAGEMENT)) {
             throw new BusinessException(ErrorCode.NO_AUTHORITY);
         }
 
@@ -227,8 +229,8 @@ public class ArticleService {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
 
-        // 3. 권한: 작성자 본인 OR 관리자
-        if (!article.isAuthor(ms.getMemberId()) && !ms.isAdmin()) {
+        // 3. 권한: 작성자 본인 OR TRASH_MANAGEMENT 보유자(ADMIN/MASTER 는 자동 통과).
+        if (!article.isAuthor(ms.getMemberId()) && !ms.hasPermission(SubAdminPermission.TRASH_MANAGEMENT)) {
             throw new BusinessException(ErrorCode.NO_AUTHORITY);
         }
 

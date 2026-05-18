@@ -1,7 +1,9 @@
 package com.team.intranet.service;
 
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;  // ⭐ Spring 트랜잭션
@@ -11,6 +13,7 @@ import com.team.intranet.entity.Company;
 import com.team.intranet.entity.Position;
 import com.team.intranet.enums.ErrorCode;
 import com.team.intranet.enums.member.Role;
+import com.team.intranet.enums.member.SubAdminPermission;
 import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.CompanyRepository;
 import com.team.intranet.repository.PositionRepository;
@@ -92,8 +95,37 @@ public class PositionService {
      */
     @Transactional
     public void deletePosition(MemberSession ms, Long positionId) {
-        Position position = findPositionAndValidateOwner(ms, positionId);        
+        Position position = findPositionAndValidateOwner(ms, positionId);
         positionRepository.delete(position);
+    }
+
+    /**
+     * 권한 관리 페이지: 특정 직급의 SUB_ADMIN 세부 권한 일괄 교체.
+     *  - permissions 가 null/empty 면 USER 직급으로 자동 강등, 1개 이상이면 SUB_ADMIN 으로 자동 승격.
+     *  - ADMIN/MASTER 직급은 권한 관리 페이지에서 편집할 수 없도록 차단(시스템/기업 대표 권한이 권한 컬렉션으로 좁혀지면 안 됨).
+     *  - 권한 관리 페이지는 ADMIN 만 접근하므로 호출 측에서 PreAuthorize 로 차단되어야 한다.
+     */
+    @Transactional
+    public void updatePermissions(MemberSession ms, Long positionId, Set<SubAdminPermission> permissions) {
+        Position position = findPositionAndValidateOwner(ms, positionId);
+
+        // ADMIN/MASTER 직급은 권한 시스템과 무관(모든 권한 자동 통과)이므로 편집 금지.
+        if (position.getRole() == Role.ADMIN || position.getRole() == Role.MASTER) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
+
+        Set<SubAdminPermission> normalized = (permissions == null || permissions.isEmpty())
+            ? EnumSet.noneOf(SubAdminPermission.class)
+            : EnumSet.copyOf(permissions);
+        position.replacePermissions(normalized);
+
+        // 권한 부여 결과에 따라 Role 자동 전환.
+        //  - 권한 1개 이상 → SUB_ADMIN
+        //  - 권한 0개      → USER
+        Role newRole = normalized.isEmpty() ? Role.USER : Role.SUB_ADMIN;
+        if (position.getRole() != newRole) {
+            position.setRole(newRole);
+        }
     }
 
     // ===== 헬퍼 메서드 =====

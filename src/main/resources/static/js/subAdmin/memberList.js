@@ -136,8 +136,9 @@ window.openEditModal = (button) => {
     document.querySelector('#editPosition').value = button.dataset.positionId || '';
     const deptDisplay = document.querySelector('#editDeptDisplay');
     const positionDisplay = document.querySelector('#editPositionDisplay');
-    if (deptDisplay) deptDisplay.value = button.dataset.deptName || '미지정';
-    if (positionDisplay) positionDisplay.value = button.dataset.positionName || '미지정';
+    // input → span 으로 바뀌었으므로 textContent 사용.
+    if (deptDisplay) deptDisplay.textContent = button.dataset.deptName || '미지정';
+    if (positionDisplay) positionDisplay.textContent = button.dataset.positionName || '미지정';
     document.querySelector('#editEmail').value = button.dataset.email || '';
     document.querySelector('#editPhone').value = button.dataset.phone || '';
     document.querySelector('#editBirth').value = button.dataset.birth || '';
