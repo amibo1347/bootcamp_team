@@ -87,11 +87,13 @@ function startClock(clockEl, dateEl) {
 }
 
 /**
- * 근무 진행률 UI 갱신 (정책 기반).
- *  - standardWorkMs 가 100% 기준. (workEnd - workStart - break)
- *  - 정규 진행 fill: 좌→우, 0~100%. 100% 도달 후 멈춤.
- *  - 초과 overtime overlay: 우→좌, 0~100%. standardWorkMs 만큼 추가 근무 시 트랙 전체가 빨강.
- *  - 라벨: 정규 진행 중에는 "{n}%", 초과 시 "+{m}분" 보조 표시.
+ * 근무 진행률 UI 갱신 — 진행바와 라벨/초과 판정의 기준을 통일.
+ *  - 진행바 fill: "출근 시각 ~ 정책 work_end" 시계 구간을 0~100% 로. 정책 work_end 도달 시 정확히 100%.
+ *  - 초과(overtime): 정책 work_end 이후의 시계 시간. fill 은 100% 캡, 우→좌 빨강 overlay 가 채워짐.
+ *  - 라벨: 정규 구간은 "{n}%", 정책 work_end 초과 시 "100% · 초과 +{m}분".
+ *  ※ 이전 구현은 fill 의 분모가 휴게 차감된 standardWorkMs 라서, 정책 work_end 도달 시 fill 이 100% 미만이고
+ *    라벨만 100% 인 불일치가 있었음 → 분모를 시계 기준(checkin ~ workEnd) 으로 통일.
+ *  ※ overtime overlay 의 분모는 standardWorkMs 그대로 — "정규 근무 시간만큼 더 일하면 트랙 전체 빨강" 의도 보존.
  * @param {Date | null} checkinAt
  * @param {Date | null} checkoutAt
  * @param {HTMLElement | null} fillEl
@@ -99,7 +101,7 @@ function startClock(clockEl, dateEl) {
  * @param {HTMLElement | null} trackEl
  * @param {HTMLElement | null} labelEl
  * @param {number} standardWorkMs
- * @param {Date | null} dailyWorkEndAt 오늘 날짜에 정책 work_end 시각을 박은 Date — 초과 기준점
+ * @param {Date | null} dailyWorkEndAt 오늘 날짜에 정책 work_end 시각을 박은 Date — 100% 기준점
  */
 function updateWorkProgress(checkinAt, checkoutAt, fillEl, overtimeEl, trackEl, labelEl, standardWorkMs, dailyWorkEndAt) {
   if (!fillEl || !labelEl || !trackEl) return;
@@ -111,25 +113,30 @@ function updateWorkProgress(checkinAt, checkoutAt, fillEl, overtimeEl, trackEl, 
     return;
   }
   const endMs = checkoutAt ? checkoutAt.getTime() : Date.now();
-  const elapsed = Math.max(0, endMs - checkinAt.getTime());
   const std = standardWorkMs > 0 ? standardWorkMs : WORKDAY_FALLBACK_MS;
 
-  // 정규 진행: 0~std 구간을 0~100%로
-  const regularPct = Math.min(100, (elapsed / std) * 100);
+  // fill 분모: 출근 시점 ~ 정책 workEnd. 정책 정보가 없거나 출근이 workEnd 이후면 standardWorkMs 폴백.
+  let denomMs;
+  if (dailyWorkEndAt instanceof Date && dailyWorkEndAt.getTime() > checkinAt.getTime()) {
+    denomMs = dailyWorkEndAt.getTime() - checkinAt.getTime();
+  } else {
+    denomMs = std;
+  }
+
+  const elapsed = Math.max(0, endMs - checkinAt.getTime());
+  const regularPct = Math.min(100, (elapsed / denomMs) * 100);
   fillEl.style.width = `${regularPct}%`;
 
-  // 초과: 정책의 work_end 를 기준으로 판정 (시계 시각 기준)
-  // 초과 분 = max(0, endMs - dailyWorkEndAt). 초과 100% = std (= 정규 근무 시간만큼 더 일함)
+  // 초과: 정책 workEnd 이후의 시계 시간.
   let overtimeMs = 0;
   if (dailyWorkEndAt instanceof Date) {
     overtimeMs = Math.max(0, endMs - dailyWorkEndAt.getTime());
   } else {
-    overtimeMs = Math.max(0, elapsed - std);
+    overtimeMs = Math.max(0, elapsed - denomMs);
   }
   const overtimePct = Math.min(100, (overtimeMs / std) * 100);
   if (overtimeEl) overtimeEl.style.width = `${overtimePct}%`;
 
-  // 라벨
   if (overtimeMs > 0) {
     const overMin = Math.floor(overtimeMs / 60000);
     labelEl.textContent = `100% · 초과 +${overMin}분`;

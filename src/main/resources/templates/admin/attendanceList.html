@@ -29,6 +29,16 @@
             text-shadow: 0 1px 1px rgba(0,0,0,0.35);
             min-width: 2px;
         }
+        /*
+          초과 근무 막대는 실제 시간이 짧을 때(예: 13분=0.9%) 폭이 거의 0 이라 라벨이 잘린다.
+          최소 폭을 보장해 "+N분" 라벨이 들어가게 함. 실제 시각보다 살짝 길게 보이는 트레이드오프
+          (출퇴근 정확성보다 가독성 우선) — 그래서 정책 종료 시각 자체는 정책 음영 우측 경계로 식별 가능.
+        */
+        .gantt-bar.gantt-bar-overtime {
+            min-width: 56px;
+            padding: 0 6px;
+            font-size: 11px;
+        }
         .gantt-bar-policy {
             position: absolute; top: 0; bottom: 0;
             background: rgba(148, 163, 184, 0.20);

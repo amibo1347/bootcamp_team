@@ -281,11 +281,12 @@ function renderGantt(rows) {
             }
 
             // 초과 근무 막대 (정책 종료 ~ 실제 퇴근)
+            // ※ .gantt-bar-overtime 클래스가 min-width 보장 → 짧은 초과(예: +13분) 도 라벨이 잘리지 않음.
             if (overEnd > overStart) {
                 const left = (overStart / totalDayMin) * 100;
                 const width = ((overEnd - overStart) / totalDayMin) * 100;
                 const overMin = overEnd - overStart;
-                overtimeBar = `<div class="gantt-bar" style="left:${left}%; width:${width}%; background-color:${OVERTIME_COLOR_HEX};" title="초과 +${minToHm(overMin)}">+${minToHm(overMin)}</div>`;
+                overtimeBar = `<div class="gantt-bar gantt-bar-overtime" style="left:${left}%; width:${width}%; background-color:${OVERTIME_COLOR_HEX};" title="초과 +${minToHm(overMin)}">+${minToHm(overMin)}</div>`;
             }
         }
 
