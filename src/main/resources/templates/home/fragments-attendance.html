@@ -2,20 +2,39 @@
 <html xmlns:th="http://www.thymeleaf.org">
   <body>
     <!-- [카드] 출퇴근 기록 — 로그 박스(시각+버튼) · 진행 바 · 기록 시각 -->
-    <!-- hasTodayCheckIn: 백엔드에서 오늘 출근 기록 여부(boolean)를 내려주면 SSR 버튼 노출이 맞춰짐(없으면 null→미출근으로 처리) -->
-    <!-- 조각 인자 기본값(hasTodayCheckIn=false) 문법은 파서/버전에 따라 TemplateInputException 유발 가능 → 모델 속성 hasTodayCheckIn 사용 -->
+    <!-- hasTodayCheckIn: 오늘 출근 O / 퇴근 X 일 때만 true (그래야 "퇴근" 버튼 노출) -->
+    <!--
+      data-policy-work-start / end : 회사 정책 시각 "HH:mm" — JS 진행바가 100% 기준으로 사용
+      data-policy-standard-min     : 정책 기준 총 근무 분 (workEnd - workStart - break) — 초과 산정 기준
+      data-today-clock-in-at       : 오늘 출근 시각 ISO "yyyy-MM-dd HH:mm:ss" (없으면 빈 문자열)
+      data-today-clock-out-at      : 오늘 퇴근 시각 ISO (없으면 빈 문자열)
+    -->
     <section
       th:fragment="attendanceCard"
       id="home-attendance-card"
       class="flex w-full min-h-0 flex-col rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
       th:data-home-server-check-in="${hasTodayCheckIn}"
+      th:data-policy-work-start="${attendancePolicy != null ? attendancePolicy.workStart : '09:00'}"
+      th:data-policy-work-end="${attendancePolicy != null ? attendancePolicy.workEnd : '18:00'}"
+      th:data-policy-standard-min="${attendancePolicy != null ? attendancePolicy.standardWorkMin : 480}"
+      th:data-today-clock-in-at="${todayAttendance != null and todayAttendance.clockInAt != null ? todayAttendance.clockInAt : ''}"
+      th:data-today-clock-out-at="${todayAttendance != null and todayAttendance.clockOutAt != null ? todayAttendance.clockOutAt : ''}"
     >
       <header
         class="flex shrink-0 items-center justify-between border-b border-gray-100 px-3.5 py-2.5 dark:border-gray-700"
       >
-        <h2 class="text-sm font-semibold text-gray-800 dark:text-white">
-          출퇴근 기록
-        </h2>
+        <div class="flex items-center gap-2 min-w-0">
+          <h2 class="text-sm font-semibold text-gray-800 dark:text-white">
+            출퇴근 기록
+          </h2>
+          <!-- 오늘 근태 상태 배지 — JS 가 status 에 맞춰 텍스트/색 갱신 -->
+          <span
+            id="home-attendance-status-badge"
+            class="hidden inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+            th:data-initial-status="${todayAttendance != null ? todayAttendance.status : ''}"
+            th:data-initial-label="${todayAttendance != null ? todayAttendance.statusLabel : ''}"
+          ></span>
+        </div>
         <span
           id="home-dashboard-date"
           class="text-xs text-gray-500 dark:text-gray-400"
@@ -33,14 +52,16 @@
             --:--:--
           </div>
           <div class="flex min-w-0 w-full items-stretch">
+            <!-- 미출근: 출근 버튼만 노출 -->
             <button
               type="button"
               id="home-btn-checkin"
-              th:hidden="${hasTodayCheckIn == true}"
+              th:hidden="${hasTodayCheckIn == true or hasTodayCheckOut == true}"
               class="w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             >
               출근
             </button>
+            <!-- 출근 후: 퇴근 버튼 -->
             <button
               type="button"
               id="home-btn-checkout"
@@ -48,6 +69,19 @@
               class="w-full rounded-lg bg-slate-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             >
               퇴근
+            </button>
+            <!-- 퇴근 완료 후: 퇴근 취소 버튼 (실수 복구용)
+                 ※ Tailwind output.css 에 bg-rose-500 이 빌드 안 되어 있을 수 있어 inline style 로 색 강제. -->
+            <button
+              type="button"
+              id="home-btn-checkout-cancel"
+              th:hidden="${hasTodayCheckOut != true}"
+              style="background-color: #f43f5e; color: #ffffff;"
+              onmouseover="this.style.backgroundColor='#e11d48'"
+              onmouseout="this.style.backgroundColor='#f43f5e'"
+              class="w-full rounded-lg px-3 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+            >
+              퇴근 취소
             </button>
           </div>
         </div>
@@ -59,16 +93,27 @@
           </div>
           <div
             id="home-work-progress-track"
-            class="h-2 w-full overflow-hidden rounded-full bg-gradient-to-r from-brand-100 via-brand-50 to-brand-100 shadow-inner ring-1 ring-brand-200/60 dark:from-brand-950/80 dark:via-brand-900/50 dark:to-brand-950/80 dark:ring-brand-800/50"
+            class="relative h-2 w-full overflow-hidden rounded-full bg-gradient-to-r from-brand-100 via-brand-50 to-brand-100 shadow-inner ring-1 ring-brand-200/60 dark:from-brand-950/80 dark:via-brand-900/50 dark:to-brand-950/80 dark:ring-brand-800/50"
             role="progressbar"
             aria-valuemin="0"
             aria-valuemax="100"
             aria-valuenow="0"
             aria-label="근무 시간 진행률"
           >
+            <!-- 정규 근무 진행 (좌→우, 0~100%) -->
             <div
               id="home-work-progress-fill"
-              class="h-full max-w-full rounded-full bg-brand-600 shadow-sm transition-[width] duration-500 ease-out dark:bg-brand-500"
+              class="absolute left-0 top-0 h-full max-w-full rounded-full bg-brand-600 shadow-sm transition-[width] duration-500 ease-out dark:bg-brand-500"
+              style="width: 0%"
+            ></div>
+            <!--
+              초과 근무 오버레이 (우→좌, 0~100%).
+              정규 100% 도달 후 추가 근무 시간을 강렬한 색으로 오른쪽 끝에서 채워 들어옴.
+              width 100% = 정규 근무 시간과 동일 길이만큼의 초과 (= 100% 추가 근무) 도달 시 트랙 전체가 빨강으로 덮임.
+            -->
+            <div
+              id="home-work-progress-overtime"
+              class="absolute right-0 top-0 h-full max-w-full rounded-full bg-rose-600 shadow-md transition-[width] duration-500 ease-out dark:bg-rose-500"
               style="width: 0%"
             ></div>
           </div>

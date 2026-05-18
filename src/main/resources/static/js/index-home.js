@@ -7,8 +7,20 @@
 /** @type {string} 홈 플로팅 채팅 대화 목록(Mock) localStorage 키 — 기존 쪽지 키와 분리 */
 const HOME_CHAT_STORAGE_KEY = 'homeChatConversationsV1';
 
-/** 목표 근무 시간(밀리초) — 출근 시점부터 이 시간이 채우면 100% */
-const WORKDAY_MS = 8 * 60 * 60 * 1000;
+/**
+ * 목표 근무 시간(밀리초) — 회사 정책이 없는 경우의 폴백.
+ * 실제 진행바는 setupAttendanceCard 에 전달된 standardWorkMin 값을 우선 사용한다.
+ */
+const WORKDAY_FALLBACK_MS = 8 * 60 * 60 * 1000;
+
+/** CSRF 토큰 fetch 헬퍼 — 메타에서 읽어 헤더에 실어준다. */
+function csrfHeaders() {
+  const token = document.querySelector('meta[name="_csrf"]')?.content;
+  const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+  const headers = { 'Content-Type': 'application/json' };
+  if (token && header) headers[header] = token;
+  return headers;
+}
 
 /**
  * 두 자리 숫자로 포맷합니다.
@@ -75,99 +87,242 @@ function startClock(clockEl, dateEl) {
 }
 
 /**
- * 근무 진행률 UI 갱신
+ * 근무 진행률 UI 갱신 (정책 기반).
+ *  - standardWorkMs 가 100% 기준. (workEnd - workStart - break)
+ *  - 정규 진행 fill: 좌→우, 0~100%. 100% 도달 후 멈춤.
+ *  - 초과 overtime overlay: 우→좌, 0~100%. standardWorkMs 만큼 추가 근무 시 트랙 전체가 빨강.
+ *  - 라벨: 정규 진행 중에는 "{n}%", 초과 시 "+{m}분" 보조 표시.
  * @param {Date | null} checkinAt
  * @param {Date | null} checkoutAt
  * @param {HTMLElement | null} fillEl
+ * @param {HTMLElement | null} overtimeEl
  * @param {HTMLElement | null} trackEl
  * @param {HTMLElement | null} labelEl
+ * @param {number} standardWorkMs
+ * @param {Date | null} dailyWorkEndAt 오늘 날짜에 정책 work_end 시각을 박은 Date — 초과 기준점
  */
-function updateWorkProgress(checkinAt, checkoutAt, fillEl, trackEl, labelEl) {
+function updateWorkProgress(checkinAt, checkoutAt, fillEl, overtimeEl, trackEl, labelEl, standardWorkMs, dailyWorkEndAt) {
   if (!fillEl || !labelEl || !trackEl) return;
-  const endMs = checkoutAt ? checkoutAt.getTime() : Date.now();
   if (!checkinAt) {
     fillEl.style.width = '0%';
+    if (overtimeEl) overtimeEl.style.width = '0%';
     labelEl.textContent = '0%';
     trackEl.setAttribute('aria-valuenow', '0');
     return;
   }
-  const elapsed = endMs - checkinAt.getTime();
-  const pct = Math.min(100, Math.max(0, (elapsed / WORKDAY_MS) * 100));
-  fillEl.style.width = `${pct}%`;
-  labelEl.textContent = `${Math.round(pct)}%`;
-  trackEl.setAttribute('aria-valuenow', String(Math.round(pct)));
+  const endMs = checkoutAt ? checkoutAt.getTime() : Date.now();
+  const elapsed = Math.max(0, endMs - checkinAt.getTime());
+  const std = standardWorkMs > 0 ? standardWorkMs : WORKDAY_FALLBACK_MS;
+
+  // 정규 진행: 0~std 구간을 0~100%로
+  const regularPct = Math.min(100, (elapsed / std) * 100);
+  fillEl.style.width = `${regularPct}%`;
+
+  // 초과: 정책의 work_end 를 기준으로 판정 (시계 시각 기준)
+  // 초과 분 = max(0, endMs - dailyWorkEndAt). 초과 100% = std (= 정규 근무 시간만큼 더 일함)
+  let overtimeMs = 0;
+  if (dailyWorkEndAt instanceof Date) {
+    overtimeMs = Math.max(0, endMs - dailyWorkEndAt.getTime());
+  } else {
+    overtimeMs = Math.max(0, elapsed - std);
+  }
+  const overtimePct = Math.min(100, (overtimeMs / std) * 100);
+  if (overtimeEl) overtimeEl.style.width = `${overtimePct}%`;
+
+  // 라벨
+  if (overtimeMs > 0) {
+    const overMin = Math.floor(overtimeMs / 60000);
+    labelEl.textContent = `100% · 초과 +${overMin}분`;
+    labelEl.classList.add('text-rose-600', 'dark:text-rose-400', 'font-semibold');
+  } else {
+    labelEl.textContent = `${Math.round(regularPct)}%`;
+    labelEl.classList.remove('text-rose-600', 'dark:text-rose-400', 'font-semibold');
+  }
+  trackEl.setAttribute('aria-valuenow', String(Math.round(regularPct)));
+}
+
+/** 근태 상태별 배지 색상 (메인 카드 헤더용) */
+const ATTENDANCE_STATUS_STYLE = {
+  NORMAL:      { cls: 'bg-emerald-50 text-emerald-700', label: '정상' },
+  LATE:        { cls: 'bg-amber-50 text-amber-700',     label: '지각' },
+  EARLY_LEAVE: { cls: 'bg-orange-50 text-orange-700',   label: '조퇴' },
+  ABSENT:      { cls: 'bg-rose-50 text-rose-700',       label: '결근' },
+  VACATION:    { cls: 'bg-sky-50 text-sky-700',         label: '휴가' },
+  HOLIDAY:     { cls: 'bg-gray-100 text-gray-600',      label: '휴일' },
+  ON_LEAVE:    { cls: 'bg-violet-50 text-violet-700',   label: '휴직' },
+};
+
+/** 헤더 배지에 status 적용. status null/빈값이면 숨김. */
+function applyAttendanceStatusBadge(badgeEl, status, label) {
+  if (!badgeEl) return;
+  // 모든 색상 클래스 제거 후 재적용
+  Object.values(ATTENDANCE_STATUS_STYLE).forEach(({ cls }) => {
+    cls.split(' ').forEach(c => badgeEl.classList.remove(c));
+  });
+  if (!status) {
+    badgeEl.classList.add('hidden');
+    badgeEl.textContent = '';
+    return;
+  }
+  const style = ATTENDANCE_STATUS_STYLE[status] || { cls: 'bg-gray-100 text-gray-600', label: status };
+  style.cls.split(' ').forEach(c => badgeEl.classList.add(c));
+  badgeEl.textContent = label || style.label;
+  badgeEl.classList.remove('hidden');
 }
 
 /**
- * 출퇴근 Mock + 근무 시간 프로그레스 바
- * - 버튼 노출: 출근 전에는 출근만, 출근 후에는 퇴근만(Thymeleaf SSR + 클라이언트에서 hidden 동기화)
+ * 출퇴근 카드 + 근무 진행바 (정책 기반 + 백엔드 API 연동).
+ * 3상태: 미출근 → 출근(퇴근 가능) → 퇴근 완료(퇴근 취소 가능)
  * @param {{
  *   checkinBtn: HTMLButtonElement;
  *   checkoutBtn: HTMLButtonElement;
+ *   cancelBtn: HTMLButtonElement | null;
  *   checkinDisplay: HTMLElement;
  *   checkoutDisplay: HTMLElement;
+ *   statusBadgeEl: HTMLElement | null;
  *   fillEl: HTMLElement | null;
+ *   overtimeEl: HTMLElement | null;
  *   trackEl: HTMLElement | null;
  *   labelEl: HTMLElement | null;
  * }} els
- * @param {{ serverHasCheckIn?: boolean }} [options] serverHasCheckIn: 조각 data-home-server-check-in 과 동일(이미 출근 처리된 SSR)
+ * @param {{
+ *   initialClockInAt?: string;
+ *   initialClockOutAt?: string;
+ *   initialStatus?: string;
+ *   initialStatusLabel?: string;
+ *   workStart?: string;
+ *   workEnd?: string;
+ *   standardWorkMin?: number;
+ * }} [options]
  */
 function setupAttendanceCard(els, options = {}) {
-  const { serverHasCheckIn = false } = options;
-  let checkinAt = /** @type {Date | null} */ (null);
-  let checkoutAt = /** @type {Date | null} */ (null);
+  const { initialClockInAt, initialClockOutAt, initialStatus, initialStatusLabel,
+          workStart, workEnd, standardWorkMin } = options;
+
+  let checkinAt = parseServerDatetime(initialClockInAt);
+  let checkoutAt = parseServerDatetime(initialClockOutAt);
   let progressTimer = /** @type {number | null} */ (null);
 
+  const standardWorkMs = (standardWorkMin && standardWorkMin > 0) ? standardWorkMin * 60000 : WORKDAY_FALLBACK_MS;
+  const dailyWorkEndAt = buildTodayAt(workEnd) || new Date(Date.now() + standardWorkMs);
+
   const tickProgress = () => {
-    updateWorkProgress(checkinAt, checkoutAt, els.fillEl, els.trackEl, els.labelEl);
+    updateWorkProgress(checkinAt, checkoutAt, els.fillEl, els.overtimeEl, els.trackEl, els.labelEl, standardWorkMs, dailyWorkEndAt);
   };
 
-  /**
-   * 출근/퇴근 버튼 표시·비활성 상태를 checkinAt/checkoutAt 에 맞춥니다.
-   */
+  // 3상태 버튼 가시성: 출근(미출근만) / 퇴근(출근만) / 퇴근 취소(퇴근 완료)
   const refreshButtons = () => {
-    els.checkinBtn.hidden = checkinAt !== null;
-    els.checkoutBtn.hidden = checkinAt === null || checkoutAt !== null;
-    els.checkinBtn.disabled = checkinAt !== null;
-    els.checkoutBtn.disabled = checkoutAt !== null || checkinAt === null;
+    const notIn = checkinAt === null;
+    const inOnly = checkinAt !== null && checkoutAt === null;
+    const done = checkinAt !== null && checkoutAt !== null;
+    els.checkinBtn.hidden = !notIn;
+    els.checkinBtn.disabled = !notIn;
+    els.checkoutBtn.hidden = !inOnly;
+    els.checkoutBtn.disabled = !inOnly;
+    if (els.cancelBtn) {
+      els.cancelBtn.hidden = !done;
+      els.cancelBtn.disabled = !done;
+    }
   };
 
-  // SSR 로 이미 출근한 경우: 목업 진행률용 시각(당일 09:00, 미래면 전일)으로만 채움 — 실제 연동 시 서버 시각으로 교체
-  if (serverHasCheckIn) {
-    const nine = new Date();
-    nine.setHours(9, 0, 0, 0);
-    if (nine.getTime() > Date.now()) {
-      nine.setDate(nine.getDate() - 1);
-    }
-    checkinAt = nine;
-    els.checkinDisplay.textContent = formatTime(checkinAt);
+  // SSR 초기 상태 적용
+  if (checkinAt) els.checkinDisplay.textContent = formatTime(checkinAt);
+  if (checkoutAt) {
+    els.checkoutDisplay.textContent = formatTime(checkoutAt);
+  } else if (checkinAt) {
     progressTimer = window.setInterval(tickProgress, 1000);
   }
+  applyAttendanceStatusBadge(els.statusBadgeEl, initialStatus, initialStatusLabel);
 
-  els.checkinBtn.addEventListener('click', () => {
+  els.checkinBtn.addEventListener('click', async () => {
     if (checkinAt) return;
-    checkinAt = new Date();
-    els.checkinDisplay.textContent = formatTime(checkinAt);
-    if (progressTimer) window.clearInterval(progressTimer);
-    progressTimer = window.setInterval(tickProgress, 1000);
-    tickProgress();
-    refreshButtons();
+    els.checkinBtn.disabled = true;
+    try {
+      const res = await fetch('/api/attendance/clock-in', { method: 'POST', headers: csrfHeaders() });
+      if (!res.ok) throw new Error(`clock-in failed: ${res.status}`);
+      const dto = await res.json();
+      checkinAt = parseServerDatetime(dto.clockInAt) || new Date();
+      els.checkinDisplay.textContent = formatTime(checkinAt);
+      checkoutAt = null;
+      els.checkoutDisplay.textContent = '—';
+      if (progressTimer) window.clearInterval(progressTimer);
+      progressTimer = window.setInterval(tickProgress, 1000);
+      applyAttendanceStatusBadge(els.statusBadgeEl, dto.status, dto.statusLabel);
+      tickProgress();
+      refreshButtons();
+    } catch (e) {
+      console.error(e);
+      alert('출근 처리에 실패했습니다.');
+      refreshButtons();
+    }
   });
 
-  els.checkoutBtn.addEventListener('click', () => {
+  els.checkoutBtn.addEventListener('click', async () => {
     if (!checkinAt || checkoutAt) return;
-    checkoutAt = new Date();
-    els.checkoutDisplay.textContent = formatTime(checkoutAt);
-    if (progressTimer) {
-      window.clearInterval(progressTimer);
-      progressTimer = null;
+    els.checkoutBtn.disabled = true;
+    try {
+      const res = await fetch('/api/attendance/clock-out', { method: 'POST', headers: csrfHeaders() });
+      if (!res.ok) throw new Error(`clock-out failed: ${res.status}`);
+      const dto = await res.json();
+      checkoutAt = parseServerDatetime(dto.clockOutAt) || new Date();
+      els.checkoutDisplay.textContent = formatTime(checkoutAt);
+      if (progressTimer) { window.clearInterval(progressTimer); progressTimer = null; }
+      applyAttendanceStatusBadge(els.statusBadgeEl, dto.status, dto.statusLabel);
+      tickProgress();
+      refreshButtons();
+    } catch (e) {
+      console.error(e);
+      alert('퇴근 처리에 실패했습니다.');
+      refreshButtons();
     }
-    tickProgress();
-    refreshButtons();
   });
+
+  // 퇴근 취소: 실수로 퇴근 누른 경우 복구. confirm 으로 한 단계 확인.
+  if (els.cancelBtn) {
+    els.cancelBtn.addEventListener('click', async () => {
+      if (!checkoutAt) return;
+      if (!confirm('퇴근 처리를 취소하고 다시 근무 상태로 되돌릴까요?')) return;
+      els.cancelBtn.disabled = true;
+      try {
+        const res = await fetch('/api/attendance/clock-out-cancel', { method: 'POST', headers: csrfHeaders() });
+        if (!res.ok) throw new Error(`clock-out-cancel failed: ${res.status}`);
+        const dto = await res.json();
+        checkoutAt = null;
+        els.checkoutDisplay.textContent = '—';
+        if (progressTimer) window.clearInterval(progressTimer);
+        progressTimer = window.setInterval(tickProgress, 1000);
+        applyAttendanceStatusBadge(els.statusBadgeEl, dto.status, dto.statusLabel);
+        tickProgress();
+        refreshButtons();
+      } catch (e) {
+        console.error(e);
+        alert('퇴근 취소에 실패했습니다.');
+        refreshButtons();
+      }
+    });
+  }
 
   refreshButtons();
   tickProgress();
+}
+
+/** "yyyy-MM-dd HH:mm:ss" → Date (실패 시 null) */
+function parseServerDatetime(s) {
+  if (!s) return null;
+  // ISO 호환 포맷으로 변환
+  const iso = s.replace(' ', 'T');
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** "HH:mm" → 오늘 날짜의 Date (실패 시 null) */
+function buildTodayAt(hhmm) {
+  if (!hhmm) return null;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm);
+  if (!m) return null;
+  const d = new Date();
+  d.setHours(parseInt(m[1], 10), parseInt(m[2], 10), 0, 0);
+  return d;
 }
 
 /**
@@ -753,13 +908,15 @@ function initHomeDashboard() {
   if (clockEl) startClock(clockEl, dateEl);
 
   const attendanceCard = document.getElementById('home-attendance-card');
-  const serverHasCheckIn = attendanceCard?.getAttribute('data-home-server-check-in') === 'true';
 
   const checkinBtn = document.getElementById('home-btn-checkin');
   const checkoutBtn = document.getElementById('home-btn-checkout');
+  const cancelBtn = document.getElementById('home-btn-checkout-cancel');
   const checkinDisplay = document.getElementById('home-checkin-display');
   const checkoutDisplay = document.getElementById('home-checkout-display');
+  const statusBadgeEl = document.getElementById('home-attendance-status-badge');
   const fillEl = document.getElementById('home-work-progress-fill');
+  const overtimeEl = document.getElementById('home-work-progress-overtime');
   const trackEl = document.getElementById('home-work-progress-track');
   const labelEl = document.getElementById('home-work-progress-label');
   if (
@@ -768,17 +925,29 @@ function initHomeDashboard() {
     checkinDisplay &&
     checkoutDisplay
   ) {
+    const standardMinAttr = attendanceCard?.getAttribute('data-policy-standard-min');
     setupAttendanceCard(
       {
         checkinBtn,
         checkoutBtn,
+        cancelBtn: cancelBtn instanceof HTMLButtonElement ? cancelBtn : null,
         checkinDisplay,
         checkoutDisplay,
+        statusBadgeEl,
         fillEl,
+        overtimeEl,
         trackEl,
         labelEl,
       },
-      { serverHasCheckIn },
+      {
+        initialClockInAt: attendanceCard?.getAttribute('data-today-clock-in-at') || undefined,
+        initialClockOutAt: attendanceCard?.getAttribute('data-today-clock-out-at') || undefined,
+        initialStatus: statusBadgeEl?.getAttribute('data-initial-status') || undefined,
+        initialStatusLabel: statusBadgeEl?.getAttribute('data-initial-label') || undefined,
+        workStart: attendanceCard?.getAttribute('data-policy-work-start') || undefined,
+        workEnd: attendanceCard?.getAttribute('data-policy-work-end') || undefined,
+        standardWorkMin: standardMinAttr ? parseInt(standardMinAttr, 10) : undefined,
+      },
     );
   }
 

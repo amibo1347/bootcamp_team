@@ -25,7 +25,12 @@ public enum SubAdminPermission {
      * ※ 메뉴 진입은 모든 회원에게 열려 있고, 일반 사용자는 본인 작성 글의 삭제분만 볼 수 있다.
      *   이 권한이 있는 회원은 회사 전체 삭제 글을 볼 수 있다.
      */
-    TRASH_MANAGEMENT("통합 휴지통");
+    TRASH_MANAGEMENT("통합 휴지통"),
+    /**
+     * 근태 관리 (/admin/attendance/list).
+     * ※ 본인 근태 조회(/me/attendance)는 모든 회원이 가능. 이 권한은 회사 전체 근태표·정책 편집 전용.
+     */
+    ATTENDANCE_MANAGEMENT("근태 관리");
 
     private final String label;
 

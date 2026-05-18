@@ -38,26 +38,6 @@
                 </div>
 
                 <!--
-                    권한 항목 안내 카드.
-                    ※ allPermissions 는 SubAdminPermission enum 전체. label 은 enum 의 한국어 라벨.
-                -->
-                <section
-                    class="p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
-                    <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">권한 항목 안내</h3>
-                    <p class="mb-5 text-sm text-gray-500 dark:text-gray-300">
-                        직급에 권한이 하나라도 부여되면 해당 직급은 자동으로 관리자(SUB_ADMIN)로 전환됩니다. 권한을 모두 해제하면 다시 일반(USER) 직급으로 돌아갑니다.<br/>
-                        ※ 회원별 예외 권한은 직급 권한에 <strong>추가</strong>로 적용됩니다. (직급 권한 ∪ 회원 예외 권한)
-                    </p>
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        <div th:each="perm : ${allPermissions}"
-                            class="rounded-lg border border-stroke bg-gray-50 px-4 py-2 text-sm text-gray-700 dark:border-strokedark dark:bg-meta-4 dark:text-gray-200">
-                            <span class="font-semibold text-indigo-500" th:text="${perm.label}">권한명</span>
-                            <span class="ml-2 text-xs text-gray-400" th:text="${perm.name()}">PERMISSION_KEY</span>
-                        </div>
-                    </div>
-                </section>
-
-                <!--
                     탭 구조: [직급별 권한 부여] / [회원별 권한 부여]
                     ※ 조직도 구성의 상태 탭(활성/휴직/퇴사)과 동일한 시각 패턴. 활성 탭만 컨텐츠를 표시.
                     ※ 탭 전환은 permission.js 의 switchPermissionTab() 에서 처리.

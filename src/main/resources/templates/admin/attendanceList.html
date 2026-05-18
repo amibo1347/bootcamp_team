@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <title>근태 관리</title>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+    <style>
+        /* 간트 차트
+           - .gantt-track: 행 시간축 컨테이너 (relative + 명시 height + overflow-hidden → 0시 막대가 직원 칸 안 침범)
+           - 정책 음영: 회색(slate)으로 변경 — 막대(indigo)와 색조 분리해 대비 확보
+           - 막대: 진한 인디고 + 흰 글씨 + 텍스트 그림자로 가독성 강화 */
+        .gantt-grid { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); }
+        .gantt-hour-cell { border-left: 1px solid rgb(229, 231, 235); height: 100%; }
+        .dark .gantt-hour-cell { border-left-color: rgb(55, 65, 81); }
+        .gantt-track { position: relative; height: 56px; overflow: hidden; }
+        .gantt-bar {
+            position: absolute; top: 8px; bottom: 8px; border-radius: 6px;
+            padding: 0 8px; font-size: 12px; font-weight: 600; color: white;
+            overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+            display: flex; align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.18);
+            text-shadow: 0 1px 1px rgba(0,0,0,0.35);
+            min-width: 2px;
+        }
+        .gantt-bar-policy {
+            position: absolute; top: 0; bottom: 0;
+            background: rgba(148, 163, 184, 0.20);
+            border-left: 1px dashed rgba(100, 116, 139, 0.55);
+            border-right: 1px dashed rgba(100, 116, 139, 0.55);
+            pointer-events: none;
+        }
+        .dark .gantt-bar-policy {
+            background: rgba(148, 163, 184, 0.12);
+            border-left-color: rgba(148, 163, 184, 0.55);
+            border-right-color: rgba(148, 163, 184, 0.55);
+        }
+        /* 시간 헤더 라벨 — 셀 가운데 정렬해서 0시 라벨이 왼쪽 끝에 붙지 않도록 */
+        .gantt-hour-label { text-align: center; }
+    </style>
+</head>
+
+<body
+    x-data="{ page: 'attendanceAdmin', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-init="
+            darkMode = JSON.parse(localStorage.getItem('darkMode'));
+            $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}">
+
+    <div th:replace="~{partials/preloader}"></div>
+
+    <div class="flex h-screen overflow-hidden">
+        <div th:replace="~{partials/sidebar}"></div>
+
+        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+            <div th:replace="~{partials/overlay}"></div>
+            <div th:replace="~{partials/header}"></div>
+
+            <main class="p-8 space-y-6">
+
+                <div class="ml-2 flex items-center justify-between gap-3">
+                    <h2 class="text-2xl font-black text-gray-900 dark:text-white">근태 관리</h2>
+                    <span class="text-xs text-gray-400 dark:text-gray-500">
+                        ※ 근무 일정 추가는
+                        <a th:href="@{/calendar}" class="text-indigo-500 hover:underline">일정 조회</a>
+                        에서 진행하세요.
+                    </span>
+                </div>
+
+                <!--
+                    날짜/필터 카드.
+                    ※ 좌측: 날짜 네비게이션 · 중앙: [정책 관리] 토글 버튼 · 우측: 부서/이름 필터.
+                -->
+                <section class="p-5 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <!--
+                            날짜 그룹: 그룹 전체 영역 클릭 → date input picker 열림.
+                            ※ 내부 버튼(←/→/오늘) 클릭은 자기 동작 유지.
+                            ※ 모드(일/주/월)에 따라 ←/→ 이동 단위가 바뀜 (1일 / 7일 / 1개월).
+                        -->
+                        <div id="dateGroup" class="flex cursor-pointer items-center gap-3 rounded-lg p-1 hover:bg-gray-50 dark:hover:bg-meta-4">
+                            <button type="button" id="prevDayBtn"
+                                class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-meta-4">←</button>
+                            <input type="date" id="searchDate"
+                                class="cursor-pointer rounded border border-stroke bg-transparent py-1.5 px-3 text-sm outline-none focus:border-primary dark:border-form-strokedark dark:bg-meta-4 dark:text-white" />
+                            <button type="button" id="nextDayBtn"
+                                class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-meta-4">→</button>
+                            <button type="button" id="todayBtn"
+                                class="ml-2 rounded-lg bg-indigo-100 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-200">오늘</button>
+                            <span id="dateLabel" class="ml-3 text-sm font-semibold text-gray-700 dark:text-gray-200"></span>
+
+                            <!-- 일/주/월 토글 — 시프트 사진 참고 -->
+                            <div class="ml-4 inline-flex overflow-hidden rounded-lg border border-gray-300 dark:border-gray-600" role="group" aria-label="보기 모드">
+                                <button type="button" data-view-mode="day" class="js-view-mode bg-gray-900 px-3 py-1.5 text-xs font-medium text-white dark:bg-white dark:text-gray-900">일</button>
+                                <button type="button" data-view-mode="week" class="js-view-mode border-l border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-meta-4 dark:text-gray-200 dark:hover:bg-gray-700">주</button>
+                                <button type="button" data-view-mode="month" class="js-view-mode border-l border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-meta-4 dark:text-gray-200 dark:hover:bg-gray-700">월</button>
+                            </div>
+                        </div>
+                        <!--
+                            정책 관리 토글 그룹: 그룹 전체 영역 클릭 → 정책 카드 토글.
+                        -->
+                        <div id="policyToggleGroup" class="flex cursor-pointer justify-center rounded-lg p-1 hover:bg-gray-50 dark:hover:bg-meta-4">
+                            <button type="button" id="policyToggleBtn"
+                                aria-expanded="false" aria-controls="policyCard"
+                                class="rounded-xl bg-indigo-200 px-5 py-2 text-sm font-medium text-indigo-700 transition hover:bg-indigo-300">
+                                정책 관리
+                            </button>
+                        </div>
+                        <div class="flex items-end gap-3">
+                            <div>
+                                <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">부서</label>
+                                <select id="filterDept"
+                                    class="w-44 rounded border border-stroke bg-transparent py-1.5 px-3 text-sm outline-none focus:border-primary dark:border-form-strokedark dark:bg-meta-4 dark:text-white">
+                                    <option value="">전체 부서</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">이름</label>
+                                <input type="text" id="filterName" placeholder="이름 검색"
+                                    class="w-44 rounded border border-stroke bg-transparent py-1.5 px-3 text-sm outline-none focus:border-primary dark:border-form-strokedark dark:bg-meta-4 dark:text-white" />
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!--
+                    회사 정책 CRUD 카드.
+                    ※ 기본 숨김 (hidden). 위 카드의 [정책 관리] 버튼으로 토글.
+                -->
+                <section id="policyCard" class="hidden p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <div class="mb-4 flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">회사 근태 정책</h3>
+                        <span class="text-xs text-gray-400">출근 기준·지각 기준·휴게 시간이 변경되면 새 출퇴근부터 반영됩니다.</span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">출근 시간</label>
+                            <input type="time" id="policyWorkStart"
+                                th:value="${policy.workStart}"
+                                class="w-full rounded border border-stroke bg-transparent py-2 px-3 text-sm outline-none focus:border-primary dark:border-form-strokedark dark:bg-meta-4 dark:text-white" />
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">퇴근 시간</label>
+                            <input type="time" id="policyWorkEnd"
+                                th:value="${policy.workEnd}"
+                                class="w-full rounded border border-stroke bg-transparent py-2 px-3 text-sm outline-none focus:border-primary dark:border-form-strokedark dark:bg-meta-4 dark:text-white" />
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">휴게 시간 (분)</label>
+                            <input type="number" min="0" id="policyBreakMin"
+                                th:value="${policy.breakMinutes}"
+                                class="w-full rounded border border-stroke bg-transparent py-2 px-3 text-sm outline-none focus:border-primary dark:border-form-strokedark dark:bg-meta-4 dark:text-white" />
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">지각 기준 (분)</label>
+                            <input type="number" min="0" id="policyLateMin"
+                                th:value="${policy.lateThresholdMin}"
+                                class="w-full rounded border border-stroke bg-transparent py-2 px-3 text-sm outline-none focus:border-primary dark:border-form-strokedark dark:bg-meta-4 dark:text-white" />
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center justify-end gap-2">
+                        <span id="policySaveMsg" class="text-xs text-emerald-600 hidden">저장되었습니다.</span>
+                        <button type="button" id="policySaveBtn"
+                            class="rounded-xl bg-indigo-400 py-2 px-5 text-sm font-medium text-white hover:bg-indigo-500">정책 저장</button>
+                    </div>
+                </section>
+
+                <!-- 보기 카드 — 일 모드에서는 24시간 간트, 주/월 모드에서는 셀 그리드. -->
+                <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-boxdark">
+
+                    <!-- ===== 일 모드: 24시간 간트 ===== -->
+                    <div id="viewDay">
+                        <div class="flex border-b border-gray-200 dark:border-gray-700">
+                            <div class="w-56 shrink-0 border-r border-gray-200 bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-500 dark:border-gray-700 dark:bg-meta-4 dark:text-gray-300">직원</div>
+                            <div class="flex-1 bg-gray-50 dark:bg-meta-4">
+                                <div class="gantt-grid">
+                                    <div th:each="h : ${#numbers.sequence(0, 23)}"
+                                        class="gantt-hour-label border-l border-gray-200 px-0 py-2 text-[10px] text-gray-500 dark:border-gray-700 dark:text-gray-400"
+                                        th:text="${h}">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="ganttBody" class="divide-y divide-gray-100 dark:divide-gray-700"></div>
+                        <div id="ganttEmpty" class="hidden p-12 text-center text-gray-400">해당 일자의 근태 기록이 없습니다.</div>
+                    </div>
+
+                    <!-- ===== 주/월 모드: 셀 그리드 ===== -->
+                    <div id="viewMatrix" class="hidden overflow-x-auto">
+                        <div id="matrixContainer"></div>
+                        <div id="matrixEmpty" class="hidden p-12 text-center text-gray-400">해당 기간의 근태 기록이 없습니다.</div>
+                    </div>
+
+                    <!--
+                        범례:
+                          - 색상 막대 = 직원의 실제 근무 시간 (출퇴근 결과에 따른 상태별 색)
+                          - 정책 음영 = 회사 정책 출퇴근 구간(가이드)
+                    -->
+                    <!--
+                        범례 색 박스: Tailwind output.css 에 진한 색 유틸리티가 빌드 안 되어 있을 수 있어
+                        inline style 로 색을 강제 지정한다. (간트 막대 색도 JS 에서 동일 hex 로 적용)
+                    -->
+                    <div class="border-t border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-500 dark:border-gray-700 dark:bg-meta-4 dark:text-gray-300">
+                        <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+                            <span class="font-semibold text-gray-600 dark:text-gray-200">근무 상태(막대 색):</span>
+                            <span class="flex items-center gap-2"><span class="inline-block h-3 w-6 rounded" style="background-color: #4f46e5;"></span>정상 출근</span>
+                            <span class="flex items-center gap-2"><span class="inline-block h-3 w-6 rounded" style="background-color: #f59e0b;"></span>지각 출근</span>
+                            <span class="flex items-center gap-2"><span class="inline-block h-3 w-6 rounded" style="background-color: #f97316;"></span>조기 퇴근</span>
+                            <span class="flex items-center gap-2"><span class="inline-block h-3 w-6 rounded" style="background-color: #f43f5e;"></span>초과 근무 구간</span>
+                            <span class="ml-auto flex items-center gap-2">
+                                <span class="inline-block h-3 w-6 rounded" style="background-color: rgba(148, 163, 184, 0.25); border: 1px dashed rgba(100, 116, 139, 0.55);"></span>
+                                회사 정책 출퇴근 시간대(가이드)
+                            </span>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script type="module" src="/js/index.js"></script>
+    <script src="/js/admin/attendanceList.js"></script>
+</body>
+
+</html>

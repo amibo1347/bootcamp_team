@@ -11,7 +11,8 @@
              canBoard=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).BOARD_MANAGEMENT)},
              canApprovalTemplate=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).APPROVAL_TEMPLATE_MANAGEMENT)},
              canTrashAll=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).TRASH_MANAGEMENT)},
-             staffVisible=${canWaiting or canMember},
+             canAttendance=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).ATTENDANCE_MANAGEMENT)},
+             staffVisible=${canWaiting or canMember or canAttendance},
              organizationVisible=${canDept or canPosition}"
     :class="sidebarToggle ? 'translate-x-0 lg:w-[90px]' : '-translate-x-full'"
     class="sidebar fixed left-0 top-0 z-9999 flex h-screen w-[290px] flex-col overflow-y-hidden border-r border-gray-200 bg-white px-5 dark:border-gray-800 dark:bg-black lg:static lg:translate-x-0">
@@ -98,6 +99,16 @@
                     if (path.includes('/admin/permission/list')) {
                         this.selected = '';
                         this.page = 'permission';
+                        return;
+                    }
+                    if (path.includes('/admin/attendance/list')) {
+                        this.selected = 'Staff';
+                        this.page = 'attendanceAdmin';
+                        return;
+                    }
+                    if (path.includes('/me/attendance')) {
+                        this.selected = '';
+                        this.page = 'myAttendance';
                         return;
                     }
                     if (path.includes('/subAdmin/unified-trash')) {
@@ -188,6 +199,13 @@
                                         :class="page=== 'members' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
                                         @click="page = 'members'">
                                         조직도 구성
+                                    </a>
+                                </li>
+                                <li th:if="${canAttendance}">
+                                    <a th:href="@{/admin/attendance/list}" class="menu-dropdown-item group"
+                                        :class="page=== 'attendanceAdmin' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                                        @click="page = 'attendanceAdmin'">
+                                        근태 관리
                                     </a>
                                 </li>
                             </ul>
@@ -399,6 +417,24 @@
                         </a>
                     </li>
                     <!-- Menu Item Profile -->
+
+                    <!-- Menu Item My Attendance (내 근무표) — 모든 회원 -->
+                    <li th:if="${ms != null}">
+                        <a th:href="@{/me/attendance}" @click="page = 'myAttendance'; selected = ''"
+                            class="menu-item group"
+                            :class="page === 'myAttendance' ? 'menu-item-active' : 'menu-item-inactive'">
+                            <svg :class="page === 'myAttendance' ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"
+                                width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" clip-rule="evenodd"
+                                    d="M12 2.25C6.61522 2.25 2.25 6.61522 2.25 12C2.25 17.3848 6.61522 21.75 12 21.75C17.3848 21.75 21.75 17.3848 21.75 12C21.75 6.61522 17.3848 2.25 12 2.25ZM3.75 12C3.75 7.44365 7.44365 3.75 12 3.75C16.5563 3.75 20.25 7.44365 20.25 12C20.25 16.5563 16.5563 20.25 12 20.25C7.44365 20.25 3.75 16.5563 3.75 12ZM12 6.25C12.4142 6.25 12.75 6.58579 12.75 7V11.5858L15.7803 14.6161C16.0732 14.909 16.0732 15.3839 15.7803 15.6768C15.4874 15.9697 15.0126 15.9697 14.7197 15.6768L11.4697 12.4268C11.329 12.2861 11.25 12.0953 11.25 11.8964V7C11.25 6.58579 11.5858 6.25 12 6.25Z"
+                                    fill="currentColor" />
+                            </svg>
+                            <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">
+                                내 근무표
+                            </span>
+                        </a>
+                    </li>
 
                     <!-- Menu Item Tables (게시판 관리) -->
                     <li th:if="${canBoard}">
