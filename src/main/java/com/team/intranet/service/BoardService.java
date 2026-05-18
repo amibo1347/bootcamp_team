@@ -15,10 +15,12 @@ import com.team.intranet.entity.Dept;
 import com.team.intranet.entity.Member;
 import com.team.intranet.entity.Position;
 import com.team.intranet.enums.ErrorCode;
+import com.team.intranet.enums.board.AnonymousType;
 import com.team.intranet.enums.board.BoardType;
 import com.team.intranet.enums.board.CommentScope;
 import com.team.intranet.enums.board.ReadScope;
 import com.team.intranet.enums.board.ScopeType;
+import com.team.intranet.enums.board.ViewType;
 import com.team.intranet.enums.board.WriteScope;
 import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.BoardAlertPrefRepository;
@@ -46,6 +48,33 @@ public class BoardService {
     private final BoardscopeRuleRepository scopeRuleRepository;
     private final BoardAlertPrefRepository boardAlertPrefRepository;
     private final MemberRepository memberRepository;
+
+    /**
+     * 시스템 디폴트 공지사항 게시판 보장.
+     *  - 회사에 NOTICE 타입 게시판이 하나라도 있으면 그 중 첫 번째(가장 오래된)를 반환.
+     *  - 없으면 lazy 로 디폴트 "공지사항" 게시판을 생성해 반환.
+     *  - 메인 화면 공지 위젯이 회사별로 하나의 안정적인 NOTICE 보드를 가리키게 하기 위함.
+     */
+    @Transactional
+    public Board getOrCreateSystemNoticeBoard(Long companyId) {
+        return boardRepository.findFirstByCompany_CompanyIdAndBoardTypeOrderByBoardIdAsc(companyId, BoardType.NOTICE)
+            .orElseGet(() -> {
+                Company company = findCompany(companyId);
+                Board notice = Board.createBoard(
+                    "공지사항",
+                    BoardType.NOTICE,
+                    company,
+                    ViewType.LIST,
+                    ReadScope.ALL,
+                    WriteScope.RESTRICTED,
+                    CommentScope.ALL,
+                    Boolean.TRUE,
+                    Boolean.FALSE,
+                    AnonymousType.NAME
+                );
+                return boardRepository.save(notice);
+            });
+    }
 
     /**
      * 게시판 전체 조회 (관리자용 - 비활성 포함)

@@ -17,12 +17,22 @@
           class="text-xs text-gray-500 dark:text-gray-400"
         ></span>
       </header>
-      <div class="min-h-0 flex-1 overflow-y-auto p-2.5 sm:p-3">
+      <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden p-2.5 sm:p-3">
+        <!-- 월~금 그리드 — 카드 크기 안에 맞도록 overflow-hidden 유지 -->
         <div
           id="home-week-calendar"
-          class="grid min-h-[7.5rem] grid-cols-5 gap-1.5 sm:min-h-[9rem] sm:gap-2"
+          class="grid min-h-[7.5rem] flex-1 grid-cols-5 gap-1.5 sm:min-h-[9rem] sm:gap-2"
           role="grid"
           aria-label="월요일부터 금요일까지 주간 일정"
+        ></div>
+        <!--
+          남는 하단 여백: 내일 일정 중 가장 빠른 1건.
+          JS 가 데이터 없으면 안내문구만 표시.
+        -->
+        <div
+          id="home-week-tomorrow"
+          class="shrink-0 rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/30"
+          aria-label="내일 첫 일정"
         ></div>
       </div>
     </section>
