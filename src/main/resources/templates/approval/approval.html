@@ -81,7 +81,7 @@
     <!-- ===== Sidebar End ===== -->
 
     <!-- ===== Content Area Start ===== -->
-    <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+    <div class="page-content">
       <div th:replace="~{partials/overlay}"></div>
 
       <!-- ===== Header Start ===== -->
@@ -89,8 +89,8 @@
       <!-- ===== Header End ===== -->
 
       <!-- ===== Main Content Start ===== -->
-      <main class="space-y-8 p-8">
-        <h2 class="ml-2 text-2xl font-black text-gray-900 dark:text-white">전자결재</h2>
+      <main class="page-main">
+        <h2 class="page-heading">전자결재</h2>
 
         <!-- [탭] 전환 버튼 — 관리자 탭은 서버에서만 렌더 -->
         <div class="flex flex-wrap gap-2 border-b border-gray-200 pb-4 dark:border-gray-800" role="tablist">

@@ -25,14 +25,14 @@
     <div class="flex h-screen overflow-hidden">
         <div th:replace="~{partials/sidebar}"></div>
 
-        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+        <div class="page-content">
             <div th:replace="~{partials/overlay}"></div>
             <div th:replace="~{partials/header}"></div>
 
-            <main class="p-8 space-y-6">
+            <main class="page-main">
 
-                <div class="ml-2 flex items-center justify-between gap-3">
-                    <h2 class="text-2xl font-black text-gray-900 dark:text-white">내 근무표</h2>
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="page-heading shrink-0">내 근무표</h2>
                     <span class="text-xs text-gray-400 dark:text-gray-500">
                         ※ 근무 일정 추가는
                         <a th:href="@{/calendar}" class="text-indigo-500 hover:underline">일정 조회</a>

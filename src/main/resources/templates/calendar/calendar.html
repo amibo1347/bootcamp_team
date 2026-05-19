@@ -215,7 +215,7 @@
 
     <!-- ===== Content Area Start ===== -->
     <!-- managingDept / managingPosition 과 동일: flex-col · padding 은 main(p-8) 에서 통일 -->
-    <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+    <div class="page-content">
       <!-- Small Device Overlay Start -->
       <div th:replace="~{partials/overlay}"></div>
       <!-- Small Device Overlay End -->
@@ -226,9 +226,9 @@
 
       <!-- ===== Main Content Start ===== -->
       <!-- pb/pr: 우하단 고정 채팅 FAB·패널과 월 뷰 마지막 행·토요일 열이 겹치지 않도록 여백 -->
-      <main class="space-y-8 p-8 pb-28 pr-20 sm:pb-32 sm:pr-24">
+      <main class="page-main page-main--calendar">
         <!-- [페이지 제목] 부서·직급 관리 페이지와 동일 ml-2 + 동일 타이포 -->
-        <h2 class="ml-2 text-2xl font-black text-gray-900 dark:text-white">캘린더</h2>
+        <h2 class="page-heading">캘린더</h2>
 
         <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
           <div id="calendar" class="min-h-0"></div>

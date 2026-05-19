@@ -44,14 +44,14 @@
         <div th:replace="~{partials/sidebar}"></div>
         <!-- Sidebar 끝 -->
 
-        <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+        <div class="page-content">
             <div th:replace="~{partials/overlay}"></div>
             <div th:replace="~{partials/header}"></div>
 
             <!-- Content 시작 -->
-            <main class="space-y-6 p-8">
+            <main class="page-main">
                 <section class="flex flex-wrap items-center justify-between gap-3">
-                    <h2 class="text-2xl font-black text-gray-900 dark:text-white" th:text="${board.boardName}">게시판</h2>
+                    <h2 class="page-heading" th:text="${board.boardName}">게시판</h2>
                     <!-- 상단 액션 버튼 영역 시작 -->
                     <div class="flex flex-wrap items-center gap-2">
                         <a id="editPostButton"

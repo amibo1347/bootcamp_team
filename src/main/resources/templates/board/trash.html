@@ -31,15 +31,15 @@
     <div class="flex h-screen overflow-hidden">
         <div th:replace="~{partials/sidebar}"></div>
 
-        <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+        <div class="page-content">
             <div th:replace="~{partials/overlay}"></div>
             <div th:replace="~{partials/header}"></div>
 
             <!-- 휴지통 본문 -->
-            <main class="space-y-6 p-8">
+            <main class="page-main">
                 <section class="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <h2 class="text-2xl font-black text-gray-900 dark:text-white" th:text="${board.boardName}">게시판</h2>
+                        <h2 class="page-heading" th:text="${board.boardName}">게시판</h2>
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">삭제된 게시글은 복구하거나 영구 삭제할 수 있습니다.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">

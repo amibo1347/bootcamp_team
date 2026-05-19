@@ -124,13 +124,13 @@
         <div th:replace="~{partials/sidebar}"></div>
 
         <!-- ===== Content Area Start ===== -->
-        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+        <div class="page-content">
             <div th:replace="~{partials/overlay}"></div>
             <div th:replace="~{partials/header}"></div>
 
             <!-- ===== Main Content Start ===== -->
-            <main class="p-8 space-y-8">
-                <h2 class="ml-2 text-2xl font-black text-gray-900 dark:text-white">결재 양식 관리</h2>
+            <main class="page-main">
+                <h2 class="page-heading">결재 양식 관리</h2>
 
                 <!-- [상단 안내 + 신규 생성 진입] -->
                 <section

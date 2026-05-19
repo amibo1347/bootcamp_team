@@ -33,7 +33,7 @@
 
       <!-- ===== Content Area Start ===== -->
       <div
-        class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto"
+        class="page-content"
       >
   <!-- Small Device Overlay Start -->
   <div th:replace="~{partials/overlay}"></div>
@@ -44,14 +44,8 @@
   <!-- ===== Header End ===== -->
 
         <!-- ===== Main Content Start ===== -->
-        <main>
-          <div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
-            <!-- Breadcrumb Start -->
-            <div x-data="{ pageName: `Basic Tables`}">
-              <div th:replace="~{partials/breadcrumb}"></div>
-            </div>
-            <!-- Breadcrumb End -->
-
+        <main class="page-main">
+            <h2 class="page-heading">기본 테이블</h2>
             <div class="space-y-5 sm:space-y-6">
               <div
                 class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
@@ -72,7 +66,6 @@
                 </div>
               </div>
             </div>
-          </div>
         </main>
         <!-- ===== Main Content End ===== -->
       </div>

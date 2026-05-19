@@ -22,13 +22,13 @@
     <div class="flex h-screen overflow-hidden">
         <div th:replace="~{partials/sidebar}"></div>
 
-        <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+        <div class="page-content">
             <div th:replace="~{partials/overlay}"></div>
             <div th:replace="~{partials/header}"></div>
 
-            <main class="space-y-6 p-8">
+            <main class="page-main">
                 <section class="flex flex-wrap items-center justify-between gap-3">
-                    <h2 class="text-2xl font-black text-gray-900 dark:text-white" th:text="${board.boardName}">게시판</h2>
+                    <h2 class="page-heading" th:text="${board.boardName}">게시판</h2>
                     <div class="flex flex-wrap items-center gap-2">
                         <!--
                           게시판 알림 토글 — 헤더 종 아이콘 동일 SVG. 색은 input.css 의 .board-alert-toggle 가 통제.
