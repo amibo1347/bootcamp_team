@@ -32,20 +32,19 @@
         <!-- ===== 사이드바 ===== -->
         <div th:replace="~{partials/sidebar}"></div>
 
-        <div class="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
+        <div class="page-content">
             <div th:replace="~{partials/overlay}"></div>
             <div th:replace="~{partials/header}"></div>
 
             <!-- ===== 통합 휴지통 본문 ===== -->
-            <main class="space-y-6 p-8">
-                <section class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h2 class="ml-0 text-2xl font-black text-gray-900 dark:text-white">통합 휴지통</h2>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            회사 소속 게시판에 흩어진 삭제된 글을 한곳에서 복구하거나 영구 삭제합니다.
-                        </p>
-                    </div>
-                </section>
+            <main class="page-main">
+                <!-- [페이지 헤더] ml-2 를 부모에 두어 제목·안내 문구 왼쪽 시작선 일치 -->
+                <header class="ml-2 min-w-0">
+                    <h2 class="text-2xl font-black text-gray-900 dark:text-white">통합 휴지통</h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        회사 소속 게시판에 흩어진 삭제된 글을 한곳에서 복구하거나 영구 삭제합니다.
+                    </p>
+                </header>
 
                 <div id="unifiedTrashMessage" role="alert"
                     class="hidden rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/40 dark:bg-rose-950/40 dark:text-rose-200"></div>

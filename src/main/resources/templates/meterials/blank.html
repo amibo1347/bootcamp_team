@@ -1,5 +1,5 @@
 <!-- ======================================================== -->
-<!-- [빈 페이지] : 새 페이지 추가 시 복사해서 사용하는 베이스 템플릿. 사이드바/헤더/브레드크럼 공통 레이아웃 포함 -->
+<!-- [빈 페이지] : 새 페이지 추가 시 복사해서 사용하는 베이스 템플릿 -->
 <!-- ======================================================== -->
 <!doctype html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
@@ -31,7 +31,7 @@
     <!-- ===== Sidebar End ===== -->
 
     <!-- ===== Content Area Start ===== -->
-    <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+    <div class="page-content">
       <!-- Small Device Overlay Start -->
       <div th:replace="~{partials/overlay}"></div>
       <!-- Small Device Overlay End -->
@@ -41,29 +41,14 @@
       <!-- ===== Header End ===== -->
 
       <!-- ===== Main Content Start ===== -->
-      <main>
-        <div class="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
-          <!-- Breadcrumb Start -->
-          <div x-data="{ pageName: `Blank Page`}">
-            <div th:replace="~{partials/breadcrumb}"></div>
-          </div>
-          <!-- Breadcrumb End -->
-
-          <div
-            class="min-h-screen rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 xl:py-12">
-            <div class="mx-auto w-full max-w-[630px] text-center">
-              <h3 class="mb-4 text-theme-xl font-semibold text-gray-800 dark:text-white/90 sm:text-2xl">
-                Card Title Here
-              </h3>
-
-              <p class="text-sm text-gray-500 dark:text-gray-300 sm:text-base">
-                Start putting content on grids or panels, you can also use
-                different combinations of grids.Please check out the
-                dashboard and other pages
-              </p>
-            </div>
-          </div>
-        </div>
+      <main class="page-main">
+        <h2 class="page-heading">빈 페이지</h2>
+        <section
+          class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
+          <p class="text-sm text-gray-500 dark:text-gray-300">
+            새 페이지를 추가할 때 이 템플릿을 복사해 사용하세요.
+          </p>
+        </section>
       </main>
       <!-- ===== Main Content End ===== -->
     </div>

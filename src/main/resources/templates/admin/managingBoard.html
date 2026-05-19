@@ -29,12 +29,12 @@
     <div class="flex h-screen overflow-hidden">
         <div th:replace="~{partials/sidebar}"></div>
 
-        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+        <div class="page-content">
             <div th:replace="~{partials/overlay}"></div>
             <div th:replace="~{partials/header}"></div>
 
-            <main class="p-8 space-y-8">
-                <h2 class="text-2xl font-black text-gray-900 ml-2 dark:text-white">게시판 관리</h2>
+            <main class="page-main">
+                <h2 class="page-heading">게시판 관리</h2>
 
                 <section
                     class="p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">

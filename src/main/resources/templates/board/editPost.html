@@ -30,15 +30,15 @@
         <div th:replace="~{partials/sidebar}"></div>
         <!-- Sidebar 끝 -->
 
-        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+        <div class="page-content">
             <div th:replace="~{partials/overlay}"></div>
             <div th:replace="~{partials/header}"></div>
 
             <!-- Content 시작 -->
-            <main class="p-8 space-y-8">
+            <main class="page-main">
                 <!-- 페이지 헤더 시작 -->
                 <section class="space-y-2">
-                    <h2 class="text-2xl font-black text-gray-900 dark:text-white">게시글 수정</h2>
+                    <h2 class="page-heading">게시글 수정</h2>
                     <p class="text-sm text-gray-500 dark:text-gray-300">제목과 본문을 수정한 뒤 저장 버튼을 눌러주세요.</p>
                 </section>
                 <!-- 페이지 헤더 끝 -->

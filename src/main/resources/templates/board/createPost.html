@@ -26,13 +26,13 @@
     <div class="flex h-screen overflow-hidden">
         <div th:replace="~{partials/sidebar}"></div>
 
-        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+        <div class="page-content">
             <div th:replace="~{partials/overlay}"></div>
             <div th:replace="~{partials/header}"></div>
 
-            <main class="p-8 space-y-8">
+            <main class="page-main">
                 <section class="space-y-2">
-                    <h2 class="text-2xl font-black text-gray-900 dark:text-white">게시글 작성</h2>
+                    <h2 class="page-heading">게시글 작성</h2>
                     <!-- 게시글 생성(Create) 화면. 목록/앨범/카드 읽기 화면은 이후 단계에서 확장 -->
                 </section>
 

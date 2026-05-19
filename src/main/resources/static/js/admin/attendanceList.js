@@ -205,6 +205,131 @@ function renderCurrentView(rows) {
     }
 }
 
+// ─── 부서 필터 커스텀 콤보박스 (DESIGN_RULES 5-2 · managingBoard 패턴) ───
+
+const filterDeptComboboxMap = new Map();
+
+/**
+ * 열려 있는 부서 콤보박스를 모두 닫는다.
+ */
+function closeAllFilterDeptComboboxes() {
+    filterDeptComboboxMap.forEach(({ menu, trigger, container, arrow }) => {
+        menu.classList.add('hidden');
+        trigger.setAttribute('aria-expanded', 'false');
+        arrow?.classList.remove('is-open');
+        if (container) container.style.zIndex = '';
+    });
+}
+
+/**
+ * 숨겨진 select 값과 트리거·목록 선택 상태를 동기화한다.
+ */
+function syncFilterDeptCombobox() {
+    const ui = filterDeptComboboxMap.get('filterDept');
+    if (!ui) return;
+    const { select, triggerText, menu } = ui;
+    const selectedOption = select.options[select.selectedIndex];
+    triggerText.textContent = selectedOption ? selectedOption.textContent : '전체 부서';
+    menu.querySelectorAll('[data-value]').forEach((btn) => {
+        btn.classList.toggle('is-selected', btn.dataset.value === select.value);
+    });
+}
+
+/**
+ * 콤보박스 패널 안의 옵션 버튼 목록을 select.options 기준으로 다시 만든다.
+ * @param {HTMLElement} menu - 패널 컨테이너
+ * @param {HTMLSelectElement} select - 숨겨진 native select
+ */
+function buildFilterDeptMenuItems(menu, select) {
+    menu.innerHTML = '';
+    Array.from(select.options).forEach((option) => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.dataset.value = option.value;
+        item.disabled = option.disabled;
+        item.className = 'form-combobox-option';
+        item.textContent = option.textContent;
+        item.addEventListener('click', () => {
+            select.value = option.value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            closeAllFilterDeptComboboxes();
+        });
+        menu.appendChild(item);
+    });
+}
+
+/**
+ * filterDept native select 위에 DESIGN_RULES 5-2 커스텀 UI를 한 번만 생성한다.
+ * @param {HTMLSelectElement} select
+ */
+function createFilterDeptCombobox(select) {
+    if (!select || select.dataset.combobox === 'true') return;
+
+    const container = select.parentElement;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'relative';
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.id = 'filterDeptTrigger';
+    trigger.className = 'form-combobox-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    const triggerText = document.createElement('span');
+    triggerText.className = 'truncate';
+
+    const arrow = document.createElement('span');
+    arrow.className = 'form-combobox-arrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.textContent = '▾';
+
+    trigger.appendChild(triggerText);
+    trigger.appendChild(arrow);
+
+    const menu = document.createElement('div');
+    menu.className = 'form-combobox-panel hidden';
+    menu.setAttribute('role', 'listbox');
+
+    buildFilterDeptMenuItems(menu, select);
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = !menu.classList.contains('hidden');
+        closeAllFilterDeptComboboxes();
+        if (!isOpen) {
+            if (container) container.style.zIndex = '9999';
+            menu.classList.remove('hidden');
+            trigger.setAttribute('aria-expanded', 'true');
+            arrow.classList.add('is-open');
+        }
+    });
+
+    select.dataset.combobox = 'true';
+    select.insertAdjacentElement('afterend', wrapper);
+    wrapper.appendChild(trigger);
+    wrapper.appendChild(menu);
+
+    filterDeptComboboxMap.set('filterDept', { select, trigger, triggerText, menu, container, arrow });
+    select.addEventListener('change', () => syncFilterDeptCombobox());
+    syncFilterDeptCombobox();
+}
+
+/**
+ * API 로드 후 옵션이 바뀌면 패널 목록만 갱신한다.
+ */
+function refreshFilterDeptCombobox() {
+    const select = document.getElementById('filterDept');
+    if (!select) return;
+    if (select.dataset.combobox !== 'true') {
+        createFilterDeptCombobox(select);
+        return;
+    }
+    const ui = filterDeptComboboxMap.get('filterDept');
+    if (ui) buildFilterDeptMenuItems(ui.menu, select);
+    syncFilterDeptCombobox();
+}
+
 function rebuildDeptOptions(rows) {
     const select = document.getElementById('filterDept');
     if (!select) return;
@@ -214,6 +339,7 @@ function rebuildDeptOptions(rows) {
     select.innerHTML = '<option value="">전체 부서</option>' +
         depts.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
     if (current) select.value = current;
+    refreshFilterDeptCombobox();
 }
 
 function applyFilters(rows) {
@@ -528,26 +654,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('filterDept')?.addEventListener('change', () => renderCurrentView(applyFilters(cachedRows)));
     document.getElementById('filterName')?.addEventListener('input', () => renderCurrentView(applyFilters(cachedRows)));
 
+    // 부서 콤보박스: 문서 클릭 시 패널 닫기
+    document.addEventListener('click', () => closeAllFilterDeptComboboxes());
+    createFilterDeptCombobox(document.getElementById('filterDept'));
+
     document.getElementById('policySaveBtn')?.addEventListener('click', savePolicy);
 
     // 정책 관리 토글: 버튼 자체 + 그룹 div 어디든 클릭 가능.
     const policyToggleBtn = document.getElementById('policyToggleBtn');
     const policyToggleGroup = document.getElementById('policyToggleGroup');
     const policyCard = document.getElementById('policyCard');
+    // DESIGN_RULES 4-4 Neutral: 회색 토글 — 열림 시 한 단계 진한 회색
+    const POLICY_BTN_ON = [
+        'bg-gray-300', 'text-gray-800', 'hover:bg-gray-400',
+        'dark:bg-gray-600', 'dark:text-white', 'dark:hover:bg-gray-500',
+    ];
+    const POLICY_BTN_OFF = [
+        'bg-gray-200', 'text-gray-700', 'hover:bg-gray-300',
+        'dark:bg-gray-700', 'dark:text-gray-200', 'dark:hover:bg-gray-600',
+    ];
+    const setPolicyBtnState = (open) => {
+        if (!policyToggleBtn) return;
+        const add = open ? POLICY_BTN_ON : POLICY_BTN_OFF;
+        const remove = open ? POLICY_BTN_OFF : POLICY_BTN_ON;
+        remove.forEach((c) => policyToggleBtn.classList.remove(c));
+        add.forEach((c) => policyToggleBtn.classList.add(c));
+    };
     const togglePolicy = (e) => {
         e?.stopPropagation();
         const willShow = policyCard?.classList.contains('hidden');
         policyCard?.classList.toggle('hidden');
         policyToggleBtn?.setAttribute('aria-expanded', String(!!willShow));
-        if (willShow) {
-            policyToggleBtn?.classList.add('bg-indigo-400', 'text-white', 'hover:bg-indigo-500');
-            policyToggleBtn?.classList.remove('bg-indigo-200', 'text-indigo-700', 'hover:bg-indigo-300');
-        } else {
-            policyToggleBtn?.classList.add('bg-indigo-200', 'text-indigo-700', 'hover:bg-indigo-300');
-            policyToggleBtn?.classList.remove('bg-indigo-400', 'text-white', 'hover:bg-indigo-500');
-        }
+        setPolicyBtnState(!!willShow);
     };
-    policyToggleGroup?.addEventListener('click', togglePolicy);
+    policyToggleBtn?.addEventListener('click', togglePolicy);
 
     // 정책 먼저 로드 → 간트 배경 가이드 정확하게
     try { await loadPolicy(); } catch (e) { console.error(e); }

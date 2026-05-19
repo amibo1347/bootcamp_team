@@ -365,6 +365,75 @@ layer(base);
   background-color: #344054;
 }
 
+/* ===== 앱 페이지 공통 레이아웃 (콘텐츠 영역 · main · h2 · 스크롤 본문 통일) ===== */
+@layer components {
+  /* 헤더 아래 스크롤 영역 — scrollbar-gutter로 스크롤 유무와 관계없이 동일 가로 폭 */
+  .page-content {
+    @apply relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto;
+    scrollbar-gutter: stable;
+  }
+
+  /* 본문 main — 패딩·섹션 간격 통일 */
+  .page-main {
+    @apply space-y-8 p-8;
+  }
+
+  /* 캘린더: 우하단 FAB·채팅과 겹침 방지 여백 */
+  .page-main--calendar {
+    @apply pb-28 pr-20 sm:pb-32 sm:pr-24;
+  }
+
+  /* 페이지 최상단 제목(h2) */
+  .page-heading {
+    @apply ml-2 text-2xl font-black text-gray-900 dark:text-white;
+  }
+
+  /* 카드·패널 내부 스크롤 본문 — 스크롤바 유무와 동일 폭 */
+  .page-scroll-body {
+    @apply min-h-0 flex-1 overflow-y-auto;
+    scrollbar-gutter: stable;
+  }
+
+  /* 스크롤 없는 본문도 gutter 만 적용해 스크롤 영역과 동일 폭 */
+  .page-scroll-gutter {
+    scrollbar-gutter: stable;
+  }
+
+  /* DESIGN_RULES 5-2 — 폼 라벨·네이티브 select (managingBoard 기준) */
+  .form-field-label {
+    @apply mb-1 block text-sm text-gray-600 dark:text-gray-300;
+  }
+
+  .form-native-select {
+    @apply relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-gray-700 dark:bg-meta-4 dark:text-white dark:[color-scheme:dark] dark:focus:ring-indigo-400/40;
+  }
+
+  /* DESIGN_RULES 5-2 — 커스텀 드롭다운 트리거·패널 (단일 선택) */
+  .form-combobox-trigger {
+    @apply flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30 dark:focus-visible:ring-indigo-400/40;
+  }
+
+  .form-combobox-panel {
+    @apply absolute left-0 top-full z-[10001] mt-2 max-h-36 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white p-1 shadow-lg dark:border-strokedark dark:bg-meta-4 dark:text-gray-300 dark:shadow-black/40;
+  }
+
+  .form-combobox-option {
+    @apply block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/10;
+  }
+
+  .form-combobox-option.is-selected {
+    @apply bg-indigo-50 font-semibold text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300;
+  }
+
+  .form-combobox-arrow {
+    @apply inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300;
+  }
+
+  .form-combobox-arrow.is-open {
+    @apply rotate-180;
+  }
+}
+
 @layer base {
   body {
     @apply font-outfit relative z-1 bg-gray-50 text-base font-normal text-gray-900;

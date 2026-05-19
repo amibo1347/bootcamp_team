@@ -1,3 +1,6 @@
+<!-- ======================================================== -->
+<!-- [내 프로필] : 사이드바/헤더 공통 레이아웃. 본문은 main(p-8) 영역 -->
+<!-- ======================================================== -->
 <!doctype html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 
@@ -30,7 +33,8 @@
     <!-- ===== Sidebar End ===== -->
 
     <!-- ===== Content Area Start ===== -->
-    <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+    <!-- page-content: scrollbar-gutter 로 스크롤 유무와 동일 가로 폭 -->
+    <div class="page-content">
       <!-- Small Device Overlay Start -->
       <div th:replace="~{partials/overlay}"></div>
       <!-- Small Device Overlay End -->
@@ -40,17 +44,13 @@
       <!-- ===== Header End ===== -->
 
       <!-- ===== Main Content Start ===== -->
-      <main>
-        <div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
-          <!-- Breadcrumb Start -->
-          <div x-data="{ pageName: `내 프로필`}">
-            <div th:replace="~{partials/breadcrumb}"></div>
-          </div>
-          <!-- Breadcrumb End -->
+      <main class="page-main">
+        <!-- [페이지 제목] 캘린더·조직도 등 앱 페이지와 동일 타이포 -->
+        <h2 class="page-heading">내 프로필</h2>
 
-          <!-- [프로필 본문] 세션(memberSession) 기반 표시. memberId 등은 화면에 노출하지 않음 -->
-          <div th:if="${session != null and session.memberSession != null}" th:with="ms=${session.memberSession}"
-            class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
+        <!-- [프로필 본문] 세션(memberSession) 기반 표시 -->
+        <div th:if="${session != null and session.memberSession != null}" th:with="ms=${session.memberSession}"
+          class="space-y-6">
 
             <!-- [모달 초기값] memberSession 필드로 폼 채움 -->
             <div id="profilePageData" class="hidden"
@@ -59,13 +59,10 @@
                        data-phone=${ms.phone != null ? ms.phone : ''},
                        data-birth=${ms.birthDay != null ? #temporals.format(ms.birthDay, 'yyyy-MM-dd') : ''}"></div>
 
-            <h3 class="mb-5 text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-7">
-              내 프로필
-            </h3>
-
-            <!-- [프로필 요약 카드] 사진(카메라 버튼으로만 수정)·이름·직급·부서 -->
-            <div class="p-5 mb-6 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
-              <div class="flex flex-col items-center w-full gap-6 xl:flex-row">
+          <!-- [프로필 요약] 사진(카메라 버튼으로만 수정)·이름·직급·부서 -->
+          <section
+            class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
+            <div class="flex w-full flex-col items-center gap-6 xl:flex-row">
                 <div id="profileSummaryRoot" class="relative shrink-0 overflow-visible"
                   th:attr="data-profile-img-url=@{/api/member/{id}/profileImg(id=${ms.memberId})}">
                   <div
@@ -89,35 +86,35 @@
                     </svg>
                   </button>
                 </div>
-                <div>
-                  <h4 class="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left"
-                    th:text="${ms.name}">
-                    이름
-                  </h4>
-                  <div class="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
-                    <p th:if="${ms.positionName != null}" class="text-sm text-gray-500 dark:text-gray-300"
-                      th:text="${ms.positionName}">
-                      직급
+                <!-- [텍스트 블록] 이름·로그인 ID·직급·부서 -->
+                <div class="flex flex-col items-center xl:items-start">
+                  <div class="inline-flex flex-col items-start gap-1">
+                    <p class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <span class="text-lg font-semibold text-gray-800 dark:text-white/90" th:text="${ms.name}">이름</span>
+                      <span class="text-sm font-normal text-gray-500 dark:text-gray-400" th:text="${ms.loginId}">아이디</span>
                     </p>
-                    <div th:if="${ms.positionName != null and ms.deptName != null}"
-                      class="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
-                    <p th:if="${ms.deptName != null}" class="text-sm text-gray-500 dark:text-gray-300"
-                      th:text="${ms.deptName}">
-                      부서
-                    </p>
+                    <div class="flex flex-row flex-wrap items-center gap-x-2 gap-y-1">
+                      <p th:if="${ms.positionName != null}" class="text-sm text-gray-500 dark:text-gray-300"
+                        th:text="${ms.positionName}">직급</p>
+                      <div th:if="${ms.positionName != null and ms.deptName != null}"
+                        class="h-3.5 w-px shrink-0 bg-gray-300 dark:bg-gray-700"></div>
+                      <p th:if="${ms.deptName != null}" class="text-sm text-gray-500 dark:text-gray-300"
+                        th:text="${ms.deptName}">부서</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <!-- [프로필 요약 카드] End -->
+          </section>
+          <!-- [프로필 요약] End -->
 
-            <!-- [개인 정보] memberSession 필드만 표시 (ID·권한·회사·내부 식별자 제외) -->
-            <div class="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
-              <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <!-- [개인 정보] -->
+          <section
+            class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
+            <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-                    개인 정보
-                  </h4>
+                <h3 class="mb-5 text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
+                  개인 정보
+                </h3>
 
                   <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
                     <div>
@@ -128,16 +125,6 @@
                         -
                       </p>
                     </div>
-
-                    <div>
-                      <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300">
-                        로그인 ID
-                      </p>
-                      <p class="text-sm font-medium text-gray-800 dark:text-white/90" th:text="${ms.loginId}">
-                        -
-                      </p>
-                    </div>
-
                     <div>
                       <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300">
                         이메일
@@ -182,28 +169,26 @@
                   수정
                 </button>
               </div>
-            </div>
-            <!-- [개인 정보] End -->
-          </div>
-
-          <!-- [비로그인] 세션 없을 때 안내 -->
-          <div th:unless="${session != null and session.memberSession != null}"
-            class="rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-white/[0.03]">
-            <p class="text-sm text-gray-600 dark:text-gray-300">
-              로그인 후 프로필을 확인할 수 있습니다.
-            </p>
-          </div>
+          </section>
+          <!-- [개인 정보] End -->
         </div>
+
+        <!-- [비로그인] 세션 없을 때 안내 -->
+        <section th:unless="${session != null and session.memberSession != null}"
+          class="rounded-xl border border-stroke bg-white p-8 text-center shadow-sm dark:border-strokedark dark:bg-boxdark">
+          <p class="text-sm text-gray-600 dark:text-gray-300">
+            로그인 후 프로필을 확인할 수 있습니다.
+          </p>
+        </section>
       </main>
       <!-- ===== Main Content End ===== -->
+      <!-- BEGIN MODAL : fixed 포지션이므로 main space-y 에 포함하지 않음 -->
+      <div th:replace="~{partials/profile/profile-info-modal}"></div>
+      <!-- END MODAL -->
     </div>
     <!-- ===== Content Area End ===== -->
   </div>
   <!-- ===== Page Wrapper End ===== -->
-
-  <!-- BEGIN MODAL -->
-  <div th:replace="~{partials/profile/profile-info-modal}"></div>
-  <!-- END MODAL -->
   <script type="module" src="/js/index.js"></script>
   <script th:src="@{/js/profile.js}"></script>
 </body>
