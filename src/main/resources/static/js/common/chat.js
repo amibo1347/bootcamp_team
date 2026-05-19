@@ -137,6 +137,7 @@
       renderFilePreview();
       inputEl.value = '';
       loadMessages(convId);
+      markConversationRead(convId);  // 진입 = 읽음 처리
     };
     const showPick = () => {
       view = 'pick';
@@ -325,7 +326,10 @@
       }
     }
     function renderConversations() {
-      badgeEl.textContent = String(convsCache.length);
+      // 총합 안 읽음 = 헤더 badge + FAB badge 공통 데이터. convsCache 의 unreadCount 합산.
+      const totalUnread = convsCache.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+      updateUnreadBadges(totalUnread);
+
       if (convsCache.length === 0) {
         listEl.innerHTML = '<div class="px-4 py-10 text-center text-xs text-gray-400">대화가 없습니다. + 버튼으로 새 채팅을 시작하세요.</div>';
         return;
@@ -337,6 +341,11 @@
           : '<span class="text-gray-300">메시지 없음</span>';
         const time = fmtRelative(c.updatedAt);
         const avatar = avatarHtml(peer, 36);
+        // 행별 안 읽음 배지 (시간 옆 빨간 알약). 0 이면 미표시.
+        const unread = c.unreadCount || 0;
+        const unreadBadge = unread > 0
+          ? '<span class="inline-flex min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white" style="height:18px;line-height:18px;">' + (unread > 99 ? '99+' : unread) + '</span>'
+          : '';
         return ''
           + '<button type="button" data-conv-id="' + c.conversationId + '" data-peer-name="' + esc(peer.name || '') + '" '
           + '  class="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-white/5">'
@@ -344,12 +353,53 @@
           +   '<div class="min-w-0 flex-1">'
           +     '<div class="flex items-center justify-between gap-2">'
           +       '<span class="truncate text-sm font-semibold text-gray-900 dark:text-white">' + esc(peer.name || '?') + '<span class="ml-1 text-xs font-normal text-gray-500">·' + esc(peer.deptName || '미지정') + '</span></span>'
-          +       '<span class="shrink-0 text-[11px] text-gray-400">' + time + '</span>'
+          +       '<span class="shrink-0 flex items-center gap-1.5 text-[11px] text-gray-400">' + time + unreadBadge + '</span>'
           +     '</div>'
           +     '<div class="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">' + preview + '</div>'
           +   '</div>'
           + '</button>';
       }).join('');
+    }
+
+    /** 헤더 배지 (#chat-badge) + FAB 배지 (#chat-fab-badge) 를 총합 unread 로 동기화. */
+    function updateUnreadBadges(total) {
+      const display = total > 99 ? '99+' : String(total);
+      if (badgeEl) badgeEl.textContent = display;
+      const fabBadge = document.getElementById('chat-fab-badge');
+      if (fabBadge) {
+        if (total > 0) {
+          fabBadge.textContent = display;
+          fabBadge.classList.remove('hidden');
+          fabBadge.classList.add('inline-flex');
+        } else {
+          fabBadge.classList.add('hidden');
+          fabBadge.classList.remove('inline-flex');
+        }
+      }
+    }
+
+    /** 페이지 로드 직후 / SSE 수신 시: 패널 닫힌 상태에서도 FAB 배지를 위해 총합 1회 fetch. */
+    async function refreshUnreadTotal() {
+      try {
+        const res = await fetch('/api/chat/unread');
+        if (!res.ok) return;
+        const total = await res.json();
+        updateUnreadBadges(typeof total === 'number' ? total : 0);
+      } catch (e) { /* 무시 */ }
+    }
+
+    /** 채팅방 진입 = 그 대화방의 본인 알림 일괄 삭제 후 배지 즉시 갱신. */
+    async function markConversationRead(convId) {
+      try {
+        await fetch('/api/chat/conversations/' + convId + '/read', {
+          method: 'POST',
+          headers: csrfHeader(),
+        });
+        const found = convsCache.find(c => c.conversationId === convId);
+        if (found) found.unreadCount = 0;
+        const total = convsCache.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+        updateUnreadBadges(total);
+      } catch (e) { /* 무시 */ }
     }
     listEl.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-conv-id]');
@@ -640,12 +690,59 @@
         try { msg = JSON.parse(msg); } catch { return; }
       }
       const incomingConvId = Number(payload.conversationId);
+      // 같은 채팅방 보고 있으면 즉시 말풍선 추가 + 그 즉시 읽음 처리.
       if (view === 'thread' && Number(activeConvId) === incomingConvId) {
         appendMessage(msg);
+        markConversationRead(incomingConvId);
+      } else {
+        // 그 외엔 FAB/헤더 총합만 즉시 갱신 + 토스트 알림 (다른 채팅방 새 메시지).
+        refreshUnreadTotal();
+        showChatToast(msg, incomingConvId);
       }
       if (view === 'list') {
-        loadConversations();
+        loadConversations();  // 행별 배지 + 미리보기 갱신
       }
+    }
+
+    /** 새 메시지 토스트 — FAB 위쪽에 잠깐 떴다 사라짐. 클릭하면 해당 채팅방 진입. */
+    function showChatToast(msg, convId) {
+      if (!msg) return;
+      const senderName = msg.senderName || '새 메시지';
+      const preview = msg.text
+        ? (msg.text.length > 40 ? msg.text.slice(0, 40) + '…' : msg.text)
+        : '[파일]';
+      // 토스트 컨테이너는 한 번만 생성 (body 직속).
+      let host = document.getElementById('chat-toast-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'chat-toast-host';
+        host.style.cssText = 'position:fixed;right:24px;bottom:108px;z-index:10090;display:flex;flex-direction:column;gap:8px;pointer-events:none;';
+        document.body.appendChild(host);
+      }
+      const toast = document.createElement('button');
+      toast.type = 'button';
+      toast.style.cssText = 'pointer-events:auto;max-width:280px;text-align:left;border-radius:12px;background:#4f46e5;color:white;padding:10px 14px;box-shadow:0 6px 20px rgba(0,0,0,.2);transition:opacity .3s ease, transform .3s ease;opacity:0;transform:translateY(8px);cursor:pointer;border:none;';
+      toast.innerHTML =
+        '<div style="font-weight:700;font-size:13px;margin-bottom:2px;">' + esc(senderName) + '</div>'
+        + '<div style="font-size:12px;opacity:0.95;white-space:pre-wrap;overflow-wrap:anywhere;">' + esc(preview) + '</div>';
+      toast.addEventListener('click', () => {
+        // 패널 닫혀있으면 열고, 해당 채팅방 진입.
+        if (panel.classList.contains('hidden')) openPanel();
+        showThread(convId, senderName);
+        toast.remove();
+      });
+      host.appendChild(toast);
+      // 슬라이드 인
+      requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+      });
+      // 4초 후 자동 fade out + 제거
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        setTimeout(() => toast.remove(), 350);
+      }, 4000);
     }
 
     function connectChatStream() {
@@ -661,5 +758,7 @@
       window.addEventListener('beforeunload', () => { try { es.close(); } catch {} });
     }
     connectChatStream();
+    // 페이지 로드 시 FAB 배지를 위해 안 읽음 총합 1회 fetch.
+    refreshUnreadTotal();
   });
 })();

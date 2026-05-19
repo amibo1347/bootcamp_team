@@ -23,6 +23,23 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
     Optional<Alert> findByAlertIdAndRecipient(Long alertId, Member recipient);
     void deleteAllByRecipient(Member recipient);
 
+    // ─── 알림창용 (채팅 알림 제외) ─────────────────────────────────
+    List<Alert> findByRecipientAndChatConversationIsNullOrderByCreatedAtDesc(Member recipient);
+    List<Alert> findByRecipientAndIsReadFalseAndChatConversationIsNullOrderByCreatedAtDesc(Member recipient);
+    long countByRecipientAndIsReadFalseAndChatConversationIsNull(Member recipient);
+
+    // ─── 채팅 배지용 (chat_conversation 있는 알림만) ────────────────
+    /** 본인의 채팅 미확인 메시지 총합 (FAB / 헤더 배지). */
+    long countByRecipient_MemberIdAndChatConversationIsNotNull(Long recipientMemberId);
+    /** 특정 채팅방의 미확인 메시지 수 (행별 배지). */
+    long countByRecipient_MemberIdAndChatConversation_ConversationId(Long recipientMemberId, Long conversationId);
+
+    /** 채팅방 진입 = 그 대화방의 본인 알림 일괄 삭제. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM Alert a WHERE a.recipient.memberId = :meId AND a.chatConversation.conversationId = :conversationId")
+    int deleteByRecipientAndChatConversation(@Param("meId") Long meId,
+                                             @Param("conversationId") Long conversationId);
+
     @Modifying
     @Query("DELETE FROM Alert a WHERE a.expiresAt IS NOT NULL AND a.expiresAt < :now")
     int deleteExpired(@Param("now") LocalDateTime now);

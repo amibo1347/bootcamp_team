@@ -287,7 +287,8 @@ public class AlertService {
     @Transactional(readOnly = true)
     public List<AlertDto> getMyAlerts(MemberSession ms) {
         Member me = loadMember(ms);
-        return alertRepository.findByRecipientOrderByCreatedAtDesc(me).stream()
+        // 알림창에는 채팅 알림 제외 (채팅 배지는 FAB/헤더 별도)
+        return alertRepository.findByRecipientAndChatConversationIsNullOrderByCreatedAtDesc(me).stream()
             .map(AlertDto::from)
             .toList();
     }
@@ -295,7 +296,7 @@ public class AlertService {
     @Transactional(readOnly = true)
     public List<AlertDto> getMyUnreadAlerts(MemberSession ms) {
         Member me = loadMember(ms);
-        return alertRepository.findByRecipientAndIsReadFalseOrderByCreatedAtDesc(me).stream()
+        return alertRepository.findByRecipientAndIsReadFalseAndChatConversationIsNullOrderByCreatedAtDesc(me).stream()
             .map(AlertDto::from)
             .toList();
     }
@@ -303,7 +304,59 @@ public class AlertService {
     @Transactional(readOnly = true)
     public long getMyUnreadCount(MemberSession ms) {
         Member me = loadMember(ms);
-        return alertRepository.countByRecipientAndIsReadFalse(me);
+        return alertRepository.countByRecipientAndIsReadFalseAndChatConversationIsNull(me);
+    }
+
+    // ============================================================
+    // 채팅 알림 (Alert row 1개 = 안 읽은 메시지 1개. 읽음 = 삭제.)
+    // ============================================================
+
+    /**
+     * 새 채팅 메시지 알림 발송. ChatService.sendMessage 의 같은 트랜잭션에서 호출.
+     *  - 발신자 본인에게는 발송 안 함.
+     *  - preview 는 메시지 본문 요약 (없으면 "[파일]").
+     */
+    @Transactional
+    public void sendChatMessageAlert(Long senderId, Long recipientId,
+                                     com.team.intranet.entity.ChatConversation conversation,
+                                     String preview) {
+        if (recipientId == null || conversation == null) return;
+        if (senderId != null && senderId.equals(recipientId)) return;
+
+        Member recipient = memberRepository.findById(recipientId).orElse(null);
+        if (recipient == null) return;
+        Member sender = senderId != null ? memberRepository.findById(senderId).orElse(null) : null;
+
+        String safePreview = (preview == null || preview.isBlank()) ? "[파일]" : summarize(preview);
+
+        Alert alert = baseBuilder(Preface.CHAT_MESSAGE, recipient)
+            .title((sender != null ? sender.getName() : "익명") + " - " + safePreview)
+            .content(safePreview)
+            .link("/")
+            .chatConversation(conversation)
+            .sender(sender)
+            .expiresAt(LocalDateTime.now().plusDays(30))
+            .build();
+        alertRepository.save(alert);
+    }
+
+    /** 본인의 채팅 안 읽음 총합 (FAB / 헤더 배지). */
+    @Transactional(readOnly = true)
+    public long countMyChatUnreadTotal(MemberSession ms) {
+        return alertRepository.countByRecipient_MemberIdAndChatConversationIsNotNull(ms.getMemberId());
+    }
+
+    /** 특정 채팅방의 본인 안 읽음 수 (행별 배지). */
+    @Transactional(readOnly = true)
+    public long countMyChatUnreadForConv(MemberSession ms, Long conversationId) {
+        return alertRepository.countByRecipient_MemberIdAndChatConversation_ConversationId(
+            ms.getMemberId(), conversationId);
+    }
+
+    /** 채팅방 진입 → 그 대화방의 본인 알림 일괄 삭제. */
+    @Transactional
+    public void markChatRead(MemberSession ms, Long conversationId) {
+        alertRepository.deleteByRecipientAndChatConversation(ms.getMemberId(), conversationId);
     }
 
     /**

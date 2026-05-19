@@ -98,6 +98,16 @@ public class Alert {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Comment comment;    // 댓글 알림
 
+    /**
+     * 채팅 대화방 알림 (1:1 채팅의 새 메시지 알림). null 이면 채팅이 아닌 일반 알림.
+     *  - 알림창 조회는 chatConversation IS NULL 인 것만 (채팅 배지는 별도 카운트).
+     *  - 채팅방 진입 시 그 conv 의 모든 알림 삭제 (읽음 처리).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chat_conversation_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private ChatConversation chatConversation;
+
     @PrePersist
     private void onCreate() {
         if (this.createdAt == null) {

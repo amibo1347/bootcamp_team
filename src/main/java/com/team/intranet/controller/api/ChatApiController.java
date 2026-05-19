@@ -93,6 +93,26 @@ public class ChatApiController {
         return ResponseEntity.ok(chatService.findMyConversations(ms));
     }
 
+    /** 본인의 채팅 미확인 메시지 총합 — FAB 우상단 배지 + 헤더 배지 공통. */
+    @GetMapping("/unread")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Long> totalUnread(
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok(chatService.countMyChatUnreadTotal(ms));
+    }
+
+    /** 채팅방 진입 = 그 대화방의 본인 알림 일괄 삭제 (읽음 처리). */
+    @PostMapping("/conversations/{id}/read")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> markRead(
+            @PathVariable("id") Long conversationId,
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        chatService.markConversationRead(ms, conversationId);
+        return ResponseEntity.ok().build();
+    }
+
     /** 1:1 대화방 생성 또는 기존 반환. body: { peerId: number } */
     @PostMapping("/conversations")
     @PreAuthorize("isAuthenticated()")

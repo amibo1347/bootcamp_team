@@ -26,8 +26,15 @@ public class ChatConversationDto {
     private boolean lastSenderIsMe;
     /** ISO datetime. */
     private String updatedAt;
+    /** 본인 안 읽은 메시지 수. Alert 테이블에서 집계 — 행별 배지 + 총합 데이터. */
+    private long unreadCount;
 
+    /** 호환용 — unread 모르면 0. */
     public static ChatConversationDto from(ChatConversation conv, Long meId, ChatMessage last) {
+        return from(conv, meId, last, 0L);
+    }
+
+    public static ChatConversationDto from(ChatConversation conv, Long meId, ChatMessage last, long unreadCount) {
         ChatConversationDto dto = new ChatConversationDto();
         dto.conversationId = conv.getConversationId();
         Member other = conv.otherSide(meId);
@@ -41,6 +48,7 @@ public class ChatConversationDto {
             dto.lastSenderIsMe = last.getSender() != null && last.getSender().getMemberId().equals(meId);
         }
         dto.updatedAt = conv.getUpdatedAt() != null ? conv.getUpdatedAt().format(DT) : null;
+        dto.unreadCount = unreadCount;
         return dto;
     }
 }

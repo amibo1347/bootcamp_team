@@ -49,6 +49,7 @@ public class ChatService {
     private final ChatAttachmentRepository attachmentRepository;
     private final MemberRepository memberRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final AlertService alertService;
 
     // ─── 회원 검색 (새 채팅 화면) ─────────────────────────────────────
 
@@ -104,7 +105,7 @@ public class ChatService {
         return ChatConversationDto.from(conv, ms.getMemberId(), last);
     }
 
-    /** 내 대화방 목록 (최근순). */
+    /** 내 대화방 목록 (최근순). 각 대화방의 안 읽음 메시지 수 포함. */
     @Transactional(readOnly = true)
     public List<ChatConversationDto> findMyConversations(MemberSession ms) {
         List<ChatConversation> convs = conversationRepository.findMineByCompany(ms.getCompanyId(), ms.getMemberId());
@@ -112,8 +113,23 @@ public class ChatService {
             ChatMessage last = messageRepository
                 .findFirstByConversation_ConversationIdOrderByCreatedAtDescMessageIdDesc(conv.getConversationId())
                 .orElse(null);
-            return ChatConversationDto.from(conv, ms.getMemberId(), last);
+            long unread = alertService.countMyChatUnreadForConv(ms, conv.getConversationId());
+            return ChatConversationDto.from(conv, ms.getMemberId(), last, unread);
         }).toList();
+    }
+
+    /** 채팅방 진입 = 그 대화방의 본인 알림 일괄 삭제 (읽음 처리). */
+    @Transactional
+    public void markConversationRead(MemberSession ms, Long conversationId) {
+        // 참여자 검증만 하고 실제 삭제는 AlertService 위임.
+        loadAndAssertParticipant(ms, conversationId);
+        alertService.markChatRead(ms, conversationId);
+    }
+
+    /** 본인의 채팅 안 읽음 총합 (FAB/헤더 배지 공통 데이터). */
+    @Transactional(readOnly = true)
+    public long countMyChatUnreadTotal(MemberSession ms) {
+        return alertService.countMyChatUnreadTotal(ms);
     }
 
     // ─── 메시지 ─────────────────────────────────────────────────────
@@ -179,6 +195,9 @@ public class ChatService {
         if (other != null) {
             eventPublisher.publishEvent(new ChatMessageSentEvent(
                 other.getMemberId(), conv.getConversationId(), dto));
+            // 상대방 알림(Alert) 생성 — 같은 트랜잭션. 채팅방 진입 시 일괄 삭제됨.
+            alertService.sendChatMessageAlert(
+                ms.getMemberId(), other.getMemberId(), conv, dto.getText());
         }
         return dto;
     }
