@@ -12,7 +12,7 @@
     <section
       th:fragment="attendanceCard"
       id="home-attendance-card"
-      class="flex w-full min-h-0 flex-col rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+      class="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
       th:data-home-server-check-in="${hasTodayCheckIn}"
       th:data-policy-work-start="${attendancePolicy != null ? attendancePolicy.workStart : '09:00'}"
       th:data-policy-work-end="${attendancePolicy != null ? attendancePolicy.workEnd : '18:00'}"
@@ -40,13 +40,13 @@
           class="text-xs text-gray-500 dark:text-gray-400"
         ></span>
       </header>
-      <!-- flex-1 제거: 그리드 행에서 남는 높이를 여기서 먹지 않음 → 기록 박스 아래 빈 영역 제거 -->
-      <div class="flex shrink-0 flex-col gap-2 px-3.5 pb-1 pt-2.5">
+      <!-- min-h-0 + overflow: 뷰포트·배율 축소 시 그리드 셀 안에서 스크롤(겹침 방지) -->
+      <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3.5 pb-1 pt-2.5">
         <!-- [로그 박스] 2열 그리드 = 하단 출근/퇴근 기록 박스와 동일 열 정렬 → 우측 버튼 폭 = 퇴근 박스 폭 -->
         <div class="grid shrink-0 grid-cols-2 items-center gap-2.5">
           <div
             id="home-dashboard-time"
-            class="min-w-0 w-full rounded-lg bg-gray-50 px-2 py-2 text-center text-lg font-mono font-semibold tracking-tight text-gray-900 shadow-inner dark:bg-gray-900/60 dark:text-white"
+            class="min-w-0 w-full rounded-lg bg-gray-50 px-2 py-1.5 text-center text-base font-mono font-semibold tracking-tight text-gray-900 shadow-inner dark:bg-gray-900/60 dark:text-white sm:py-2 sm:text-lg"
             aria-live="polite"
           >
             --:--:--
