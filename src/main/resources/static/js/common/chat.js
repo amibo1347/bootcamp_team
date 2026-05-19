@@ -15,6 +15,16 @@
     const panel = document.getElementById('chat-panel');
     if (!fab || !panel) return;  // 채팅 partial 이 include 안 된 페이지 — 그냥 종료
 
+    /** FAB·패널이 본문(캘린더 등) 스크롤 레이어 위에 오도록 고정 z-index */
+    const CHAT_Z_INDEX = '10080';
+
+    // #chat-stack 을 body 직속으로 — flex/overflow 래퍼 안에 있으면 캘린더 페이지 등에서 겹침·클릭 가로채기 발생
+    const chatStack = document.getElementById('chat-stack');
+    if (chatStack && chatStack.parentElement !== document.body) {
+      document.body.appendChild(chatStack);
+      chatStack.style.zIndex = CHAT_Z_INDEX;
+    }
+
     const closeBtn = document.getElementById('chat-close');
     const backBtn = document.getElementById('chat-back');
     const titleEl = document.getElementById('chat-title');
@@ -172,6 +182,7 @@
       const top = Math.max(16, window.innerHeight - h - 32);
 
       panel.style.position = 'fixed';
+      panel.style.zIndex = CHAT_Z_INDEX;
       panel.style.left = left + 'px';
       panel.style.top = top + 'px';
       panel.style.right = 'auto';

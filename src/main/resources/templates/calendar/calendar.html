@@ -180,6 +180,20 @@
     .dark #calendar .fc-todayCal-button:hover {
       background-color: rgb(31 41 55) !important;
     }
+
+    /*
+      [채팅 × 월 뷰] 우하단 FAB·패널과 FullCalendar 그리드 겹침 방지
+      - #calendar 스택은 본문 안(z-index 0)으로 두고, 채팅(#chat-stack)은 항상 위(10080).
+      - FC 팝오버는 z-index 9999 수준이라 채팅(10080)보다 낮음.
+    */
+    #calendar {
+      position: relative;
+      z-index: 0;
+    }
+
+    #chat-stack {
+      z-index: 10080;
+    }
   </style>
 </head>
 
@@ -211,12 +225,13 @@
       <!-- ===== Header End ===== -->
 
       <!-- ===== Main Content Start ===== -->
-      <main class="p-8 space-y-8">
+      <!-- pb/pr: 우하단 고정 채팅 FAB·패널과 월 뷰 마지막 행·토요일 열이 겹치지 않도록 여백 -->
+      <main class="space-y-8 p-8 pb-28 pr-20 sm:pb-32 sm:pr-24">
         <!-- [페이지 제목] 부서·직급 관리 페이지와 동일 ml-2 + 동일 타이포 -->
         <h2 class="ml-2 text-2xl font-black text-gray-900 dark:text-white">캘린더</h2>
 
         <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-          <div id="calendar" class="min-h-screen"></div>
+          <div id="calendar" class="min-h-0"></div>
         </div>
       </main>
       <!-- ===== Main Content End ===== -->
