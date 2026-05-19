@@ -15,10 +15,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.team.intranet.dto.MemberDto;
 import com.team.intranet.enums.member.MemberType;
 import com.team.intranet.service.MemberService;
+import com.team.intranet.session.MemberSession;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -85,5 +87,28 @@ public class MemberApiController {
         }
     }
 
+    /**
+     * 로그인 회원 본인 프로필 사진 수정 (POST, multipart profileImg).
+     *  - subAdmin 직원 수정 모달과 동일하게 FormData 키 이름 profileImg 사용.
+     */
+    @PostMapping("/me/profileImg")
+    public ResponseEntity<Map<String, Object>> updateMyProfileImg(
+            @RequestParam("profileImg") MultipartFile profileImg,
+            HttpSession session) throws IOException {
+
+        MemberSession ms = (MemberSession) session.getAttribute("memberSession");
+        if (ms == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (profileImg == null || profileImg.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        memberService.updateMyProfileImg(ms, profileImg.getBytes());
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("success", true);
+        return ResponseEntity.ok(body);
+    }
 
 }

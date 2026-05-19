@@ -1,15 +1,9 @@
 /**
- * [홈 대시보드] index.html 전용 — 출퇴근·시계·오늘 일정·주간·공지
- * - 플로팅 채팅은 floating-chat.js + partials/floating-chat 참고
+ * [홈 대시보드] index.html 전용 스크립트
+ * - 출퇴근·근무 진행 바, 오늘 일정, 주간·공지
+ * - 채팅 UI는 partials/sidebar → partials/chat + common/chat.js (서버 /api/chat)
  * - 서버 연동 시: fetch는 GET/POST 규약에 맞춰 각 핸들러만 교체하면 됩니다.
  */
-
-<<<<<<< HEAD
-/** 목표 근무 시간(밀리초) — 출근 시점부터 이 시간이 채우면 100% */
-const WORKDAY_MS = 8 * 60 * 60 * 1000;
-=======
-/** @type {string} 홈 플로팅 채팅 대화 목록(Mock) localStorage 키 — 기존 쪽지 키와 분리 */
-const HOME_CHAT_STORAGE_KEY = 'homeChatConversationsV1';
 
 /**
  * 목표 근무 시간(밀리초) — 회사 정책이 없는 경우의 폴백.
@@ -25,7 +19,6 @@ function csrfHeaders() {
   if (token && header) headers[header] = token;
   return headers;
 }
->>>>>>> e3ce3ad4399f10a1e163a8f5fdc6e2fd7a1ed32c
 
 /**
  * 두 자리 숫자로 포맷합니다.
@@ -136,13 +129,13 @@ function updateWorkProgress(checkinAt, checkoutAt, fillEl, overtimeEl, trackEl, 
 
 /** 근태 상태별 배지 색상 (메인 카드 헤더용) */
 const ATTENDANCE_STATUS_STYLE = {
-  NORMAL:      { cls: 'bg-emerald-50 text-emerald-700', label: '정상' },
-  LATE:        { cls: 'bg-amber-50 text-amber-700',     label: '지각' },
-  EARLY_LEAVE: { cls: 'bg-orange-50 text-orange-700',   label: '조퇴' },
-  ABSENT:      { cls: 'bg-rose-50 text-rose-700',       label: '결근' },
-  VACATION:    { cls: 'bg-sky-50 text-sky-700',         label: '휴가' },
-  HOLIDAY:     { cls: 'bg-gray-100 text-gray-600',      label: '휴일' },
-  ON_LEAVE:    { cls: 'bg-violet-50 text-violet-700',   label: '휴직' },
+  NORMAL: { cls: 'bg-emerald-50 text-emerald-700', label: '정상' },
+  LATE: { cls: 'bg-amber-50 text-amber-700', label: '지각' },
+  EARLY_LEAVE: { cls: 'bg-orange-50 text-orange-700', label: '조퇴' },
+  ABSENT: { cls: 'bg-rose-50 text-rose-700', label: '결근' },
+  VACATION: { cls: 'bg-sky-50 text-sky-700', label: '휴가' },
+  HOLIDAY: { cls: 'bg-gray-100 text-gray-600', label: '휴일' },
+  ON_LEAVE: { cls: 'bg-violet-50 text-violet-700', label: '휴직' },
 };
 
 /** 헤더 배지에 status 적용. status null/빈값이면 숨김. */
@@ -190,7 +183,7 @@ function applyAttendanceStatusBadge(badgeEl, status, label) {
  */
 function setupAttendanceCard(els, options = {}) {
   const { initialClockInAt, initialClockOutAt, initialStatus, initialStatusLabel,
-          workStart, workEnd, standardWorkMin } = options;
+    workStart, workEnd, standardWorkMin } = options;
 
   let checkinAt = parseServerDatetime(initialClockInAt);
   let checkoutAt = parseServerDatetime(initialClockOutAt);
@@ -399,7 +392,7 @@ function occursOnDate(ev, target) {
     }
     case 'YEARLY':
       return start.getMonth() === targetDay0.getMonth()
-          && start.getDate() === targetDay0.getDate();
+        && start.getDate() === targetDay0.getDate();
     default:
       return false;
   }
@@ -471,12 +464,12 @@ function scheduleCardHtml(item) {
   const meta = buildScheduleMetaHtml(item);
   return ''
     + '<article class="rounded-xl border border-gray-100 bg-gray-50/90 px-3 py-2.5 dark:border-gray-600 dark:bg-gray-900/40">'
-    +   '<div class="flex flex-wrap items-center gap-1.5">'
-    +     '<p class="text-xs font-medium text-brand-600 dark:text-brand-400">' + timeLabel + '</p>'
-    +     repeatBadge
-    +   '</div>'
-    +   '<p class="mt-0.5 text-sm font-medium text-gray-900 dark:text-white">' + escapeHtmlMini(item.title || '') + '</p>'
-    +   '<p class="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">' + (meta || ' ') + '</p>'
+    + '<div class="flex flex-wrap items-center gap-1.5">'
+    + '<p class="text-xs font-medium text-brand-600 dark:text-brand-400">' + timeLabel + '</p>'
+    + repeatBadge
+    + '</div>'
+    + '<p class="mt-0.5 text-sm font-medium text-gray-900 dark:text-white">' + escapeHtmlMini(item.title || '') + '</p>'
+    + '<p class="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">' + (meta || ' ') + '</p>'
     + '</article>';
 }
 
@@ -567,10 +560,10 @@ function buildRepeatBadgeHtml(item) {
   if (!label) return '';
   return ''
     + '<span class="inline-flex items-center gap-1 rounded-full bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" title="' + escapeHtmlMini(label) + '">'
-    +   '<svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    +     '<path d="M3 8a5 5 0 0 1 8.5-3.5L13 3M13 8a5 5 0 0 1-8.5 3.5L3 13M13 3v3h-3M3 13v-3h3"/>'
-    +   '</svg>'
-    +   escapeHtmlMini(label)
+    + '<svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="M3 8a5 5 0 0 1 8.5-3.5L13 3M13 8a5 5 0 0 1-8.5 3.5L3 13M13 3v3h-3M3 13v-3h3"/>'
+    + '</svg>'
+    + escapeHtmlMini(label)
     + '</span>';
 }
 
@@ -659,11 +652,11 @@ function renderWeekCalendarFromEvents(container, rangeLabel, footerEl, events) {
         .join('');
       return ''
         + '<div role="gridcell" class="flex min-h-0 flex-col overflow-hidden rounded-xl border border-gray-100 bg-gray-50 p-2 dark:border-gray-600 dark:bg-gray-900/30 sm:p-2.5 ' + ring + '">'
-        +   '<div class="mb-1.5 shrink-0 text-center">'
-        +     '<div class="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">' + dayNames[idx] + '</div>'
-        +     '<div class="text-sm font-bold text-gray-900 dark:text-white">' + date.getDate() + '</div>'
-        +   '</div>'
-        +   '<ul class="min-h-0 flex-1 space-y-1 overflow-hidden">' + (items || '<li class="text-[10px] text-gray-400">일정 없음</li>') + more + '</ul>'
+        + '<div class="mb-1.5 shrink-0 text-center">'
+        + '<div class="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">' + dayNames[idx] + '</div>'
+        + '<div class="text-sm font-bold text-gray-900 dark:text-white">' + date.getDate() + '</div>'
+        + '</div>'
+        + '<ul class="min-h-0 flex-1 space-y-1 overflow-hidden">' + (items || '<li class="text-[10px] text-gray-400">일정 없음</li>') + more + '</ul>'
         + '</div>';
     })
     .join('');
@@ -699,22 +692,22 @@ function renderTomorrowFooter(footerEl, list) {
     const repeatBadge = buildRepeatBadgeHtml(item);
     const pagerHtml = total > 1
       ? '<div class="ml-auto flex items-center gap-1.5 shrink-0">'
-        + '<button type="button" data-tomorrow-prev aria-label="이전 일정" class="rounded p-0.5 text-gray-500 hover:bg-gray-200 disabled:opacity-30 dark:hover:bg-gray-700">'
-        +   '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4 L6 8 L10 12" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-        + '</button>'
-        + '<span class="text-[10px] tabular-nums text-gray-500">' + (idx + 1) + ' / ' + total + '</span>'
-        + '<button type="button" data-tomorrow-next aria-label="다음 일정" class="rounded p-0.5 text-gray-500 hover:bg-gray-200 disabled:opacity-30 dark:hover:bg-gray-700">'
-        +   '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4 L10 8 L6 12" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-        + '</button>'
-        + '</div>'
+      + '<button type="button" data-tomorrow-prev aria-label="이전 일정" class="rounded p-0.5 text-gray-500 hover:bg-gray-200 disabled:opacity-30 dark:hover:bg-gray-700">'
+      + '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4 L6 8 L10 12" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      + '</button>'
+      + '<span class="text-[10px] tabular-nums text-gray-500">' + (idx + 1) + ' / ' + total + '</span>'
+      + '<button type="button" data-tomorrow-next aria-label="다음 일정" class="rounded p-0.5 text-gray-500 hover:bg-gray-200 disabled:opacity-30 dark:hover:bg-gray-700">'
+      + '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4 L10 8 L6 12" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      + '</button>'
+      + '</div>'
       : '';
     footerEl.innerHTML = ''
       + '<div class="flex items-center gap-2 text-[11px]">'
-      +   '<span class="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 font-semibold text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">내일 ' + timeLabel + '</span>'
-      +   repeatBadge
-      +   '<span class="min-w-0 flex-1 truncate text-gray-700 dark:text-gray-200" title="' + escapeHtmlMini(item.title || '') + '">' + escapeHtmlMini(item.title || '') + '</span>'
-      +   (meta ? '<span class="hidden sm:inline-flex shrink-0 items-center gap-1.5 text-gray-500 dark:text-gray-400">' + meta + '</span>' : '')
-      +   pagerHtml
+      + '<span class="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 font-semibold text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">내일 ' + timeLabel + '</span>'
+      + repeatBadge
+      + '<span class="min-w-0 flex-1 truncate text-gray-700 dark:text-gray-200" title="' + escapeHtmlMini(item.title || '') + '">' + escapeHtmlMini(item.title || '') + '</span>'
+      + (meta ? '<span class="hidden sm:inline-flex shrink-0 items-center gap-1.5 text-gray-500 dark:text-gray-400">' + meta + '</span>' : '')
+      + pagerHtml
       + '</div>';
 
     if (total > 1) {
@@ -783,31 +776,7 @@ function renderWeekCalendar(container, rangeLabel) {
 }
 
 /**
- * 공지 3건
- * @param {HTMLElement} listEl
- */
-function renderNotices(listEl) {
-  const items = [
-    { title: '5월 정기 보안 점검 안내', date: '05-12' },
-    { title: '사내 헬스케어 신청 마감', date: '05-10' },
-    { title: '주차장 리모델링 구간 통제', date: '05-08' },
-  ];
-  listEl.innerHTML = items
-    .map(
-      (n) => `
-      <li>
-        <a href="#" class="block rounded-xl border border-transparent px-2 py-2.5 hover:border-gray-200 hover:bg-gray-50 dark:hover:border-gray-600 dark:hover:bg-gray-900/50">
-          <span class="line-clamp-2 font-medium text-gray-900 dark:text-white">${n.title}</span>
-          <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">${n.date}</span>
-        </a>
-      </li>
-    `,
-    )
-    .join('');
-}
-
-/**
- * DOM 준비 후 홈 대시보드 위젯 초기화(#home-dashboard-root 있을 때만)
+ * DOM 준비 후 홈 대시보드 위젯(시계·출퇴근·일정) 초기화
  */
 function initHomeDashboard() {
   const root = document.getElementById('home-dashboard-root');
@@ -865,12 +834,6 @@ function initHomeDashboard() {
   const todayList = document.getElementById('home-today-list');
   const weekEl = document.getElementById('home-week-calendar');
   const weekLabel = document.getElementById('home-week-range-label');
-<<<<<<< HEAD
-  if (weekEl) renderWeekCalendar(weekEl, weekLabel);
-
-  const noticeList = document.getElementById('home-notice-list');
-  if (noticeList) renderNotices(noticeList);
-=======
   const tomorrowFooter = document.getElementById('home-week-tomorrow');
   if (todayList || weekEl) {
     fetchVisibleCalendars().then((events) => {
@@ -880,63 +843,6 @@ function initHomeDashboard() {
   }
   // 공지사항은 MainController 가 model 로 SSR 함 (fragments-notice.html). 클라이언트 mock 불필요.
 
-  const fab = document.getElementById('home-chat-fab');
-  const backdrop = document.getElementById('home-chat-backdrop');
-  const panel = document.getElementById('home-chat-panel');
-  const closeBtn = document.getElementById('home-chat-close');
-  const backBtn = document.getElementById('home-chat-back');
-  const titleEl = document.getElementById('home-chat-title');
-  const badgeEl = document.getElementById('home-chat-badge');
-  const screenList = document.getElementById('home-chat-screen-list');
-  const screenThread = document.getElementById('home-chat-screen-thread');
-  const screenPick = document.getElementById('home-chat-screen-pick');
-  const listEl = document.getElementById('home-chat-list');
-  const messagesEl = document.getElementById('home-chat-messages');
-  const pickListEl = document.getElementById('home-chat-pick-list');
-  const footer = document.getElementById('home-chat-footer');
-  const input = document.getElementById('home-chat-input');
-  const sendBtn = document.getElementById('home-chat-send');
-  const newBtn = document.getElementById('home-chat-new');
-  if (
-    fab &&
-    backdrop &&
-    panel &&
-    closeBtn instanceof HTMLButtonElement &&
-    backBtn instanceof HTMLButtonElement &&
-    titleEl &&
-    badgeEl &&
-    screenList &&
-    screenThread &&
-    screenPick &&
-    listEl &&
-    messagesEl &&
-    pickListEl &&
-    footer &&
-    input instanceof HTMLInputElement &&
-    sendBtn instanceof HTMLButtonElement &&
-    newBtn instanceof HTMLButtonElement
-  ) {
-    setupFloatingChat({
-      fab,
-      backdrop,
-      panel,
-      closeBtn,
-      backBtn,
-      titleEl,
-      badgeEl,
-      screenList,
-      screenThread,
-      screenPick,
-      listEl,
-      messagesEl,
-      pickListEl,
-      footer,
-      input,
-      sendBtn,
-      newBtn,
-    });
-  }
->>>>>>> e3ce3ad4399f10a1e163a8f5fdc6e2fd7a1ed32c
 }
 
 if (document.readyState === 'loading') {

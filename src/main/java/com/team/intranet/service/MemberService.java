@@ -190,6 +190,25 @@ public class MemberService {
         targetMember.updateInfo(dept, position, profileImg, phone, email, name, birthDay);
     }
 
+    /**
+     * 로그인 회원 본인의 프로필 사진만 수정 (내 프로필 페이지용).
+     *
+     * @param ms           로그인 세션
+     * @param profileImg   업로드한 이미지 바이트 (null·빈 배열이면 변경 없음)
+     */
+    @Transactional
+    public void updateMyProfileImg(MemberSession ms, byte[] profileImg) {
+        if (ms == null || ms.getMemberId() == null) {
+            throw new BusinessException(ErrorCode.NO_AUTHORITY);
+        }
+        if (profileImg == null || profileImg.length == 0) {
+            return;
+        }
+        Member member = memberRepository.findById(ms.getMemberId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+        member.setProfileImg(profileImg);
+    }
+
     // ===== 조회 =====
 
     /**
