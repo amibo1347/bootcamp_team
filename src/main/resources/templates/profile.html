@@ -14,7 +14,7 @@
 </head>
 
 <body
-  x-data="{ page: 'profile', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false, 'isProfileInfoModal': false }"
+  x-data="{ page: 'profile', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
   x-init="
          darkMode = JSON.parse(localStorage.getItem('darkMode'));
          $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
@@ -51,6 +51,14 @@
           <!-- [프로필 본문] 세션(memberSession) 기반 표시. memberId 등은 화면에 노출하지 않음 -->
           <div th:if="${session != null and session.memberSession != null}" th:with="ms=${session.memberSession}"
             class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
+
+            <!-- [모달 초기값] memberSession 필드로 폼 채움 -->
+            <div id="profilePageData" class="hidden"
+              th:attr="data-name=${ms.name},
+                       data-email=${ms.email != null ? ms.email : ''},
+                       data-phone=${ms.phone != null ? ms.phone : ''},
+                       data-birth=${ms.birthDay != null ? #temporals.format(ms.birthDay, 'yyyy-MM-dd') : ''}"></div>
+
             <h3 class="mb-5 text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-7">
               내 프로필
             </h3>
@@ -140,10 +148,30 @@
                       </p>
                     </div>
 
+                    <div>
+                      <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300">
+                        연락처
+                      </p>
+                      <p class="text-sm font-medium text-gray-800 dark:text-white/90"
+                        th:text="${ms.phone != null && !#strings.isEmpty(ms.phone) ? ms.phone : '-'}">
+                        -
+                      </p>
+                    </div>
+
+                    <div>
+                      <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300">
+                        생년월일
+                      </p>
+                      <p class="text-sm font-medium text-gray-800 dark:text-white/90"
+                        th:text="${ms.birthDay != null ? #temporals.format(ms.birthDay, 'yyyy-MM-dd') : '-'}">
+                        -
+                      </p>
+                    </div>
+
                   </div>
                 </div>
 
-                <button @click="isProfileInfoModal = true"
+                <button type="button" onclick="openProfileEditModal()"
                   class="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto">
                   <svg class="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none"
                     xmlns="http://www.w3.org/2000/svg">
