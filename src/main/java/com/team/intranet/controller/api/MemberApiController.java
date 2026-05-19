@@ -1,6 +1,9 @@
 package com.team.intranet.controller.api;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -109,6 +112,40 @@ public class MemberApiController {
         Map<String, Object> body = new HashMap<>();
         body.put("success", true);
         return ResponseEntity.ok(body);
+    }
+
+    /**
+     * 로그인 회원 본인 정보 수정 (이름·이메일·전화·생년월일).
+     *  - 조직도 구성의 /api/subAdmin/update/{id} 와 같은 파라미터 패턴 (FormData).
+     *  - 부서/직급/프로필 사진은 변경 안 함 (각자 별도 경로).
+     *  - 갱신 후 세션을 새 MemberSession 으로 교체해 사이드바·헤더 등에 즉시 반영.
+     */
+    @PostMapping("/me/update")
+    public ResponseEntity<Map<String, Object>> updateMyInfo(
+            @RequestParam String name,
+            @RequestParam String email,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) String birthDay,
+            HttpSession session) {
+
+        MemberSession ms = (MemberSession) session.getAttribute("memberSession");
+        if (ms == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        MemberSession updated = memberService.updateMyInfo(ms, name, email, phone, parseBirthDay(birthDay));
+        session.setAttribute("memberSession", updated);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("success", true);
+        return ResponseEntity.ok(body);
+    }
+
+    /** "yyyy-MM-dd" 또는 "yyyyMMdd" → LocalDateTime (시간은 00:00). blank 면 null. */
+    private LocalDateTime parseBirthDay(String input) {
+        if (input == null || input.isBlank()) return null;
+        String digits = input.replaceAll("-", "");
+        return LocalDate.parse(digits, DateTimeFormatter.ofPattern("yyyyMMdd")).atStartOfDay();
     }
 
 }

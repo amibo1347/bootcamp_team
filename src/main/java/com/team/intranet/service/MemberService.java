@@ -191,6 +191,25 @@ public class MemberService {
     }
 
     /**
+     * 로그인 회원 본인의 정보 수정 (내 프로필 페이지용).
+     *  - 이름/이메일/전화/생년월일만 변경. 부서/직급/역할/프로필 사진은 다른 경로로만.
+     *  - 트랜잭션 안에서 새 MemberSession 을 만들어 반환 → 컨트롤러가 세션에 박아 즉시 반영.
+     *
+     * @return 갱신된 MemberSession (호출자는 HttpSession 에 setAttribute 로 교체).
+     */
+    @Transactional
+    public MemberSession updateMyInfo(MemberSession ms, String name, String email, String phone, LocalDateTime birthDay) {
+        if (ms == null || ms.getMemberId() == null) {
+            throw new BusinessException(ErrorCode.NO_AUTHORITY);
+        }
+        Member me = memberRepository.findById(ms.getMemberId())
+            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+        me.updateSelfInfo(name, email, phone, birthDay);
+        // Position.permissions / Dept 등 LAZY 필드들이 이 시점에 로딩됨 → 트랜잭션 밖에서 안전.
+        return new MemberSession(me);
+    }
+
+    /**
      * 로그인 회원 본인의 프로필 사진만 수정 (내 프로필 페이지용).
      *
      * @param ms           로그인 세션

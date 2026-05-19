@@ -176,6 +176,15 @@ public class Member {
         this.role = position.getRole();
     }
 
+    // 본인 자기수정 (내 프로필 페이지): 이름/이메일/전화/생년월일만 변경.
+    // ※ 부서/직급/역할/프로필 사진은 별도 경로로만 변경 (관리자 권한 또는 /api/member/me/profileImg).
+    public void updateSelfInfo(String name, String email, String phone, LocalDateTime birthDay) {
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
+        this.birthDay = birthDay;
+    }
+
     // 인사이동: 부서/직급만 일괄 변경. dept 또는 position 이 null 이면 해당 항목은 유지한다.
     public void reassign(Dept dept, Position position) {
         if (dept != null) {
