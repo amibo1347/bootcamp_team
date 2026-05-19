@@ -7,12 +7,20 @@
       - 상단: 출퇴근 | 공지 / 하단: 오늘 일정 | 주간
       - gap은 넉넉하되 한 단계씩 조밀하게, 그리드 행은 minmax(0,1fr)로 동일 비율·No-Scroll(min-h-0)
     -->
-  <div th:fragment="mainDashboard" class="flex w-full min-w-0 min-h-0 max-lg:h-auto flex-col lg:h-full" id="home-dashboard-root">
+  <!--
+    [Windows OS 디스플레이 스케일 보정]
+    Windows 의 텍스트/앱 스케일이 보통 125%/150% 라서 같은 1080p 모니터라도
+    Mac 보다 브라우저 viewport 가 작게 잡혀 4 카드가 안 들어옴.
+    dashboard 만 0.9 배로 시각 축소 → "사용자 100% = Mac 100%" 비율 확보.
+    채팅 패널/사이드바/헤더 등 다른 영역은 영향 받지 않음 (이 div 안쪽만).
+  -->
+  <div th:fragment="mainDashboard" class="flex w-full min-w-0 min-h-0 max-lg:h-auto flex-col lg:h-full" id="home-dashboard-root"
+       style="zoom: 0.9;">
     <!-- 카드 블록: max-w로 가로 살짝 축소·화면 중앙 정렬 (No-Scroll 체인 유지) -->
     <div
       class="mx-auto flex w-full min-w-0 min-h-0 max-w-[min(100%,46rem)] max-lg:flex-none flex-col sm:max-w-[min(100%,50rem)] lg:max-w-[min(100%,56rem)] lg:flex-1 xl:max-w-[min(100%,60rem)]">
       <div
-        class="grid min-h-0 w-full min-w-0 grid-cols-1 gap-5 max-lg:auto-rows-auto max-lg:grid-rows-[repeat(4,auto)] max-lg:flex-none sm:gap-6 lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:flex-1 lg:gap-6 xl:gap-8">
+        class="grid min-h-0 w-full min-w-0 grid-cols-1 gap-3 max-lg:auto-rows-auto max-lg:grid-rows-[repeat(4,auto)] max-lg:flex-none sm:gap-4 lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:flex-1 lg:gap-4 xl:gap-5">
         <!-- 좌상단 열: 유저 스트립(고정 높이) + 출퇴근 카드(flex-1·min-h-0으로 그리드 셀에 맞춤) -->
         <div class="flex min-h-0 min-w-0 max-lg:h-auto flex-col gap-1.5 lg:h-full">
           <div th:if="${session != null and session.memberSession != null}"

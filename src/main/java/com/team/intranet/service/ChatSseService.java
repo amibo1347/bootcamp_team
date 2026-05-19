@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -70,10 +71,31 @@ public class ChatSseService {
                     .name(EVENT_CHAT_MESSAGE)
                     .data(payload, MediaType.APPLICATION_JSON));
                 log.info("[SSE-CHAT] send OK memberId={}", toMemberId);
-            } catch (IOException ex) {
+            } catch (Exception ex) {
                 log.warn("[SSE-CHAT] send FAILED memberId={}: {}", toMemberId, ex.toString());
-                e.completeWithError(ex);
+                try { e.completeWithError(ex); } catch (Exception ignored) {}
             }
         }
+    }
+
+    /**
+     * 좀비 emitter 정리용 heartbeat — 15초마다 모든 emitter 에 ping 이벤트 발송.
+     * 끊긴 emitter 는 send 시 예외 → cleanup 콜백으로 자동 제거.
+     * 클라이언트는 이 ping 을 무시하면 됨 (event name="ping").
+     */
+    @Scheduled(fixedDelay = 15_000)
+    public void heartbeat() {
+        if (emittersByMember.isEmpty()) return;
+        emittersByMember.forEach((memberId, list) -> {
+            for (SseEmitter e : list) {
+                try {
+                    e.send(SseEmitter.event().name("ping").data("hb"));
+                } catch (Exception ex) {
+                    // 좀비 — completeWithError → onError 콜백 → cleanup 자동
+                    log.info("[SSE-CHAT] heartbeat dead emitter memberId={}: {}", memberId, ex.toString());
+                    try { e.completeWithError(ex); } catch (Exception ignored) {}
+                }
+            }
+        });
     }
 }

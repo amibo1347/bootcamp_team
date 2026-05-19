@@ -352,10 +352,10 @@
           : '<span class="text-gray-300">메시지 없음</span>';
         const time = fmtRelative(c.updatedAt);
         const avatar = avatarHtml(peer, 36);
-        // 행별 안 읽음 배지 (시간 옆 빨간 알약). 0 이면 미표시.
+        // 행별 안 읽음 배지 — 헤더 알림 종 배지(#header-alert-badge) 스타일과 통일 (orange-500 + 흰 글씨).
         const unread = c.unreadCount || 0;
         const unreadBadge = unread > 0
-          ? '<span class="inline-flex min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white" style="height:18px;line-height:18px;">' + (unread > 99 ? '99+' : unread) + '</span>'
+          ? '<span class="inline-flex h-5 min-w-5 max-w-[2.75rem] shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-500 px-1 text-[10px] font-bold tabular-nums leading-none text-white shadow-sm">' + (unread > 99 ? '99+' : unread) + '</span>'
           : '';
         return ''
           + '<button type="button" data-conv-id="' + c.conversationId + '" data-peer-name="' + esc(peer.name || '') + '" '
@@ -757,15 +757,24 @@
     }
 
     function connectChatStream() {
-      if (typeof EventSource === 'undefined') return;
+      if (typeof EventSource === 'undefined') { console.warn('[SSE-CHAT] EventSource not supported'); return; }
       let es;
-      try { es = new EventSource('/api/chat/stream'); }
-      catch (err) { return; }
+      try {
+        es = new EventSource('/api/chat/stream');
+        console.log('[SSE-CHAT] EventSource creating: /api/chat/stream');
+      } catch (err) {
+        console.error('[SSE-CHAT] EventSource creation failed', err);
+        return;
+      }
+      es.addEventListener('open', () => console.log('[SSE-CHAT] open — connected. readyState=', es.readyState));
+      es.addEventListener('ready', (e) => console.log('[SSE-CHAT] ready handshake:', e.data));
+      es.addEventListener('error', (e) => console.error('[SSE-CHAT] error. readyState=', es.readyState, e));
       const onChatEvent = (evt) => {
-        try { handleChatSsePayload(JSON.parse(evt.data)); } catch { /* 무시 */ }
+        console.log('[SSE-CHAT] chat-message received:', evt.data);
+        try { handleChatSsePayload(JSON.parse(evt.data)); } catch (err) { console.error('[SSE-CHAT] parse failed', err); }
       };
       es.addEventListener('chat-message', onChatEvent);
-      es.addEventListener('message', onChatEvent);  // 구버전 서버 이벤트명 호환
+      es.addEventListener('message', onChatEvent);
       window.addEventListener('beforeunload', () => { try { es.close(); } catch {} });
     }
     connectChatStream();

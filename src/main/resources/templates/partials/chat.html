@@ -137,11 +137,10 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
             </svg>
           </button>
-          <!-- 헤더 #chat-badge 와 동일 데이터 (채팅 안 읽음 총합). 0 이면 hidden.
-               아이콘 우상단을 살짝 덧씌움 (top:2px right:2px) — 화면 밖으로 안 벗어남. -->
+          <!-- 헤더 알림 종 배지(#header-alert-badge) 와 동일한 스타일 — orange-500 + ring-white. -->
           <span id="chat-fab-badge"
-            class="absolute hidden h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white"
-            style="top:2px;right:2px;line-height:1;">0</span>
+            class="pointer-events-none absolute -right-0.5 -top-0.5 z-10 hidden h-5 min-w-5 max-w-[2.75rem] shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-500 px-1 text-[10px] font-bold tabular-nums leading-none text-white shadow-sm ring-2 ring-white dark:bg-orange-500 dark:text-white dark:ring-gray-900"
+            role="status" aria-live="polite">0</span>
         </div>
       </div>
     </div>

@@ -320,7 +320,11 @@ public class AlertService {
     public void sendChatMessageAlert(Long senderId, Long recipientId,
                                      com.team.intranet.entity.ChatConversation conversation,
                                      String preview) {
-        if (recipientId == null || conversation == null) return;
+        if (recipientId == null || conversation == null) {
+            log.warn("[ALERT-CHAT] sendChatMessageAlert skipped: recipientId={}, conversation={}",
+                recipientId, conversation);
+            return;
+        }
         if (senderId != null && senderId.equals(recipientId)) return;
 
         Member recipient = memberRepository.findById(recipientId).orElse(null);
@@ -337,7 +341,9 @@ public class AlertService {
             .sender(sender)
             .expiresAt(LocalDateTime.now().plusDays(30))
             .build();
-        alertRepository.save(alert);
+        Alert saved = alertRepository.save(alert);
+        log.info("[ALERT-CHAT] saved alertId={} recipientId={} convId={}",
+            saved.getAlertId(), recipientId, conversation.getConversationId());
     }
 
     /** 본인의 채팅 안 읽음 총합 (FAB / 헤더 배지). */
@@ -353,10 +359,14 @@ public class AlertService {
             ms.getMemberId(), conversationId);
     }
 
-    /** 채팅방 진입 → 그 대화방의 본인 알림 일괄 삭제. */
+    /** 채팅방 진입 → 그 대화방의 본인 알림 일괄 삭제. 삭제된 row 수 반환. */
     @Transactional
-    public void markChatRead(MemberSession ms, Long conversationId) {
-        alertRepository.deleteByRecipientAndChatConversation(ms.getMemberId(), conversationId);
+    public int markChatRead(MemberSession ms, Long conversationId) {
+        int deleted = alertRepository.deleteByRecipientAndChatConversation(
+            ms.getMemberId(), conversationId);
+        log.info("[ALERT-CHAT] markChatRead memberId={} convId={} deleted={}",
+            ms.getMemberId(), conversationId, deleted);
+        return deleted;
     }
 
     /**
