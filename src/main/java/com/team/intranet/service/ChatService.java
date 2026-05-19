@@ -12,9 +12,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.context.ApplicationEventPublisher;
+
 import com.team.intranet.dto.ChatConversationDto;
 import com.team.intranet.dto.ChatMessageDto;
 import com.team.intranet.dto.ChatPeerDto;
+import com.team.intranet.event.ChatMessageSentEvent;
 import com.team.intranet.entity.ChatAttachment;
 import com.team.intranet.entity.ChatConversation;
 import com.team.intranet.entity.ChatMessage;
@@ -45,7 +48,7 @@ public class ChatService {
     private final ChatMessageRepository messageRepository;
     private final ChatAttachmentRepository attachmentRepository;
     private final MemberRepository memberRepository;
-    private final ChatSseService chatSseService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ─── 회원 검색 (새 채팅 화면) ─────────────────────────────────────
 
@@ -171,13 +174,11 @@ public class ChatService {
         conv.touch();
         ChatMessageDto dto = ChatMessageDto.from(msg, msg.getAttachments());
 
-        // 상대방에게 SSE push — 발신자 본인은 응답으로 직접 받음.
+        // 상대방 SSE 는 커밋 후 ChatSseListener 가 발행 — 발신자는 HTTP 응답으로 직접 받음.
         Member other = conv.otherSide(ms.getMemberId());
         if (other != null) {
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("conversationId", conv.getConversationId());
-            payload.put("message", dto);
-            chatSseService.publishMessage(other.getMemberId(), payload);
+            eventPublisher.publishEvent(new ChatMessageSentEvent(
+                other.getMemberId(), conv.getConversationId(), dto));
         }
         return dto;
     }

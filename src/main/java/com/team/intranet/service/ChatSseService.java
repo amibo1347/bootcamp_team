@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -47,13 +48,18 @@ public class ChatSseService {
         return emitter;
     }
 
-    /** toMemberId 의 모든 활성 emitter 에 "message" 이벤트 전송. */
+    /** SSE 이벤트명. 브라우저 기본 "message" 채널과 겹치지 않게 별도 이름 사용. */
+    public static final String EVENT_CHAT_MESSAGE = "chat-message";
+
+    /** toMemberId 의 모든 활성 emitter 에 채팅 메시지 이벤트 전송. */
     public void publishMessage(Long toMemberId, Map<String, Object> payload) {
         List<SseEmitter> list = emittersByMember.get(toMemberId);
         if (list == null || list.isEmpty()) return;
         for (SseEmitter e : list) {
             try {
-                e.send(SseEmitter.event().name("message").data(payload));
+                e.send(SseEmitter.event()
+                    .name(EVENT_CHAT_MESSAGE)
+                    .data(payload, MediaType.APPLICATION_JSON));
             } catch (IOException ex) {
                 // onError → cleanup 자동 호출
                 e.completeWithError(ex);
