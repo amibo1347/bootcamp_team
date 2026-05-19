@@ -66,14 +66,14 @@ public class AiConfig {
     private Long updatedByMemberId;
 
     /**
-     * 첫 부팅 시 자동 생성될 기본값.
-     *  - gemini-2.0-flash: 무료 tier 일 1,500 req (gemini-2.5-flash 는 일 20 으로 제한적).
-     *  - MASTER 가 /api/master/ai/config 로 언제든 변경 가능.
+     * 첫 부팅 시 자동 생성될 기본값. MASTER 가 /api/master/ai/config 로 언제든 변경 가능.
+     *  - 현재 default: Anthropic Claude Sonnet 4.6 (균형 모델, 유료)
+     *  - 대안: gemini-2.0-flash (무료 일 1,500 req)
      */
     public static AiConfig defaultConfig() {
         return AiConfig.builder()
-            .provider(AiProvider.GEMINI)
-            .modelName("gemini-2.0-flash")
+            .provider(AiProvider.ANTHROPIC)
+            .modelName("claude-sonnet-4-6")
             .temperature(0.7)
             .maxTokens(2048)
             .rateLimitPerDay(50)
