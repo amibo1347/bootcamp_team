@@ -44,6 +44,7 @@
     let peersCache = [];              // 회원 목록 캐시
     let convsCache = [];              // 대화방 목록 캐시
     let pendingFiles = [];            // 전송 대기 파일
+    let messagesLoadGen = 0;          // loadMessages 경쟁 방지 (늦게 도착한 응답이 SSE 말풍선을 덮어쓰지 않게)
 
     // ─── CSRF ─────────────────────────────────────────────────────
     const csrfHeader = () => {
@@ -427,14 +428,17 @@
 
     // ─── 메시지 스레드 ─────────────────────────────────────────────
     async function loadMessages(convId) {
+      const gen = ++messagesLoadGen;
       messagesEl.innerHTML = '<div class="text-center text-xs text-gray-400 py-6">불러오는 중...</div>';
       try {
         const res = await fetch('/api/chat/conversations/' + convId + '/messages');
         if (!res.ok) throw new Error('load messages failed');
         const msgs = await res.json();
+        if (gen !== messagesLoadGen || Number(activeConvId) !== Number(convId)) return;
         renderMessages(msgs);
         scrollMessagesToBottom();
       } catch (e) {
+        if (gen !== messagesLoadGen) return;
         messagesEl.innerHTML = '<div class="text-center text-xs text-rose-500 py-6">메시지를 불러올 수 없습니다.</div>';
       }
     }
@@ -447,7 +451,9 @@
       messagesEl.innerHTML = msgs.map(m => messageBubbleHtml(m, me)).join('');
     }
     function appendMessage(m) {
+      if (!m) return;
       const me = currentMemberIdGuess();
+      if (m.messageId != null && messagesEl.querySelector('[data-msg-id="' + m.messageId + '"]')) return;
       // 첫 메시지인 경우 안내 텍스트 제거
       if (messagesEl.querySelector('.text-center')) messagesEl.innerHTML = '';
       messagesEl.insertAdjacentHTML('beforeend', messageBubbleHtml(m, me));
@@ -496,8 +502,9 @@
         const mediaMaxPx = (panel.style.getPropertyValue('--chat-media-max') || '200px').trim();
         wrapStyle = 'width:' + mediaMaxPx + ';max-width:' + mediaMaxPx + ';';
       }
+      const msgAttr = m.messageId != null ? ' data-msg-id="' + esc(String(m.messageId)) + '"' : '';
       return ''
-        + '<div class="mb-2 flex ' + align + '">'
+        + '<div class="mb-2 flex ' + align + '"' + msgAttr + '>'
         +   '<div class="' + wrapCls + '" style="' + wrapStyle + '">'
         +     '<div class="' + bubbleCls + ' text-sm" style="' + bubbleStyle + '">'
         +       text
@@ -621,29 +628,36 @@
     }
 
     // ─── 실시간 수신 (SSE) ─────────────────────────────────────────
-    // 서버: GET /api/chat/stream  → 이벤트 "ready" (핸드셰이크) / "message" ({conversationId, message}).
-    // EventSource 는 끊겨도 브라우저가 자동 재연결한다. 페이지당 한 번만 연결.
+    // 서버: GET /api/chat/stream → "ready"(핸드셰이크) / "chat-message"({ conversationId, message })
+    function handleChatSsePayload(raw) {
+      let payload = raw;
+      if (typeof payload === 'string') {
+        try { payload = JSON.parse(payload); } catch { return; }
+      }
+      if (!payload || payload.message == null) return;
+      let msg = payload.message;
+      if (typeof msg === 'string') {
+        try { msg = JSON.parse(msg); } catch { return; }
+      }
+      const incomingConvId = Number(payload.conversationId);
+      if (view === 'thread' && Number(activeConvId) === incomingConvId) {
+        appendMessage(msg);
+      }
+      if (view === 'list') {
+        loadConversations();
+      }
+    }
+
     function connectChatStream() {
-      if (typeof EventSource === 'undefined') return;  // 구형 브라우저 폴백 없음 (MVP)
+      if (typeof EventSource === 'undefined') return;
       let es;
       try { es = new EventSource('/api/chat/stream'); }
       catch (err) { return; }
-      es.addEventListener('message', (evt) => {
-        let payload;
-        try { payload = JSON.parse(evt.data); } catch { return; }
-        if (!payload || !payload.message) return;
-        const incomingConvId = Number(payload.conversationId);
-        const msg = payload.message;
-        // 현재 같은 채팅방 보고 있으면 즉시 말풍선 추가.
-        if (view === 'thread' && Number(activeConvId) === incomingConvId) {
-          appendMessage(msg);
-        }
-        // 목록 화면이면 미리보기/시간 갱신 위해 다시 로드.
-        if (view === 'list') {
-          loadConversations();
-        }
-      });
-      // 에러 시 EventSource 가 자동 재연결 — 별도 처리 불필요.
+      const onChatEvent = (evt) => {
+        try { handleChatSsePayload(JSON.parse(evt.data)); } catch { /* 무시 */ }
+      };
+      es.addEventListener('chat-message', onChatEvent);
+      es.addEventListener('message', onChatEvent);  // 구버전 서버 이벤트명 호환
       window.addEventListener('beforeunload', () => { try { es.close(); } catch {} });
     }
     connectChatStream();

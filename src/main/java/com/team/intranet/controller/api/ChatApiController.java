@@ -49,7 +49,7 @@ public class ChatApiController {
     /**
      * 본인 앞으로 들어오는 채팅 이벤트 스트림.
      *  - 클라이언트: new EventSource('/api/chat/stream') 로 연결.
-     *  - 이벤트: "ready" (연결 핸드셰이크) / "message" ({conversationId, message: ChatMessageDto}).
+     *  - 이벤트: "ready" (연결 핸드셰이크) / "chat-message" ({conversationId, message: ChatMessageDto}).
      *  - 30분 후 timeout → 브라우저 EventSource 가 자동 재연결.
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
