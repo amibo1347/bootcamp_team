@@ -65,11 +65,15 @@ public class AiConfig {
     @Column(name = "updated_by_member_id")
     private Long updatedByMemberId;
 
-    /** 첫 부팅 시 자동 생성될 기본값. Gemini Flash + 적당한 rate limit. */
+    /**
+     * 첫 부팅 시 자동 생성될 기본값.
+     *  - gemini-2.0-flash: 무료 tier 일 1,500 req (gemini-2.5-flash 는 일 20 으로 제한적).
+     *  - MASTER 가 /api/master/ai/config 로 언제든 변경 가능.
+     */
     public static AiConfig defaultConfig() {
         return AiConfig.builder()
             .provider(AiProvider.GEMINI)
-            .modelName("gemini-2.5-flash")
+            .modelName("gemini-2.0-flash")
             .temperature(0.7)
             .maxTokens(2048)
             .rateLimitPerDay(50)

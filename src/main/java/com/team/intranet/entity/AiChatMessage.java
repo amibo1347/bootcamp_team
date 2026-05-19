@@ -69,6 +69,21 @@ public class AiChatMessage {
     @Column(name = "completion_tokens")
     private Integer completionTokens;
 
+    /**
+     * ASSISTANT 메시지가 일정/결재 등 액션 제안을 포함할 때 JSON 보존.
+     * 형식: { "type": "calendar"|"approval", ... }
+     * null 이면 일반 텍스트 응답.
+     */
+    @Lob
+    @Column(name = "proposal_json", columnDefinition = "CLOB")
+    private String proposalJson;
+
+    /**
+     * 제안 처리 여부 (사용자가 [등록] 클릭 후 true). 중복 등록 방지.
+     */
+    @Column(name = "proposal_applied")
+    private Boolean proposalApplied;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

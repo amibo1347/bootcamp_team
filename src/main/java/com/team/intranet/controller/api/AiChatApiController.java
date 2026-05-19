@@ -83,4 +83,19 @@ public class AiChatApiController {
         String content = body == null ? null : body.get("content");
         return ResponseEntity.ok(aiChatService.sendMessage(ms, sessionId, content));
     }
+
+    /**
+     * 일정 제안 [등록] 확정 — body: { "messageId": 123 }.
+     * 응답: 새로 추가된 확정 알림 메시지 (assistant role).
+     */
+    @PostMapping("/calendar/confirm")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AiChatMessageDto> confirmCalendar(
+            @RequestBody Map<String, Long> body,
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        Long messageId = body == null ? null : body.get("messageId");
+        if (messageId == null) return ResponseEntity.badRequest().build();
+        return ResponseEntity.ok(aiChatService.confirmCalendarProposal(ms, messageId));
+    }
 }

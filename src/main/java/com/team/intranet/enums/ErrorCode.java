@@ -103,6 +103,7 @@ public enum ErrorCode {
     // AI
     AI_SESSION_NOT_FOUND(404, "해당 AI 대화를 찾을 수 없습니다"),
     AI_RATE_LIMIT_EXCEEDED(429, "오늘 AI 호출 한도를 초과했습니다"),
+    AI_PROVIDER_QUOTA_EXCEEDED(429, "오늘 AI 무료 사용량 한도에 도달했습니다. 내일 다시 시도해주세요."),
     AI_PROVIDER_ERROR(503, "AI 모델 호출에 실패했습니다");
     
     // 2. 변수 정의

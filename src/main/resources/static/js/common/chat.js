@@ -693,8 +693,77 @@
         senderName: isUser ? '나' : 'AI 비서',
         text: m.content,
         createdAt: m.createdAt,
-        attachments: []
+        attachments: [],
+        // AI 액션 제안 (일정/결재) 메타. 카드 렌더용.
+        proposal: m.proposal || null,
+        proposalApplied: m.proposalApplied === true,
       };
+    }
+
+    /** ISO datetime → "2026년 5월 20일 12:30" 형식. */
+    function fmtKoreanDateTime(isoStr) {
+      if (!isoStr) return '';
+      const m = String(isoStr).match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+      if (!m) return isoStr;
+      return `${m[1]}년 ${parseInt(m[2],10)}월 ${parseInt(m[3],10)}일 ${m[4]}:${m[5]}`;
+    }
+    /** 같은 날이면 "HH:mm", 다른 날이면 전체 "년월일 HH:mm" 으로. */
+    function fmtSameDayTime(isoStr) {
+      if (!isoStr) return '';
+      const m = String(isoStr).match(/[T ](\d{2}):(\d{2})/);
+      return m ? `${m[1]}:${m[2]}` : isoStr;
+    }
+    function sameDate(a, b) {
+      if (!a || !b) return false;
+      return String(a).slice(0, 10) === String(b).slice(0, 10);
+    }
+
+    /** 일정 제안 카드 HTML. type=calendar|calendar_update|calendar_delete. */
+    function calendarProposalCardHtml(m) {
+      const p = m.proposal || {};
+      const isUpdate = p.type === 'calendar_update';
+      const isDelete = p.type === 'calendar_delete';
+      const head = isDelete ? '🗑️ 일정 삭제 제안'
+                 : isUpdate ? '✏️ 일정 수정 제안'
+                            : '📅 일정 등록 제안';
+      const actionLabel = isDelete ? '삭제' : (isUpdate ? '수정' : '등록');
+      const actionAttr  = isDelete ? 'data-ai-confirm-delete'
+                       : isUpdate ? 'data-ai-confirm-update'
+                                  : 'data-ai-confirm-calendar';
+      const doneLabel = actionLabel + '됨';
+
+      const title = esc(p.title || (isDelete ? '일정' : 'AI 일정'));
+      const startH = fmtKoreanDateTime(p.startAt);
+      const endH   = sameDate(p.startAt, p.endAt) ? fmtSameDayTime(p.endAt) : fmtKoreanDateTime(p.endAt);
+      const loc   = p.location ? '<div>📍 ' + esc(p.location) + '</div>' : '';
+      const desc  = p.description ? '<div class="text-gray-500 mt-1">' + esc(p.description) + '</div>' : '';
+      const attendees = (Array.isArray(p.attendeeNames) && p.attendeeNames.length > 0)
+        ? '<div>👥 함께: ' + p.attendeeNames.map(esc).join(', ') + '</div>'
+        : '';
+      const applied = m.proposalApplied;
+
+      // 액션별 버튼 색 — Tailwind 캐시 / output.css 미빌드 영향 없이 inline 으로 강제.
+      let btnBg = '#4f46e5';                              // 등록 — indigo-600
+      if (isUpdate) btnBg = '#f97316';                    // 수정 — orange-500
+      if (isDelete) btnBg = '#ef4444';                    // 삭제 — red-500
+      const btnStyle = 'background:' + btnBg + ';color:#fff;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.2);';
+      const doneStyle = 'background:#d1d5db;color:#4b5563;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;';
+      const btn = applied
+        ? '<button type="button" disabled style="' + doneStyle + '">' + esc(doneLabel) + '</button>'
+        : '<button type="button" ' + actionAttr + '="' + m.messageId + '" style="' + btnStyle + '">' + esc(actionLabel) + '</button>';
+
+      return ''
+        + '<div class="mb-2 flex justify-start">'
+        +   '<div class="max-w-[85%] rounded-2xl border border-indigo-200 bg-indigo-50/50 p-3 text-xs text-gray-700 dark:border-indigo-900/50 dark:bg-indigo-900/20 dark:text-gray-200">'
+        +     '<div class="mb-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-300">' + head + '</div>'
+        +     '<div class="font-semibold text-gray-900 dark:text-white">' + title + '</div>'
+        +     '<div class="mt-1 space-y-0.5">'
+        +       (startH ? '<div>🕒 ' + startH + (endH ? ' ~ ' + endH : '') + '</div>' : '')
+        +       loc + attendees + desc
+        +     '</div>'
+        +     '<div class="mt-2 flex justify-end gap-2">' + btn + '</div>'
+        +   '</div>'
+        + '</div>';
     }
 
     async function loadMessages(id) {
@@ -719,13 +788,22 @@
         messagesEl.innerHTML = '<div class="text-center text-xs text-rose-500 py-6">메시지를 불러올 수 없습니다.</div>';
       }
     }
+    /** 메시지 1건 HTML + proposal 카드(있으면). */
+    function fullMessageHtml(m, me) {
+      let html = messageBubbleHtml(m, me);
+      const t = m.proposal && m.proposal.type;
+      if (t === 'calendar' || t === 'calendar_update' || t === 'calendar_delete') {
+        html += calendarProposalCardHtml(m);
+      }
+      return html;
+    }
     function renderMessages(msgs) {
       const me = currentMemberIdGuess();
       if (!msgs || msgs.length === 0) {
         messagesEl.innerHTML = '<div class="text-center text-xs text-gray-400 py-6">첫 메시지를 보내보세요.</div>';
         return;
       }
-      messagesEl.innerHTML = msgs.map(m => messageBubbleHtml(m, me)).join('');
+      messagesEl.innerHTML = msgs.map(m => fullMessageHtml(m, me)).join('');
     }
     function appendMessage(m) {
       if (!m) return;
@@ -733,9 +811,42 @@
       if (m.messageId != null && messagesEl.querySelector('[data-msg-id="' + m.messageId + '"]')) return;
       // 첫 메시지인 경우 안내 텍스트 제거
       if (messagesEl.querySelector('.text-center')) messagesEl.innerHTML = '';
-      messagesEl.insertAdjacentHTML('beforeend', messageBubbleHtml(m, me));
+      messagesEl.insertAdjacentHTML('beforeend', fullMessageHtml(m, me));
       scrollMessagesToBottom();
     }
+
+    // 일정 제안 카드의 [등록/수정/삭제] 버튼 위임 처리. 한 endpoint 로 통합 (서버가 type 분기).
+    messagesEl.addEventListener('click', async (e) => {
+      const btn = e.target.closest(
+        '[data-ai-confirm-calendar],[data-ai-confirm-update],[data-ai-confirm-delete]');
+      if (!btn) return;
+      const messageId = Number(
+        btn.dataset.aiConfirmCalendar || btn.dataset.aiConfirmUpdate || btn.dataset.aiConfirmDelete);
+      if (!messageId) return;
+      const isDelete = !!btn.dataset.aiConfirmDelete;
+      const isUpdate = !!btn.dataset.aiConfirmUpdate;
+      const actionLabel = isDelete ? '삭제' : isUpdate ? '수정' : '등록';
+
+      btn.disabled = true;
+      btn.textContent = actionLabel + ' 중...';
+      try {
+        const res = await fetch('/api/ai/calendar/confirm', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeader()),
+          body: JSON.stringify({ messageId }),
+        });
+        if (!res.ok) throw new Error('confirm failed');
+        const confirmMsg = await res.json();
+        btn.textContent = actionLabel + '됨';
+        btn.style.cssText = 'background:#d1d5db;color:#4b5563;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;';
+        const me = currentMemberIdGuess();
+        appendMessage(aiMsgToChatBubble(confirmMsg, me));
+      } catch (err) {
+        alert(actionLabel + '에 실패했습니다.');
+        btn.disabled = false;
+        btn.textContent = actionLabel;
+      }
+    });
     // YouTube URL → videoId 추출. youtu.be/ID, youtube.com/watch?v=ID, youtube.com/shorts/ID, youtube.com/embed/ID 지원.
     const YOUTUBE_RE = /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
     function extractYoutubeId(text) {
@@ -876,7 +987,15 @@
           });
           const loading = document.getElementById('chat-ai-loading');
           if (loading) loading.remove();
-          if (!res.ok) throw new Error('ai send failed');
+          if (!res.ok) {
+            // 서버의 errorCode/message 를 사용자에게 그대로 노출 (특히 429 quota)
+            let errMsg = 'AI 응답 생성에 실패했습니다.';
+            try {
+              const errBody = await res.json();
+              if (errBody && errBody.message) errMsg = errBody.message;
+            } catch {}
+            throw new Error(errMsg);
+          }
           const dto = await res.json();
           appendMessage(aiMsgToChatBubble(dto, me));
         } else {
@@ -898,7 +1017,8 @@
       } catch (e) {
         const loading = document.getElementById('chat-ai-loading');
         if (loading) loading.remove();
-        alert(activeMode === 'ai' ? 'AI 응답 생성에 실패했습니다.' : '메시지 전송에 실패했습니다.');
+        const fallback = activeMode === 'ai' ? 'AI 응답 생성에 실패했습니다.' : '메시지 전송에 실패했습니다.';
+        alert(e && e.message ? e.message : fallback);
       } finally {
         sendBtn.disabled = false;
         inputEl.focus();

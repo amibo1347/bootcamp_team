@@ -19,6 +19,9 @@ public interface MemberRepository extends JpaRepository<Member, Long>{
     List<Member> findByStatusAndCompanyCompanyId(Status status, Long companyId);
     boolean existsByLoginId(String loginId);
 
+    /** AI 일정 공유: 회사 + 활성 회원 + 이름 매칭. */
+    List<Member> findByStatusAndCompanyCompanyIdAndNameIn(Status status, Long companyId, List<String> names);
+
     // 보존 기간을 넘긴 종료 상태 회원 (스케줄러 영구 삭제 대상)
     List<Member> findByStatusAndStatusChangedAtBefore(Status status, LocalDateTime threshold);
 

@@ -64,20 +64,42 @@ public class GeminiClient implements LlmClient {
         }
         String url = "/models/" + request.modelName() + ":generateContent?key=" + apiKey;
         Map<String, Object> body = buildBody(request);
+        // 진단용 — 어떤 모델로 호출하는지 + API key prefix (전체 출력은 보안상 X)
+        log.info("[LLM-GEMINI] generate model={} keyPrefix={} promptMessages={}",
+            request.modelName(),
+            apiKey.length() >= 8 ? apiKey.substring(0, 8) + "..." : "(short)",
+            request.messages() != null ? request.messages().size() : 0);
 
-        Map<String, Object> resp;
-        try {
-            resp = rest.post()
-                .uri(url)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(body)
-                .retrieve()
-                .body(MAP_REF);
-        } catch (RestClientResponseException e) {
-            log.warn("[LLM-GEMINI] HTTP {} body={}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new RuntimeException("Gemini 호출 실패 (HTTP " + e.getStatusCode() + ")", e);
+        // 503/504/429 는 일시 장애 — 최대 2회 재시도 (200ms, 800ms backoff).
+        Map<String, Object> resp = null;
+        RestClientResponseException lastError = null;
+        long[] backoffMs = { 0, 200, 800 };
+        for (int attempt = 0; attempt < backoffMs.length; attempt++) {
+            if (backoffMs[attempt] > 0) {
+                try { Thread.sleep(backoffMs[attempt]); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            }
+            try {
+                resp = rest.post()
+                    .uri(url)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(MAP_REF);
+                break; // 성공
+            } catch (RestClientResponseException e) {
+                lastError = e;
+                int status = e.getStatusCode().value();
+                boolean retriable = (status == 503 || status == 504 || status == 429);
+                log.warn("[LLM-GEMINI] HTTP {} (attempt {}/{}) retriable={} body={}",
+                    status, attempt + 1, backoffMs.length, retriable, e.getResponseBodyAsString());
+                if (!retriable) break;
+                // 재시도 계속
+            }
         }
-        if (resp == null) throw new RuntimeException("Gemini empty response");
+        if (resp == null) {
+            int code = lastError != null ? lastError.getStatusCode().value() : -1;
+            throw new RuntimeException("Gemini 호출 실패 (HTTP " + code + " — Google 측 일시 장애일 수 있습니다. 잠시 후 다시 시도해주세요)", lastError);
+        }
 
         // candidates[0].content.parts[0].text
         String content = "";

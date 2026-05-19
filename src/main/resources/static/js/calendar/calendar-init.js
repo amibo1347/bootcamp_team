@@ -202,7 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * FullCalendar eventContent — 셀 안에 [전사/부서 배지] + [동그라미 최대 3] + [+N] + [제목] 가로 배치.
+   * FullCalendar eventContent — 셀 안에 [모두/부서 배지] + [동그라미 최대 3] + [+N] + [제목] 가로 배치.
    *  - visibility = COMPANY → "모두" 배지
    *  - shareDeptIds 있음 → 부서명 배지 (여러 개면 첫 1 + "외 N")
    *  - viewerIds (owner + shareMember − 본인) → 동그라미 최대 3개 + +N
@@ -220,7 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const wrap = document.createElement("div");
     wrap.className = "flex w-full min-w-0 items-center gap-1.5";
 
-    // 1) 전사 공유 → "모두" 배지
+    // 1) 모두 공유 → "모두" 배지
     if (visibility === "COMPANY") {
       wrap.appendChild(makeOvalBadge("모두"));
     }
@@ -1482,7 +1482,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       case "COMPANY": {
         // 특정 부서 케이스와 동일한 타원 칩 스타일로 "모든 인원" 한 개를 표시
-        summaryEl.textContent = "전사 공유";
+        summaryEl.textContent = "모두 공유";
         const chip = document.createElement("span");
         chip.className = "inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-200";
         chip.textContent = "모든 인원";

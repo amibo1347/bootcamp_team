@@ -2,10 +2,12 @@ package com.team.intranet.exception;
 
 import com.team.intranet.enums.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.connector.ClientAbortException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
@@ -44,6 +46,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Void> handleNoResourceFound(NoResourceFoundException e) {
         // 로그도 안 남김 (너무 자주 발생)
         return ResponseEntity.notFound().build();
+    }
+
+    /**
+     * SSE/비동기 응답에서 클라이언트가 연결 끊은 경우 → 응답 못 씀.
+     * 보통 페이지 이동/새로고침으로 EventSource 끊겼을 때 발생. 정상 상황이므로 조용히 무시.
+     */
+    @ExceptionHandler({ AsyncRequestNotUsableException.class, ClientAbortException.class })
+    public void handleClientDisconnect(Exception e) {
+        // 응답 자체가 안 가는 상황. body 작성 시도하면 또 예외. void 반환으로 종료.
+        log.debug("[ClientDisconnect] {}: {}", e.getClass().getSimpleName(), e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

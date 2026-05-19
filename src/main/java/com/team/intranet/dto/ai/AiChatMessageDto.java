@@ -2,6 +2,7 @@ package com.team.intranet.dto.ai;
 
 import java.time.format.DateTimeFormatter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team.intranet.entity.AiChatMessage;
 import com.team.intranet.enums.AiChatRole;
 
@@ -11,6 +12,9 @@ import lombok.NoArgsConstructor;
 
 /**
  * AI 대화 메시지 1건. 프론트는 role 로 사용자/AI 말풍선 분기.
+ *  - proposal: ASSISTANT 메시지가 액션 제안 (일정/결재) 을 포함하면 채워짐.
+ *               null 이면 일반 텍스트 응답.
+ *  - proposalApplied: 사용자가 이미 [등록] 한 제안이면 true → 프론트가 버튼 비활성화.
  */
 @Data
 @NoArgsConstructor
@@ -18,11 +22,15 @@ import lombok.NoArgsConstructor;
 public class AiChatMessageDto {
 
     private static final DateTimeFormatter DT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private Long messageId;
     private AiChatRole role;
     private String content;
     private String createdAt;
+    /** 일정 제안 등 액션 메타데이터. type 으로 분기 ("calendar" 등). */
+    private AiCalendarProposalDto proposal;
+    private Boolean proposalApplied;
 
     public static AiChatMessageDto from(AiChatMessage m) {
         AiChatMessageDto dto = new AiChatMessageDto();
@@ -30,6 +38,14 @@ public class AiChatMessageDto {
         dto.role = m.getRole();
         dto.content = m.getContent();
         dto.createdAt = m.getCreatedAt() != null ? m.getCreatedAt().format(DT) : null;
+        dto.proposalApplied = m.getProposalApplied();
+        if (m.getProposalJson() != null && !m.getProposalJson().isBlank()) {
+            try {
+                dto.proposal = MAPPER.readValue(m.getProposalJson(), AiCalendarProposalDto.class);
+            } catch (Exception ignored) {
+                // 깨진 JSON 이면 그냥 null 로 — 사용자에겐 일반 메시지로 보임
+            }
+        }
         return dto;
     }
 }
