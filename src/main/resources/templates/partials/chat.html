@@ -28,40 +28,113 @@
           aria-labelledby="chat-title"
           class="pointer-events-auto hidden flex max-h-[min(85vh,34rem)] w-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 dark:border-gray-600 dark:bg-gray-900 dark:ring-white/10"
         >
-          <!-- 헤더 -->
-          <header class="flex shrink-0 items-center gap-2 px-3 py-3 text-white sm:px-4" style="background-color:#4f46e5;">
-            <button type="button" id="chat-back"
-              class="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/90 hover:bg-white/10"
-              aria-label="뒤로">
-              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/>
-              </svg>
-            </button>
-            <div class="min-w-0 flex-1 text-center">
-              <h2 id="chat-title" class="inline text-sm font-semibold sm:text-base">채팅</h2>
-              <span id="chat-badge"
-                class="ml-2 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-white/25 px-1.5 py-0.5 text-xs font-bold tabular-nums">0</span>
+          <!-- 헤더: 3열 그리드로 탭/제목을 닫기(X) 버튼과 대칭되게 정중앙 배치 -->
+          <header
+            class="grid shrink-0 grid-cols-[2.25rem_1fr_2.25rem] items-center gap-x-2 px-3 py-3 text-white sm:px-4"
+            style="background-color:#4f46e5;"
+          >
+            <!-- 왼쪽: 뒤로(서브뷰) / 목록 탭일 때는 빈 칸으로 우측 X와 대칭 -->
+            <div class="flex h-9 w-9 items-center justify-center justify-self-start">
+              <button
+                type="button"
+                id="chat-back"
+                class="hidden h-9 w-9 items-center justify-center rounded-lg text-white/90 hover:bg-white/10"
+                aria-label="뒤로"
+              >
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/>
+                </svg>
+              </button>
             </div>
-            <button type="button" id="chat-close"
-              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/90 hover:bg-white/10"
-              aria-label="닫기">
-              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>
-              </svg>
-            </button>
+            <!-- 가운데: 탭(목록) 또는 제목(스레드·회원선택) -->
+            <div class="flex min-w-0 items-center justify-center">
+              <nav
+                id="chat-header-tabs"
+                class="flex items-center justify-center gap-2 sm:gap-3"
+                role="tablist"
+                aria-label="채팅 패널 탭"
+              >
+              <button
+                type="button"
+                id="chat-tab-employee"
+                role="tab"
+                aria-selected="true"
+                aria-controls="chat-screen-list"
+                data-panel-tab="chat"
+                class="inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-sm font-bold text-white transition sm:text-base"
+              >
+                <span>채팅</span>
+                <span
+                  id="chat-badge"
+                  class="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-white/25 px-1.5 py-0.5 text-xs font-bold tabular-nums"
+                >0</span>
+              </button>
+              <span class="select-none text-white/35" aria-hidden="true">|</span>
+              <button
+                type="button"
+                id="chat-tab-ai"
+                role="tab"
+                aria-selected="false"
+                aria-controls="chat-screen-ai"
+                data-panel-tab="ai"
+                class="rounded-md px-1 py-0.5 text-sm font-medium text-white/55 transition hover:text-white/80 sm:text-base"
+              >
+                AI 비서
+              </button>
+              </nav>
+              <h2 id="chat-title" class="hidden w-full truncate text-center text-sm font-semibold sm:text-base">채팅</h2>
+            </div>
+            <!-- 오른쪽: 닫기 -->
+            <div class="flex h-9 w-9 items-center justify-center justify-self-end">
+              <button
+                type="button"
+                id="chat-close"
+                class="flex h-9 w-9 items-center justify-center rounded-lg text-white/90 hover:bg-white/10"
+                aria-label="닫기"
+              >
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+              </button>
+            </div>
           </header>
 
           <div class="flex min-h-0 flex-1 flex-col">
-            <!-- ===== 화면 1: 대화 목록 ===== -->
-            <div id="chat-screen-list" class="flex min-h-0 flex-1 flex-col">
+            <!-- ===== 화면 1: 직원 대화 목록 (채팅 탭) ===== -->
+            <div id="chat-screen-list" class="flex min-h-0 flex-1 flex-col" role="tabpanel" aria-labelledby="chat-tab-employee">
               <div class="relative flex min-h-0 flex-1 flex-col">
-                <div id="chat-list"
+                <div
+                  id="chat-list"
                   class="min-h-0 flex-1 divide-y divide-gray-100 overflow-y-auto pb-14 dark:divide-gray-700"
-                  aria-label="대화 목록"></div>
-                <button type="button" id="chat-new"
+                  aria-label="대화 목록"
+                ></div>
+                <!-- 직원 새 채팅용 FAB -->
+                <button
+                  type="button"
+                  id="chat-new"
                   class="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full text-lg font-bold leading-none text-white shadow-lg"
                   style="background-color:#4f46e5;"
-                  aria-label="새 대화">+</button>
+                  aria-label="새 대화"
+                >+</button>
+              </div>
+            </div>
+
+            <!-- ===== 화면 1-b: AI 비서 목록 (AI 비서 탭, AJAX 로드) ===== -->
+            <div id="chat-screen-ai" class="hidden min-h-0 flex flex-1 flex-col" role="tabpanel" aria-labelledby="chat-tab-ai">
+              <div class="relative flex min-h-0 flex-1 flex-col">
+                <div
+                  id="chat-ai-body"
+                  class="min-h-0 flex-1 overflow-y-auto divide-y divide-gray-100 pb-14 dark:divide-gray-700"
+                  aria-label="AI 비서 대화 목록"
+                  aria-live="polite"
+                ></div>
+                <button
+                  type="button"
+                  id="chat-ai-new"
+                  class="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full text-lg font-bold leading-none text-white shadow-lg"
+                  style="background-color:#4f46e5;"
+                  aria-label="새 AI 대화"
+                >+</button>
               </div>
             </div>
 

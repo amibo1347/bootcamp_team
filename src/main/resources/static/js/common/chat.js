@@ -29,13 +29,19 @@
     const backBtn = document.getElementById('chat-back');
     const titleEl = document.getElementById('chat-title');
     const badgeEl = document.getElementById('chat-badge');
+    const headerTabs = document.getElementById('chat-header-tabs');
+    const tabChatBtn = document.getElementById('chat-tab-employee');
+    const tabAiBtn = document.getElementById('chat-tab-ai');
 
     const screenList = document.getElementById('chat-screen-list');
+    const screenAi = document.getElementById('chat-screen-ai');
     const screenThread = document.getElementById('chat-screen-thread');
     const screenPick = document.getElementById('chat-screen-pick');
 
     const listEl = document.getElementById('chat-list');
+    const aiBodyEl = document.getElementById('chat-ai-body');
     const newBtn = document.getElementById('chat-new');
+    const aiNewBtn = document.getElementById('chat-ai-new');
 
     const pickListEl = document.getElementById('chat-pick-list');
     const pickName = document.getElementById('chat-pick-name');
@@ -49,6 +55,7 @@
     const filePreview = document.getElementById('chat-file-preview');
 
     let view = 'list';                // 'list' | 'thread' | 'pick'
+    let panelTab = 'chat';            // 'chat' | 'ai' — 헤더 탭 (목록 화면)
     let activeConvId = null;
     let activePeerName = '';
     let peersCache = [];              // 회원 목록 캐시
@@ -123,15 +130,156 @@
       return d.getMonth() + 1 + '/' + d.getDate();
     };
 
+    // ─── 헤더 탭 UI (채팅 | AI 비서) ───────────────────────────────
+    // 활성 탭: 굵은 흰색 / 비활성: 은은한 white/55
+    const TAB_BTN_CHAT_ACTIVE =
+      'inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-sm font-bold text-white transition sm:text-base';
+    const TAB_BTN_CHAT_INACTIVE =
+      'inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-sm font-medium text-white/55 transition hover:text-white/80 sm:text-base';
+    const TAB_BTN_AI_ACTIVE =
+      'rounded-md px-1 py-0.5 text-sm font-bold text-white transition sm:text-base';
+    const TAB_BTN_AI_INACTIVE =
+      'rounded-md px-1 py-0.5 text-sm font-medium text-white/55 transition hover:text-white/80 sm:text-base';
+
+    /**
+     * 헤더 탭 버튼 활성/비활성 스타일·aria-selected 동기화.
+     */
+    function updateTabUi() {
+      if (!tabChatBtn || !tabAiBtn) return;
+      const isChat = panelTab === 'chat';
+      tabChatBtn.className = isChat ? TAB_BTN_CHAT_ACTIVE : TAB_BTN_CHAT_INACTIVE;
+      tabAiBtn.className = isChat ? TAB_BTN_AI_INACTIVE : TAB_BTN_AI_ACTIVE;
+      tabChatBtn.setAttribute('aria-selected', isChat ? 'true' : 'false');
+      tabAiBtn.setAttribute('aria-selected', isChat ? 'false' : 'true');
+    }
+
+    /**
+     * 목록 탭 vs 스레드/회원선택: 헤더에 탭 nav 또는 제목(h2) 표시 전환.
+     */
+    function syncHeader() {
+      const inSubView = view === 'thread' || view === 'pick';
+      if (headerTabs) headerTabs.classList.toggle('hidden', inSubView);
+      if (titleEl) titleEl.classList.toggle('hidden', !inSubView);
+    }
+
+    /** GET /api/ai/conversations — AI 대화 목록 */
+    const AI_LIST_ENDPOINT = '/api/ai/conversations';
+
+    /** AI 비서 목록 행 왼쪽 아이콘 (원형 이니셜) */
+    function aiAvatarHtml() {
+      return '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs font-bold text-violet-700 dark:bg-violet-900/40 dark:text-violet-200">AI</div>';
+    }
+
+    /**
+     * AI 비서 대화 목록 AJAX 로드 (GET /api/ai/conversations).
+     */
+    async function loadAiList() {
+      if (!aiBodyEl) return;
+      aiBodyEl.innerHTML = '<div class="px-4 py-6 text-center text-xs text-gray-400">불러오는 중...</div>';
+      try {
+        const res = await fetch(AI_LIST_ENDPOINT);
+        if (!res.ok) throw new Error('ai list failed');
+        const items = await res.json();
+        renderAiList(Array.isArray(items) ? items : []);
+      } catch (e) {
+        aiBodyEl.innerHTML =
+          '<div class="px-4 py-6 text-center text-xs text-gray-400">AI 대화 목록을 불러올 수 없습니다.</div>';
+      }
+    }
+
+    /**
+     * 새 AI 대화 시작 (POST /api/ai/conversations).
+     */
+    async function createAiConversation() {
+      if (aiNewBtn) aiNewBtn.disabled = true;
+      try {
+        const res = await fetch(AI_LIST_ENDPOINT, {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeader()),
+          body: JSON.stringify({}),
+        });
+        if (!res.ok) throw new Error('create ai failed');
+        await res.json();
+        loadAiList();
+        // TODO: AI 스레드 화면 연동 후 세션 상세 진입
+      } catch (e) {
+        alert('새 AI 대화를 시작할 수 없습니다.');
+      } finally {
+        if (aiNewBtn) aiNewBtn.disabled = false;
+      }
+    }
+
+    /**
+     * AI 비서 목록 HTML 렌더 (#chat-ai-body).
+     * @param {Array<{sessionId:string,title:string,lastMessagePreview?:string,updatedAt?:string}>} items
+     */
+    function renderAiList(items) {
+      if (!aiBodyEl) return;
+      if (!items.length) {
+        aiBodyEl.innerHTML =
+          '<div class="px-4 py-10 text-center text-xs text-gray-400">AI 대화가 없습니다. + 버튼으로 새 대화를 시작하세요.</div>';
+        return;
+      }
+      aiBodyEl.innerHTML = items.map((item) => {
+        const preview = item.lastMessagePreview
+          ? esc(item.lastMessagePreview)
+          : '<span class="text-gray-300">대화를 시작해 보세요</span>';
+        const time = fmtRelative(item.updatedAt);
+        return ''
+          + '<button type="button" data-ai-session-id="' + esc(item.sessionId || '') + '" '
+          + '  data-ai-title="' + esc(item.title || 'AI 비서') + '" '
+          + '  class="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-white/5">'
+          +   aiAvatarHtml()
+          +   '<div class="min-w-0 flex-1">'
+          +     '<div class="flex items-center justify-between gap-2">'
+          +       '<span class="truncate text-sm font-semibold text-gray-900 dark:text-white">' + esc(item.title || 'AI 비서') + '</span>'
+          +       '<span class="shrink-0 text-[11px] text-gray-400">' + time + '</span>'
+          +     '</div>'
+          +     '<div class="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">' + preview + '</div>'
+          +   '</div>'
+          + '</button>';
+      }).join('');
+    }
+
+    /**
+     * 헤더 탭 전환: 'chat' 직원 목록 / 'ai' AI 목록(AJAX).
+     * @param {'chat'|'ai'} tab
+     */
+    function switchPanelTab(tab) {
+      if (panelTab === tab && view === 'list') {
+        if (tab === 'chat') loadConversations();
+        else loadAiList();
+        return;
+      }
+      panelTab = tab;
+      updateTabUi();
+      if (tab === 'ai') {
+        view = 'list';
+        activeConvId = null;
+        screenList.classList.add('hidden');
+        screenThread.classList.add('hidden');
+        screenPick.classList.add('hidden');
+        if (screenAi) screenAi.classList.remove('hidden');
+        backBtn.classList.add('hidden');
+        syncHeader();
+        loadAiList();
+        return;
+      }
+      showList();
+    }
+
     // ─── 화면 전환 ─────────────────────────────────────────────────
     const showList = () => {
       view = 'list';
+      panelTab = 'chat';
       activeConvId = null;
       screenList.classList.remove('hidden');
+      if (screenAi) screenAi.classList.add('hidden');
       screenThread.classList.add('hidden');
       screenPick.classList.add('hidden');
       backBtn.classList.add('hidden');
-      titleEl.textContent = '채팅';
+      syncHeader();
+      updateTabUi();
       loadConversations();
     };
     const showThread = (convId, peerName) => {
@@ -139,10 +287,12 @@
       activeConvId = convId;
       activePeerName = peerName || '';
       screenList.classList.add('hidden');
+      if (screenAi) screenAi.classList.add('hidden');
       screenThread.classList.remove('hidden');
       screenPick.classList.add('hidden');
       backBtn.classList.remove('hidden');
       titleEl.textContent = activePeerName || '대화';
+      syncHeader();
       pendingFiles = [];
       renderFilePreview();
       inputEl.value = '';
@@ -153,10 +303,12 @@
       view = 'pick';
       activeConvId = null;
       screenList.classList.add('hidden');
+      if (screenAi) screenAi.classList.add('hidden');
       screenThread.classList.add('hidden');
       screenPick.classList.remove('hidden');
       backBtn.classList.remove('hidden');
       titleEl.textContent = '새 채팅';
+      syncHeader();
       loadPeers();
     };
 
@@ -316,6 +468,23 @@
     backBtn.addEventListener('click', () => {
       if (view === 'thread' || view === 'pick') showList();
     });
+    if (tabChatBtn) {
+      tabChatBtn.addEventListener('click', () => switchPanelTab('chat'));
+    }
+    if (tabAiBtn) {
+      tabAiBtn.addEventListener('click', () => switchPanelTab('ai'));
+    }
+    if (aiNewBtn) {
+      aiNewBtn.addEventListener('click', createAiConversation);
+    }
+    if (aiBodyEl) {
+      aiBodyEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-ai-session-id]');
+        if (!btn) return;
+        // TODO: AI 스레드 화면 — GET /api/ai/conversations/{sessionId}/messages 연동 후 구현
+        console.info('[chat] AI session selected:', btn.dataset.aiSessionId, btn.dataset.aiTitle);
+      });
+    }
     // Esc 로도 닫음 — 단 입력 포커스 중일 땐 무시 (한글 IME 충돌 방지)
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
@@ -710,7 +879,7 @@
         refreshUnreadTotal();
         showChatToast(msg, incomingConvId);
       }
-      if (view === 'list') {
+      if (view === 'list' && panelTab === 'chat') {
         loadConversations();  // 행별 배지 + 미리보기 갱신
       }
     }
