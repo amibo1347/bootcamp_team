@@ -51,6 +51,23 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
         """)
     Page<Article> findDeletedByCompanyId(@Param("companyId") Long companyId, Pageable pageable);
 
+    /**
+     * 회사 단위 + 작성자(=본인) 소프트 삭제 글 페이지.
+     * ※ 통합 휴지통에서 TRASH_MANAGEMENT 권한이 없는 일반 사용자에게 본인 작성 글만 보여주기 위한 쿼리.
+     */
+    @Query("""
+        SELECT a FROM Article a
+        JOIN FETCH a.board b
+        LEFT JOIN FETCH a.author
+        WHERE b.company.companyId = :companyId
+          AND a.author.memberId = :memberId
+          AND a.isDeleted = true
+        """)
+    Page<Article> findDeletedByCompanyIdAndAuthorId(
+        @Param("companyId") Long companyId,
+        @Param("memberId") Long memberId,
+        Pageable pageable);
+
     /** 회원이 종료 상태(LEAVE/BANNED)로 전이될 때, 작성한 모든 글의 표시명을 고정. */
     @Modifying
     @Query("UPDATE Article a SET a.authorDisplayName = :name WHERE a.author.memberId = :memberId AND a.authorDisplayName IS NULL")

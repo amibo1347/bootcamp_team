@@ -50,7 +50,7 @@
             <!-- ===== Main Content Start ===== -->
 
             <main class="p-8 space-y-8">
-                <h2 class="ml-2 text-2xl font-black text-gray-900 dark:text-white">직원 목록</h2>
+                <h2 class="ml-2 text-2xl font-black text-gray-900 dark:text-white">조직도 구성</h2>
 
                 <div
                     class="mb-6 rounded-xl border border-stroke bg-white px-5 py-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
@@ -75,22 +75,41 @@
                                     : (selectedStatus != null ? selectedStatus.name() : 'JOIN')
                             }">
 
-                        <div class="flex items-end gap-4 w-full sm:w-2/3">
-                            <div class="relative z-20 w-full"> <label
-                                    class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">부서별 조회</label>
-                                <select name="deptId" id="deptSelect" onchange="loadMemberList()"
+                        <!--
+                            부서/직위 드롭다운 컨테이너.
+                            ※ 검색 영역과 동일하게 flex:1 로 form 의 절반을 차지하도록 inline style 로 강제.
+                              (sm:flex-1 클래스만으로는 일부 환경에서 의도대로 안 펴지는 케이스가 있었음.)
+                            ※ paddingRight: 1.5rem 으로 세로선과 간격 확보. (검색 영역과 동일한 시각적 간격)
+                        -->
+                        <div class="flex items-end gap-6 w-full sm:flex-1 sm:pr-6"
+                            style="flex: 1 1 0%; min-width: 0; padding-right: 1.5rem;">
+                            <div class="relative z-20" style="flex: 1 1 0%; min-width: 0;">
+                                <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">부서별 조회</label>
+                                <select name="deptId" id="deptSelect" onchange="onDeptSelectChange(this)"
                                     class="js-custom-select relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white">
                                     <option value="">전체 부서</option>
+                                    <option value="__NEW_DEPT__">신규 부서</option>
                                     <option th:each="dept : ${depts}" th:value="${dept.deptId}"
                                         th:text="${dept.deptName}" th:selected="${dept.deptId == selectedDeptId}">
                                     </option>
+                                </select>
+                            </div>
+                            <div class="relative z-20" style="flex: 1 1 0%; min-width: 0;">
+                                <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">직위별 조회</label>
+                                <select id="positionSelect" onchange="onPositionSelectChange(this)"
+                                    class="js-custom-select relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white">
+                                    <option value="">전체 직급</option>
+                                    <option value="__NEW_POSITION__">신규 직급</option>
+                                    <option th:each="pos : ${positions}" th:value="${pos.positionId}"
+                                        th:text="${pos.positionName}"
+                                        th:attr="data-level=${pos.positionLevel}"></option>
                                 </select>
                             </div>
                         </div>
 
                         <div class="hidden sm:block h-10 w-[1px] bg-gray-200 dark:bg-strokedark"></div>
 
-                        <div class="flex items-end gap-3 w-full sm:flex-1">
+                        <div class="flex items-end gap-3 w-full sm:flex-1" style="flex: 1 1 0%; min-width: 0;">
                             <div class="w-full"> <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">직원 이름
                                     검색</label>
                                 <input type="text" id="searchKeyword" name="keyword" th:value="${keyword}" placeholder="이름을 입력하세요"
@@ -105,6 +124,44 @@
                     </form>
                 </div>
 
+
+                <!--
+                    인사이동 패널: 부서/직급 선택 + [등록] 버튼.
+                    ※ 인사이동 토글 OFF 일 때는 hidden. (memberList.js 의 toggleReassignMode() 가 토글)
+                    ※ 부서 select / 직급 select 모두 "신규 부서" / "신규 직급" 옵션은 제외 (검색 필터와 동일한 데이터에서 제외).
+                    ※ 부서 또는 직급 중 한 쪽만 선택해도 그 한 쪽만 일괄 변경된다 (백엔드 reassignMembers 가 null 을 허용).
+                -->
+                <div id="reassignPanel"
+                    class="hidden mb-2 rounded-xl border border-stroke bg-white px-5 py-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                        <div class="flex flex-1 items-end gap-6">
+                            <div class="relative z-20 w-1/2">
+                                <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">부서 선택</label>
+                                <select id="reassignDeptSelect"
+                                    class="js-custom-select relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white">
+                                    <option value="">부서 선택</option>
+                                    <option th:each="dept : ${depts}" th:value="${dept.deptId}" th:text="${dept.deptName}"></option>
+                                </select>
+                            </div>
+                            <div class="relative z-20 w-1/2">
+                                <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">직급 선택</label>
+                                <select id="reassignPositionSelect"
+                                    class="js-custom-select relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white">
+                                    <option value="">직급 선택</option>
+                                    <option th:each="pos : ${positions}" th:value="${pos.positionId}"
+                                        th:text="${pos.positionName}" th:attr="data-level=${pos.positionLevel}"></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <span id="reassignSelectedCount" class="text-sm text-gray-500 dark:text-gray-300">선택 0명</span>
+                            <button type="button" onclick="submitReassign()"
+                                class="flex h-[42px] shrink-0 items-center justify-center rounded-xl bg-indigo-400 py-2 px-6 text-sm font-medium text-white transition hover:bg-indigo-500">
+                                등록
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 <div id="memberListContainer" class="flex flex-col gap-4">
                     <!--
@@ -136,6 +193,16 @@
                         <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <!-- 상태별 탭 (활성: JOIN / 휴직: ON_LEAVE / 퇴사: LEAVE) -->
                             <div class="flex items-center gap-3">
+                                <!--
+                                    [인사이동 모드 전용] 전체선택 체크박스.
+                                    ※ 기본은 hidden. js-reassign-* 클래스는 memberList.js 의 toggleReassignMode() 가 hidden 클래스를 토글한다.
+                                    ※ 활성 직원 탭(JOIN)에서만 의미가 있으므로 JOIN 탭일 때만 렌더링.
+                                -->
+                                <th:block th:if="${selectedStatusKey == 'JOIN'}">
+                                    <input type="checkbox" id="reassignSelectAll" onclick="onReassignSelectAll(this)"
+                                        class="js-reassign-toggle js-reassign-select-all hidden h-5 w-5 cursor-pointer accent-indigo-500" />
+                                </th:block>
+
                                 <!--
                                     [부서 소속 직원 목록] 탭
                                     ※ 부서별 조회 드롭다운에서 특정 부서를 고르면 "{부서명} 소속 직원 목록" 으로 동적으로 바뀐다.
@@ -171,6 +238,18 @@
                                     class="js-status-tab text-lg font-semibold transition-all hover:text-primary">
                                     퇴사 직원 목록
                                 </a>
+
+                                <!--
+                                    인사이동 토글 버튼.
+                                    ※ JOIN 탭에서만 의미가 있으므로 JOIN 탭에서만 렌더링.
+                                    ※ ml-4 로 [퇴사 직원 목록] 텍스트와 시각적 간격 확보.
+                                -->
+                                <th:block th:if="${selectedStatusKey == 'JOIN'}">
+                                    <button type="button" id="reassignToggleBtn" onclick="toggleReassignMode()"
+                                        class="ml-4 flex h-[34px] shrink-0 items-center justify-center rounded-md bg-indigo-400 px-4 text-sm font-medium text-white transition hover:bg-indigo-500">
+                                        인사이동
+                                    </button>
+                                </th:block>
                             </div>
 
                             <!-- 정렬 (높은순/낮은순) -->
@@ -202,6 +281,16 @@
                                 <div class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
 
                                     <div class="flex items-center gap-5">
+
+                                        <!--
+                                            [인사이동 모드 전용] 개별 회원 체크박스.
+                                            ※ 기본 hidden. JOIN 탭에서만 인사이동 의미가 있으므로 JOIN 탭에서만 렌더링.
+                                        -->
+                                        <th:block th:if="${selectedStatusKey == 'JOIN'}">
+                                            <input type="checkbox" th:value="${emp.memberId}"
+                                                onclick="onReassignMemberCheck(this)"
+                                                class="js-reassign-toggle js-reassign-member-check hidden h-5 w-5 cursor-pointer accent-indigo-500" />
+                                        </th:block>
 
                                         <!--
                                             프로필 사진
@@ -267,7 +356,9 @@
                                                 th:attr="data-member-id=${emp.memberId},
                                                              data-member-name=${emp.name},
                                                              data-dept-id=${emp.dept != null ? emp.dept.deptId : ''},
+                                                             data-dept-name=${emp.dept != null ? emp.dept.deptName : '미지정'},
                                                              data-position-id=${emp.position != null ? emp.position.positionId : ''},
+                                                             data-position-name=${emp.position != null ? emp.position.positionName : '미지정'},
                                                              data-email=${emp.email != null ? emp.email : ''},
                                                              data-phone=${emp.phone != null ? emp.phone : ''},
                                                              data-birth=${emp.birthDay != null ? #temporals.format(emp.birthDay, 'yyyy-MM-dd') : ''},
@@ -404,22 +495,25 @@
                             class="flex-1 rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary outline-none dark:text-white">
                     </div>
 
+                    <!--
+                        부서/직급은 단건 수정 모달에서는 읽기 전용으로 노출한다.
+                        ※ 부서/직급 변경은 [인사이동] 일괄 변경 플로우로만 수행하기로 결정.
+                        ※ 백엔드 updateMember API 가 deptId/positionId 를 required 로 받으므로
+                          기존 값을 그대로 다시 보내기 위해 hidden input 으로 보존한다.
+                        ※ 표시는 input(readOnly) 대신 회원 행과 동일한 배지/텍스트 패턴 — 한눈에 "수정 불가"임이 보이도록.
+                    -->
                     <div class="flex items-center gap-4">
                         <label class="w-24 font-medium text-gray-600 dark:text-gray-300">부서</label>
-                        <select id="editDept" name="deptId"
-                            class="js-custom-select flex-1 rounded border border-stroke bg-transparent py-2 px-4 outline-none focus:border-primary">
-                            <option th:each="dept : ${depts}" th:value="${dept.deptId}" th:text="${dept.deptName}">
-                            </option>
-                        </select>
+                        <input type="hidden" id="editDept" name="deptId">
+                        <span id="editDeptDisplay"
+                            class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">부서명</span>
                     </div>
 
                     <div class="flex items-center gap-4">
                         <label class="w-24 font-medium text-gray-600 dark:text-gray-300">직급</label>
-                        <select id="editPosition" name="positionId"
-                            class="js-custom-select flex-1 rounded border border-stroke bg-transparent py-2 px-4 outline-none focus:border-primary">
-                            <option th:each="pos : ${positions}" th:value="${pos.positionId}"
-                                th:text="${pos.positionName}"></option>
-                        </select>
+                        <input type="hidden" id="editPosition" name="positionId">
+                        <span id="editPositionDisplay"
+                            class="text-sm font-medium text-gray-700 dark:text-gray-200">직급명</span>
                     </div>
 
                     <div class="flex items-center gap-4">
@@ -512,7 +606,51 @@
     <!-- ===== Page Wrapper End ===== -->
     <th:block th:replace="~{partials/floating-chat :: floatingChatGlobal}"></th:block>
     <script type="module" src="/js/index.js"></script>
+<<<<<<< HEAD
     <script type="module" th:src="@{/js/floating-chat.js}"></script>
+=======
+    <script>
+        // 부서별 / 직위별 드롭다운 핸들러 — '신규 부서' / '신규 직급' 선택 시 해당 관리 페이지로 이동
+        function onDeptSelectChange(sel) {
+            if (sel.value === '__NEW_DEPT__') {
+                sel.value = '';
+                window.location.href = '/admin/dept/list';
+                return;
+            }
+            loadMemberList();
+        }
+        function onPositionSelectChange(sel) {
+            if (sel.value === '__NEW_POSITION__') {
+                sel.value = '';
+                window.location.href = '/admin/position/list';
+                return;
+            }
+        }
+        // 직급 옵션을 positionLevel 내림차순으로 정렬 ('전체' / '신규 직급'은 상단 고정).
+        // 인사이동 패널의 직급 select 도 같은 규칙으로 정렬한다.
+        (function sortPositionOptions() {
+            ['positionSelect', 'reassignPositionSelect'].forEach((id) => {
+                const sel = document.getElementById(id);
+                if (!sel) return;
+                const fixed = [];
+                const dynamic = [];
+                for (const opt of Array.from(sel.options)) {
+                    if (opt.value === '' || opt.value === '__NEW_POSITION__') {
+                        fixed.push(opt);
+                    } else {
+                        dynamic.push(opt);
+                    }
+                }
+                dynamic.sort((a, b) =>
+                    (parseInt(b.dataset.level || '0', 10)) - (parseInt(a.dataset.level || '0', 10))
+                );
+                sel.innerHTML = '';
+                fixed.forEach(o => sel.appendChild(o));
+                dynamic.forEach(o => sel.appendChild(o));
+            });
+        })();
+    </script>
+>>>>>>> e3ce3ad4399f10a1e163a8f5fdc6e2fd7a1ed32c
     <script src="/js/subAdmin/memberList.js"></script>
 </body>
 

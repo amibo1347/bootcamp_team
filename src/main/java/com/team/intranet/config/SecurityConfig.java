@@ -61,6 +61,9 @@ public class SecurityConfig {
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                 // 2. 권한이 필요한 API/페이지 (까다로운 규칙을 먼저 선언)
                 .requestMatchers("/api/master/**", "/master/**").hasRole("MASTER")
+                // 근태 관리: /admin/** prefix 지만 SUB_ADMIN 도 ATTENDANCE_MANAGEMENT 권한이 있으면 진입.
+                //  - 실제 권한 검증은 컨트롤러 PreAuthorize + AttendanceService 내부에서 수행.
+                .requestMatchers("/admin/attendance/**").authenticated()
                 .requestMatchers("/api/admin/**", "/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/subAdmin/**", "/subAdmin/**").hasRole("SUB_ADMIN")
                 // 3. 누구나 접근 가능한 페이지 및 API (나중에 선언)

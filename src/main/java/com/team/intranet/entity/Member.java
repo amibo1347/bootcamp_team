@@ -5,13 +5,19 @@ import java.time.LocalDateTime;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.team.intranet.dto.MemberDto;
 import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.Status;
+import com.team.intranet.enums.member.SubAdminPermission;
 
 import jakarta.persistence.Basic;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -96,6 +102,33 @@ public class Member {
     @Column(name = "profile_img")
     private byte[] profileImg;
 
+    /**
+     * 회원별 예외 권한 (additive).
+     *  - 실효 권한 = position.permissions ∪ member.extraPermissions.
+     *  - 직급 권한에 더해 이 회원에게만 특별히 부여하는 권한을 보관한다.
+     *  - 차감(빼기)은 지원하지 않는다. 차감이 필요하면 직급을 옮기는 것이 의도가 명확.
+     *  - LoginSuccessHandler 가 트랜잭션 밖이므로 EAGER. 회원당 enum 6개 이하라 비용 미미.
+     */
+    @ElementCollection(targetClass = SubAdminPermission.class, fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "tbl_member_extra_permission",
+        joinColumns = @JoinColumn(name = "member_id")
+    )
+    @Column(name = "permission", length = 50)
+    @Enumerated(EnumType.STRING)
+    private Set<SubAdminPermission> extraPermissions = EnumSet.noneOf(SubAdminPermission.class);
+
+    /** 회원별 예외 권한 일괄 교체. 빈 집합으로 호출하면 모든 예외 권한 해제. */
+    public void replaceExtraPermissions(Set<SubAdminPermission> newPermissions) {
+        if (this.extraPermissions == null) {
+            this.extraPermissions = EnumSet.noneOf(SubAdminPermission.class);
+        }
+        this.extraPermissions.clear();
+        if (newPermissions != null && !newPermissions.isEmpty()) {
+            this.extraPermissions.addAll(newPermissions);
+        }
+    }
+
     ///////////////////////////////
     /// 함수
 
@@ -141,6 +174,17 @@ public class Member {
         this.dept = dept;
         this.position = position;
         this.role = position.getRole();
+    }
+
+    // 인사이동: 부서/직급만 일괄 변경. dept 또는 position 이 null 이면 해당 항목은 유지한다.
+    public void reassign(Dept dept, Position position) {
+        if (dept != null) {
+            this.dept = dept;
+        }
+        if (position != null) {
+            this.position = position;
+            this.role = position.getRole();
+        }
     }
 
     public void reject() {

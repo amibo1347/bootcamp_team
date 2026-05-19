@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,10 +40,14 @@ public class SubAdminApiController {
     private final MemberService memberService;
     private final ArticleService articleService;
 
-    /** 통합 휴지통: 회사 단위 소프트 삭제 글 목록 (SUB_ADMIN 계열 전용 경로 보호 후 서비스에서 isAdmin 검증 병행). */
+    /**
+     * 통합 휴지통: 소프트 삭제 글 목록.
+     * ※ 모든 인증된 회원이 호출 가능. 권한 분기는 ArticleService 에서 처리한다
+     *   — TRASH_MANAGEMENT 보유자는 회사 전체, 그 외는 본인 작성 글만.
+     */
     @GetMapping("/articles/trash")
     @ResponseBody
-    @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN') or hasRole('MASTER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<ArticleUnifiedTrashDto>> listUnifiedTrash(
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -94,6 +99,20 @@ public class SubAdminApiController {
         memberService.updateMemberInfo(ms, memberId, deptId, positionId, imgBytes, phone, email, name, parseBirthDay(birthDay));
 
         return "redirect:/admin/memberList";
+    }
+
+    // 인사이동: 다수 회원의 부서/직급을 일괄 변경
+    @PostMapping("/reassign")
+    @ResponseBody
+    @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
+    public ResponseEntity<Void> reassignMembers(
+            @RequestParam("memberIds") List<Long> memberIds,
+            @RequestParam(value = "deptId", required = false) Long deptId,
+            @RequestParam(value = "positionId", required = false) Long positionId,
+            @SessionAttribute("memberSession") MemberSession ms) {
+
+        memberService.reassignMembers(ms, memberIds, deptId, positionId);
+        return ResponseEntity.ok().build();
     }
 
     // 상태 처리

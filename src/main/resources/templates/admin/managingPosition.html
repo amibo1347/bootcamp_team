@@ -73,11 +73,9 @@
                                     class="h-12 w-16 rounded-lg border border-gray-400 bg-white px-3 text-center text-gray-900 outline-none transition-all focus:ring-2 focus:ring-indigo-300 dark:border-gray-600 dark:bg-meta-4 dark:text-white">
                             </div>
 
-                            <div class="flex items-center space-x-3">
-                                <label for="isAdminCheck" class="text-gray-700 dark:text-gray-300">관리자</label>
-                                <input type="checkbox" id="isAdminCheck"
-                                    class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer">
-                            </div>
+                            <!--
+                                관리자 여부 체크는 제거: [권한 관리] 페이지에서 권한이 부여되면 자동으로 SUB_ADMIN 으로 전환된다.
+                            -->
                         </div>
 
                         <button type="button"
@@ -119,11 +117,25 @@
                                         </div>
                                     </div>
 
-                                    <div class="w-32 flex justify-center items-center flex-shrink-0 space-x-2">
-                                        <span class="text-xs text-gray-400 dark:text-gray-300">관리자</span> <input type="checkbox"
-                                            th:id="'pos-isAdmin-' + ${pos.positionId}"
-                                            class="h-5 w-5 text-indigo-600 border-gray-300 rounded"
-                                            th:checked="${pos.isAdmin}" disabled>
+                                    <!--
+                                        직급 종류 뱃지 (3분기).
+                                        ※ ADMIN(대표) → "회사 관리자" — 회사 가입 시 자동 부여, 일반 직급 CRUD 와 분리.
+                                        ※ SUB_ADMIN → "관리자" — 권한 관리 페이지에서 권한 부여 시 자동 전환.
+                                        ※ USER → "일반".
+                                    -->
+                                    <div class="w-32 flex justify-center items-center flex-shrink-0">
+                                        <span th:if="${pos.isCompanyAdmin}"
+                                            class="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                                            회사 관리자
+                                        </span>
+                                        <span th:if="${!pos.isCompanyAdmin and pos.isAdmin}"
+                                            class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300">
+                                            관리자
+                                        </span>
+                                        <span th:if="${!pos.isCompanyAdmin and !pos.isAdmin}"
+                                            class="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-300">
+                                            일반
+                                        </span>
                                     </div>
 
                                     <div class="flex-1 flex items-center justify-end space-x-3 mr-4">
