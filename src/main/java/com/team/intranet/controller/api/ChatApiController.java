@@ -18,12 +18,15 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.team.intranet.dto.ChatConversationDto;
 import com.team.intranet.dto.ChatMessageDto;
 import com.team.intranet.dto.ChatPeerDto;
 import com.team.intranet.entity.ChatAttachment;
 import com.team.intranet.service.ChatService;
+import com.team.intranet.service.ChatSseService;
 import com.team.intranet.session.MemberSession;
 
 import lombok.RequiredArgsConstructor;
@@ -39,6 +42,23 @@ import lombok.RequiredArgsConstructor;
 public class ChatApiController {
 
     private final ChatService chatService;
+    private final ChatSseService chatSseService;
+
+    // ─── 실시간 수신 (SSE) ──────────────────────────────────────────
+
+    /**
+     * 본인 앞으로 들어오는 채팅 이벤트 스트림.
+     *  - 클라이언트: new EventSource('/api/chat/stream') 로 연결.
+     *  - 이벤트: "ready" (연결 핸드셰이크) / "message" ({conversationId, message: ChatMessageDto}).
+     *  - 30분 후 timeout → 브라우저 EventSource 가 자동 재연결.
+     */
+    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    public SseEmitter stream(
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+        if (ms == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        return chatSseService.subscribe(ms.getMemberId());
+    }
 
     // ─── 회원 검색 (새 채팅) ─────────────────────────────────────────
 

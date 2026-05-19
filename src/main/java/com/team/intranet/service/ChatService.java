@@ -3,6 +3,7 @@ package com.team.intranet.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -44,6 +45,7 @@ public class ChatService {
     private final ChatMessageRepository messageRepository;
     private final ChatAttachmentRepository attachmentRepository;
     private final MemberRepository memberRepository;
+    private final ChatSseService chatSseService;
 
     // ─── 회원 검색 (새 채팅 화면) ─────────────────────────────────────
 
@@ -167,7 +169,17 @@ public class ChatService {
         }
 
         conv.touch();
-        return ChatMessageDto.from(msg, msg.getAttachments());
+        ChatMessageDto dto = ChatMessageDto.from(msg, msg.getAttachments());
+
+        // 상대방에게 SSE push — 발신자 본인은 응답으로 직접 받음.
+        Member other = conv.otherSide(ms.getMemberId());
+        if (other != null) {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("conversationId", conv.getConversationId());
+            payload.put("message", dto);
+            chatSseService.publishMessage(other.getMemberId(), payload);
+        }
+        return dto;
     }
 
     @Transactional(readOnly = true)

@@ -148,10 +148,147 @@
       loadPeers();
     };
 
+    // ─── 패널 드래그 + 8방향 리사이즈 ──────────────────────────────
+    // 첫 오픈 시 한 번만 실행 — panel 을 body 로 떼고 fixed + 디폴트 크기/위치 박음.
+    // 헤더 드래그 → 이동, 8개 핸들(n/s/e/w/ne/nw/se/sw) → 리사이즈. min 크기는 디폴트로 고정.
+    const DEFAULT_W = 360;
+    const DEFAULT_H = 480;
+
+    function setupDraggableResizablePanel() {
+      if (panel.dataset.dragResizeInit === '1') return;
+      panel.dataset.dragResizeInit = '1';
+
+      // panel 을 body 직속으로 이동 — 부모 stack 의 fixed/items-end 영향 제거.
+      if (panel.parentElement !== document.body) document.body.appendChild(panel);
+
+      // 핸들/커서용 스타일 한 번만 주입.
+      injectChatStyle();
+
+      const w = Math.min(DEFAULT_W, window.innerWidth - 64);
+      const h = Math.min(DEFAULT_H, window.innerHeight - 64);
+      const left = Math.max(16, window.innerWidth - w - 32);
+      const top = Math.max(16, window.innerHeight - h - 32);
+
+      panel.style.position = 'fixed';
+      panel.style.left = left + 'px';
+      panel.style.top = top + 'px';
+      panel.style.right = 'auto';
+      panel.style.bottom = 'auto';
+      panel.style.width = w + 'px';
+      panel.style.height = h + 'px';
+      panel.style.minWidth = w + 'px';   // 디폴트가 최소 — 더 작아질 수 없음
+      panel.style.minHeight = h + 'px';
+      panel.style.maxWidth = 'none';
+      panel.style.maxHeight = 'none';
+      panel.style.resize = 'none';        // CSS resize 끄고 JS 핸들로 대체
+
+      // 미디어 절대 크기: 디폴트 너비 × 0.6. 패널 커져도 미디어는 그대로.
+      panel.style.setProperty('--chat-media-max', Math.round(w * 0.6) + 'px');
+
+      addResizeHandles(panel);
+      enableHeaderDrag(panel);
+    }
+
+    function injectChatStyle() {
+      if (document.getElementById('__chat-style')) return;
+      // ※ panel 에 overflow-hidden 클래스가 있어서 핸들이 panel 바깥(음수 offset)에 있으면 잘림.
+      //   → 핸들을 panel 안쪽으로 (offset 0~) 배치. 두께 8px 의 띠/14×14 코너로 잡힘.
+      const css = `
+        #chat-panel header { cursor: move; user-select: none; }
+        #chat-panel header button { cursor: pointer; }
+        .__cr { position: absolute; z-index: 9999; background: transparent; }
+        .__cr-n  { top: 0; left: 14px; right: 14px; height: 6px; cursor: n-resize; }
+        .__cr-s  { bottom: 0; left: 14px; right: 14px; height: 6px; cursor: s-resize; }
+        .__cr-e  { right: 0; top: 14px; bottom: 14px; width: 6px; cursor: e-resize; }
+        .__cr-w  { left: 0; top: 14px; bottom: 14px; width: 6px; cursor: w-resize; }
+        .__cr-ne { top: 0; right: 0; width: 14px; height: 14px; cursor: ne-resize; }
+        .__cr-nw { top: 0; left: 0; width: 14px; height: 14px; cursor: nw-resize; }
+        .__cr-se { bottom: 0; right: 0; width: 14px; height: 14px; cursor: se-resize; }
+        .__cr-sw { bottom: 0; left: 0; width: 14px; height: 14px; cursor: sw-resize; }
+      `;
+      const s = document.createElement('style');
+      s.id = '__chat-style';
+      s.textContent = css;
+      document.head.appendChild(s);
+    }
+
+    function addResizeHandles(p) {
+      ['n','s','e','w','ne','nw','se','sw'].forEach(dir => {
+        const h = document.createElement('div');
+        h.className = '__cr __cr-' + dir;
+        p.appendChild(h);
+        h.addEventListener('mousedown', (e) => startResize(e, dir));
+      });
+    }
+
+    function startResize(e, dir) {
+      e.preventDefault();
+      e.stopPropagation();
+      const sx = e.clientX, sy = e.clientY;
+      const r = panel.getBoundingClientRect();
+      const sw = r.width, sh = r.height, sl = r.left, st = r.top;
+      const minW = parseInt(panel.style.minWidth, 10) || 200;
+      const minH = parseInt(panel.style.minHeight, 10) || 200;
+      const move = (ev) => {
+        const dx = ev.clientX - sx, dy = ev.clientY - sy;
+        let nw = sw, nh = sh, nl = sl, nt = st;
+        if (dir.includes('e')) nw = sw + dx;
+        if (dir.includes('w')) { nw = sw - dx; nl = sl + dx; }
+        if (dir.includes('s')) nh = sh + dy;
+        if (dir.includes('n')) { nh = sh - dy; nt = st + dy; }
+        if (nw < minW) { if (dir.includes('w')) nl = sl + (sw - minW); nw = minW; }
+        if (nh < minH) { if (dir.includes('n')) nt = st + (sh - minH); nh = minH; }
+        // viewport 밖으로 나가지 않게.
+        if (nl < 0) { nw += nl; nl = 0; if (nw < minW) nw = minW; }
+        if (nt < 0) { nh += nt; nt = 0; if (nh < minH) nh = minH; }
+        if (nl + nw > window.innerWidth) nw = window.innerWidth - nl;
+        if (nt + nh > window.innerHeight) nh = window.innerHeight - nt;
+        panel.style.left = nl + 'px';
+        panel.style.top = nt + 'px';
+        panel.style.width = nw + 'px';
+        panel.style.height = nh + 'px';
+      };
+      const up = () => {
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', up);
+      };
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', up);
+    }
+
+    function enableHeaderDrag(p) {
+      const header = p.querySelector('header');
+      if (!header) return;
+      header.addEventListener('mousedown', (e) => {
+        // 헤더 내부의 버튼(뒤로/닫기)은 드래그 시작 X.
+        if (e.target.closest('button')) return;
+        e.preventDefault();
+        const sx = e.clientX, sy = e.clientY;
+        const r = panel.getBoundingClientRect();
+        const sl = r.left, st = r.top;
+        const move = (ev) => {
+          const dx = ev.clientX - sx, dy = ev.clientY - sy;
+          let nl = sl + dx, nt = st + dy;
+          // 패널 일부는 viewport 안에 항상 보이도록 클램프 (최소 100px 안에 헤더가 보임).
+          nl = Math.max(-r.width + 100, Math.min(window.innerWidth - 100, nl));
+          nt = Math.max(0, Math.min(window.innerHeight - 50, nt));
+          panel.style.left = nl + 'px';
+          panel.style.top = nt + 'px';
+        };
+        const up = () => {
+          document.removeEventListener('mousemove', move);
+          document.removeEventListener('mouseup', up);
+        };
+        document.addEventListener('mousemove', move);
+        document.addEventListener('mouseup', up);
+      });
+    }
+
     // ─── 패널 열기/닫기 ────────────────────────────────────────────
     const openPanel = () => {
       panel.classList.remove('hidden');
       fab.setAttribute('aria-expanded', 'true');
+      setupDraggableResizablePanel();  // 첫 오픈에만 실제 실행됨 (idempotent)
       showList();
     };
     const closePanel = () => {
@@ -316,21 +453,55 @@
       messagesEl.insertAdjacentHTML('beforeend', messageBubbleHtml(m, me));
       scrollMessagesToBottom();
     }
+    // YouTube URL → videoId 추출. youtu.be/ID, youtube.com/watch?v=ID, youtube.com/shorts/ID, youtube.com/embed/ID 지원.
+    const YOUTUBE_RE = /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
+    function extractYoutubeId(text) {
+      if (!text) return null;
+      const m = text.match(YOUTUBE_RE);
+      return m ? m[1] : null;
+    }
+    function youtubeEmbedHtml(videoId) {
+      // videoId 는 [A-Za-z0-9_-]{11} 로 정규식이 이미 보장 — XSS 안전.
+      // 너비는 --chat-media-max (디폴트 패널 너비 × 0.6) — 이미지/비디오와 통일. 16:9 비율 유지.
+      return '<div class="mt-1 aspect-video overflow-hidden rounded-lg" style="width:var(--chat-media-max, 200px);max-width:100%;">'
+        + '<iframe src="https://www.youtube.com/embed/' + videoId + '" '
+        + 'class="h-full w-full" frameborder="0" '
+        + 'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" '
+        + 'allowfullscreen></iframe></div>';
+    }
+
     function messageBubbleHtml(m, meId) {
       const mine = meId != null && m.senderId === meId;
       const align = mine ? 'justify-end' : 'justify-start';
+      const hasText = !!m.text;
+      const hasMedia = (m.attachments && m.attachments.length > 0) || extractYoutubeId(m.text);
+      // 미디어 있는 말풍선은 padding 최소화 (둘레 두꺼운 테두리 X).
+      const padCls = hasText ? (hasMedia ? 'p-1.5' : 'px-3 py-2') : 'p-1';
       const bubbleCls = mine
-        ? 'rounded-2xl rounded-br-sm px-3 py-2 text-white'
-        : 'rounded-2xl rounded-bl-sm px-3 py-2 bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-gray-100';
+        ? 'rounded-2xl rounded-br-sm text-white ' + padCls
+        : 'rounded-2xl rounded-bl-sm bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-gray-100 ' + padCls;
       const bubbleStyle = mine ? 'background-color:#4f46e5;' : '';
       const time = fmtTime(m.createdAt);
-      const text = m.text ? '<div class="whitespace-pre-wrap break-words">' + esc(m.text) + '</div>' : '';
+      // URL 같이 break 가 어려운 긴 문자열도 강제 분할 — wrap 의 width 강제가 min-content 에 의해 무시되는 것 방지.
+      const text = hasText
+        ? '<div class="whitespace-pre-wrap" style="overflow-wrap:anywhere;word-break:break-word;">' + esc(m.text) + '</div>'
+        : '';
+      const ytId = extractYoutubeId(m.text);
+      const youtube = ytId ? youtubeEmbedHtml(ytId) : '';
       const atts = (m.attachments || []).map(att => attachmentHtml(att, mine)).join('');
+      // 미디어가 있으면 말풍선 너비를 미디어 너비와 동일하게 강제. width + max-width 둘 다 박아 자식 min-content 영향 차단.
+      const wrapCls = hasMedia ? 'inline-block align-top' : 'max-w-[78%]';
+      let wrapStyle = '';
+      if (hasMedia) {
+        const mediaMaxPx = (panel.style.getPropertyValue('--chat-media-max') || '200px').trim();
+        wrapStyle = 'width:' + mediaMaxPx + ';max-width:' + mediaMaxPx + ';';
+      }
       return ''
         + '<div class="mb-2 flex ' + align + '">'
-        +   '<div class="max-w-[78%]">'
+        +   '<div class="' + wrapCls + '" style="' + wrapStyle + '">'
         +     '<div class="' + bubbleCls + ' text-sm" style="' + bubbleStyle + '">'
         +       text
+        +       youtube
         +       atts
         +     '</div>'
         +     '<div class="mt-0.5 text-[10px] text-gray-400 ' + (mine ? 'text-right' : 'text-left') + '">' + time + '</div>'
@@ -338,10 +509,19 @@
         + '</div>';
     }
     function attachmentHtml(att, mineBubble) {
-      if (att.isImage) {
-        return '<a href="' + esc(att.url) + '" target="_blank" rel="noopener" class="block mt-1">'
-          + '<img src="' + esc(att.url) + '" alt="' + esc(att.fileName) + '" class="max-h-48 rounded-lg" />'
+      // 이미지/비디오 크기는 --chat-media-max (디폴트 패널 너비 × 0.6 px) 로 절대 고정.
+      // 패널이 resize 로 커져도 미디어 크기는 변하지 않음 (카톡 스타일).
+      const mediaStyle = 'max-width:var(--chat-media-max, 200px);max-height:var(--chat-media-max, 200px);width:auto;height:auto;';
+      if (att.kind === 'image') {
+        return '<a href="' + esc(att.url) + '" target="_blank" rel="noopener" class="block">'
+          + '<img src="' + esc(att.url) + '" alt="' + esc(att.fileName) + '" class="rounded-lg" style="' + mediaStyle + '" />'
           + '</a>';
+      }
+      if (att.kind === 'video') {
+        return '<div>'
+          + '<video src="' + esc(att.url) + '" controls preload="metadata" class="rounded-lg" style="' + mediaStyle + '" '
+          + (att.mimeType ? 'data-mime="' + esc(att.mimeType) + '"' : '')
+          + '></video></div>';
       }
       const fg = mineBubble ? 'text-white/90' : 'text-indigo-600 dark:text-indigo-300';
       return '<a href="' + esc(att.url) + '" target="_blank" rel="noopener" class="mt-1 inline-flex items-center gap-1.5 underline ' + fg + '">'
@@ -439,5 +619,33 @@
       if (meta && meta.content) return Number(meta.content);
       return null;
     }
+
+    // ─── 실시간 수신 (SSE) ─────────────────────────────────────────
+    // 서버: GET /api/chat/stream  → 이벤트 "ready" (핸드셰이크) / "message" ({conversationId, message}).
+    // EventSource 는 끊겨도 브라우저가 자동 재연결한다. 페이지당 한 번만 연결.
+    function connectChatStream() {
+      if (typeof EventSource === 'undefined') return;  // 구형 브라우저 폴백 없음 (MVP)
+      let es;
+      try { es = new EventSource('/api/chat/stream'); }
+      catch (err) { return; }
+      es.addEventListener('message', (evt) => {
+        let payload;
+        try { payload = JSON.parse(evt.data); } catch { return; }
+        if (!payload || !payload.message) return;
+        const incomingConvId = Number(payload.conversationId);
+        const msg = payload.message;
+        // 현재 같은 채팅방 보고 있으면 즉시 말풍선 추가.
+        if (view === 'thread' && Number(activeConvId) === incomingConvId) {
+          appendMessage(msg);
+        }
+        // 목록 화면이면 미리보기/시간 갱신 위해 다시 로드.
+        if (view === 'list') {
+          loadConversations();
+        }
+      });
+      // 에러 시 EventSource 가 자동 재연결 — 별도 처리 불필요.
+      window.addEventListener('beforeunload', () => { try { es.close(); } catch {} });
+    }
+    connectChatStream();
   });
 })();

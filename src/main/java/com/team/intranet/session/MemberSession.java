@@ -5,6 +5,7 @@
     import com.team.intranet.enums.member.Role;
     import com.team.intranet.enums.member.SubAdminPermission;
     import java.io.Serializable;
+    import java.time.LocalDateTime;
     import java.util.EnumSet;
     import java.util.Set;
 
@@ -14,12 +15,14 @@ import lombok.Getter;
     @Getter
     @AllArgsConstructor
     public class MemberSession implements Serializable {
-        private static final long serialVersionUID = 2L; // 직렬화 버전 체크용 (permissions 필드 추가로 bump)
+        private static final long serialVersionUID = 3L; // 직렬화 버전 체크용 (phone/birthDay 필드 추가로 bump)
 
         private final Long memberId;        // DB 식별자
         private final String loginId;       // 로그인 아이디
         private final String name;          // 사용자 이름
         private final String email;         // 사용자 이메일
+        private final String phone;         // 전화번호
+        private final LocalDateTime birthDay; // 생년월일
         private final Role role;            // 권한
         private final Long companyId;       // 기업 id
         private final String companyName;   // 기업 이름
@@ -41,6 +44,8 @@ import lombok.Getter;
             this.loginId = member.getLoginId();
             this.name = member.getName();
             this.email = member.getEmail();
+            this.phone = member.getPhone();
+            this.birthDay = member.getBirthDay();
             this.role = member.getRole();
             this.companyId = member.getCompany().getCompanyId();
             this.companyName = member.getCompany().getCompanyName();

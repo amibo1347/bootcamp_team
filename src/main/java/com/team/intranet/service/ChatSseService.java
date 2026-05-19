@@ -1,0 +1,63 @@
+package com.team.intranet.service;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+/**
+ * 채팅 실시간 이벤트 브로커 (Server-Sent Events).
+ *  - 회원별로 다중 emitter 보관: 같은 사람이 여러 탭/장치로 동시 접속 가능.
+ *  - 메시지 publish 는 상대방에게만. 발송자 본인은 sendMessage 응답으로 이미 받음.
+ *  - 끊긴 emitter 는 onCompletion / onTimeout / onError 콜백에서 자동 제거.
+ */
+@Service
+public class ChatSseService {
+
+    /** SSE 연결 유지 시간. 브라우저 EventSource 는 timeout 시 자동 재연결한다. */
+    private static final long TIMEOUT_MS = 30L * 60 * 1000;
+
+    private final Map<Long, List<SseEmitter>> emittersByMember = new ConcurrentHashMap<>();
+
+    /** memberId 로 구독. 호출자는 반환된 emitter 를 컨트롤러에서 그대로 리턴하면 됨. */
+    public SseEmitter subscribe(Long memberId) {
+        SseEmitter emitter = new SseEmitter(TIMEOUT_MS);
+        List<SseEmitter> list = emittersByMember.computeIfAbsent(memberId, k -> new CopyOnWriteArrayList<>());
+        list.add(emitter);
+
+        Runnable cleanup = () -> {
+            list.remove(emitter);
+            // 빈 리스트는 굳이 남겨두지 않음 (메모리 절약). 동시성 안전을 위해 remove(key, value) 사용.
+            if (list.isEmpty()) emittersByMember.remove(memberId, list);
+        };
+        emitter.onCompletion(cleanup);
+        emitter.onTimeout(cleanup);
+        emitter.onError(e -> cleanup.run());
+
+        // 첫 핸드셰이크 — 연결 확인용. 실패해도 무시 (즉시 끊긴 케이스).
+        try {
+            emitter.send(SseEmitter.event().name("ready").data("ok"));
+        } catch (IOException ignored) {
+            cleanup.run();
+        }
+        return emitter;
+    }
+
+    /** toMemberId 의 모든 활성 emitter 에 "message" 이벤트 전송. */
+    public void publishMessage(Long toMemberId, Map<String, Object> payload) {
+        List<SseEmitter> list = emittersByMember.get(toMemberId);
+        if (list == null || list.isEmpty()) return;
+        for (SseEmitter e : list) {
+            try {
+                e.send(SseEmitter.event().name("message").data(payload));
+            } catch (IOException ex) {
+                // onError → cleanup 자동 호출
+                e.completeWithError(ex);
+            }
+        }
+    }
+}

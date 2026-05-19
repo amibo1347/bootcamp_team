@@ -96,12 +96,13 @@
                             </div>
                             <div class="relative z-20" style="flex: 1 1 0%; min-width: 0;">
                                 <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">직위별 조회</label>
-                                <select id="positionSelect" onchange="onPositionSelectChange(this)"
+                                <select name="positionId" id="positionSelect" onchange="onPositionSelectChange(this)"
                                     class="js-custom-select relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white">
                                     <option value="">전체 직급</option>
                                     <option value="__NEW_POSITION__">신규 직급</option>
                                     <option th:each="pos : ${positions}" th:value="${pos.positionId}"
                                         th:text="${pos.positionName}"
+                                        th:selected="${pos.positionId == selectedPositionId}"
                                         th:attr="data-level=${pos.positionLevel}"></option>
                                 </select>
                             </div>
@@ -621,6 +622,7 @@
                 window.location.href = '/admin/position/list';
                 return;
             }
+            loadMemberList();
         }
         // 직급 옵션을 positionLevel 내림차순으로 정렬 ('전체' / '신규 직급'은 상단 고정).
         // 인사이동 패널의 직급 select 도 같은 규칙으로 정렬한다.

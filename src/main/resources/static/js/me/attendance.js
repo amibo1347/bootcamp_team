@@ -121,7 +121,7 @@ function buildRecordHtml(r) {
 
     const lines = [];
     if (inT || outT) {
-        lines.push(`<div class="mt-1 font-mono text-[11px] text-gray-700 dark:text-gray-200">${inT ?? '--:--'} ~ ${outT ?? '--:--'}</div>`);
+        lines.push(`<div class="mt-1 font-mono text-[11px] text-gray-700 dark:text-gray-200">${inT ?? ''} ~ ${outT ?? ''}</div>`);
     }
     if (actual) {
         lines.push(`<div class="text-[10px] text-gray-500 dark:text-gray-400">실 ${actual}</div>`);
