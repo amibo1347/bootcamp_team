@@ -98,7 +98,12 @@ public enum ErrorCode {
 
     // 알림
     ALERT_NOT_FOUND(404, "해당 알림을 찾을 수 없습니다"),
-    ALERT_TOGGLE_NOT_ALLOWED(400, "이 게시판은 알림 설정을 변경할 수 없습니다");
+    ALERT_TOGGLE_NOT_ALLOWED(400, "이 게시판은 알림 설정을 변경할 수 없습니다"),
+
+    // AI
+    AI_SESSION_NOT_FOUND(404, "해당 AI 대화를 찾을 수 없습니다"),
+    AI_RATE_LIMIT_EXCEEDED(429, "오늘 AI 호출 한도를 초과했습니다"),
+    AI_PROVIDER_ERROR(503, "AI 모델 호출에 실패했습니다");
     
     // 2. 변수 정의
     private final int status;

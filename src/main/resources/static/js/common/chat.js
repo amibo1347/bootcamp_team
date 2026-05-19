@@ -56,6 +56,7 @@
 
     let view = 'list';                // 'list' | 'thread' | 'pick'
     let panelTab = 'chat';            // 'chat' | 'ai' — 헤더 탭 (목록 화면)
+    let activeMode = 'chat';          // 'chat' | 'ai' — 현재 thread 가 사람 vs AI
     let activeConvId = null;
     let activePeerName = '';
     let peersCache = [];              // 회원 목록 캐시
@@ -188,7 +189,7 @@
     }
 
     /**
-     * 새 AI 대화 시작 (POST /api/ai/conversations).
+     * 새 AI 대화 시작 (POST /api/ai/conversations) → 곧바로 thread 진입.
      */
     async function createAiConversation() {
       if (aiNewBtn) aiNewBtn.disabled = true;
@@ -199,9 +200,12 @@
           body: JSON.stringify({}),
         });
         if (!res.ok) throw new Error('create ai failed');
-        await res.json();
-        loadAiList();
-        // TODO: AI 스레드 화면 연동 후 세션 상세 진입
+        const created = await res.json();
+        if (created && created.sessionId) {
+          showThread(created.sessionId, created.title || 'AI 비서', 'ai');
+        } else {
+          loadAiList();
+        }
       } catch (e) {
         alert('새 AI 대화를 시작할 수 없습니다.');
       } finally {
@@ -282,23 +286,39 @@
       updateTabUi();
       loadConversations();
     };
-    const showThread = (convId, peerName) => {
+    /**
+     * 스레드 화면 진입. mode 로 사람 채팅 vs AI 비서 분기.
+     *  - 'chat' : id = conversationId, 파일 첨부 가능, markRead 호출
+     *  - 'ai'   : id = aiSessionId,   파일 첨부 숨김,  markRead 호출 X
+     */
+    const showThread = (id, peerName, mode) => {
+      activeMode = (mode === 'ai') ? 'ai' : 'chat';
       view = 'thread';
-      activeConvId = convId;
+      activeConvId = id;
       activePeerName = peerName || '';
       screenList.classList.add('hidden');
       if (screenAi) screenAi.classList.add('hidden');
       screenThread.classList.remove('hidden');
       screenPick.classList.add('hidden');
       backBtn.classList.remove('hidden');
-      titleEl.textContent = activePeerName || '대화';
+      titleEl.textContent = activePeerName || (activeMode === 'ai' ? 'AI 비서' : '대화');
       syncHeader();
       pendingFiles = [];
       renderFilePreview();
       inputEl.value = '';
-      loadMessages(convId);
-      markConversationRead(convId);  // 진입 = 읽음 처리
+      setComposerForMode(activeMode);
+      loadMessages(id);
+      if (activeMode === 'chat') markConversationRead(id);
     };
+
+    /** AI 모드에선 파일 첨부 label 숨김 (텍스트 전용). 사람 채팅은 다시 표시. */
+    function setComposerForMode(mode) {
+      const fileLabel = document.querySelector('label[for="chat-file-input"]');
+      const isAi = mode === 'ai';
+      if (fileLabel) fileLabel.style.display = isAi ? 'none' : '';
+      if (filePreview) filePreview.style.display = isAi ? 'none' : '';
+      if (inputEl) inputEl.placeholder = isAi ? 'AI 비서에게 질문하기...' : '메시지 입력...';
+    }
     const showPick = () => {
       view = 'pick';
       activeConvId = null;
@@ -466,7 +486,13 @@
     });
     closeBtn.addEventListener('click', closePanel);
     backBtn.addEventListener('click', () => {
-      if (view === 'thread' || view === 'pick') showList();
+      if (view !== 'thread' && view !== 'pick') return;
+      // AI thread 에서 뒤로 → AI 목록 복귀. 사람 채팅·pick → 직원 목록.
+      if (view === 'thread' && activeMode === 'ai') {
+        switchPanelTab('ai');
+      } else {
+        showList();
+      }
     });
     if (tabChatBtn) {
       tabChatBtn.addEventListener('click', () => switchPanelTab('chat'));
@@ -481,8 +507,9 @@
       aiBodyEl.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-ai-session-id]');
         if (!btn) return;
-        // TODO: AI 스레드 화면 — GET /api/ai/conversations/{sessionId}/messages 연동 후 구현
-        console.info('[chat] AI session selected:', btn.dataset.aiSessionId, btn.dataset.aiTitle);
+        const sessionId = Number(btn.dataset.aiSessionId);
+        if (!sessionId) return;
+        showThread(sessionId, btn.dataset.aiTitle || 'AI 비서', 'ai');
       });
     }
     // Esc 로도 닫음 — 단 입력 포커스 중일 땐 무시 (한글 IME 충돌 방지)
@@ -657,14 +684,34 @@
     pickPos.addEventListener('change', renderPeers);
 
     // ─── 메시지 스레드 ─────────────────────────────────────────────
-    async function loadMessages(convId) {
+    /** AI 응답 메시지 → 기존 messageBubbleHtml 이 기대하는 chat 메시지 형식으로 어댑팅. */
+    function aiMsgToChatBubble(m, meId) {
+      const isUser = m.role === 'USER';
+      return {
+        messageId: m.messageId,
+        senderId: isUser ? meId : -1,         // AI 응답은 좌측 정렬용으로 음수 senderId
+        senderName: isUser ? '나' : 'AI 비서',
+        text: m.content,
+        createdAt: m.createdAt,
+        attachments: []
+      };
+    }
+
+    async function loadMessages(id) {
       const gen = ++messagesLoadGen;
       messagesEl.innerHTML = '<div class="text-center text-xs text-gray-400 py-6">불러오는 중...</div>';
+      const url = (activeMode === 'ai')
+        ? '/api/ai/conversations/' + id + '/messages'
+        : '/api/chat/conversations/' + id + '/messages';
       try {
-        const res = await fetch('/api/chat/conversations/' + convId + '/messages');
+        const res = await fetch(url);
         if (!res.ok) throw new Error('load messages failed');
-        const msgs = await res.json();
-        if (gen !== messagesLoadGen || Number(activeConvId) !== Number(convId)) return;
+        let msgs = await res.json();
+        if (gen !== messagesLoadGen || Number(activeConvId) !== Number(id)) return;
+        if (activeMode === 'ai') {
+          const me = currentMemberIdGuess();
+          msgs = msgs.map(m => aiMsgToChatBubble(m, me));
+        }
         renderMessages(msgs);
         scrollMessagesToBottom();
       } catch (e) {
@@ -808,25 +855,50 @@
       const text = inputEl.value.trim();
       const hasText = text.length > 0;
       const hasFiles = pendingFiles.length > 0;
-      if (!hasText && !hasFiles) return;
+      // AI 모드는 텍스트만, 사람 채팅은 텍스트 또는 파일
+      if (activeMode === 'ai' ? !hasText : (!hasText && !hasFiles)) return;
       sendBtn.disabled = true;
-      const form = new FormData();
-      if (hasText) form.append('text', text);
-      pendingFiles.forEach(f => form.append('files', f));
+      // 사용자 말풍선을 먼저 그려두면 AI 응답 대기 시간 UX 가 자연스러움.
+      const me = currentMemberIdGuess();
       try {
-        const res = await fetch('/api/chat/conversations/' + activeConvId + '/messages', {
-          method: 'POST',
-          headers: csrfHeader(),
-          body: form,
-        });
-        if (!res.ok) throw new Error('send failed');
-        const dto = await res.json();
-        appendMessage(dto);
-        inputEl.value = '';
-        pendingFiles = [];
-        renderFilePreview();
+        if (activeMode === 'ai') {
+          // 즉시 USER 말풍선 표시
+          appendMessage({ messageId: 'tmp-' + Date.now(), senderId: me, text, createdAt: new Date().toISOString(), attachments: [] });
+          inputEl.value = '';
+          // 로딩 표시
+          const loadingHtml = '<div id="chat-ai-loading" class="mb-2 flex justify-start"><div class="rounded-2xl rounded-bl-sm bg-gray-100 px-3 py-2 text-xs text-gray-500 dark:bg-gray-700 dark:text-gray-300">AI 응답 생성 중...</div></div>';
+          messagesEl.insertAdjacentHTML('beforeend', loadingHtml);
+          scrollMessagesToBottom();
+          const res = await fetch('/api/ai/conversations/' + activeConvId + '/messages', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeader()),
+            body: JSON.stringify({ content: text }),
+          });
+          const loading = document.getElementById('chat-ai-loading');
+          if (loading) loading.remove();
+          if (!res.ok) throw new Error('ai send failed');
+          const dto = await res.json();
+          appendMessage(aiMsgToChatBubble(dto, me));
+        } else {
+          const form = new FormData();
+          if (hasText) form.append('text', text);
+          pendingFiles.forEach(f => form.append('files', f));
+          const res = await fetch('/api/chat/conversations/' + activeConvId + '/messages', {
+            method: 'POST',
+            headers: csrfHeader(),
+            body: form,
+          });
+          if (!res.ok) throw new Error('send failed');
+          const dto = await res.json();
+          appendMessage(dto);
+          inputEl.value = '';
+          pendingFiles = [];
+          renderFilePreview();
+        }
       } catch (e) {
-        alert('메시지 전송에 실패했습니다.');
+        const loading = document.getElementById('chat-ai-loading');
+        if (loading) loading.remove();
+        alert(activeMode === 'ai' ? 'AI 응답 생성에 실패했습니다.' : '메시지 전송에 실패했습니다.');
       } finally {
         sendBtn.disabled = false;
         inputEl.focus();
