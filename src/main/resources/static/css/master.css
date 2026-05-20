@@ -1,0 +1,120 @@
+/* ================================================================
+ * MASTER 콘솔 공통 스타일
+ *  - 기준: master/login 화면. 모든 MASTER 관련 페이지는 이 파일을 따른다.
+ *  - output.css(Tailwind purge 빌드)에 의존하지 않는 독립 스타일시트.
+ * ================================================================ */
+
+html, body { margin: 0; padding: 0; width: 100%; }
+* { box-sizing: border-box; }
+
+body.master-page {
+  font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  background-color: #0f172a;
+  color: #1e293b;
+  min-height: 100vh;
+}
+
+/* --- 레이아웃: 인증 화면(중앙 카드) --- */
+.master-auth {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 1.5rem;
+}
+.master-card {
+  width: 100%; max-width: 420px;
+  background: #ffffff; border-radius: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  padding: 2.75rem 2.5rem;
+}
+.master-card--wide { max-width: 460px; }
+
+/* --- 레이아웃: 콘솔 본문(패널) --- */
+.master-shell { padding: 2.5rem 1.5rem; }
+.master-container { max-width: 880px; margin: 0 auto; }
+.master-panel {
+  background: #ffffff; border-radius: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  padding: 2.25rem 2.25rem;
+}
+.master-panel-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+}
+
+/* --- 타이포 --- */
+.master-badge {
+  display: inline-block; background: #0f172a; color: #fff;
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.15em;
+  padding: 0.3rem 0.7rem; border-radius: 9999px;
+}
+.master-title { margin: 1rem 0 0.25rem; font-size: 1.4rem; font-weight: 700; color: #0f172a; }
+.master-sub { margin: 0; font-size: 0.85rem; color: #64748b; line-height: 1.5; }
+.master-section-title {
+  margin: 1.75rem 0 1rem; font-size: 1rem; font-weight: 700; color: #0f172a;
+}
+.master-divider { margin: 1.75rem 0 0; border: none; border-top: 1px solid #e2e8f0; }
+.master-link { color: #64748b; font-size: 0.82rem; text-decoration: none; }
+.master-link:hover { color: #0f172a; text-decoration: underline; }
+
+/* --- 입력 필드 --- */
+.field-label { display: block; margin-bottom: 0.4rem; font-size: 0.83rem; font-weight: 600; color: #334155; }
+.field-group { margin-bottom: 1rem; }
+.field-input {
+  width: 100%; height: 3rem; border: 1px solid #e2e8f0; background: #f8fafc;
+  border-radius: 0.75rem; padding: 0 1rem; font-size: 0.9rem; color: #1e293b;
+}
+.field-input::placeholder { color: #94a3b8; }
+.field-input:focus {
+  outline: none; border-color: #0f172a;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1); background: #fff;
+}
+.field-input--code {
+  font-size: 1.2rem; letter-spacing: 0.35em; text-align: center;
+}
+
+/* --- 버튼 --- */
+.master-btn {
+  display: inline-block; width: 100%; height: 3rem; border: none;
+  border-radius: 0.75rem; background: #0f172a; color: #fff;
+  font-size: 0.9rem; font-weight: 600; text-align: center; line-height: 3rem;
+  text-decoration: none; cursor: pointer; transition: background 0.15s;
+}
+.master-btn:hover { background: #1e293b; }
+.master-btn-outline {
+  display: inline-block; border: 1px solid #cbd5e1; background: #fff; color: #334155;
+  border-radius: 0.75rem; font-size: 0.83rem; font-weight: 500;
+  padding: 0.55rem 1rem; text-decoration: none; cursor: pointer;
+}
+.master-btn-outline:hover { background: #f8fafc; }
+
+/* --- 알림 박스 --- */
+.alert-box {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.75rem 1rem; border-radius: 0.75rem; font-size: 0.83rem;
+}
+.alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+
+/* --- 읽기 전용 정보 목록 --- */
+.master-info { margin: 1.25rem 0 0; }
+.master-info > div {
+  display: flex; justify-content: space-between; gap: 1rem;
+  padding: 0.6rem 0; border-bottom: 1px solid #f1f5f9;
+}
+.master-info dt { margin: 0; font-size: 0.83rem; color: #64748b; }
+.master-info dd { margin: 0; font-size: 0.88rem; font-weight: 600; color: #1e293b; }
+
+/* --- TOTP 등록 화면 --- */
+.qr-box { display: flex; justify-content: center; margin: 1.5rem 0 1rem; }
+.qr-box img { width: 200px; height: 200px; border: 1px solid #e2e8f0; border-radius: 0.75rem; }
+.secret-label { margin: 0 0 0.35rem; font-size: 0.78rem; color: #64748b; }
+.secret-code {
+  display: block; word-break: break-all; background: #f1f5f9;
+  border-radius: 0.6rem; padding: 0.6rem 0.8rem;
+  font-family: monospace; font-size: 0.82rem; color: #334155; text-align: center;
+}
+
+/* --- 자리표시 영역 --- */
+.master-placeholder {
+  margin-top: 1.5rem; border: 1px dashed #cbd5e1; background: #f8fafc;
+  border-radius: 1rem; padding: 2.5rem; text-align: center;
+  color: #64748b; font-size: 0.88rem;
+}
