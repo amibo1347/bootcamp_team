@@ -1,6 +1,19 @@
 <!-- [헤더] : 상단 고정 바. 햄버거 토글 / 검색창 / 다크모드 / 알림 / 유저 드롭다운 포함 -->
 <header xmlns:th="http://www.thymeleaf.org" x-data="{menuToggle: false}"
-  class="sticky top-0 z-40 flex w-full border-gray-200 bg-white lg:border-b dark:border-gray-800 dark:bg-gray-900">
+  class="sticky top-0 z-40 flex flex-col w-full border-gray-200 bg-white lg:border-b dark:border-gray-800 dark:bg-gray-900">
+  <!-- 시스템 공지/점검 배너 — 서버 초기 렌더 + system-notice.js 주기 폴링으로 실시간 갱신 -->
+  <style>
+    .system-notice { width: 100%; padding: 0.55rem 1rem; text-align: center;
+                     font-size: 0.83rem; font-weight: 600; color: #fff; }
+    .system-notice--info { background: #1d4ed8; }
+    .system-notice--maint { background: #b45309; }
+  </style>
+  <div id="system-notice-banner">
+    <div th:if="${systemNotice != null and systemNotice.noticeType.name() == 'MAINTENANCE'}"
+         class="system-notice system-notice--maint" th:text="${systemNotice.content}">점검 안내</div>
+    <div th:if="${systemNotice != null and systemNotice.noticeType.name() == 'NOTICE'}"
+         class="system-notice system-notice--info" th:text="${systemNotice.content}">공지</div>
+  </div>
   <div class="flex grow flex-col items-center justify-between lg:flex-row lg:px-6">
     <div
       class="flex w-full items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4 dark:border-gray-800">
@@ -221,5 +234,6 @@
   <!-- 로그인 사용자만 헤더 알림 API 스크립트 로드 -->
   <th:block th:if="${session != null and session.memberSession != null}">
     <script defer src="/js/alerts-header.js"></script>
+    <script defer src="/js/system-notice.js"></script>
   </th:block>
 </header>

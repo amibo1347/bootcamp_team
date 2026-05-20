@@ -31,8 +31,10 @@
           </div>
         </div>
 
-        <div class="master-placeholder">
-          회사 목록 · 생성 · 활성/비활성 등 운영 기능은 다음 단계(PR 2)에서 추가됩니다.
+        <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.6rem;">
+          <a th:href="@{/master/companies}" class="master-btn">회사 관리</a>
+          <a th:href="@{/master/usage}" class="master-btn">회사 사용량</a>
+          <a th:href="@{/master/notices}" class="master-btn">시스템 공지 / 점검 안내</a>
         </div>
 
       </div>

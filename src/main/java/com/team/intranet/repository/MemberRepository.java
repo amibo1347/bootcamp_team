@@ -19,6 +19,9 @@ public interface MemberRepository extends JpaRepository<Member, Long>{
     List<Member> findByStatusAndCompanyCompanyId(Status status, Long companyId);
     boolean existsByLoginId(String loginId);
 
+    /** 회사별 회원 수 (MASTER 사용량 대시보드). */
+    long countByCompany_CompanyId(Long companyId);
+
     /** AI 일정 공유: 회사 + 활성 회원 + 이름 매칭. */
     List<Member> findByStatusAndCompanyCompanyIdAndNameIn(Status status, Long companyId, List<String> names);
 

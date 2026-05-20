@@ -2,6 +2,7 @@ package com.team.intranet.config;
 
 import com.team.intranet.config.LoginFailureHandler;
 import com.team.intranet.config.LoginSuccessHandler;
+import com.team.intranet.repository.CompanyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -104,7 +105,8 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider,
+            CompanyRepository companyRepository) throws Exception {
         http
                 .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/api/**", "/company/**")
@@ -120,7 +122,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**", "/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/subAdmin/**", "/subAdmin/**").hasRole("SUB_ADMIN")
                 // 3. 누구나 접근 가능한 페이지 및 API (나중에 선언)
-                .requestMatchers("/error", "/index", "/calendar", "/member/**", "/api/member/**", "/images/**", "/api/uploads/**", "/uploads/**").permitAll()
+                .requestMatchers("/error", "/index", "/calendar", "/member/**", "/api/member/**", "/api/company/**", "/images/**", "/api/uploads/**", "/uploads/**").permitAll()
                 // 4. 그 외 모든 요청은 로그인 필요
                 .anyRequest().authenticated()
                 )
@@ -140,7 +142,9 @@ public class SecurityConfig {
                 .invalidateHttpSession(true) // 💡 서버 세션 완전히 삭제 (중요!)
                 .deleteCookies("JSESSIONID") // 💡 브라우저에 남은 세션 쿠키 삭제
                 .permitAll()
-                );
+                )
+                // 비활성 회사 소속 회원 자동 로그아웃 게이트
+                .addFilterAfter(new MemberCompanyGuardFilter(companyRepository), AuthorizationFilter.class);
 
         return http.build();
     }

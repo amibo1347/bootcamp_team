@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" th:href="@{/css/master.css}" />
+  <title>회사 정보 수정</title>
+</head>
+
+<body class="master-page">
+  <div class="master-shell">
+    <div class="master-container" style="max-width: 560px;">
+      <div class="master-panel">
+
+        <a th:href="@{/master/companies}" class="master-link">← 회사 목록으로</a>
+
+        <div style="margin-top: 0.75rem;">
+          <span class="master-badge">MASTER</span>
+          <h1 class="master-title" th:text="${company.companyName}">회사명</h1>
+          <p class="master-sub">회사 정보를 수정하고 로고·코드·상태를 관리합니다.</p>
+        </div>
+
+        <div th:if="${errorMessage != null}" class="alert-box alert-error"
+             style="margin-top: 1.25rem;" role="alert">
+          <span th:text="${errorMessage}">오류 메시지</span>
+        </div>
+        <div th:if="${successMessage != null}" class="alert-box alert-success"
+             style="margin-top: 1.25rem;" role="status">
+          <span th:text="${successMessage}">완료 메시지</span>
+        </div>
+
+        <!-- 정보 수정 -->
+        <h2 class="master-section-title">회사 정보</h2>
+        <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+        <form method="post" th:action="@{/master/companies/{id}(id=${company.companyId})}">
+          <div class="field-group">
+            <label for="companyName" class="field-label">회사명</label>
+            <input type="text" id="companyName" name="companyName" class="field-input"
+                   th:value="${company.companyName}" required />
+          </div>
+          <div class="field-group" style="margin-bottom: 0;">
+            <label for="companyDomain" class="field-label">도메인 (선택)</label>
+            <input type="text" id="companyDomain" name="companyDomain" class="field-input"
+                   th:value="${company.companyDomain}" placeholder="example.com" />
+          </div>
+          <button type="submit" class="master-btn" style="margin-top: 1.5rem;">정보 저장</button>
+        </form>
+
+        <hr class="master-divider" />
+
+        <!-- 로고 -->
+        <h2 class="master-section-title">회사 로고</h2>
+
+        <div th:if="${hasLogo}" style="margin-bottom: 1rem;">
+          <img th:src="@{/api/company/{id}/logo(id=${company.companyId})}" alt="회사 로고"
+               style="max-width: 180px; max-height: 90px; border: 1px solid #e2e8f0;
+                      border-radius: 0.6rem; background: #f8fafc; padding: 0.5rem;" />
+          <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+          <form method="post" style="margin-top: 0.5rem;"
+                th:action="@{/master/companies/{id}/logo/delete(id=${company.companyId})}">
+            <button type="submit" class="master-btn-outline">로고 삭제</button>
+          </form>
+        </div>
+        <p th:unless="${hasLogo}" class="master-sub" style="margin-bottom: 1rem;">등록된 로고가 없습니다.</p>
+
+        <!-- 멀티파트 폼은 CSRF 토큰을 본문에서 읽지 못하므로 쿼리 파라미터로 전달 -->
+        <form method="post" enctype="multipart/form-data"
+              th:action="@{/master/companies/{id}/logo(id=${company.companyId},_csrf=${_csrf.token})}">
+          <label for="logoFile" class="field-label">로고 이미지 업로드 (PNG / JPG 등)</label>
+          <input type="file" id="logoFile" name="logoFile" accept="image/*" required
+                 style="display: block; margin: 0.4rem 0 0; font-size: 0.85rem;" />
+          <button type="submit" class="master-btn-outline" style="margin-top: 0.9rem;">로고 업로드</button>
+        </form>
+
+        <hr class="master-divider" />
+
+        <!-- 회사 코드 -->
+        <h2 class="master-section-title">회사 코드</h2>
+        <p class="master-sub">직원 회원가입 시 입력하는 코드입니다. 재발급하면 이전 코드는 무효가 됩니다.</p>
+        <code class="secret-code" style="margin-top: 0.75rem;" th:text="${company.companyCode}">CODE</code>
+        <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+        <form method="post" th:action="@{/master/companies/{id}/code(id=${company.companyId})}"
+              style="margin-top: 0.75rem;">
+          <button type="submit" class="master-btn-outline">코드 재발급</button>
+        </form>
+
+        <hr class="master-divider" />
+
+        <!-- 활성 상태 -->
+        <h2 class="master-section-title">상태</h2>
+        <p class="master-sub" style="margin-bottom: 0.75rem;">
+          현재 상태:
+          <span th:if="${company.isActiveCompany()}" class="master-tag master-tag--on">활성</span>
+          <span th:unless="${company.isActiveCompany()}" class="master-tag master-tag--off">비활성</span>
+        </p>
+        <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+        <form method="post" th:action="@{/master/companies/{id}/toggle(id=${company.companyId})}">
+          <button type="submit" class="master-btn-outline"
+                  th:text="${company.isActiveCompany()} ? '비활성화' : '활성화'">토글</button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
