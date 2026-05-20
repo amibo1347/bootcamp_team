@@ -11,6 +11,7 @@ import {
   resetRegisteredApprovalForms,
 } from '../forms/form-registry.js';
 import { openApproverLineModal } from './approver-line-modal.js';
+import { mountApprovalCombobox } from '../common/approval-combobox.js';
 
 /** @type {number} */
 let wizardStep = 1;
@@ -102,14 +103,29 @@ function activateSectionForSelected() {
  */
 function showWizardStep(nextStep) {
   wizardStep = nextStep;
+  const indicatorActive =
+    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500 text-sm font-semibold text-white';
+  const indicatorInactive =
+    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-400 dark:bg-gray-800 dark:text-gray-500';
+
   for (let i = 1; i <= 3; i += 1) {
     const step = document.getElementById(`approval-step-${i}`);
     const label = document.getElementById(`approval-step-label-${i}`);
+    const indicator = document.getElementById(`approval-step-indicator-${i}`);
+    const isActive = i === nextStep;
+
     step?.classList.toggle('hidden', i !== nextStep);
+
     if (label) {
-      label.classList.toggle('font-semibold', i === nextStep);
-      label.classList.toggle('text-brand-600', i === nextStep);
-      label.classList.toggle('dark:text-brand-400', i === nextStep);
+      label.classList.toggle('font-semibold', isActive);
+      label.classList.toggle('text-brand-600', isActive);
+      label.classList.toggle('dark:text-brand-400', isActive);
+      label.classList.toggle('text-gray-500', !isActive);
+      label.classList.toggle('dark:text-gray-400', !isActive);
+    }
+
+    if (indicator) {
+      indicator.className = isActive ? indicatorActive : indicatorInactive;
     }
   }
 
@@ -165,19 +181,22 @@ function renderApprovalLineSelect() {
     <option value="4">4인 결재선</option>
   `;
   select.value = '';
+  mountApprovalCombobox(select);
 }
 
 /**
- * 결재선 미리보기 영역을 select 바로 아래에 동적 inject (1회만).
+ * 결재선 미리보기 영역을 콤보박스 아래에 동적 inject (1회만).
  */
 function ensureApprovalLineSummary() {
   if (document.getElementById('approval-line-summary')) return;
   const select = document.getElementById('approval-approver-select');
   if (!select) return;
+  const anchor =
+    select.parentElement?.querySelector('[data-approval-combobox-root]') || select;
   const summary = document.createElement('div');
   summary.id = 'approval-line-summary';
   summary.className = 'mt-3 hidden rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm dark:border-strokedark dark:bg-meta-4';
-  select.insertAdjacentElement('afterend', summary);
+  anchor.insertAdjacentElement('afterend', summary);
 }
 
 /**
@@ -225,7 +244,10 @@ function renderApprovalLineSummary() {
   document.getElementById('approval-line-cancel')?.addEventListener('click', () => {
     currentApprovalLine = [];
     const select = document.getElementById('approval-approver-select');
-    if (select instanceof HTMLSelectElement) select.value = '';
+    if (select instanceof HTMLSelectElement) {
+      select.value = '';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
     renderApprovalLineSummary();
   });
 }
@@ -350,7 +372,10 @@ function resetWizard() {
   resetRegisteredApprovalForms();
   currentApprovalLine = [];
   const select = document.getElementById('approval-approver-select');
-  if (select instanceof HTMLSelectElement) select.value = '';
+  if (select instanceof HTMLSelectElement) {
+    select.value = '';
+    mountApprovalCombobox(select);
+  }
   renderApprovalLineSummary();
   showWizardStep(1);
 }

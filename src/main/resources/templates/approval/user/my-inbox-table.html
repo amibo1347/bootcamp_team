@@ -1,7 +1,28 @@
 <!-- ================================================================ -->
 <!-- [내 결재함] 테이블 뼈대 — 행은 user/my-inbox.js 가 채움 -->
 <!-- ================================================================ -->
-<div xmlns:th="http://www.thymeleaf.org" th:fragment="myInboxTable" class="space-y-4">
+<div xmlns:th="http://www.thymeleaf.org" th:fragment="myInboxTable" class="approval-my-inbox-root space-y-4">
+  <!-- [결재선 팝업] 테이블 overflow 에 잘리지 않도록 — 토글 박스 배치·레이어만 제어 -->
+  <style>
+    /* 테이블 가로 스크롤은 유지하되, 세로 overflow 로 팝업이 잘리지 않게 분리 */
+    .approval-my-inbox-table-wrap {
+      overflow-x: auto;
+      overflow-y: visible;
+    }
+    /* 결재자 셀·행: absolute/fixed 팝업이 tbody 경계에 막히지 않도록 */
+    .approval-my-inbox-root td[data-approver-toggle="1"] {
+      overflow: visible;
+    }
+    .approval-my-inbox-root tbody tr {
+      position: relative;
+    }
+    /* JS 가 fixed 로 올릴 때 최상단 레이어 (전자결재 대시보드 위) */
+    .approval-my-inbox-root [data-approver-dropdown].approval-approver-dropdown--open {
+      z-index: 99950;
+    }
+  </style>
+  <!-- [결재선 팝업] 스타일 끝 -->
+
   <!-- [필터] 서버 enum 기준 상태만 노출 -->
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div class="flex items-center gap-2">
@@ -16,7 +37,7 @@
   <!-- [필터] 끝 -->
 
   <!-- [목록 테이블] 시작 -->
-  <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+  <div class="approval-my-inbox-table-wrap rounded-xl border border-gray-200 dark:border-gray-800">
     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
       <thead class="bg-gray-50 dark:bg-white/[0.03]">
         <tr>

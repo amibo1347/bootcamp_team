@@ -6,10 +6,10 @@
   <div id="approval-vacation-fields" data-approval-form-section="VACATION" class="space-y-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
     <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">휴가 정보</p>
     <div class="grid gap-3 sm:grid-cols-2">
-      <div>
-        <label for="vacation-type" class="mb-1 block text-xs text-gray-600 dark:text-gray-400">유형</label>
-        <select id="vacation-type"
-          class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white">
+      <!-- [휴가 유형] DESIGN_RULES 5-2 커스텀 콤보박스 — approval-combobox.js -->
+      <div class="relative z-20">
+        <label for="vacation-type" class="mb-1 block text-sm text-gray-600 dark:text-gray-300">유형</label>
+        <select id="vacation-type" class="sr-only pointer-events-none" tabindex="-1" aria-hidden="true">
           <option value="">선택하세요</option>
         </select>
       </div>
