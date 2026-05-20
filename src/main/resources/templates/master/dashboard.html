@@ -22,7 +22,8 @@
             <p class="master-sub" th:text="${master != null ? master.loginId : ''}">loginId</p>
           </div>
           <div style="display: flex; gap: 0.5rem;">
-            <a th:href="@{/master/account}" class="master-btn-outline">계정 관리</a>
+            <a th:href="@{/master/admins}" class="master-btn-outline">MASTER 계정</a>
+            <a th:href="@{/master/account}" class="master-btn-outline">내 계정</a>
             <!-- th:action 으로 CSRF 토큰 자동 주입 -->
             <form method="post" th:action="@{/master/logout}">
               <button type="submit" class="master-btn-outline">로그아웃</button>

@@ -118,3 +118,23 @@ body.master-page {
   border-radius: 1rem; padding: 2.5rem; text-align: center;
   color: #64748b; font-size: 0.88rem;
 }
+
+/* --- 표 --- */
+.master-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.master-table th, .master-table td {
+  text-align: left; padding: 0.6rem 0.5rem; font-size: 0.83rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+.master-table th { color: #64748b; font-weight: 600; }
+.master-table td { color: #1e293b; }
+.master-table tr:last-child td { border-bottom: none; }
+.master-empty { padding: 1.5rem 0.5rem; text-align: center; color: #94a3b8; font-size: 0.83rem; }
+
+/* --- 상태 태그 --- */
+.master-tag {
+  display: inline-block; padding: 0.15rem 0.5rem; border-radius: 9999px;
+  font-size: 0.72rem; font-weight: 600;
+}
+.master-tag--on { background: #f0fdf4; color: #166534; }
+.master-tag--off { background: #fef2f2; color: #991b1b; }
+.master-tag--muted { background: #f1f5f9; color: #64748b; }
