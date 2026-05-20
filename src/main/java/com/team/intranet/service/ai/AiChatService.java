@@ -44,9 +44,19 @@ import lombok.extern.slf4j.Slf4j;
 public class AiChatService {
 
     /** LLM 호출 시 전달할 최근 메시지 수 (USER+ASSISTANT 합산). */
-    private static final int HISTORY_LIMIT = 20;
+    private static final int HISTORY_LIMIT = 8;
     /** 세션 제목 자동 갱신 시 첫 USER 메시지에서 잘라낼 길이. */
     private static final int TITLE_MAX_LEN = 24;
+
+    /** 게시판/일정 컨텍스트를 system prompt 에 첨부할지 판단하는 키워드. */
+    private static final java.util.regex.Pattern BOARD_KEYWORDS = java.util.regex.Pattern.compile(
+        "게시판|공지|게시글|자유게시판|익명|복지|공지사항|작성자|글쓴이");
+    private static final java.util.regex.Pattern CALENDAR_KEYWORDS = java.util.regex.Pattern.compile(
+        "일정|캘린더|등록|수정|삭제|약속|미팅|회의|언제|"
+        + "아침|오전|점심|오후|저녁|밤|새벽|"
+        + "월요일|화요일|수요일|목요일|금요일|토요일|일요일|"
+        + "내일|모레|오늘|어제|이번\\s*주|다음\\s*주|이번\\s*달|다음\\s*달|"
+        + "\\d{1,2}\\s*시|\\d{1,2}\\s*일|\\d{1,2}\\s*월");
 
     private final AiChatSessionRepository sessionRepository;
     private final AiChatMessageRepository messageRepository;
@@ -135,7 +145,7 @@ public class AiChatService {
         }
 
         // 3. LLM 호출용 메시지 리스트 준비 (시스템 + 최근 N개)
-        List<LlmMessage> llmMessages = buildLlmMessages(session, me);
+        List<LlmMessage> llmMessages = buildLlmMessages(session, me, userContent);
 
         // 4. LLM 호출
         LlmResponse resp;
@@ -405,15 +415,20 @@ public class AiChatService {
     /**
      * 시스템 프롬프트 + 최근 N개 메시지 → LlmMessage 리스트.
      * 최신 N개를 가져온 뒤 역순(시간 오름차순)으로 정렬.
+     * userContent + 직전 ASSISTANT 의 proposalJson 으로 게시판/일정 컨텍스트 lazy 첨부 여부 결정.
      */
-    private List<LlmMessage> buildLlmMessages(AiChatSession session, Member me) {
+    private List<LlmMessage> buildLlmMessages(AiChatSession session, Member me, String userContent) {
         List<LlmMessage> out = new ArrayList<>();
-        out.add(LlmMessage.system(buildSystemPrompt(me)));
 
         List<AiChatMessage> recent = messageRepository
             .findBySession_SessionIdOrderByCreatedAtDescMessageIdDesc(
                 session.getSessionId(), PageRequest.of(0, HISTORY_LIMIT));
         Collections.reverse(recent);
+
+        boolean includeBoard    = userContent != null && BOARD_KEYWORDS.matcher(userContent).find();
+        boolean includeCalendar = needsCalendarContext(userContent, recent);
+        out.add(LlmMessage.system(buildSystemPrompt(me, includeBoard, includeCalendar)));
+
         for (AiChatMessage m : recent) {
             String content = m.getContent() == null ? "" : m.getContent();
             switch (m.getRole()) {
@@ -431,7 +446,23 @@ public class AiChatService {
         return out;
     }
 
-    private String buildSystemPrompt(Member me) {
+    /**
+     * 캘린더 컨텍스트 첨부 여부:
+     *  - 사용자 메시지에 일정/시간 관련 키워드가 있거나
+     *  - 직전 ASSISTANT 가 calendar 제안 카드를 띄운 상태 (=보완 대화 중) 면 첨부.
+     */
+    private boolean needsCalendarContext(String userContent, List<AiChatMessage> recent) {
+        if (userContent != null && CALENDAR_KEYWORDS.matcher(userContent).find()) return true;
+        for (int i = recent.size() - 1; i >= 0; i--) {
+            AiChatMessage m = recent.get(i);
+            if (m.getRole() == AiChatRole.ASSISTANT) {
+                return m.getProposalJson() != null && !m.getProposalJson().isBlank();
+            }
+        }
+        return false;
+    }
+
+    private String buildSystemPrompt(Member me, boolean includeBoard, boolean includeCalendar) {
         String position    = me.getPosition() != null ? me.getPosition().getPositionName() : "직원";
         String dept        = me.getDept()     != null ? me.getDept().getDeptName()        : "미지정";
         String companyName = me.getCompany()  != null ? me.getCompany().getCompanyName()  : "(미지정)";
@@ -543,9 +574,11 @@ public class AiChatService {
                 LocalDate.now().toString(),
                 companyName);
 
-        // 회사의 AI 활성 게시판 + 본인 일정을 컨텍스트로 첨부.
-        String boardContext    = companyId != null ? aiBoardContextService.buildContext(companyId) : "";
-        String calendarContext = aiCalendarContextService.buildContext(me.getMemberId());
+        // 회사 게시판 / 본인 일정 컨텍스트는 lazy 첨부 — 토큰 절약.
+        String boardContext    = (includeBoard && companyId != null)
+            ? aiBoardContextService.buildContext(companyId) : "";
+        String calendarContext = includeCalendar
+            ? aiCalendarContextService.buildContext(me.getMemberId()) : "";
         return basePrompt + boardContext + calendarContext;
     }
 
