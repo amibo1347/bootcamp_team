@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" th:href="@{/css/master.css}" />
+  <title>MASTER 2차 인증 등록</title>
+</head>
+
+<body class="master-page">
+  <div class="master-auth">
+    <div class="master-card master-card--wide">
+      <div style="text-align: center;">
+        <span class="master-badge">MASTER</span>
+        <h1 class="master-title">2차 인증 등록</h1>
+        <p class="master-sub">
+          Google Authenticator 등 인증기 앱으로 아래 QR 코드를 스캔한 뒤,<br />
+          앱에 표시된 6자리 코드를 입력하세요.
+        </p>
+      </div>
+
+      <div class="qr-box">
+        <img th:src="${qrImage}" alt="TOTP QR 코드" />
+      </div>
+
+      <p class="secret-label">QR 스캔이 안 되면 아래 키를 수동 입력하세요</p>
+      <code class="secret-code" th:text="${secret}">SECRET</code>
+
+      <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+      <form method="post" th:action="@{/master/totp/setup}">
+        <div class="field-group" style="margin: 1.4rem 0 0;">
+          <label for="code" class="field-label">인증 코드</label>
+          <input type="text" id="code" name="code" class="field-input field-input--code"
+                 inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+                 placeholder="000000" required autofocus />
+        </div>
+
+        <div th:if="${errorMessage != null}" class="alert-box alert-error"
+             style="margin-top: 1rem;" role="alert">
+          <span th:text="${errorMessage}">오류 메시지</span>
+        </div>
+
+        <button type="submit" class="master-btn" style="margin-top: 1.25rem;">등록 완료</button>
+      </form>
+    </div>
+  </div>
+</body>
+
+</html>

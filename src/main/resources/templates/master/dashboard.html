@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" th:href="@{/css/master.css}" />
+  <title>MASTER 콘솔</title>
+</head>
+
+<body class="master-page">
+  <div class="master-shell">
+    <div class="master-container">
+      <div class="master-panel">
+
+        <div class="master-panel-head">
+          <div>
+            <span class="master-badge">MASTER</span>
+            <h1 class="master-title">
+              <span th:text="${master != null ? master.name : '운영자'}">운영자</span>님, 환영합니다.
+            </h1>
+            <p class="master-sub" th:text="${master != null ? master.loginId : ''}">loginId</p>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <a th:href="@{/master/account}" class="master-btn-outline">계정 관리</a>
+            <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+            <form method="post" th:action="@{/master/logout}">
+              <button type="submit" class="master-btn-outline">로그아웃</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="master-placeholder">
+          회사 목록 · 생성 · 활성/비활성 등 운영 기능은 다음 단계(PR 2)에서 추가됩니다.
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
