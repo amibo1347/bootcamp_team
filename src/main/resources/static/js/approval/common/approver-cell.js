@@ -115,12 +115,73 @@ export function renderApproverDropdown(row) {
   return `
     <div data-approver-dropdown
          class="hidden rounded-xl border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-700 dark:bg-boxdark"
-         style="position: absolute; left: 0; top: 100%; min-width: 100%; width: 22rem; max-height: 22rem; overflow-y: auto; z-index: 30;">
+         style="position: absolute; left: 0; top: 100%; min-width: 100%; width: 22rem; max-height: min(22rem, calc(100vh - 2rem)); overflow-y: auto; z-index: 30;">
       <div class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">결재선</div>
       <div class="flex flex-col gap-2">
         ${cards}
       </div>
     </div>`;
+}
+
+/** 내 결재함: 테이블 overflow 에 가리지 않도록 fixed 배치 사용 */
+const MY_INBOX_ROOT_SELECTOR = '.approval-my-inbox-root';
+
+/**
+ * 열린 결재선 팝업을 뷰포트 기준 fixed 로 배치한다. (내 결재함 전용)
+ * @param {HTMLElement} panel
+ * @param {HTMLElement} td
+ */
+function positionMyInboxDropdown(panel, td) {
+  panel.style.position = 'fixed';
+  panel.style.width = '22rem';
+  panel.style.minWidth = '';
+  panel.style.maxHeight = 'min(22rem, calc(100vh - 2rem))';
+  panel.style.zIndex = '99950';
+
+  const gap = 4;
+  const anchor = td.getBoundingClientRect();
+  const panelHeight = panel.offsetHeight;
+  const panelWidth = panel.offsetWidth;
+  const viewportPad = 8;
+
+  let top = anchor.bottom + gap;
+  if (top + panelHeight > window.innerHeight - viewportPad) {
+    top = Math.max(viewportPad, anchor.top - panelHeight - gap);
+  }
+
+  let left = anchor.left;
+  if (left + panelWidth > window.innerWidth - viewportPad) {
+    left = Math.max(viewportPad, window.innerWidth - panelWidth - viewportPad);
+  }
+
+  panel.style.top = `${top}px`;
+  panel.style.left = `${left}px`;
+}
+
+/**
+ * fixed 배치 스타일을 제거하고 td 내부 absolute 기본값으로 되돌린다.
+ * @param {HTMLElement} panel
+ */
+function resetMyInboxDropdownPosition(panel) {
+  panel.classList.remove('approval-approver-dropdown--open');
+  panel.style.position = '';
+  panel.style.top = '';
+  panel.style.left = '';
+  panel.style.width = '';
+  panel.style.minWidth = '';
+  panel.style.zIndex = '';
+  panel.style.maxHeight = '';
+}
+
+/**
+ * 내 결재함에서 열린 드롭다운 위치를 스크롤·리사이즈 시 갱신한다.
+ */
+function syncOpenMyInboxDropdowns() {
+  document.querySelectorAll(`${MY_INBOX_ROOT_SELECTOR} [data-approver-dropdown]:not(.hidden)`).forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    const td = node.closest('td[data-approver-toggle="1"]');
+    if (td instanceof HTMLElement) positionMyInboxDropdown(node, td);
+  });
 }
 
 /**
@@ -143,11 +204,25 @@ export function bindApproverDropdownToggle(tbody) {
     if (!(panel instanceof HTMLElement)) return;
 
     const willOpen = panel.classList.contains('hidden');
+    const useMyInboxFixed = panel.closest(MY_INBOX_ROOT_SELECTOR) != null;
     // 다른 열려있던 드롭다운 닫기
     document.querySelectorAll('[data-approver-dropdown]').forEach((d) => {
-      if (d !== panel) d.classList.add('hidden');
+      if (d === panel) return;
+      d.classList.add('hidden');
+      if (d instanceof HTMLElement && d.closest(MY_INBOX_ROOT_SELECTOR)) {
+        resetMyInboxDropdownPosition(d);
+      }
     });
     panel.classList.toggle('hidden', !willOpen);
+
+    if (useMyInboxFixed) {
+      if (willOpen) {
+        panel.classList.add('approval-approver-dropdown--open');
+        positionMyInboxDropdown(panel, td);
+      } else {
+        resetMyInboxDropdownPosition(panel);
+      }
+    }
 
     const chevron = td.querySelector('[data-approver-chevron]');
     if (chevron instanceof SVGElement) {
@@ -163,10 +238,22 @@ export function bindApproverDropdownToggle(tbody) {
       if (!(t instanceof HTMLElement)) return;
       if (t.closest('td[data-approver-toggle="1"]')) return;
       if (t.closest('[data-approver-dropdown]')) return;
-      document.querySelectorAll('[data-approver-dropdown]').forEach((d) => d.classList.add('hidden'));
+      document.querySelectorAll('[data-approver-dropdown]').forEach((d) => {
+        d.classList.add('hidden');
+        if (d instanceof HTMLElement && d.closest(MY_INBOX_ROOT_SELECTOR)) {
+          resetMyInboxDropdownPosition(d);
+        }
+      });
       document.querySelectorAll('[data-approver-chevron]').forEach((c) => {
         if (c instanceof SVGElement) c.style.transform = 'rotate(0deg)';
       });
     });
+  }
+
+  // 내 결재함: 스크롤·리사이즈 시 fixed 팝업 위치 동기화 (1회만 등록)
+  if (!document.body.dataset.approverMyInboxPositionBound) {
+    document.body.dataset.approverMyInboxPositionBound = '1';
+    window.addEventListener('scroll', syncOpenMyInboxDropdowns, true);
+    window.addEventListener('resize', syncOpenMyInboxDropdowns);
   }
 }

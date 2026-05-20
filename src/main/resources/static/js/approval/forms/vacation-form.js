@@ -1,3 +1,5 @@
+import { mountApprovalCombobox } from '../common/approval-combobox.js';
+
 /**
  * 휴가 신청 양식 유틸
  * - 위저드 3단계에서 입력값 검증과 제출 payload 직렬화를 담당한다.
@@ -27,6 +29,7 @@ export function populateVacationTypeOptions(root = document, options = []) {
   });
   fragments.forEach((o) => select.appendChild(o));
   select.dataset.optionsLoaded = '1';
+  mountApprovalCombobox(select);
 }
 
 /**
