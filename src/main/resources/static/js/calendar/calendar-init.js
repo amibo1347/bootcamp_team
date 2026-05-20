@@ -119,17 +119,10 @@ document.addEventListener("DOMContentLoaded", () => {
    * @param {Response} res fetch Response (본문은 한 번만 읽음)
    */
   async function parseApiErrorBody(res) {
+    // 401(미인증)은 ErrorCode 가 아닌 Spring Security 단계라 안내 메시지를 별도로 둔다.
     if (res.status === 401) return "로그인이 필요합니다.";
-    if (res.status === 403) return "접근 권한이 없습니다.";
-    const text = await res.text();
-    if (!text.trim()) return `요청 실패 (${res.status})`;
-    try {
-      const j = JSON.parse(text);
-      if (j && typeof j.message === "string") return j.message;
-    } catch {
-      /* 본문이 JSON이 아님 */
-    }
-    return text.trim();
+    // 그 외에는 공통 헬퍼로 위임 — GlobalExceptionHandler JSON 의 message(=ErrorCode.message) 추출.
+    return window.getApiErrorMessage(res, `요청 실패 (${res.status})`);
   }
 
   /**

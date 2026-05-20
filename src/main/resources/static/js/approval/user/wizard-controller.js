@@ -426,7 +426,8 @@ export function initApprovalWizard(options) {
       await options.onSubmitted?.();
     } catch (error) {
       console.error('[approval-wizard] 제출 실패', error);
-      setWizardMessage('제출 중 오류가 발생했습니다.', 'error');
+      // approval-client 가 getApiErrorMessage 로 만든 서버 메시지(ErrorCode.message)를 error.message 로 전달.
+      setWizardMessage(error?.message || '제출 중 오류가 발생했습니다.', 'error');
     } finally {
       if (submitButton instanceof HTMLButtonElement) submitButton.disabled = false;
     }
