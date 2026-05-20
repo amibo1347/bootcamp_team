@@ -48,47 +48,6 @@
   }
 
   /**
-   * 서버 에러 응답 바디(JSON: errorCode, message)를 파싱해 사용자 메시지 문자열을 만든다.
-   * GlobalExceptionHandler의 BusinessException 형식에 맞춘다.
-   * @param {Response} response fetch Response
-   * @returns {Promise<string>}
-   */
-  async function parseApiErrorMessage(response) {
-    const status = response.status;
-    let raw = '';
-    try {
-      raw = await response.text();
-    } catch {
-      raw = '';
-    }
-    if (raw) {
-      try {
-        const data = JSON.parse(raw);
-        if (typeof data?.message === 'string' && data.message.trim()) {
-          return data.message.trim();
-        }
-        if (typeof data?.errorCode === 'string' && data.errorCode.trim()) {
-          return data.errorCode.trim();
-        }
-      } catch {
-        /* JSON 아님 — 아래 상태코드별 기본문구 사용 */
-      }
-    }
-    switch (status) {
-      case 401:
-        return '로그인이 필요합니다.';
-      case 403:
-        return '접근 권한이 없습니다.';
-      case 404:
-        return '대상을 찾을 수 없습니다.';
-      case 409:
-        return '요청을 처리할 수 없습니다. (상태 충돌)';
-      default:
-        return '요청 처리 중 오류가 발생했습니다.';
-    }
-  }
-
-  /**
    * Spring Data Page JSON을 프론트에서 쓰기 좋은 형태로 정규화한다.
    * @param {unknown} payload
    * @returns {{ items: Array, currentPage: number, totalPages: number }}
@@ -126,7 +85,7 @@
       }
     );
     if (!response.ok) {
-      const msg = await parseApiErrorMessage(response);
+      const msg = await window.getApiErrorMessage(response, '휴지통 목록을 불러오지 못했습니다.');
       throw new Error(msg);
     }
     const payload = await response.json();
@@ -145,7 +104,7 @@
       credentials: 'same-origin',
     });
     if (!response.ok) {
-      throw new Error(await parseApiErrorMessage(response));
+      throw new Error(await window.getApiErrorMessage(response, '복구에 실패했습니다.'));
     }
   }
 
@@ -161,7 +120,7 @@
       credentials: 'same-origin',
     });
     if (!response.ok) {
-      throw new Error(await parseApiErrorMessage(response));
+      throw new Error(await window.getApiErrorMessage(response, '영구 삭제에 실패했습니다.'));
     }
   }
 

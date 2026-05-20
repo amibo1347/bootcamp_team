@@ -366,7 +366,7 @@
       });
 
       if (!response.ok) {
-        throw new Error('게시판 생성에 실패했습니다.');
+        throw new Error(await window.getApiErrorMessage(response, '게시판 생성에 실패했습니다.'));
       }
 
       alert('게시판이 생성되었습니다.');
@@ -511,13 +511,13 @@
       });
 
       if (!response.ok) {
-        throw new Error('게시판 수정에 실패했습니다.');
+        throw new Error(await window.getApiErrorMessage(response, '게시판 수정에 실패했습니다.'));
       }
 
       alert('게시판이 수정되었습니다.');
       location.reload();
-    } catch {
-      alert('수정 API가 아직 구현되지 않았거나 요청에 실패했습니다.');
+    } catch (error) {
+      alert(error?.message || '수정 API가 아직 구현되지 않았거나 요청에 실패했습니다.');
     }
   }
 
@@ -533,13 +533,13 @@
       });
 
       if (!response.ok) {
-        throw new Error('삭제 실패');
+        throw new Error(await window.getApiErrorMessage(response, '삭제 실패'));
       }
 
       alert('게시판이 삭제되었습니다.');
       location.reload();
-    } catch {
-      alert('삭제 API가 아직 구현되지 않았거나 요청에 실패했습니다.');
+    } catch (error) {
+      alert(error?.message || '삭제 API가 아직 구현되지 않았거나 요청에 실패했습니다.');
     }
   }
 

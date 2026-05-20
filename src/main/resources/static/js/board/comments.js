@@ -165,10 +165,11 @@
     });
 
     if (!response.ok) {
-      const msg =
+      const fallback =
         response.status === 404
           ? '댓글 목록을 찾을 수 없습니다. API가 아직 준비되지 않았을 수 있습니다.'
           : '댓글을 불러오지 못했습니다.';
+      const msg = await window.getApiErrorMessage(response, fallback);
       return { ok: false, comments: [], errorMessage: msg };
     }
 
@@ -366,10 +367,10 @@
     );
 
     if (response.status === 401 || response.status === 403) {
-      throw new Error('댓글 작성 권한이 없습니다.');
+      throw new Error(await window.getApiErrorMessage(response, '댓글 작성 권한이 없습니다.'));
     }
     if (!response.ok) {
-      throw new Error('댓글 등록에 실패했습니다.');
+      throw new Error(await window.getApiErrorMessage(response, '댓글 등록에 실패했습니다.'));
     }
   }
 
@@ -395,10 +396,10 @@
     );
 
     if (response.status === 401 || response.status === 403) {
-      throw new Error('댓글 수정 권한이 없습니다.');
+      throw new Error(await window.getApiErrorMessage(response, '댓글 수정 권한이 없습니다.'));
     }
     if (!response.ok) {
-      throw new Error('댓글 수정에 실패했습니다.');
+      throw new Error(await window.getApiErrorMessage(response, '댓글 수정에 실패했습니다.'));
     }
   }
 
@@ -419,10 +420,10 @@
     );
 
     if (response.status === 401 || response.status === 403) {
-      throw new Error('댓글 삭제 권한이 없습니다.');
+      throw new Error(await window.getApiErrorMessage(response, '댓글 삭제 권한이 없습니다.'));
     }
     if (!response.ok) {
-      throw new Error('댓글 삭제에 실패했습니다.');
+      throw new Error(await window.getApiErrorMessage(response, '댓글 삭제에 실패했습니다.'));
     }
   }
 

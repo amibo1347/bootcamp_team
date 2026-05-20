@@ -57,8 +57,7 @@ if (profileImgInput && profileSummaryImg) {
                     }
                 });
             } else {
-                const errorText = await response.text();
-                alert(`사진 변경 실패: ${errorText || '서버 오류가 발생했습니다.'}`);
+                alert(await window.getApiErrorMessage(response, '사진 변경에 실패했습니다.'));
             }
         } catch (error) {
             console.error('Profile image upload error:', error);
@@ -134,8 +133,7 @@ window.updateMyProfile = async () => {
             closeProfileEditModal();
             window.location.reload();
         } else {
-            const errorText = await response.text();
-            alert(`수정 실패: ${errorText || '서버 오류가 발생했습니다.'}`);
+            alert(await window.getApiErrorMessage(response, '정보 수정에 실패했습니다.'));
         }
     } catch (error) {
         console.error('Profile update error:', error);

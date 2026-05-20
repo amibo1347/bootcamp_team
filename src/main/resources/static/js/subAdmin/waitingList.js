@@ -150,7 +150,7 @@
                 alert("성공적으로 승인되었습니다.");
                 location.reload();
             } else {
-                alert("승인 처리 중 오류가 발생했습니다.");
+                alert(await window.getApiErrorMessage(response, "승인 처리 중 오류가 발생했습니다."));
             }
         } catch (error) {
             console.error('Error:', error);
@@ -183,7 +183,7 @@
                 alert("반려 처리가 완료되었습니다.");
                 location.reload();
             } else {
-                alert("반려 처리 중 오류 발생");
+                alert(await window.getApiErrorMessage(response, "반려 처리 중 오류 발생"));
             }
         } catch (error) {
             console.error('Error:', error);

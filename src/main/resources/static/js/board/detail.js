@@ -80,9 +80,9 @@
     });
     if (!response.ok) {
       if (response.status === 404) {
-        throw new Error('게시글을 찾을 수 없습니다.');
+        throw new Error(await window.getApiErrorMessage(response, '게시글을 찾을 수 없습니다.'));
       }
-      throw new Error('게시글 상세 조회에 실패했습니다.');
+      throw new Error(await window.getApiErrorMessage(response, '게시글 상세 조회에 실패했습니다.'));
     }
     return response.json();
   }
@@ -196,9 +196,9 @@
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
-        throw new Error('삭제 권한이 없습니다.');
+        throw new Error(await window.getApiErrorMessage(response, '삭제 권한이 없습니다.'));
       }
-      throw new Error('게시글 삭제에 실패했습니다.');
+      throw new Error(await window.getApiErrorMessage(response, '게시글 삭제에 실패했습니다.'));
     }
   }
 

@@ -133,7 +133,7 @@ async function savePolicy() {
             headers: csrfHeaders(),
             body: JSON.stringify(body),
         });
-        if (!res.ok) throw new Error(`policy save failed: ${res.status}`);
+        if (!res.ok) throw new Error(await window.getApiErrorMessage(res, '정책 저장에 실패했습니다.'));
         policyCache = await res.json();
         const msg = document.getElementById('policySaveMsg');
         if (msg) {
@@ -144,7 +144,7 @@ async function savePolicy() {
         renderGantt(applyFilters(cachedRows));
     } catch (e) {
         console.error(e);
-        alert('정책 저장에 실패했습니다.');
+        alert(e?.message || '정책 저장에 실패했습니다.');
     }
 }
 
@@ -158,11 +158,11 @@ async function loadCurrent() {
         let rows;
         if (viewMode === 'day') {
             const res = await fetch(`/api/attendance/company/day?date=${encodeURIComponent(iso)}`);
-            if (!res.ok) throw new Error(`day load failed: ${res.status}`);
+            if (!res.ok) throw new Error(await window.getApiErrorMessage(res, '근태 데이터를 불러오지 못했습니다.'));
             rows = await res.json();
         } else {
             const res = await fetch(`/api/attendance/company/range?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
-            if (!res.ok) throw new Error(`range load failed: ${res.status}`);
+            if (!res.ok) throw new Error(await window.getApiErrorMessage(res, '근태 데이터를 불러오지 못했습니다.'));
             rows = await res.json();
         }
         cachedRows = rows;
@@ -171,7 +171,7 @@ async function loadCurrent() {
         updateDateLabel();
     } catch (e) {
         console.error(e);
-        alert('근태 데이터를 불러오지 못했습니다.');
+        alert(e?.message || '근태 데이터를 불러오지 못했습니다.');
     }
 }
 

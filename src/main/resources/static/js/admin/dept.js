@@ -32,7 +32,7 @@ async function createDept(companyId) {
             deptNameInput.value = ''; // 입력창만 비우기
             alert("부서가 생성되었습니다.");
         } else {
-            alert("생성 실패");
+            alert(await window.getApiErrorMessage(response, "생성 실패"));
         }
     } catch (error) {
         console.error(error);
@@ -132,7 +132,7 @@ async function deleteDept(deptId) {
             document.getElementById('deptListContainer').innerHTML = htmlChunk;
             alert("부서가 삭제되었습니다.");
         } else {
-            alert("삭제 실패");
+            alert(await window.getApiErrorMessage(response, "삭제 실패"));
         }
     } catch (error) {
         console.error(error);

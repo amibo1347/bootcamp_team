@@ -43,7 +43,10 @@ async function load(ym) {
     document.getElementById('monthLabel').textContent = ym.replace('-', '년 ') + '월';
     try {
         const res = await fetch(`/api/attendance/me?month=${encodeURIComponent(ym)}`);
-        if (!res.ok) throw new Error(`load failed: ${res.status}`);
+        if (!res.ok) {
+            alert(await window.getApiErrorMessage(res, '근태 데이터를 불러오지 못했습니다.'));
+            return;
+        }
         const rows = await res.json();
         renderCalendar(ym, rows);
         summarize(rows);

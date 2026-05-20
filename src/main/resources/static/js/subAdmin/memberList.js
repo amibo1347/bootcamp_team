@@ -439,8 +439,8 @@ function loadMemberList() {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
-        .then(response => {
-            if (!response.ok) throw new Error('네트워크 응답에 문제가 있습니다.');
+        .then(async response => {
+            if (!response.ok) throw new Error(await window.getApiErrorMessage(response, '네트워크 응답에 문제가 있습니다.'));
             return response.text();
         })
         .then(html => {
@@ -460,7 +460,7 @@ function loadMemberList() {
         })
         .catch(error => {
             console.error('AJAX 로드 실패:', error);
-            alert('목록을 불러오는 중 오류가 발생했습니다.');
+            alert(error?.message || '목록을 불러오는 중 오류가 발생했습니다.');
         });
 }
 

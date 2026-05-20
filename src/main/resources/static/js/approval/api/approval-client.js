@@ -40,7 +40,7 @@ async function fetchJsonGet(url) {
     headers: { Accept: 'application/json' },
   });
   if (!res.ok) {
-    throw new Error(`GET ${url} → ${res.status}`);
+    throw new Error(await window.getApiErrorMessage(res, `GET ${url} → ${res.status}`));
   }
   return res.json();
 }
@@ -62,7 +62,7 @@ async function fetchJsonPost(url, body) {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new Error(`POST ${url} → ${res.status}`);
+    throw new Error(await window.getApiErrorMessage(res, `POST ${url} → ${res.status}`));
   }
   return res.json();
 }

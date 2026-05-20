@@ -91,7 +91,8 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('서버 응답 에러');
+                    alert(await window.getApiErrorMessage(response, '중복 확인 중 오류가 발생했습니다.'));
+                    return;
                 }
 
                 const result = await response.json(); // 서버에서 true/false 반환 가정

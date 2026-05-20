@@ -95,7 +95,7 @@
     });
 
     if (!response.ok) {
-      throw new Error('게시글 목록을 불러오지 못했습니다.');
+      throw new Error(await window.getApiErrorMessage(response, '게시글 목록을 불러오지 못했습니다.'));
     }
 
     const payload = await response.json();

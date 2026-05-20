@@ -179,7 +179,12 @@
       aiBodyEl.innerHTML = '<div class="px-4 py-6 text-center text-xs text-gray-400">불러오는 중...</div>';
       try {
         const res = await fetch(AI_LIST_ENDPOINT);
-        if (!res.ok) throw new Error('ai list failed');
+        if (!res.ok) {
+          const msg = await window.getApiErrorMessage(res, 'AI 대화 목록을 불러올 수 없습니다.');
+          aiBodyEl.innerHTML =
+            '<div class="px-4 py-6 text-center text-xs text-gray-400">' + esc(msg) + '</div>';
+          return;
+        }
         const items = await res.json();
         renderAiList(Array.isArray(items) ? items : []);
       } catch (e) {
@@ -199,7 +204,10 @@
           headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeader()),
           body: JSON.stringify({}),
         });
-        if (!res.ok) throw new Error('create ai failed');
+        if (!res.ok) {
+          alert(await window.getApiErrorMessage(res, '새 AI 대화를 시작할 수 없습니다.'));
+          return;
+        }
         const created = await res.json();
         if (created && created.sessionId) {
           showThread(created.sessionId, created.title || 'AI 비서', 'ai');
@@ -525,7 +533,11 @@
     async function loadConversations() {
       try {
         const res = await fetch('/api/chat/conversations');
-        if (!res.ok) throw new Error('list failed');
+        if (!res.ok) {
+          const msg = await window.getApiErrorMessage(res, '대화 목록을 불러올 수 없습니다.');
+          listEl.innerHTML = '<div class="px-4 py-6 text-center text-xs text-gray-400">' + esc(msg) + '</div>';
+          return;
+        }
         convsCache = await res.json();
         renderConversations();
       } catch (e) {
@@ -619,7 +631,11 @@
     async function loadPeers() {
       try {
         const res = await fetch('/api/chat/members');
-        if (!res.ok) throw new Error('peers failed');
+        if (!res.ok) {
+          const msg = await window.getApiErrorMessage(res, '직원 목록을 불러올 수 없습니다.');
+          pickListEl.innerHTML = '<div class="px-4 py-6 text-center text-xs text-gray-400">' + esc(msg) + '</div>';
+          return;
+        }
         peersCache = await res.json();
         rebuildPickFilters();
         renderPeers();
@@ -670,11 +686,11 @@
           headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeader()),
           body: JSON.stringify({ peerId: Number(btn.dataset.peerId) }),
         });
-        if (!res.ok) throw new Error('open conv failed');
+        if (!res.ok) throw new Error(await window.getApiErrorMessage(res, '대화방을 열 수 없습니다.'));
         const conv = await res.json();
         showThread(conv.conversationId, btn.dataset.peerName || (conv.peer && conv.peer.name) || '');
       } catch (err) {
-        alert('대화방을 열 수 없습니다.');
+        alert(err && err.message ? err.message : '대화방을 열 수 없습니다.');
       } finally {
         btn.disabled = false;
       }
@@ -879,7 +895,12 @@
         : '/api/chat/conversations/' + id + '/messages';
       try {
         const res = await fetch(url);
-        if (!res.ok) throw new Error('load messages failed');
+        if (!res.ok) {
+          const msg = await window.getApiErrorMessage(res, '메시지를 불러올 수 없습니다.');
+          if (gen !== messagesLoadGen) return;
+          messagesEl.innerHTML = '<div class="text-center text-xs text-rose-500 py-6">' + esc(msg) + '</div>';
+          return;
+        }
         let msgs = await res.json();
         if (gen !== messagesLoadGen || Number(activeConvId) !== Number(id)) return;
         if (activeMode === 'ai') {
@@ -942,7 +963,12 @@
           headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeader()),
           body: JSON.stringify({ messageId }),
         });
-        if (!res.ok) throw new Error('confirm failed');
+        if (!res.ok) {
+          alert(await window.getApiErrorMessage(res, actionLabel + '에 실패했습니다.'));
+          btn.disabled = false;
+          btn.textContent = actionLabel;
+          return;
+        }
         const confirmMsg = await res.json();
         btn.textContent = actionLabel + '됨';
         btn.style.cssText = 'background:#d1d5db;color:#4b5563;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;';
@@ -975,7 +1001,12 @@
           headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeader()),
           body: JSON.stringify({ messageId, vacationType }),
         });
-        if (!res.ok) throw new Error('confirm failed');
+        if (!res.ok) {
+          alert(await window.getApiErrorMessage(res, '휴가 신청에 실패했습니다. 결재선 규정을 다시 확인해주세요.'));
+          btn.disabled = false;
+          btn.textContent = '신청';
+          return;
+        }
         const confirmMsg = await res.json();
         btn.textContent = '신청됨';
         btn.style.cssText = 'background:#d1d5db;color:#4b5563;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;';
@@ -1129,12 +1160,7 @@
           if (loading) loading.remove();
           if (!res.ok) {
             // 서버의 errorCode/message 를 사용자에게 그대로 노출 (특히 429 quota)
-            let errMsg = 'AI 응답 생성에 실패했습니다.';
-            try {
-              const errBody = await res.json();
-              if (errBody && errBody.message) errMsg = errBody.message;
-            } catch {}
-            throw new Error(errMsg);
+            throw new Error(await window.getApiErrorMessage(res, 'AI 응답 생성에 실패했습니다.'));
           }
           const dto = await res.json();
           appendMessage(aiMsgToChatBubble(dto, me));
@@ -1147,7 +1173,7 @@
             headers: csrfHeader(),
             body: form,
           });
-          if (!res.ok) throw new Error('send failed');
+          if (!res.ok) throw new Error(await window.getApiErrorMessage(res, '메시지 전송에 실패했습니다.'));
           const dto = await res.json();
           appendMessage(dto);
           inputEl.value = '';

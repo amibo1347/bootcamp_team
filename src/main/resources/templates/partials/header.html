@@ -216,6 +216,8 @@
       </div>
     </div>
   </div>
+  <!-- 공통 에러 메시지 헬퍼 (전 페이지 공통) -->
+  <script src="/js/common/api-error.js"></script>
   <!-- 로그인 사용자만 헤더 알림 API 스크립트 로드 -->
   <th:block th:if="${session != null and session.memberSession != null}">
     <script defer src="/js/alerts-header.js"></script>

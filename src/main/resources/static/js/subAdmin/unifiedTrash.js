@@ -42,30 +42,6 @@
       .replaceAll("'", '&#39;');
   }
 
-  /** @param {Response} response */
-  async function parseApiErrorMessage(response) {
-    const status = response.status;
-    let raw = '';
-    try {
-      raw = await response.text();
-    } catch {
-      raw = '';
-    }
-    if (raw) {
-      try {
-        const data = JSON.parse(raw);
-        if (typeof data?.message === 'string' && data.message.trim()) return data.message.trim();
-        if (typeof data?.errorCode === 'string' && data.errorCode.trim()) return data.errorCode.trim();
-      } catch {
-        /* fallthrough */
-      }
-    }
-    if (status === 401) return '로그인이 필요합니다.';
-    if (status === 403) return '접근 권한이 없습니다.';
-    if (status === 404) return '대상을 찾을 수 없습니다.';
-    return '요청 처리 중 오류가 발생했습니다.';
-  }
-
   /**
    * @param {unknown} payload
    * @returns {{ items: Array<object>, currentPage: number, totalPages: number }}
@@ -93,7 +69,7 @@
       `/api/subAdmin/articles/trash?page=${page}&size=${PAGE_SIZE}`,
       { method: 'GET', headers: { Accept: 'application/json' }, credentials: 'same-origin' }
     );
-    if (!response.ok) throw new Error(await parseApiErrorMessage(response));
+    if (!response.ok) throw new Error(await window.getApiErrorMessage(response, '통합 휴지통 목록을 불러오지 못했습니다.'));
     return normalizePage(await response.json());
   }
 
@@ -104,7 +80,7 @@
       headers: getPostHeaders(),
       credentials: 'same-origin',
     });
-    if (!res.ok) throw new Error(await parseApiErrorMessage(res));
+    if (!res.ok) throw new Error(await window.getApiErrorMessage(res, '복구에 실패했습니다.'));
   }
 
   /** 영구 삭제 */
@@ -114,7 +90,7 @@
       headers: getPostHeaders(),
       credentials: 'same-origin',
     });
-    if (!res.ok) throw new Error(await parseApiErrorMessage(res));
+    if (!res.ok) throw new Error(await window.getApiErrorMessage(res, '영구 삭제에 실패했습니다.'));
   }
 
   function showMsg(message) {

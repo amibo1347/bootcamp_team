@@ -32,7 +32,10 @@
                 method: 'GET'
             });
 
-            if (!response.ok) throw new Error('네트워크 응답 에러');
+            if (!response.ok) {
+                alert(await window.getApiErrorMessage(response, '서버 통신 중 오류가 발생했습니다.'));
+                return;
+            }
 
             // 1. 서버가 { "isVerify": true, "companyId": ... } 객체를 보냅니다.
             const result = await response.json();

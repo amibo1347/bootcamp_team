@@ -225,7 +225,11 @@ function setupAttendanceCard(els, options = {}) {
     els.checkinBtn.disabled = true;
     try {
       const res = await fetch('/api/attendance/clock-in', { method: 'POST', headers: csrfHeaders() });
-      if (!res.ok) throw new Error(`clock-in failed: ${res.status}`);
+      if (!res.ok) {
+        alert(await window.getApiErrorMessage(res, '출근 처리에 실패했습니다.'));
+        refreshButtons();
+        return;
+      }
       const dto = await res.json();
       checkinAt = parseServerDatetime(dto.clockInAt) || new Date();
       els.checkinDisplay.textContent = formatTime(checkinAt);

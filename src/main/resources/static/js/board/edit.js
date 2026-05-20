@@ -81,7 +81,7 @@
     });
 
     if (!response.ok) {
-      throw new Error('첨부파일 목록을 불러오지 못했습니다.');
+      throw new Error(await window.getApiErrorMessage(response, '첨부파일 목록을 불러오지 못했습니다.'));
     }
 
     const data = await response.json();
@@ -108,12 +108,12 @@
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
-        throw new Error('첨부파일 삭제 권한이 없습니다.');
+        throw new Error(await window.getApiErrorMessage(response, '첨부파일 삭제 권한이 없습니다.'));
       }
       if (response.status === 404) {
-        throw new Error('첨부파일을 찾을 수 없습니다.');
+        throw new Error(await window.getApiErrorMessage(response, '첨부파일을 찾을 수 없습니다.'));
       }
-      throw new Error('첨부파일 삭제에 실패했습니다.');
+      throw new Error(await window.getApiErrorMessage(response, '첨부파일 삭제에 실패했습니다.'));
     }
   }
 
@@ -134,8 +134,8 @@
     });
 
     if (!response.ok) {
-      if (response.status === 413) throw new Error('첨부파일 용량이 너무 큽니다.');
-      throw new Error('첨부파일 업로드에 실패했습니다.');
+      if (response.status === 413) throw new Error(await window.getApiErrorMessage(response, '첨부파일 용량이 너무 큽니다.'));
+      throw new Error(await window.getApiErrorMessage(response, '첨부파일 업로드에 실패했습니다.'));
     }
 
     const data = await response.json();
@@ -379,7 +379,7 @@
         body: formData,
         credentials: 'same-origin',
       });
-      if (!response.ok) throw new Error('이미지 업로드에 실패했습니다.');
+      if (!response.ok) throw new Error(await window.getApiErrorMessage(response, '이미지 업로드에 실패했습니다.'));
       const data = await response.json();
       if (!data?.url) throw new Error('업로드 URL을 받지 못했습니다.');
       callback(data.url, blob.name || 'image');
@@ -524,7 +524,7 @@
       });
 
       if (!response.ok) {
-        throw new Error('게시글 수정 요청에 실패했습니다.');
+        throw new Error(await window.getApiErrorMessage(response, '게시글 수정 요청에 실패했습니다.'));
       }
 
       alert('게시글이 수정되었습니다.');

@@ -40,7 +40,7 @@ async function createPosition(companyId) {
             positionLevelInput.value = '';
             alert("직급이 생성되었습니다.");
         } else {
-            alert("생성 실패");
+            alert(await window.getApiErrorMessage(response, "생성 실패"));
         }
     } catch (error) {
         console.error(error);
@@ -163,7 +163,7 @@ async function deletePosition(positionId) {
             document.getElementById('positionListContainer').innerHTML = htmlChunk;
             alert("직급이 삭제되었습니다.");
         } else {
-            alert("삭제 실패");
+            alert(await window.getApiErrorMessage(response, "삭제 실패"));
         }
     } catch (error) {
         console.error(error);

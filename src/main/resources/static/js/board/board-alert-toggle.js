@@ -57,7 +57,7 @@
           },
         });
         if (!res.ok) {
-          if (res.status === 401) window.alert("로그인이 필요합니다.");
+          if (res.status === 401) window.alert(await window.getApiErrorMessage(res, "로그인이 필요합니다."));
           return;
         }
         const data = await res.json();

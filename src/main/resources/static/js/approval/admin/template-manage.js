@@ -887,7 +887,7 @@ async function refresh() {
     console.error('[template-manage] 목록 로드 실패', error);
     templates = [];
     renderRows();
-    window.alert('양식 목록을 불러오지 못했습니다.');
+    window.alert(extractErrorMessage(error));
   }
 }
 
