@@ -766,6 +766,111 @@
         + '</div>';
     }
 
+    // 휴가 종류 — VacationType.java 와 동기화. [enum 코드, 한글 라벨].
+    const VACATION_TYPES = [
+      ['ANNUAL_PAID_LEAVE',   '연차유급휴가'],
+      ['SICK_LEAVE',          '병가'],
+      ['MATERNITY_LEAVE',     '출산전후휴가'],
+      ['PATERNITY_LEAVE',     '배우자출산휴가'],
+      ['MENSTRUAL_LEAVE',     '생리휴가'],
+      ['FAMILY_CARE_LEAVE',   '가족돌봄휴가'],
+      ['SPECIAL_LEAVE',       '경조사휴가'],
+      ['REFRESH_LEAVE',       '리프레시휴가'],
+      ['SUMMER_VACATION',     '하계휴가'],
+      ['REPLACEMENT_HOLIDAY', '대체휴일'],
+      ['ETC',                 '기타'],
+    ];
+    function vacationTypeLabel(code) {
+      const f = VACATION_TYPES.find(x => x[0] === code);
+      return f ? f[1] : '기타';
+    }
+
+    /**
+     * 결재선 표시 — "홍길동(인사팀/부장) → 김철수(대표)".
+     * 보강된 approvers 배열(부서/직급 포함) 우선, 없으면 approverNames 로 이름만.
+     * flex-wrap 이라 결재자가 많아 가로가 길어지면 자동으로 아래 줄로 내려간다.
+     */
+    function leaveApproverChips(p) {
+      let items = [];
+      if (Array.isArray(p.approvers) && p.approvers.length > 0) {
+        items = p.approvers.map(a => {
+          const meta = [a.dept, a.position].filter(Boolean).join('/');
+          return { text: meta ? a.name + '(' + meta + ')' : a.name, ok: a.matched !== false };
+        });
+      } else if (Array.isArray(p.approverNames) && p.approverNames.length > 0) {
+        items = p.approverNames.map(n => ({ text: n, ok: true }));
+      }
+      if (items.length === 0) return '';
+      const chips = items.map((it, i) => {
+        const bg = it.ok ? '#ccfbf1' : '#fee2e2';
+        const fg = it.ok ? '#0f766e' : '#dc2626';
+        return '<span style="white-space:nowrap;background:' + bg + ';color:' + fg + ';border-radius:4px;padding:1px 6px;">'
+          + esc(it.text) + (it.ok ? '' : ' ⚠️') + '</span>'
+          + (i < items.length - 1 ? '<span style="color:#0d9488;">→</span>' : '');
+      }).join('');
+      return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:3px;margin-top:2px;">'
+        + '<span>🗂️ 결재선</span>' + chips + '</div>';
+    }
+
+    /** 휴가 신청 제안 카드 HTML. type=leave. 휴가 종류는 dropdown 으로 사용자가 확정. */
+    function leaveProposalCardHtml(m) {
+      const p = m.proposal || {};
+      const applied = m.proposalApplied;
+      const selType = (p.vacationType && VACATION_TYPES.some(x => x[0] === p.vacationType))
+        ? p.vacationType : 'ANNUAL_PAID_LEAVE';
+      const range = p.startDate
+        ? ((p.endDate && p.endDate !== p.startDate)
+            ? esc(p.startDate) + ' ~ ' + esc(p.endDate)
+            : esc(p.startDate))
+        : '';
+      const days   = (p.totalDays != null) ? esc(String(p.totalDays)) + '일' : '';
+      const reason = p.reason ? '<div>📝 ' + esc(p.reason) + '</div>' : '';
+      const line   = leaveApproverChips(p);
+
+      // 휴가 종류 — 신청 전엔 dropdown, 신청 후엔 고정 텍스트.
+      let typeField;
+      if (applied) {
+        typeField = '<div>🏷️ ' + esc(vacationTypeLabel(selType)) + '</div>';
+      } else {
+        const opts = VACATION_TYPES.map(([code, label]) =>
+          '<option value="' + code + '"' + (code === selType ? ' selected' : '') + '>' + esc(label) + '</option>'
+        ).join('');
+        typeField = '<div class="flex items-center gap-1">🏷️ <span>휴가 종류</span>'
+          + '<select data-leave-type style="border:1px solid #99f6e4;border-radius:6px;padding:2px 6px;font-size:12px;background:#fff;color:#111;">'
+          + opts + '</select></div>';
+      }
+
+      const btnStyle  = 'background:#0d9488;color:#fff;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.2);';
+      const doneStyle = 'background:#d1d5db;color:#4b5563;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;';
+      // 보강 검증 — 회원 매칭 안 된 결재자가 있으면 신청 불가.
+      const hasUnmatched = (Array.isArray(p.approvers) ? p.approvers : []).some(a => a.matched === false);
+      const warn = hasUnmatched
+        ? '<div style="color:#dc2626;margin-top:3px;">⚠️ 회원 명단에서 확인되지 않은 결재자가 있습니다. AI 에게 정확한 성함(또는 소속 부서)을 다시 알려주세요.</div>'
+        : '';
+      let btn;
+      if (applied) {
+        btn = '<button type="button" disabled style="' + doneStyle + '">신청됨</button>';
+      } else if (hasUnmatched) {
+        btn = '<button type="button" disabled style="' + doneStyle + '">신청 불가</button>';
+      } else {
+        btn = '<button type="button" data-ai-confirm-leave="' + m.messageId + '" style="' + btnStyle + '">신청</button>';
+      }
+
+      return ''
+        + '<div class="mb-2 flex justify-start">'
+        +   '<div data-leave-card class="max-w-[85%] rounded-2xl border border-teal-200 bg-teal-50/50 p-3 text-xs text-gray-700 dark:border-teal-900/50 dark:bg-teal-900/20 dark:text-gray-200">'
+        +     '<div class="mb-1 text-[11px] font-semibold text-teal-600 dark:text-teal-300">🏖️ 휴가 신청 제안</div>'
+        +     '<div class="mt-1 space-y-1">'
+        +       typeField
+        +       (range ? '<div>🗓️ ' + range + (days ? ' · ' + days : '') + '</div>'
+                       : (days ? '<div>🗓️ ' + days + '</div>' : ''))
+        +       reason + line + warn
+        +     '</div>'
+        +     '<div class="mt-2 flex justify-end gap-2">' + btn + '</div>'
+        +   '</div>'
+        + '</div>';
+    }
+
     async function loadMessages(id) {
       const gen = ++messagesLoadGen;
       messagesEl.innerHTML = '<div class="text-center text-xs text-gray-400 py-6">불러오는 중...</div>';
@@ -794,6 +899,8 @@
       const t = m.proposal && m.proposal.type;
       if (t === 'calendar' || t === 'calendar_update' || t === 'calendar_delete') {
         html += calendarProposalCardHtml(m);
+      } else if (t === 'leave') {
+        html += leaveProposalCardHtml(m);
       }
       return html;
     }
@@ -845,6 +952,39 @@
         alert(actionLabel + '에 실패했습니다.');
         btn.disabled = false;
         btn.textContent = actionLabel;
+      }
+    });
+
+    // 휴가 신청 카드의 [신청] 버튼 위임 처리 → 전자결재 상신.
+    messagesEl.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-ai-confirm-leave]');
+      if (!btn) return;
+      const messageId = Number(btn.dataset.aiConfirmLeave);
+      if (!messageId) return;
+
+      // 카드 dropdown 에서 사용자가 최종 확정한 휴가 종류.
+      const card = btn.closest('[data-leave-card]');
+      const sel = card ? card.querySelector('[data-leave-type]') : null;
+      const vacationType = sel ? sel.value : null;
+
+      btn.disabled = true;
+      btn.textContent = '신청 중...';
+      try {
+        const res = await fetch('/api/ai/leave/confirm', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeader()),
+          body: JSON.stringify({ messageId, vacationType }),
+        });
+        if (!res.ok) throw new Error('confirm failed');
+        const confirmMsg = await res.json();
+        btn.textContent = '신청됨';
+        btn.style.cssText = 'background:#d1d5db;color:#4b5563;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;';
+        const me = currentMemberIdGuess();
+        appendMessage(aiMsgToChatBubble(confirmMsg, me));
+      } catch (err) {
+        alert('휴가 신청에 실패했습니다. 결재선 규정을 다시 확인해주세요.');
+        btn.disabled = false;
+        btn.textContent = '신청';
       }
     });
     // YouTube URL → videoId 추출. youtu.be/ID, youtube.com/watch?v=ID, youtube.com/shorts/ID, youtube.com/embed/ID 지원.

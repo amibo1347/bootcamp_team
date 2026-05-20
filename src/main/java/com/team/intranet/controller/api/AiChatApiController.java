@@ -98,4 +98,28 @@ public class AiChatApiController {
         if (messageId == null) return ResponseEntity.badRequest().build();
         return ResponseEntity.ok(aiChatService.confirmCalendarProposal(ms, messageId));
     }
+
+    /**
+     * 휴가 신청 제안 [신청] 확정 — body: { "messageId": 123, "vacationType": "ANNUAL_PAID_LEAVE" }.
+     * vacationType 은 카드 dropdown 에서 사용자가 확정한 휴가 종류 (생략 시 AI 추론값 사용).
+     * VACATION 양식으로 전자결재 기안. 응답: 확정 알림 메시지 (assistant role).
+     */
+    @PostMapping("/leave/confirm")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AiChatMessageDto> confirmLeave(
+            @RequestBody Map<String, Object> body,
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        Object midObj = body == null ? null : body.get("messageId");
+        if (midObj == null) return ResponseEntity.badRequest().build();
+        Long messageId;
+        try {
+            messageId = Long.valueOf(midObj.toString());
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().build();
+        }
+        Object vt = body.get("vacationType");
+        String vacationType = vt == null ? null : vt.toString();
+        return ResponseEntity.ok(aiChatService.confirmLeaveProposal(ms, messageId, vacationType));
+    }
 }

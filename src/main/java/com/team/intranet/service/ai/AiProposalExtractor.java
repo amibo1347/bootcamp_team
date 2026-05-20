@@ -17,8 +17,8 @@ import lombok.extern.slf4j.Slf4j;
  *      ```json:calendar
  *      { "title": "...", ... }
  *      ```
- *      ```json:approval        (4단계 예정)
- *      { "type": "vacation", ... }
+ *      ```json:leave
+ *      { "vacationType": "연차", ... }
  *      ```
  *
  *  추출 우선순위: 첫 번째 블록만 사용 (한 메시지에 하나의 제안).
@@ -28,9 +28,9 @@ import lombok.extern.slf4j.Slf4j;
 public class AiProposalExtractor {
 
     /** ```json:{type}  {...}  ``` 블록. multiline + DOTALL.
-     *  지원 type: calendar / calendar_update / calendar_delete / approval (4단계 예정) */
+     *  지원 type: calendar / calendar_update / calendar_delete / leave */
     private static final Pattern BLOCK_RE = Pattern.compile(
-        "```\\s*json:(?<type>calendar_update|calendar_delete|calendar|approval)\\s*\\n(?<body>.*?)\\n```",
+        "```\\s*json:(?<type>calendar_update|calendar_delete|calendar|leave)\\s*\\n(?<body>.*?)\\n```",
         Pattern.CASE_INSENSITIVE | Pattern.DOTALL
     );
 

@@ -2,6 +2,7 @@ package com.team.intranet.dto.ai;
 
 import java.time.format.DateTimeFormatter;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team.intranet.entity.AiChatMessage;
 import com.team.intranet.enums.AiChatRole;
@@ -28,8 +29,8 @@ public class AiChatMessageDto {
     private AiChatRole role;
     private String content;
     private String createdAt;
-    /** 일정 제안 등 액션 메타데이터. type 으로 분기 ("calendar" 등). */
-    private AiCalendarProposalDto proposal;
+    /** 액션 제안 메타데이터 (raw JSON). type 으로 분기 ("calendar" / "leave" 등). */
+    private JsonNode proposal;
     private Boolean proposalApplied;
 
     public static AiChatMessageDto from(AiChatMessage m) {
@@ -41,7 +42,7 @@ public class AiChatMessageDto {
         dto.proposalApplied = m.getProposalApplied();
         if (m.getProposalJson() != null && !m.getProposalJson().isBlank()) {
             try {
-                dto.proposal = MAPPER.readValue(m.getProposalJson(), AiCalendarProposalDto.class);
+                dto.proposal = MAPPER.readTree(m.getProposalJson());
             } catch (Exception ignored) {
                 // 깨진 JSON 이면 그냥 null 로 — 사용자에겐 일반 메시지로 보임
             }
