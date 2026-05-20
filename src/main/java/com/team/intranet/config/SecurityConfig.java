@@ -2,6 +2,7 @@ package com.team.intranet.config;
 
 import com.team.intranet.config.LoginFailureHandler;
 import com.team.intranet.config.LoginSuccessHandler;
+import com.team.intranet.repository.CompanyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -104,7 +105,8 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider,
+            CompanyRepository companyRepository) throws Exception {
         http
                 .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/api/**", "/company/**")
@@ -140,7 +142,9 @@ public class SecurityConfig {
                 .invalidateHttpSession(true) // 💡 서버 세션 완전히 삭제 (중요!)
                 .deleteCookies("JSESSIONID") // 💡 브라우저에 남은 세션 쿠키 삭제
                 .permitAll()
-                );
+                )
+                // 비활성 회사 소속 회원 자동 로그아웃 게이트
+                .addFilterAfter(new MemberCompanyGuardFilter(companyRepository), AuthorizationFilter.class);
 
         return http.build();
     }

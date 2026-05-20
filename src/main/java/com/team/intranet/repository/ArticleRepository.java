@@ -73,4 +73,8 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     @Query("UPDATE Article a SET a.authorDisplayName = :name WHERE a.author.memberId = :memberId AND a.authorDisplayName IS NULL")
     int markAuthorDisplayName(@Param("memberId") Long memberId, @Param("name") String name);
 
+    /** 회사별 게시글 수 (삭제 제외) — MASTER 사용량 대시보드. */
+    @Query("SELECT COUNT(a) FROM Article a WHERE a.board.company.companyId = :companyId AND a.isDeleted = false")
+    long countByCompanyId(@Param("companyId") Long companyId);
+
 }

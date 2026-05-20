@@ -1,8 +1,10 @@
 package com.team.intranet.config;
 
 import com.team.intranet.dto.BoardDto;
+import com.team.intranet.entity.SystemNotice;
 import com.team.intranet.service.BoardService;
 import com.team.intranet.service.MemberService;
+import com.team.intranet.service.SystemNoticeService;
 import com.team.intranet.session.MemberSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -18,6 +20,13 @@ public class GlobalModelAdvice {
     
     private final MemberService memberService;
     private final BoardService boardService;
+    private final SystemNoticeService systemNoticeService;
+
+    /** 현재 노출 대상 시스템 공지 — 전 회사 회원 화면 배너용. 없으면 null. */
+    @ModelAttribute("systemNotice")
+    public SystemNotice systemNotice() {
+        return systemNoticeService.findActiveNotice();
+    }
     
     @ModelAttribute("logoPath")
     public String logoPath(

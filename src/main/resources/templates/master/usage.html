@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" th:href="@{/css/master.css}" />
+  <title>회사 사용량</title>
+</head>
+
+<body class="master-page">
+  <div class="master-shell">
+    <div class="master-container">
+      <div class="master-panel">
+
+        <a th:href="@{/master}" class="master-link">← 콘솔로 돌아가기</a>
+
+        <div style="margin-top: 0.75rem;">
+          <span class="master-badge">MASTER</span>
+          <h1 class="master-title">회사 사용량</h1>
+          <p class="master-sub">회사별 회원·게시글·결재 사용 현황입니다.</p>
+        </div>
+
+        <table class="master-table">
+          <thead>
+            <tr>
+              <th>회사명</th>
+              <th>상태</th>
+              <th style="text-align: right;">회원 수</th>
+              <th style="text-align: right;">게시글 수</th>
+              <th style="text-align: right;">결재 수</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:if="${rows == null or rows.isEmpty()}">
+              <td colspan="5" class="master-empty">등록된 회사가 없습니다.</td>
+            </tr>
+            <tr th:each="row : ${rows}">
+              <td>
+                <a th:href="@{/master/companies/{id}(id=${row.companyId})}" class="master-link"
+                   th:text="${row.companyName}">회사명</a>
+              </td>
+              <td>
+                <span th:if="${row.active}" class="master-tag master-tag--on">활성</span>
+                <span th:unless="${row.active}" class="master-tag master-tag--off">비활성</span>
+              </td>
+              <td style="text-align: right;" th:text="${row.memberCount}">0</td>
+              <td style="text-align: right;" th:text="${row.articleCount}">0</td>
+              <td style="text-align: right;" th:text="${row.approvalCount}">0</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="master-sub" style="margin-top: 1rem;">
+          ※ 스토리지(첨부 파일 누적 용량) 집계는 추후 추가 예정입니다.
+        </p>
+
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

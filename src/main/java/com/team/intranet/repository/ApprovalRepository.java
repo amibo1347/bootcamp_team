@@ -29,4 +29,8 @@ public interface ApprovalRepository extends JpaRepository<Approval, Long>{
         @Param("memberId") Long memberId,
         @Param("pending") ApprovalStatus pending
     );
+
+    /** 회사별 결재 수 (기안자 기준) — MASTER 사용량 대시보드. */
+    @Query("SELECT COUNT(a) FROM Approval a WHERE a.drafter.company.companyId = :companyId")
+    long countByCompanyId(@Param("companyId") Long companyId);
 }
