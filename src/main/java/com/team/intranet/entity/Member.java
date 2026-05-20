@@ -152,6 +152,25 @@ public class Member {
         return member;
     }
 
+    // MASTER 가 회사 생성 시 함께 만드는 초기 ADMIN(대표) 회원 — 승인 절차 없이 즉시 JOIN.
+    public static Member createCompanyAdmin(String loginId, String encodedPassword, String name,
+                                            String email, Company company, Dept dept, Position position) {
+        Member member = new Member();
+        member.loginId = loginId;
+        member.password = encodedPassword;
+        member.name = name;
+        member.email = email;
+        member.company = company;
+        member.dept = dept;
+        member.position = position;
+        member.role = Role.ADMIN;
+        member.status = Status.JOIN;
+        member.createdAt = LocalDateTime.now();
+        member.acceptedAt = LocalDateTime.now();
+        member.statusChangedAt = LocalDateTime.now();
+        return member;
+    }
+
     // 가입 승인
     public void accept(Dept dept, Position position) {
         this.status = Status.JOIN;

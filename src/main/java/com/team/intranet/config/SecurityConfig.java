@@ -120,7 +120,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**", "/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/subAdmin/**", "/subAdmin/**").hasRole("SUB_ADMIN")
                 // 3. 누구나 접근 가능한 페이지 및 API (나중에 선언)
-                .requestMatchers("/error", "/index", "/calendar", "/member/**", "/api/member/**", "/images/**", "/api/uploads/**", "/uploads/**").permitAll()
+                .requestMatchers("/error", "/index", "/calendar", "/member/**", "/api/member/**", "/api/company/**", "/images/**", "/api/uploads/**", "/uploads/**").permitAll()
                 // 4. 그 외 모든 요청은 로그인 필요
                 .anyRequest().authenticated()
                 )

@@ -241,9 +241,11 @@ public class MemberService {
      * 기업 로고 경로
      */
     public String getLogoPath(Long companyId) {
-        return companyRepository.findById(companyId)
-            .map(Company::getLogoPath)
-            .orElse(null);
+        if (companyId == null) return null;
+        // 로고 BLOB 은 /api/company/{id}/logo 엔드포인트로 서빙. 로고가 있을 때만 URL 반환.
+        return companyRepository.existsByCompanyIdAndLogoIsNotNull(companyId)
+            ? "/api/company/" + companyId + "/logo"
+            : null;
     }
 
     /**

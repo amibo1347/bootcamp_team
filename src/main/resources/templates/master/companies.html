@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" th:href="@{/css/master.css}" />
+  <title>회사 관리</title>
+</head>
+
+<body class="master-page">
+  <div class="master-shell">
+    <div class="master-container">
+      <div class="master-panel">
+
+        <a th:href="@{/master}" class="master-link">← 콘솔로 돌아가기</a>
+
+        <div style="margin-top: 0.75rem;">
+          <span class="master-badge">MASTER</span>
+          <h1 class="master-title">회사 관리</h1>
+          <p class="master-sub">회사를 생성·관리합니다. 회사 생성 시 대표(ADMIN) 계정이 함께 만들어집니다.</p>
+        </div>
+
+        <div th:if="${errorMessage != null}" class="alert-box alert-error"
+             style="margin-top: 1.25rem;" role="alert">
+          <span th:text="${errorMessage}">오류 메시지</span>
+        </div>
+        <div th:if="${successMessage != null}" class="alert-box alert-success"
+             style="margin-top: 1.25rem;" role="status">
+          <span th:text="${successMessage}">완료 메시지</span>
+        </div>
+
+        <!-- 검색 -->
+        <form method="get" th:action="@{/master/companies}"
+              style="display: flex; gap: 0.5rem; margin-top: 1.25rem;">
+          <input type="text" name="q" class="field-input" th:value="${q}"
+                 placeholder="회사명 검색" style="flex: 1;" />
+          <button type="submit" class="master-btn-outline">검색</button>
+        </form>
+
+        <!-- 회사 목록 -->
+        <table class="master-table">
+          <thead>
+            <tr>
+              <th>회사명</th>
+              <th>회사 코드</th>
+              <th>도메인</th>
+              <th>상태</th>
+              <th style="text-align: right;">관리</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:if="${companies == null or companies.isEmpty()}">
+              <td colspan="5" class="master-empty">등록된 회사가 없습니다.</td>
+            </tr>
+            <tr th:each="company : ${companies}">
+              <td th:text="${company.companyName}">회사명</td>
+              <td style="font-family: monospace;" th:text="${company.companyCode}">CODE</td>
+              <td th:text="${company.companyDomain != null and !company.companyDomain.isBlank()
+                            ? company.companyDomain : '-'}">-</td>
+              <td>
+                <span th:if="${company.isActiveCompany()}" class="master-tag master-tag--on">활성</span>
+                <span th:unless="${company.isActiveCompany()}" class="master-tag master-tag--off">비활성</span>
+              </td>
+              <td style="text-align: right; white-space: nowrap;">
+                <a th:href="@{/master/companies/{id}(id=${company.companyId})}"
+                   class="master-btn-outline">수정</a>
+                <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+                <form method="post" style="display: inline;"
+                      th:action="@{/master/companies/{id}/toggle(id=${company.companyId})}">
+                  <button type="submit" class="master-btn-outline"
+                          th:text="${company.isActiveCompany()} ? '비활성화' : '활성화'">토글</button>
+                </form>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr class="master-divider" />
+        <h2 class="master-section-title">새 회사 추가</h2>
+
+        <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+        <form method="post" th:action="@{/master/companies}">
+          <p class="master-sub" style="margin-bottom: 0.75rem; font-weight: 600; color: #334155;">회사 정보</p>
+          <div class="field-group">
+            <label for="companyName" class="field-label">회사명</label>
+            <input type="text" id="companyName" name="companyName" class="field-input"
+                   th:value="${formCompanyName}" required />
+          </div>
+          <div class="field-group">
+            <label for="companyDomain" class="field-label">도메인 (선택)</label>
+            <input type="text" id="companyDomain" name="companyDomain" class="field-input"
+                   th:value="${formCompanyDomain}" placeholder="example.com" />
+          </div>
+
+          <p class="master-sub" style="margin: 1.25rem 0 0.75rem; font-weight: 600; color: #334155;">
+            대표(ADMIN) 계정
+          </p>
+          <div class="field-group">
+            <label for="adminLoginId" class="field-label">대표 아이디</label>
+            <input type="text" id="adminLoginId" name="adminLoginId" class="field-input"
+                   th:value="${formAdminLoginId}" autocomplete="off" required />
+          </div>
+          <div class="field-group">
+            <label for="adminName" class="field-label">대표 이름</label>
+            <input type="text" id="adminName" name="adminName" class="field-input"
+                   th:value="${formAdminName}" required />
+          </div>
+          <div class="field-group">
+            <label for="adminEmail" class="field-label">대표 이메일 (선택)</label>
+            <input type="email" id="adminEmail" name="adminEmail" class="field-input"
+                   th:value="${formAdminEmail}" />
+          </div>
+          <div class="field-group">
+            <label for="adminPassword" class="field-label">대표 초기 비밀번호 (8자 이상)</label>
+            <input type="password" id="adminPassword" name="adminPassword" class="field-input"
+                   autocomplete="new-password" minlength="8" required />
+          </div>
+          <div class="field-group" style="margin-bottom: 0;">
+            <label for="adminConfirmPassword" class="field-label">초기 비밀번호 확인</label>
+            <input type="password" id="adminConfirmPassword" name="adminConfirmPassword" class="field-input"
+                   autocomplete="new-password" minlength="8" required />
+          </div>
+          <button type="submit" class="master-btn" style="margin-top: 1.5rem;">회사 생성</button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
