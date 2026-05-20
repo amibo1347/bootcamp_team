@@ -133,7 +133,7 @@
           <span class="mr-3 h-11 w-11 overflow-hidden rounded-full">
             <img th:if="${session.memberSession?.memberId != null}"
               th:src="@{/api/member/{id}/profileImg(id=${session.memberSession.memberId})}"
-              onerror="this.src='/images/user/defalut_user.jpg'" alt="프로필 사진" class="w-full h-full object-cover" />
+              onerror="this.src='/images/user/default_user.jpg'" alt="프로필 사진" class="w-full h-full object-cover" />
             <img th:unless="${session.memberSession?.memberId != null}" src="/images/user/defalut_user.jpg" alt="프로필 사진"
               class="w-full h-full object-cover" />
           </span>

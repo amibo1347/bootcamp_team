@@ -38,7 +38,6 @@ import com.team.intranet.service.ApprovalService;
 import com.team.intranet.session.MemberSession;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * AI 비서 도메인 서비스 — 세션 관리 + LLM 호출.
@@ -47,7 +46,6 @@ import lombok.extern.slf4j.Slf4j;
  *  - 호출 시 최근 N개 메시지를 LLM context 로 전달 (토큰 한계 대응).
  *  - 회원당 일일 USER 메시지 수 제한 = AiConfig.rateLimitPerDay.
  */
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AiChatService {
@@ -172,7 +170,6 @@ public class AiChatService {
         try {
             resp = llmClientFactory.generate(llmMessages);
         } catch (Exception e) {
-            log.warn("[AI-CHAT] LLM 호출 실패 sessionId={} : {}", sessionId, e.toString());
             // 429 (quota 초과) 는 별도 ErrorCode 로 친절한 안내
             if (e.getMessage() != null && e.getMessage().contains("HTTP 429")) {
                 throw new BusinessException(ErrorCode.AI_PROVIDER_QUOTA_EXCEEDED);
@@ -200,10 +197,6 @@ public class AiChatService {
         // 6. 세션 갱신 시각 touch
         session.touch();
 
-        log.info("[AI-CHAT] sessionId={} userMsgId={} assistantMsgId={} promptTokens={} completionTokens={}",
-            sessionId, userMsg.getMessageId(), assistantMsg.getMessageId(),
-            resp.promptTokens(), resp.completionTokens());
-
         return AiChatMessageDto.from(assistantMsg);
     }
 
@@ -230,7 +223,6 @@ public class AiChatService {
         try {
             p = objectMapper.readValue(msg.getProposalJson(), AiCalendarProposalDto.class);
         } catch (Exception e) {
-            log.warn("[AI-CHAT] proposal JSON 파싱 실패 messageId={} json={}", messageId, msg.getProposalJson(), e);
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
         String type = p.type() == null ? "" : p.type().toLowerCase();
@@ -245,8 +237,6 @@ public class AiChatService {
         } catch (BusinessException be) {
             throw be;
         } catch (Exception e) {
-            log.error("[AI-CHAT] apply 실패 messageId={} type={} calendarId={} attendees={} proposalJson={}",
-                messageId, type, p.calendarId(), p.attendeeNames(), msg.getProposalJson(), e);
             throw new BusinessException(ErrorCode.AI_PROVIDER_ERROR);
         }
 
@@ -270,8 +260,7 @@ public class AiChatService {
             cdto.setShareMemberIds(share.memberIds);
         }
 
-        com.team.intranet.entity.Calendar created = calendarService.createCalendar(ms, cdto);
-        log.info("[AI-CHAT] calendar created id={} sharedWith={}", created.getCalendarId(), share.matchedNames);
+        calendarService.createCalendar(ms, cdto);
         return "✅ 일정이 등록되었습니다.\n• " + cdto.getTitle()
             + "\n• 시간: " + formatRange(startAt, endAt)
             + (notBlank(cdto.getLocation()) ? "\n• 장소: " + cdto.getLocation() : "")
@@ -287,9 +276,6 @@ public class AiChatService {
 
         com.team.intranet.dto.CalendarDto cdto = buildCalendarDto(ms, p, startAt, endAt);
         ShareInfo share = resolveAttendees(ms, p.attendeeNames());
-        log.info("[AI-CHAT] applyUpdate calendarId={} title={} start={} end={} attendees={} matched={} memberIds={}",
-            p.calendarId(), cdto.getTitle(), startAt, endAt,
-            p.attendeeNames(), share.matchedNames, share.memberIds);
 
         if (!share.memberIds.isEmpty()) {
             cdto.setVisibility(com.team.intranet.enums.Visibility.SPECIFIC);
@@ -297,7 +283,6 @@ public class AiChatService {
         }
 
         calendarService.updateCalendar(ms, p.calendarId(), cdto);
-        log.info("[AI-CHAT] calendar updated id={} sharedWith={}", p.calendarId(), share.matchedNames);
         return "✏️ 일정이 수정되었습니다.\n• " + cdto.getTitle()
             + "\n• 시간: " + formatRange(startAt, endAt)
             + (notBlank(cdto.getLocation()) ? "\n• 장소: " + cdto.getLocation() : "")
@@ -381,7 +366,6 @@ public class AiChatService {
         if (title == null || title.isBlank()) title = "일정";
 
         calendarService.deleteCalendar(ms, p.calendarId());
-        log.info("[AI-CHAT] calendar deleted id={}", p.calendarId());
 
         StringBuilder msg = new StringBuilder("🗑️ '").append(title).append("' 일정을 삭제했습니다.");
         if (timeRange != null) msg.append("\n• 시간: ").append(timeRange);
@@ -429,7 +413,6 @@ public class AiChatService {
         try {
             p = objectMapper.readValue(msg.getProposalJson(), AiLeaveProposalDto.class);
         } catch (Exception e) {
-            log.warn("[AI-LEAVE] proposal JSON 파싱 실패 messageId={} json={}", messageId, msg.getProposalJson(), e);
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
 
@@ -467,7 +450,6 @@ public class AiChatService {
         } catch (BusinessException be) {
             throw be;
         } catch (Exception e) {
-            log.error("[AI-LEAVE] 결재 기안 실패 messageId={} json={}", messageId, msg.getProposalJson(), e);
             throw new BusinessException(ErrorCode.AI_PROVIDER_ERROR);
         }
 
@@ -485,7 +467,6 @@ public class AiChatService {
         AiChatMessage confirmMsg = messageRepository.save(
             AiChatMessage.assistant(session, confirmText, null, null));
         session.touch();
-        log.info("[AI-LEAVE] 휴가 결재 상신 memberId={} approvalLine={}", drafter.getMemberId(), approvalLine);
         return AiChatMessageDto.from(confirmMsg);
     }
 
@@ -556,7 +537,6 @@ public class AiChatService {
             ((com.fasterxml.jackson.databind.node.ObjectNode) root).set("approvers", approvers);
             return objectMapper.writeValueAsString(root);
         } catch (Exception e) {
-            log.warn("[AI-LEAVE] proposal 보강 실패 — 원본 유지: {}", e.toString());
             return proposalJson;
         }
     }

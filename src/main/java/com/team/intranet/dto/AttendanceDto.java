@@ -1,6 +1,5 @@
 package com.team.intranet.dto;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -65,6 +64,4 @@ public class AttendanceDto {
     private static String formatDatetime(LocalDateTime t) {
         return t == null ? null : t.format(DATETIME);
     }
-
-    public static LocalDate today() { return LocalDate.now(); }
 }

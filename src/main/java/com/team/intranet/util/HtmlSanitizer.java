@@ -37,13 +37,4 @@ public class HtmlSanitizer {
             // 사용자 첨부 이미지를 위한 base64 허용 (또는 cid 등)
             .preserveRelativeLinks(true);
     }
-    
-    /**
-     * 텍스트만 추출 (모든 태그 제거)
-     * - 미리보기, 검색 키워드 추출에 사용
-     */
-    public static String extractText(String html) {
-        if (html == null) return "";
-        return Jsoup.clean(html, Safelist.none());
-    }
 }

@@ -8,8 +8,6 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * LLM 응답 텍스트에서 액션 제안 JSON 블록을 추출하고, 본문에서는 제거한다.
  *
@@ -23,7 +21,6 @@ import lombok.extern.slf4j.Slf4j;
  *
  *  추출 우선순위: 첫 번째 블록만 사용 (한 메시지에 하나의 제안).
  */
-@Slf4j
 @Component
 public class AiProposalExtractor {
 
@@ -62,13 +59,11 @@ public class AiProposalExtractor {
         try {
             JsonNode node = mapper.readTree(body);
             if (!node.isObject()) {
-                log.warn("[AI-PROPOSAL] JSON 이 object 가 아님: {}", body);
                 return Extracted.none(raw);
             }
             ((com.fasterxml.jackson.databind.node.ObjectNode) node).put("type", type);
             return new Extracted(cleaned, type, mapper.writeValueAsString(node));
         } catch (Exception e) {
-            log.warn("[AI-PROPOSAL] JSON 파싱 실패: {} — body={}", e.toString(), body);
             return Extracted.none(raw);
         }
     }

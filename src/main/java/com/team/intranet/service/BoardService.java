@@ -33,9 +33,7 @@ import com.team.intranet.repository.PositionRepository;
 import com.team.intranet.session.MemberSession;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -96,7 +94,6 @@ public class BoardService {
                 .filter(board -> canRead(ms, board))
                 .map(BoardDto::from)
                 .toList();
-        log.info("findVisibleBoards size={}, items={}", result.size(), result);
         return result;
     }
 

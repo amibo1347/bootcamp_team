@@ -11,15 +11,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * 채팅 실시간 이벤트 브로커 (Server-Sent Events).
  *  - 회원별로 다중 emitter 보관: 같은 사람이 여러 탭/장치로 동시 접속 가능.
  *  - 메시지 publish 는 상대방에게만. 발송자 본인은 sendMessage 응답으로 이미 받음.
  *  - 끊긴 emitter 는 onCompletion / onTimeout / onError 콜백에서 자동 제거.
  */
-@Slf4j
 @Service
 public class ChatSseService {
 
@@ -33,18 +30,14 @@ public class ChatSseService {
         SseEmitter emitter = new SseEmitter(TIMEOUT_MS);
         List<SseEmitter> list = emittersByMember.computeIfAbsent(memberId, k -> new CopyOnWriteArrayList<>());
         list.add(emitter);
-        log.info("[SSE-CHAT] subscribe memberId={} now total emitters for member={}, total members={}",
-            memberId, list.size(), emittersByMember.size());
 
         Runnable cleanup = () -> {
             list.remove(emitter);
             if (list.isEmpty()) emittersByMember.remove(memberId, list);
-            log.info("[SSE-CHAT] cleanup memberId={} remaining emitters for member={}",
-                memberId, list.size());
         };
         emitter.onCompletion(cleanup);
         emitter.onTimeout(cleanup);
-        emitter.onError(e -> { log.warn("[SSE-CHAT] error memberId={}: {}", memberId, e.toString()); cleanup.run(); });
+        emitter.onError(e -> cleanup.run());
 
         // 첫 핸드셰이크 — 연결 확인용. 실패해도 무시 (즉시 끊긴 케이스).
         try {
@@ -61,18 +54,13 @@ public class ChatSseService {
     /** toMemberId 의 모든 활성 emitter 에 채팅 메시지 이벤트 전송. */
     public void publishMessage(Long toMemberId, Map<String, Object> payload) {
         List<SseEmitter> list = emittersByMember.get(toMemberId);
-        int size = list == null ? 0 : list.size();
-        log.info("[SSE-CHAT] publishMessage to memberId={} emitterCount={} payload={}",
-            toMemberId, size, payload);
         if (list == null || list.isEmpty()) return;
         for (SseEmitter e : list) {
             try {
                 e.send(SseEmitter.event()
                     .name(EVENT_CHAT_MESSAGE)
                     .data(payload, MediaType.APPLICATION_JSON));
-                log.info("[SSE-CHAT] send OK memberId={}", toMemberId);
             } catch (Exception ex) {
-                log.warn("[SSE-CHAT] send FAILED memberId={}: {}", toMemberId, ex.toString());
                 try { e.completeWithError(ex); } catch (Exception ignored) {}
             }
         }
@@ -92,7 +80,6 @@ public class ChatSseService {
                     e.send(SseEmitter.event().name("ping").data("hb"));
                 } catch (Exception ex) {
                     // 좀비 — completeWithError → onError 콜백 → cleanup 자동
-                    log.info("[SSE-CHAT] heartbeat dead emitter memberId={}: {}", memberId, ex.toString());
                     try { e.completeWithError(ex); } catch (Exception ignored) {}
                 }
             }

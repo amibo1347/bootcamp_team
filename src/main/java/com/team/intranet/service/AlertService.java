@@ -321,8 +321,6 @@ public class AlertService {
                                      com.team.intranet.entity.ChatConversation conversation,
                                      String preview) {
         if (recipientId == null || conversation == null) {
-            log.warn("[ALERT-CHAT] sendChatMessageAlert skipped: recipientId={}, conversation={}",
-                recipientId, conversation);
             return;
         }
         if (senderId != null && senderId.equals(recipientId)) return;
@@ -341,9 +339,7 @@ public class AlertService {
             .sender(sender)
             .expiresAt(LocalDateTime.now().plusDays(30))
             .build();
-        Alert saved = alertRepository.save(alert);
-        log.info("[ALERT-CHAT] saved alertId={} recipientId={} convId={}",
-            saved.getAlertId(), recipientId, conversation.getConversationId());
+        alertRepository.save(alert);
     }
 
     /** 본인의 채팅 안 읽음 총합 (FAB / 헤더 배지). */
@@ -364,8 +360,6 @@ public class AlertService {
     public int markChatRead(MemberSession ms, Long conversationId) {
         int deleted = alertRepository.deleteByRecipientAndChatConversation(
             ms.getMemberId(), conversationId);
-        log.info("[ALERT-CHAT] markChatRead memberId={} convId={} deleted={}",
-            ms.getMemberId(), conversationId, deleted);
         return deleted;
     }
 

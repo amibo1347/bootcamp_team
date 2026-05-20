@@ -1258,21 +1258,15 @@
     }
 
     function connectChatStream() {
-      if (typeof EventSource === 'undefined') { console.warn('[SSE-CHAT] EventSource not supported'); return; }
+      if (typeof EventSource === 'undefined') return;
       let es;
       try {
         es = new EventSource('/api/chat/stream');
-        console.log('[SSE-CHAT] EventSource creating: /api/chat/stream');
-      } catch (err) {
-        console.error('[SSE-CHAT] EventSource creation failed', err);
+      } catch {
         return;
       }
-      es.addEventListener('open', () => console.log('[SSE-CHAT] open — connected. readyState=', es.readyState));
-      es.addEventListener('ready', (e) => console.log('[SSE-CHAT] ready handshake:', e.data));
-      es.addEventListener('error', (e) => console.error('[SSE-CHAT] error. readyState=', es.readyState, e));
       const onChatEvent = (evt) => {
-        console.log('[SSE-CHAT] chat-message received:', evt.data);
-        try { handleChatSsePayload(JSON.parse(evt.data)); } catch (err) { console.error('[SSE-CHAT] parse failed', err); }
+        try { handleChatSsePayload(JSON.parse(evt.data)); } catch {}
       };
       es.addEventListener('chat-message', onChatEvent);
       es.addEventListener('message', onChatEvent);

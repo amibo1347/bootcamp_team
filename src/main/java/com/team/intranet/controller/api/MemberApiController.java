@@ -85,7 +85,6 @@ public class MemberApiController {
                 return ResponseEntity.notFound().build(); // 404를 리턴해서 서버가 죽지 않게 함
             }
         } catch (Exception e) {
-            e.printStackTrace(); // 어떤 에러인지 콘솔에 상세히 찍음
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
