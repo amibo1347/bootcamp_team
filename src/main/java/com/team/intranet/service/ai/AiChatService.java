@@ -14,11 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 import com.team.intranet.dto.ai.AiCalendarProposalDto;
 import com.team.intranet.dto.ai.AiChatMessageDto;
 import com.team.intranet.dto.ai.AiChatSessionDto;
+import com.team.intranet.dto.ai.AiExpenseProposalDto;
 import com.team.intranet.dto.ai.AiLeaveProposalDto;
 import com.team.intranet.dto.ai.LlmMessage;
 import com.team.intranet.dto.ai.LlmResponse;
 import com.team.intranet.dto.approval.ApprovalSubmitRequest;
 import com.team.intranet.dto.approval.ApproverCandidate;
+import com.team.intranet.dto.approval.ExpensePayload;
 import com.team.intranet.dto.approval.VacationPayload;
 import com.team.intranet.entity.AiChatMessage;
 import com.team.intranet.entity.AiChatSession;
@@ -66,9 +68,12 @@ public class AiChatService {
         + "월요일|화요일|수요일|목요일|금요일|토요일|일요일|"
         + "내일|모레|오늘|어제|이번\\s*주|다음\\s*주|이번\\s*달|다음\\s*달|"
         + "\\d{1,2}\\s*시|\\d{1,2}\\s*일|\\d{1,2}\\s*월");
-    /** 휴가 신청 — 게시판(결재선 규칙) + 일정 + 직급 컨텍스트를 모두 첨부해야 함. */
+    /** 휴가 신청 키워드. "결재선/결재자" 같은 공용 단어는 제외 — 지출 대화를 휴가로 오인하지 않도록. */
     private static final java.util.regex.Pattern LEAVE_KEYWORDS = java.util.regex.Pattern.compile(
-        "휴가|연차|반차|월차|병가|경조사|휴직|연가|결재선|결재자");
+        "휴가|연차|반차|월차|병가|경조사|휴직|연가");
+    /** 지출결의서 신청 — 결재선 + 직급 컨텍스트를 첨부해야 함. */
+    private static final java.util.regex.Pattern EXPENSE_KEYWORDS = java.util.regex.Pattern.compile(
+        "지출|결의서|지출\\s*결의|경비|영수증|정산|식대|교통비|출장비|회식비|법인카드|법카|환급|비용\\s*청구|비용\\s*처리");
 
     private final AiChatSessionRepository sessionRepository;
     private final AiChatMessageRepository messageRepository;
@@ -82,7 +87,7 @@ public class AiChatService {
     private final com.team.intranet.repository.CalendarRepository calendarRepository;
     private final FormTemplateRepository formTemplateRepository;
     private final ApprovalService approvalService;
-    // FAIL_ON_UNKNOWN_PROPERTIES=false — enrichLeaveProposal 이 추가한 표시용 필드(approvers 등)가
+    // FAIL_ON_UNKNOWN_PROPERTIES=false — enrichApproverProposal 이 추가한 표시용 필드(approvers 등)가
     // DTO(record)에 없어도 역직렬화가 실패하지 않도록.
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper =
         new com.fasterxml.jackson.databind.ObjectMapper()
@@ -193,9 +198,10 @@ public class AiChatService {
         AiChatMessage assistantMsg = AiChatMessage.assistant(session, content,
             resp.promptTokens(), resp.completionTokens());
         if (ex.proposalJson() != null) {
-            // 휴가 제안이면 결재자 이름에 부서/직급을 보강 → 카드에서 "홍길동(인사팀/부장)" 표시.
-            String proposalJson = "leave".equals(ex.proposalType())
-                ? enrichLeaveProposal(ex.proposalJson(), ms)
+            // 휴가·지출 제안이면 결재자 이름에 부서/직급을 보강 → 카드에서 "홍길동(인사팀/부장)" 표시.
+            String pType = ex.proposalType();
+            String proposalJson = ("leave".equals(pType) || "expense".equals(pType))
+                ? enrichApproverProposal(ex.proposalJson(), ms)
                 : ex.proposalJson();
             assistantMsg.setProposalJson(proposalJson);
             assistantMsg.setProposalApplied(false);
@@ -481,6 +487,97 @@ public class AiChatService {
         return AiChatMessageDto.from(confirmMsg);
     }
 
+    // ─── 지출결의서 신청 제안 확정 (전자결재 기안) ───────────────────
+
+    /**
+     * 사용자가 지출결의서 카드의 [신청] 버튼을 누른 경우.
+     * proposalJson(expense) 파싱 → 결재선 이름을 회원으로 매칭 → EXPENSE 양식으로 전자결재 기안.
+     *
+     * @param attachmentIds 카드 하단에서 미리 업로드한 첨부파일 id (선택 사항, null/빈 리스트 허용).
+     */
+    @Transactional
+    public AiChatMessageDto confirmExpenseProposal(MemberSession ms, Long messageId,
+                                                   List<Long> attachmentIds) {
+        AiChatMessage msg = messageRepository.findById(messageId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.AI_SESSION_NOT_FOUND));
+        AiChatSession session = loadAndAssertOwner(ms, msg.getSession().getSessionId());
+
+        if (Boolean.TRUE.equals(msg.getProposalApplied())) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
+        if (msg.getProposalJson() == null || msg.getProposalJson().isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+
+        AiExpenseProposalDto p;
+        try {
+            p = objectMapper.readValue(msg.getProposalJson(), AiExpenseProposalDto.class);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+
+        if (p.amount() == null || p.amount() <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+        LocalDate spentAt = parseLocalDate(p.spentAt());
+        if (spentAt == null) throw new BusinessException(ErrorCode.INVALID_INPUT);
+        String category = (p.category() != null && !p.category().isBlank())
+            ? p.category().trim() : "기타";
+        String description = (p.description() != null && !p.description().isBlank())
+            ? p.description().trim() : null;
+
+        Member drafter = session.getMember();
+        List<Long> approvalLine = resolveApproverLine(ms, p.approverNames());
+
+        // EXPENSE 양식 — 회사 사본 우선, 없으면 시스템 디폴트.
+        FormTemplate template = formTemplateRepository
+            .findByCompanyAndFormCode(drafter.getCompany(), "EXPENSE")
+            .or(() -> formTemplateRepository.findByCompanyIsNullAndFormCode("EXPENSE"))
+            .orElseThrow(() -> new BusinessException(ErrorCode.FORM_TEMPLATE_NOT_FOUND));
+
+        ApprovalSubmitRequest req = new ApprovalSubmitRequest();
+        req.setFormTemplateId(template.getFormTemplateId());
+        req.setFormCode("EXPENSE");
+        req.setApprovalLine(approvalLine);
+        req.setTitle(buildExpenseTitle(category, p.amount()));
+        req.setExpense(new ExpensePayload(p.amount(), category, spentAt, description));
+        req.setAttachmentIds(attachmentIds); // 선택 사항 — null/빈 리스트면 첨부 없음
+
+        try {
+            approvalService.submit(ms, req);
+        } catch (BusinessException be) {
+            throw be;
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.AI_PROVIDER_ERROR);
+        }
+
+        msg.setProposalApplied(true);
+
+        String approverNames = approvalLine.stream()
+            .map(id -> memberRepository.findById(id).map(Member::getName).orElse("?"))
+            .reduce((a, b) -> a + " → " + b).orElse("");
+        String confirmText = "✅ 지출결의서가 결재 상신되었습니다."
+            + "\n• " + req.getTitle()
+            + "\n• 금액: " + formatWon(p.amount()) + "원"
+            + "\n• 분류: " + category
+            + "\n• 지출일: " + spentAt.format(DateTimeFormatter.ofPattern("yyyy년 M월 d일"))
+            + "\n• 결재선: " + approverNames;
+
+        AiChatMessage confirmMsg = messageRepository.save(
+            AiChatMessage.assistant(session, confirmText, null, null));
+        session.touch();
+        return AiChatMessageDto.from(confirmMsg);
+    }
+
+    private String buildExpenseTitle(String category, Long amount) {
+        return "[지출결의] " + category + " " + formatWon(amount) + "원";
+    }
+
+    /** 금액에 천 단위 구분 쉼표. */
+    private static String formatWon(Long amount) {
+        return amount == null ? "0" : String.format("%,d", amount);
+    }
+
     /**
      * 결재자 이름 배열 → 회원 ID 결재선. 사용자가 대화로 정한 순서를 그대로 결재 순서로 사용.
      *  - 회사 + 활성(JOIN) 회원 중 이름이 정확히 일치하는 회원으로 매칭.
@@ -510,11 +607,11 @@ public class AiChatService {
     }
 
     /**
-     * 휴가 제안 JSON 의 approverNames 를 회원 매칭해 카드 표시용 approvers 배열을 보강한다.
+     * 휴가·지출 제안 JSON 의 approverNames 를 회원 매칭해 카드 표시용 approvers 배열을 보강한다.
      *  - approvers: [{name, dept, position, matched}] — 카드가 "홍길동(인사팀/부장)" 렌더에 사용.
      *  - 매칭 실패/동명이인은 matched=false 로 표시만 하고, 실제 검증은 confirm 단계에서 수행.
      */
-    private String enrichLeaveProposal(String proposalJson, MemberSession ms) {
+    private String enrichApproverProposal(String proposalJson, MemberSession ms) {
         try {
             com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(proposalJson);
             if (!root.isObject()) return proposalJson;
@@ -627,10 +724,12 @@ public class AiChatService {
         Collections.reverse(recent);
 
         boolean includeLeave    = needsLeaveContext(userContent, recent);
+        boolean includeExpense  = needsExpenseContext(userContent, recent);
         boolean includeBoard    = includeLeave
             || (userContent != null && BOARD_KEYWORDS.matcher(userContent).find());
         boolean includeCalendar = includeLeave || needsCalendarContext(userContent, recent);
-        out.add(LlmMessage.system(buildSystemPrompt(ms, me, includeBoard, includeCalendar, includeLeave)));
+        out.add(LlmMessage.system(
+            buildSystemPrompt(ms, me, includeBoard, includeCalendar, includeLeave, includeExpense)));
 
         for (AiChatMessage m : recent) {
             String content = m.getContent() == null ? "" : m.getContent();
@@ -666,24 +765,48 @@ public class AiChatService {
     }
 
     /**
-     * 휴가 컨텍스트 첨부 여부:
-     *  - 사용자 메시지에 휴가/연차/결재선 관련 키워드가 있거나
-     *  - 직전 ASSISTANT 가 휴가 신청 카드(json:leave)를 띄운 상태 (=결재선 보완 대화 중) 면 첨부.
+     * 휴가 컨텍스트 첨부 여부 — 한 번 시작된 휴가 흐름은 카드가 뜰 때까지 안정적으로 유지한다.
+     *  - 이번 사용자 메시지에 휴가 키워드가 있거나
+     *  - 최근 대화 묶음(USER 메시지 또는 json:leave 카드) 안에 휴가 흐름이 진행 중이면 첨부.
+     * 직전 ASSISTANT 1건만 보면 키워드 없는 중간 턴에서 안내가 끊겼기 때문에 묶음 전체를 스캔한다.
      */
     private boolean needsLeaveContext(String userContent, List<AiChatMessage> recent) {
         if (userContent != null && LEAVE_KEYWORDS.matcher(userContent).find()) return true;
-        for (int i = recent.size() - 1; i >= 0; i--) {
-            AiChatMessage m = recent.get(i);
-            if (m.getRole() == AiChatRole.ASSISTANT) {
+        for (AiChatMessage m : recent) {
+            if (m.getRole() == AiChatRole.USER) {
+                String c = m.getContent();
+                if (c != null && LEAVE_KEYWORDS.matcher(c).find()) return true;
+            } else if (m.getRole() == AiChatRole.ASSISTANT) {
                 String pj = m.getProposalJson();
-                return pj != null && pj.contains("\"type\":\"leave\"");
+                if (pj != null && pj.contains("\"type\":\"leave\"")) return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 지출 컨텍스트 첨부 여부 — 한 번 시작된 지출 흐름은 카드가 뜰 때까지 안정적으로 유지한다.
+     *  - 이번 사용자 메시지에 지출 키워드가 있거나
+     *  - 최근 대화 묶음(USER 메시지 또는 json:expense 카드) 안에 지출 흐름이 진행 중이면 첨부.
+     * 직전 ASSISTANT 1건만 보면 키워드 없는 중간 턴에서 안내가 끊겼기 때문에 묶음 전체를 스캔한다.
+     */
+    private boolean needsExpenseContext(String userContent, List<AiChatMessage> recent) {
+        if (userContent != null && EXPENSE_KEYWORDS.matcher(userContent).find()) return true;
+        for (AiChatMessage m : recent) {
+            if (m.getRole() == AiChatRole.USER) {
+                String c = m.getContent();
+                if (c != null && EXPENSE_KEYWORDS.matcher(c).find()) return true;
+            } else if (m.getRole() == AiChatRole.ASSISTANT) {
+                String pj = m.getProposalJson();
+                if (pj != null && pj.contains("\"type\":\"expense\"")) return true;
             }
         }
         return false;
     }
 
     private String buildSystemPrompt(MemberSession ms, Member me, boolean includeBoard,
-                                     boolean includeCalendar, boolean includeLeave) {
+                                     boolean includeCalendar, boolean includeLeave,
+                                     boolean includeExpense) {
         String position    = me.getPosition() != null ? me.getPosition().getPositionName() : "직원";
         String dept        = me.getDept()     != null ? me.getDept().getDeptName()        : "미지정";
         String companyName = me.getCompany()  != null ? me.getCompany().getCompanyName()  : "(미지정)";
@@ -806,7 +929,8 @@ public class AiChatService {
         String calendarContext = includeCalendar
             ? aiCalendarContextService.buildContext(me.getMemberId()) : "";
         String leaveContext    = includeLeave ? buildLeaveGuide(ms) : "";
-        return basePrompt + boardContext + calendarContext + leaveContext;
+        String expenseContext  = includeExpense ? buildExpenseGuide(ms) : "";
+        return basePrompt + boardContext + calendarContext + leaveContext + expenseContext;
     }
 
     /** 휴가 신청 안내 + 휴가 종류 목록 + 결재 가능 회원 명단. includeLeave 일 때만 첨부. */
@@ -865,6 +989,65 @@ public class AiChatService {
             sb.append("- ").append(vt.name()).append(" : ").append(vt.getDescription()).append("\n");
         }
 
+        appendApproverCandidates(sb, ms);
+        return sb.toString();
+    }
+
+    /** 지출결의서 신청 안내 + 결재 가능 회원 명단. includeExpense 일 때만 첨부. */
+    private String buildExpenseGuide(MemberSession ms) {
+        StringBuilder sb = new StringBuilder("""
+
+
+            🧾 지출결의서 신청 — AI 비서를 통한 전자결재 상신 (단계별 진행):
+
+            [1단계] 지출 정보 수집 — 필수 항목: 금액 · 분류 · 지출일 · 결재선 (상세 내역은 선택)
+            • ⚠️ "추가로 필요한 정보가 있나요?" 처럼 모호하게 묻지 마세요. 사용자는 무엇이 더
+              필요한지 모릅니다. 아직 받지 못한 필수 항목을 콕 집어 직접 물어보세요.
+              (예: "금액과 결재선을 알려주세요." / "결재자 성함을 알려주세요.")
+            • 분류는 식대/교통비/출장비/회식비/비품 등 자유 텍스트입니다.
+            • 지출일은 "어제", "지난주 금요일" 등 자연어를 오늘 날짜 기준으로 계산하세요.
+            • 상세 내역은 선택 사항 — 사용자가 말하지 않으면 빈 문자열로 두고 굳이 다시 묻지 마세요.
+
+            [2단계] 결재선 확정 — ⚠️ 절대 임의로 만들지 말고, 반드시 명시적으로 물어보세요.
+            • 금액·분류·지출일을 받았으면 다음으로 결재선(결재자 성함)을 **반드시 직접 물어보세요.**
+              결재선 없이는 결재를 올릴 수 없습니다. 사용자가 먼저 말해줄 거라 가정하지 마세요.
+            • 결재선은 결재자 "회원" 으로 지정됩니다. 1단계(첫 결재)부터 순서대로 성함을 받으세요.
+            • 사용자가 말한 순서를 그대로 1단계 → 최종 결재 순서로 사용하세요.
+            • approverNames 에는 사용자가 알려준 결재자 성함을 그대로 담으세요. 입력된 이름은
+              시스템이 회원 명단과 자동 대조하며, 잘못된 이름·동명이인은 카드에 경고로 표시됩니다.
+            • 결재자 관련 추가 안내는 아래 "결재자 안내" 항목을 따르세요.
+            • ⚠️ 결재선을 추측하거나 예시 이름을 복사하지 마세요. 결재선이 확정되기 전에는
+              json:expense 블록을 출력하지 말고 본문으로 계속 되물으세요.
+
+            [3단계] 카드 출력
+            • 금액·분류·지출일 + 확정된 결재선이 모두 모이면 짧은 확인 문장 + json:expense 블록 1개 출력.
+            • ⚠️ 지출결의서 카드는 반드시 json:expense 블록만 사용하세요.
+              json:calendar·json:leave 블록은 절대 출력 금지 — 지출결의서는 일정도 휴가도 아닙니다.
+            • AI 는 자동 제출하지 않습니다. 카드만 제시하고 사용자가 [신청] 버튼을 누릅니다.
+            • [신청] 버튼을 누르면 전자결재가 상신되고 1단계 결재자에게 알림이 갑니다.
+
+            ```json:expense
+            {
+              "amount": 50000,
+              "category": "식대",
+              "spentAt": "2026-05-20",
+              "description": "팀 점심 회식",
+              "approverNames": ["(1단계 결재자 성함)", "(최종 결재자 성함)"]
+            }
+            ```
+            • amount: 지출 금액(원). 숫자만 (쉼표·"원" 제외). 확정 안 됐으면 블록을 출력하지 마세요.
+            • category: 지출 분류 (식대/교통비/출장비 등). 사용자가 말하지 않으면 "기타".
+            • spentAt: 지출일 "YYYY-MM-DD".
+            • description: 상세 내역. 사용자가 말하지 않으면 빈 문자열("").
+            • approverNames: 2단계에서 확정된 결재자 성함을 결재 순서대로. 아래 회원 목록의
+              이름과 정확히 일치해야 합니다. 확정 안 됐으면 블록을 출력하지 마세요.
+            """);
+        appendApproverCandidates(sb, ms);
+        return sb.toString();
+    }
+
+    /** 결재 가능 회원 명단을 system prompt 에 첨부 (휴가·지출 공통). */
+    private void appendApproverCandidates(StringBuilder sb, MemberSession ms) {
         sb.append("\n[결재자 안내]\n");
         List<ApproverCandidate> candidates;
         try {
@@ -890,7 +1073,6 @@ public class AiChatService {
               .append("사용자에게 결재자 성함을 직접 물어보세요. 입력된 이름은 시스템이 자동 검증합니다.\n")
               .append("사용자가 결재자를 모르면 전자결재 페이지에서 확인하도록 안내하세요.\n");
         }
-        return sb.toString();
     }
 
     private static String truncate(String s, int n) {

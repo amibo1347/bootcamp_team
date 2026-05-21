@@ -123,9 +123,37 @@ public class AiChatApiController {
         Object vt = body.get("vacationType");
         String vacationType = vt == null ? null : vt.toString();
 
-        // 첨부파일 id — JSON 배열. 숫자가 아닌 항목은 무시.
+        return ResponseEntity.ok(
+            aiChatService.confirmLeaveProposal(ms, messageId, vacationType, parseAttachmentIds(body)));
+    }
+
+    /**
+     * 지출결의서 제안 [신청] 확정 — body: { "messageId": 123, "attachmentIds": [1, 2] }.
+     * attachmentIds 는 카드 하단에서 미리 업로드한 첨부파일 id (선택 사항).
+     * EXPENSE 양식으로 전자결재 기안. 응답: 확정 알림 메시지 (assistant role).
+     */
+    @PostMapping("/expense/confirm")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AiChatMessageDto> confirmExpense(
+            @RequestBody Map<String, Object> body,
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        Object midObj = body == null ? null : body.get("messageId");
+        if (midObj == null) return ResponseEntity.badRequest().build();
+        Long messageId;
+        try {
+            messageId = Long.valueOf(midObj.toString());
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(
+            aiChatService.confirmExpenseProposal(ms, messageId, parseAttachmentIds(body)));
+    }
+
+    /** 요청 body 의 attachmentIds(JSON 배열) → List&lt;Long&gt;. 숫자가 아닌 항목은 무시. */
+    private static List<Long> parseAttachmentIds(Map<String, Object> body) {
         List<Long> attachmentIds = new java.util.ArrayList<>();
-        Object aidObj = body.get("attachmentIds");
+        Object aidObj = body == null ? null : body.get("attachmentIds");
         if (aidObj instanceof List<?> list) {
             for (Object o : list) {
                 if (o == null) continue;
@@ -136,7 +164,6 @@ public class AiChatApiController {
                 }
             }
         }
-        return ResponseEntity.ok(
-            aiChatService.confirmLeaveProposal(ms, messageId, vacationType, attachmentIds));
+        return attachmentIds;
     }
 }

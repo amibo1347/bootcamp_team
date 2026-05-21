@@ -49,15 +49,17 @@ import lombok.Getter;
             this.role = member.getRole();
             this.companyId = member.getCompany().getCompanyId();
             this.companyName = member.getCompany().getCompanyName();
-            this.positionId = member.getPosition().getPositionId();
-            this.positionName = member.getPosition().getPositionName();
-            this.positionLevel = member.getPosition().getPositionLevel();
+            // position/dept 는 미지정(null) 일 수 있음 — 신규 ADMIN 계정 등. NPE 없이 null 로 둔다.
+            var position = member.getPosition();
+            this.positionId = position != null ? position.getPositionId() : null;
+            this.positionName = position != null ? position.getPositionName() : null;
+            this.positionLevel = position != null ? position.getPositionLevel() : null;
             this.deptId = member.getDept() != null ? member.getDept().getDeptId() : null;
             this.deptName = member.getDept() != null ? member.getDept().getDeptName() : null;
 
             // 실효 권한: 직급 권한 ∪ 회원 예외 권한.
             EnumSet<SubAdminPermission> effective = EnumSet.noneOf(SubAdminPermission.class);
-            Set<SubAdminPermission> positionPerms = member.getPosition().getPermissions();
+            Set<SubAdminPermission> positionPerms = position != null ? position.getPermissions() : null;
             if (positionPerms != null && !positionPerms.isEmpty()) {
                 effective.addAll(positionPerms);
             }

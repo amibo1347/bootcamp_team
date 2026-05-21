@@ -896,8 +896,8 @@
         + '</div>';
     }
 
-    /** 첨부파일 1개를 전자결재 첨부 API 로 업로드하고 attachment id 를 반환. */
-    async function uploadLeaveAttachment(file) {
+    /** 첨부파일 1개를 전자결재 첨부 API 로 업로드하고 attachment id 를 반환. (휴가·지출 공통) */
+    async function uploadApprovalAttachment(file) {
       const fd = new FormData();
       fd.append('file', file);
       const res = await fetch('/api/approval-attachment', {
@@ -911,6 +911,57 @@
       const data = await res.json();
       if (!data || data.id == null) throw new Error('첨부파일 ID를 받지 못했습니다.');
       return Number(data.id);
+    }
+
+    /** 지출결의서 신청 제안 카드 HTML. type=expense. */
+    function expenseProposalCardHtml(m) {
+      const p = m.proposal || {};
+      const applied = m.proposalApplied;
+      const amount = (p.amount != null && p.amount !== '')
+        ? Number(p.amount).toLocaleString('ko-KR') + '원' : '';
+      const category = p.category ? esc(p.category) : '';
+      const spentAt  = p.spentAt ? esc(p.spentAt) : '';
+      const desc     = p.description ? '<div>📝 ' + esc(p.description) + '</div>' : '';
+      const line     = leaveApproverChips(p);
+
+      const btnStyle  = 'background:#0d9488;color:#fff;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.2);';
+      const doneStyle = 'background:#d1d5db;color:#4b5563;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;';
+      // 보강 검증 — 회원 매칭 안 된 결재자가 있으면 신청 불가.
+      const hasUnmatched = (Array.isArray(p.approvers) ? p.approvers : []).some(a => a.matched === false);
+      const warn = hasUnmatched
+        ? '<div style="color:#dc2626;margin-top:3px;">⚠️ 회원 명단에서 확인되지 않은 결재자가 있습니다. AI 에게 정확한 성함(또는 소속 부서)을 다시 알려주세요.</div>'
+        : '';
+      let btn;
+      if (applied) {
+        btn = '<button type="button" disabled style="' + doneStyle + '">신청됨</button>';
+      } else if (hasUnmatched) {
+        btn = '<button type="button" disabled style="' + doneStyle + '">신청 불가</button>';
+      } else {
+        btn = '<button type="button" data-ai-confirm-expense="' + m.messageId + '" style="' + btnStyle + '">신청</button>';
+      }
+
+      // 첨부파일 — 선택 사항. 신청 전 + 결재자 매칭 정상일 때만 노출.
+      const attachField = (!applied && !hasUnmatched)
+        ? '<div class="mt-2">'
+          + '<div style="margin-bottom:2px;">📎 첨부파일 <span style="color:#9ca3af;">(선택)</span></div>'
+          + '<input type="file" multiple data-expense-attachments style="font-size:11px;max-width:100%;" />'
+          + '</div>'
+        : '';
+
+      return ''
+        + '<div class="mb-2 flex justify-start">'
+        +   '<div data-expense-card class="max-w-[85%] rounded-2xl border border-teal-200 bg-teal-50/50 p-3 text-xs text-gray-700 dark:border-teal-900/50 dark:bg-teal-900/20 dark:text-gray-200">'
+        +     '<div class="mb-1 text-[11px] font-semibold text-teal-600 dark:text-teal-300">🧾 지출결의서 신청 제안</div>'
+        +     '<div class="mt-1 space-y-1">'
+        +       (amount ? '<div>💰 ' + esc(amount) + '</div>' : '')
+        +       (category ? '<div>🏷️ ' + category + '</div>' : '')
+        +       (spentAt ? '<div>🗓️ ' + spentAt + '</div>' : '')
+        +       desc + line + warn
+        +     '</div>'
+        +     attachField
+        +     '<div class="mt-2 flex justify-end gap-2">' + btn + '</div>'
+        +   '</div>'
+        + '</div>';
     }
 
     async function loadMessages(id) {
@@ -948,6 +999,8 @@
         html += calendarProposalCardHtml(m);
       } else if (t === 'leave') {
         html += leaveProposalCardHtml(m);
+      } else if (t === 'expense') {
+        html += expenseProposalCardHtml(m);
       }
       return html;
     }
@@ -1028,7 +1081,7 @@
         // 첨부파일이 있으면 먼저 업로드해서 id 목록 확보.
         const attachmentIds = [];
         for (const f of files) {
-          attachmentIds.push(await uploadLeaveAttachment(f));
+          attachmentIds.push(await uploadApprovalAttachment(f));
         }
         const res = await fetch('/api/ai/leave/confirm', {
           method: 'POST',
@@ -1048,6 +1101,48 @@
         appendMessage(aiMsgToChatBubble(confirmMsg, me));
       } catch (err) {
         alert(err?.message || '휴가 신청에 실패했습니다. 결재선 규정을 다시 확인해주세요.');
+        btn.disabled = false;
+        btn.textContent = '신청';
+      }
+    });
+
+    // 지출결의서 신청 카드의 [신청] 버튼 위임 처리 → 전자결재 상신.
+    messagesEl.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-ai-confirm-expense]');
+      if (!btn) return;
+      const messageId = Number(btn.dataset.aiConfirmExpense);
+      if (!messageId) return;
+
+      // 카드 하단 첨부파일 — 선택 사항.
+      const card = btn.closest('[data-expense-card]');
+      const fileInput = card ? card.querySelector('[data-expense-attachments]') : null;
+      const files = fileInput ? Array.from(fileInput.files || []) : [];
+
+      btn.disabled = true;
+      btn.textContent = '신청 중...';
+      try {
+        const attachmentIds = [];
+        for (const f of files) {
+          attachmentIds.push(await uploadApprovalAttachment(f));
+        }
+        const res = await fetch('/api/ai/expense/confirm', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeader()),
+          body: JSON.stringify({ messageId, attachmentIds }),
+        });
+        if (!res.ok) {
+          alert(await window.getApiErrorMessage(res, '지출결의서 신청에 실패했습니다. 결재선 규정을 다시 확인해주세요.'));
+          btn.disabled = false;
+          btn.textContent = '신청';
+          return;
+        }
+        const confirmMsg = await res.json();
+        btn.textContent = '신청됨';
+        btn.style.cssText = 'background:#d1d5db;color:#4b5563;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;';
+        const me = currentMemberIdGuess();
+        appendMessage(aiMsgToChatBubble(confirmMsg, me));
+      } catch (err) {
+        alert(err?.message || '지출결의서 신청에 실패했습니다. 결재선 규정을 다시 확인해주세요.');
         btn.disabled = false;
         btn.textContent = '신청';
       }
