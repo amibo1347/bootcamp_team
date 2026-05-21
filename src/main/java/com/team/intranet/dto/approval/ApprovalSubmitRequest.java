@@ -30,4 +30,6 @@ public class ApprovalSubmitRequest {
     // B안: 동적 양식 본문. key = FormTemplate.fieldSchema 의 필드 key, value = 입력값 리스트
     // (단일값도 size=1 리스트, multi-select 는 N 개). 빈 리스트/누락은 빈값으로 간주.
     private Map<String, List<String>> dynamicFields;
+    // 첨부파일 — 미리 업로드한 ApprovalAttachment id 목록. 선택 사항(없으면 null/빈 리스트).
+    private List<Long> attachmentIds;
 }

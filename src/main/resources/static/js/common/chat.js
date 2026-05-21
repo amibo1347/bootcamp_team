@@ -872,6 +872,14 @@
         btn = '<button type="button" data-ai-confirm-leave="' + m.messageId + '" style="' + btnStyle + '">신청</button>';
       }
 
+      // 첨부파일 — 선택 사항. 신청 전 + 결재자 매칭 정상일 때만 노출. (스타일은 추후 정리)
+      const attachField = (!applied && !hasUnmatched)
+        ? '<div class="mt-2">'
+          + '<div style="margin-bottom:2px;">📎 첨부파일 <span style="color:#9ca3af;">(선택)</span></div>'
+          + '<input type="file" multiple data-leave-attachments style="font-size:11px;max-width:100%;" />'
+          + '</div>'
+        : '';
+
       return ''
         + '<div class="mb-2 flex justify-start">'
         +   '<div data-leave-card class="max-w-[85%] rounded-2xl border border-teal-200 bg-teal-50/50 p-3 text-xs text-gray-700 dark:border-teal-900/50 dark:bg-teal-900/20 dark:text-gray-200">'
@@ -882,9 +890,27 @@
                        : (days ? '<div>🗓️ ' + days + '</div>' : ''))
         +       reason + line + warn
         +     '</div>'
+        +     attachField
         +     '<div class="mt-2 flex justify-end gap-2">' + btn + '</div>'
         +   '</div>'
         + '</div>';
+    }
+
+    /** 첨부파일 1개를 전자결재 첨부 API 로 업로드하고 attachment id 를 반환. */
+    async function uploadLeaveAttachment(file) {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/approval-attachment', {
+        method: 'POST',
+        headers: csrfHeader(), // multipart: Content-Type 은 브라우저가 자동 설정
+        body: fd,
+      });
+      if (!res.ok) {
+        throw new Error(await window.getApiErrorMessage(res, '첨부파일 업로드에 실패했습니다.'));
+      }
+      const data = await res.json();
+      if (!data || data.id == null) throw new Error('첨부파일 ID를 받지 못했습니다.');
+      return Number(data.id);
     }
 
     async function loadMessages(id) {
@@ -992,14 +1018,22 @@
       const card = btn.closest('[data-leave-card]');
       const sel = card ? card.querySelector('[data-leave-type]') : null;
       const vacationType = sel ? sel.value : null;
+      // 카드 하단 첨부파일 — 선택 사항.
+      const fileInput = card ? card.querySelector('[data-leave-attachments]') : null;
+      const files = fileInput ? Array.from(fileInput.files || []) : [];
 
       btn.disabled = true;
       btn.textContent = '신청 중...';
       try {
+        // 첨부파일이 있으면 먼저 업로드해서 id 목록 확보.
+        const attachmentIds = [];
+        for (const f of files) {
+          attachmentIds.push(await uploadLeaveAttachment(f));
+        }
         const res = await fetch('/api/ai/leave/confirm', {
           method: 'POST',
           headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeader()),
-          body: JSON.stringify({ messageId, vacationType }),
+          body: JSON.stringify({ messageId, vacationType, attachmentIds }),
         });
         if (!res.ok) {
           alert(await window.getApiErrorMessage(res, '휴가 신청에 실패했습니다. 결재선 규정을 다시 확인해주세요.'));
@@ -1013,7 +1047,7 @@
         const me = currentMemberIdGuess();
         appendMessage(aiMsgToChatBubble(confirmMsg, me));
       } catch (err) {
-        alert('휴가 신청에 실패했습니다. 결재선 규정을 다시 확인해주세요.');
+        alert(err?.message || '휴가 신청에 실패했습니다. 결재선 규정을 다시 확인해주세요.');
         btn.disabled = false;
         btn.textContent = '신청';
       }

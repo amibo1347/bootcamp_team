@@ -2,6 +2,7 @@ package com.team.intranet.controller.api;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -110,5 +111,14 @@ public class ApprovalApiController {
             @SessionAttribute("memberSession") MemberSession ms,
             @RequestBody ApprovalProcessRequest req) {
         return approvalService.process(ms, req);
+    }
+
+    // 결재 삭제/취소 (기안자 본인). 대기·보류=취소, 승인·반려=삭제 — 동작은 동일하게 문서 제거.
+    @PostMapping("/{approvalId}/delete")
+    public Map<String, Object> delete(
+            @SessionAttribute("memberSession") MemberSession ms,
+            @PathVariable("approvalId") Long approvalId) {
+        approvalService.deleteApproval(ms, approvalId);
+        return Map.of("success", true);
     }
 }

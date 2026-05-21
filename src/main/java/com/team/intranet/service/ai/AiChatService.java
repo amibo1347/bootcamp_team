@@ -403,9 +403,11 @@ public class AiChatService {
      *
      * @param vacationTypeOverride 카드 dropdown 에서 사용자가 최종 확정한 휴가 종류 코드.
      *                             비어 있으면 AI 추론값(proposal)을 사용.
+     * @param attachmentIds 카드 하단에서 미리 업로드한 첨부파일 id (선택 사항, null/빈 리스트 허용).
      */
     @Transactional
-    public AiChatMessageDto confirmLeaveProposal(MemberSession ms, Long messageId, String vacationTypeOverride) {
+    public AiChatMessageDto confirmLeaveProposal(MemberSession ms, Long messageId,
+                                                 String vacationTypeOverride, List<Long> attachmentIds) {
         AiChatMessage msg = messageRepository.findById(messageId)
             .orElseThrow(() -> new BusinessException(ErrorCode.AI_SESSION_NOT_FOUND));
         AiChatSession session = loadAndAssertOwner(ms, msg.getSession().getSessionId());
@@ -452,6 +454,7 @@ public class AiChatService {
             vacationType,
             p.totalDays() != null ? p.totalDays() : 1.0,
             startDate, endDate));
+        req.setAttachmentIds(attachmentIds); // 선택 사항 — null/빈 리스트면 첨부 없음
 
         try {
             approvalService.submit(ms, req);

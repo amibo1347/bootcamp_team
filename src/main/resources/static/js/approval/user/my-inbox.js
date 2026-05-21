@@ -5,7 +5,7 @@
  * - 행의 제목 클릭 시 상세 모달을 연다.
  */
 
-import { listMyApprovals } from '../api/approval-client.js';
+import { listMyApprovals, deleteApproval } from '../api/approval-client.js';
 import {
   USER_STATUS_FILTERS,
   approvalStatusBadgeClass,
@@ -61,11 +61,25 @@ function renderCommentCell(row) {
   return `<td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-300" title="${escapeHtml(raw)}">${escapeHtml(trunc)}</td>`;
 }
 
+/**
+ * 취소 가능 여부 — 대기(PENDING) · 보류(ON_HOLD) 상태만 취소할 수 있다.
+ * 진행·승인·반려 상태는 취소/삭제 불가 (버튼 자체를 표시하지 않음).
+ * @param {unknown} status
+ * @returns {boolean}
+ */
+function canCancel(status) {
+  const s = String(status || '').toUpperCase();
+  return s === 'PENDING' || s === 'ON_HOLD';
+}
+
 function renderRows(tbody, items) {
   tbody.innerHTML = '';
   items.forEach((row) => {
     const tr = document.createElement('tr');
     tr.dataset.approvalId = String(row.approvalId);
+    const actionCell = canCancel(row.status)
+      ? `<button type="button" class="approval-delete-trigger rounded-lg border border-rose-300 px-3 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-900/20">취소</button>`
+      : '';
     tr.innerHTML = `
       <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-800 dark:text-gray-200">${escapeHtml(row.approvalId)}</td>
       <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
@@ -74,7 +88,8 @@ function renderRows(tbody, items) {
       <td class="px-4 py-3">${renderApprovalStatusBadge(String(row.status || ''))}</td>
       ${renderApproverCell(row)}
       ${renderCommentCell(row)}
-      <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(formatDate(row.draftedAt))}</td>`;
+      <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(formatDate(row.draftedAt))}</td>
+      <td class="whitespace-nowrap px-4 py-3 text-right">${actionCell}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -100,9 +115,29 @@ export function initMyInbox(options = {}) {
 
   if (tbody instanceof HTMLElement) {
     bindApproverDropdownToggle(tbody);
-    tbody.addEventListener('click', (event) => {
+    tbody.addEventListener('click', async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
+
+      // [취소] 버튼 — 대기·보류 상태에서만 노출. 문서 + 하위 데이터 삭제.
+      const cancelBtn = target.closest('.approval-delete-trigger');
+      if (cancelBtn instanceof HTMLElement) {
+        const row = cancelBtn.closest('tr');
+        const id = Number(row?.dataset.approvalId);
+        if (!Number.isFinite(id)) return;
+        if (!window.confirm('이 결재 문서를 취소하시겠습니까?')) return;
+        cancelBtn.disabled = true;
+        try {
+          await deleteApproval(id);
+          await refresh();
+        } catch (error) {
+          alert(error?.message || '취소 중 오류가 발생했습니다.');
+          cancelBtn.disabled = false;
+        }
+        return;
+      }
+
+      // 제목 클릭 — 상세 모달.
       const trigger = target.closest('.approval-detail-trigger');
       if (!(trigger instanceof HTMLElement)) return;
       const row = trigger.closest('tr');

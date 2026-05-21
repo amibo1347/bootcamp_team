@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.team.intranet.entity.Approval;
+import com.team.intranet.entity.ApprovalAttachment;
 import com.team.intranet.entity.ApprovalFieldValue;
 import com.team.intranet.entity.ApprovalLine;
 import com.team.intranet.entity.ExpenseRequest;
@@ -57,14 +58,18 @@ public class ApprovalDetailResponse {
     private String schemaSnapshot;
     private Map<String, List<String>> dynamicValues;
 
+    // 첨부파일 메타 (해당 없으면 빈 리스트). 본문(data)은 다운로드 API 로 별도 조회.
+    private List<AttachmentMeta> attachments;
+
     public static ApprovalDetailResponse of(
         Approval a,
         List<ApprovalLine> lines,
         VacationRequest vacation,
         GenericRequest generic,
-        ExpenseRequest expense
+        ExpenseRequest expense,
+        List<ApprovalAttachment> attachments
     ) {
-        return baseBuilder(a, lines)
+        return baseBuilder(a, lines, attachments)
             .vacation(vacation == null ? null : VacationBody.from(vacation))
             .generic(generic == null ? null : GenericBody.from(generic))
             .expense(expense == null ? null : ExpenseBody.from(expense))
@@ -75,7 +80,8 @@ public class ApprovalDetailResponse {
     public static ApprovalDetailResponse ofDynamic(
         Approval a,
         List<ApprovalLine> lines,
-        List<ApprovalFieldValue> values
+        List<ApprovalFieldValue> values,
+        List<ApprovalAttachment> attachments
     ) {
         Map<String, List<String>> grouped = values == null ? Map.of()
             : values.stream().collect(Collectors.groupingBy(
@@ -83,13 +89,14 @@ public class ApprovalDetailResponse {
                 LinkedHashMap::new,
                 Collectors.mapping(ApprovalFieldValue::getFieldValue, Collectors.toList())
             ));
-        return baseBuilder(a, lines)
+        return baseBuilder(a, lines, attachments)
             .schemaSnapshot(a.getSchemaSnapshot())
             .dynamicValues(grouped)
             .build();
     }
 
-    private static ApprovalDetailResponseBuilder baseBuilder(Approval a, List<ApprovalLine> lines) {
+    private static ApprovalDetailResponseBuilder baseBuilder(
+        Approval a, List<ApprovalLine> lines, List<ApprovalAttachment> attachments) {
         return ApprovalDetailResponse.builder()
             .approvalId(a.getApprovalId())
             .title(a.getTitle())
@@ -106,7 +113,28 @@ public class ApprovalDetailResponse {
             .processedAt(a.getProcessedAt())
             .currentLevel(a.getCurrentLevel())
             .maxLevel(a.getMaxLevel())
-            .approvers(lines == null ? List.of() : lines.stream().map(ApprovalLineRow::from).toList());
+            .approvers(lines == null ? List.of() : lines.stream().map(ApprovalLineRow::from).toList())
+            .attachments(attachments == null ? List.of()
+                : attachments.stream().map(AttachmentMeta::from).toList());
+    }
+
+    /** 첨부파일 메타 — 다운로드 URL 포함. */
+    @Getter
+    @AllArgsConstructor
+    public static class AttachmentMeta {
+        private Long id;
+        private String filename;
+        private Long size;
+        private String downloadUrl;
+
+        static AttachmentMeta from(ApprovalAttachment a) {
+            return new AttachmentMeta(
+                a.getAttachmentId(),
+                a.getOriginalFilename(),
+                a.getFileSize(),
+                "/api/approval-attachment/" + a.getAttachmentId()
+            );
+        }
     }
 
     @Getter
