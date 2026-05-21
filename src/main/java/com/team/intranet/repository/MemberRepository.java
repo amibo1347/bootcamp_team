@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.team.intranet.entity.Member;
 import com.team.intranet.entity.Calendar;
+import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.Status;
 
 public interface MemberRepository extends JpaRepository<Member, Long>{
@@ -21,6 +22,9 @@ public interface MemberRepository extends JpaRepository<Member, Long>{
 
     /** 회사별 회원 수 (MASTER 사용량 대시보드). */
     long countByCompany_CompanyId(Long companyId);
+
+    /** 회사의 특정 권한 회원 — 대표(ADMIN) 조회용. memberId 오름차순(= 회사 생성 시 만든 원 대표가 먼저). */
+    List<Member> findByCompany_CompanyIdAndRoleOrderByMemberIdAsc(Long companyId, Role role);
 
     /** AI 일정 공유: 회사 + 활성 회원 + 이름 매칭. */
     List<Member> findByStatusAndCompanyCompanyIdAndNameIn(Status status, Long companyId, List<String> names);

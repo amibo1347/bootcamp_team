@@ -87,6 +87,64 @@
 
         <hr class="master-divider" />
 
+        <!-- 대표 계정 -->
+        <h2 class="master-section-title">대표 계정</h2>
+        <div th:if="${companyAdmin != null}">
+          <p class="master-sub" style="margin-bottom: 0.25rem;">
+            아이디: <strong th:text="${companyAdmin.loginId}">admin</strong>
+            <span th:if="${companyAdmin.name != null}"
+                  th:text="'(' + ${companyAdmin.name} + ')'">(이름)</span>
+          </p>
+          <p class="master-sub">
+            비밀번호를 초기화하면 임시 비밀번호가 발급됩니다. 발급된 임시 비밀번호를 대표에게 전달하세요.
+          </p>
+          <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+          <form method="post"
+                th:action="@{/master/companies/{id}/admin/reset-password(id=${company.companyId})}"
+                style="margin-top: 0.75rem;"
+                onsubmit="return confirm('대표 계정의 비밀번호를 초기화하시겠습니까?');">
+            <button type="submit" class="master-btn-outline">비밀번호 초기화</button>
+          </form>
+
+          <!-- 대표 위임 -->
+          <p class="master-sub" style="margin-top: 1.25rem;">
+            대표직 위임 — 다른 직원을 새 대표로 지정합니다. 위임하면 기존 대표는 일반 직원으로 변경됩니다.
+          </p>
+          <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+          <form th:if="${not #lists.isEmpty(delegationCandidates)}" method="post" id="delegate-form"
+                th:action="@{/master/companies/{id}/admin/delegate(id=${company.companyId})}"
+                style="margin-top: 0.5rem;">
+            <!-- 이름으로 검색 — 후보가 많을 때 빠르게 찾기 위한 클라이언트 필터 -->
+            <input type="text" id="delegate-search" class="field-input"
+                   placeholder="이름으로 검색" autocomplete="off" />
+            <input type="hidden" name="newAdminMemberId" id="delegate-selected" />
+            <div id="delegate-list"
+                 style="margin-top: 0.4rem; max-height: 180px; overflow-y: auto;
+                        border: 1px solid #e2e8f0; border-radius: 0.5rem;">
+              <button type="button" th:each="m : ${delegationCandidates}"
+                      class="delegate-option"
+                      th:data-member-id="${m.memberId}"
+                      th:data-name="${m.name}"
+                      th:text="${m.name} + '(' + ${m.loginId} + ')'"
+                      style="display:block; width:100%; text-align:left; padding:0.45rem 0.7rem;
+                             border:none; background:none; cursor:pointer; font-size:0.88rem;">홍길동(hong)</button>
+            </div>
+            <p id="delegate-empty" class="master-sub" style="display:none; margin-top:0.3rem;">
+              검색 결과가 없습니다.
+            </p>
+            <p class="master-sub" style="margin-top:0.5rem;">
+              선택: <strong id="delegate-selected-label">없음</strong>
+            </p>
+            <button type="submit" class="master-btn-outline" style="margin-top: 0.3rem;">대표 위임</button>
+          </form>
+          <p th:if="${#lists.isEmpty(delegationCandidates)}" class="master-sub" style="margin-top: 0.5rem;">
+            위임할 수 있는 다른 재직 직원이 없습니다.
+          </p>
+        </div>
+        <p th:if="${companyAdmin == null}" class="master-sub">대표(ADMIN) 계정이 없습니다.</p>
+
+        <hr class="master-divider" />
+
         <!-- 활성 상태 -->
         <h2 class="master-section-title">상태</h2>
         <p class="master-sub" style="margin-bottom: 0.75rem;">
@@ -103,6 +161,57 @@
       </div>
     </div>
   </div>
+
+  <!-- 대표 위임 — 이름 검색 필터 + 선택 처리 -->
+  <script>
+    (function () {
+      var search = document.getElementById('delegate-search');
+      if (!search) return; // 위임 후보가 없으면 폼 자체가 렌더되지 않음
+
+      var list   = document.getElementById('delegate-list');
+      var empty  = document.getElementById('delegate-empty');
+      var hidden = document.getElementById('delegate-selected');
+      var label  = document.getElementById('delegate-selected-label');
+      var form   = document.getElementById('delegate-form');
+      var options = Array.prototype.slice.call(list.querySelectorAll('.delegate-option'));
+
+      // 이름 검색 — 입력값을 포함하는 후보만 노출.
+      function applyFilter() {
+        var q = search.value.trim().toLowerCase();
+        var shown = 0;
+        options.forEach(function (opt) {
+          var name = (opt.getAttribute('data-name') || '').toLowerCase();
+          var match = q === '' || name.indexOf(q) !== -1;
+          opt.style.display = match ? 'block' : 'none';
+          if (match) shown += 1;
+        });
+        empty.style.display = (shown === 0) ? 'block' : 'none';
+      }
+
+      // 후보 클릭 → 선택. hidden input 에 memberId 를 담고 강조 표시.
+      options.forEach(function (opt) {
+        opt.addEventListener('click', function () {
+          hidden.value = opt.getAttribute('data-member-id');
+          label.textContent = opt.textContent;
+          options.forEach(function (o) { o.style.background = 'none'; });
+          opt.style.background = '#e0e7ff';
+        });
+      });
+
+      search.addEventListener('input', applyFilter);
+
+      form.addEventListener('submit', function (e) {
+        if (!hidden.value) {
+          e.preventDefault();
+          alert('위임할 직원을 선택하세요.');
+          return;
+        }
+        if (!confirm('대표직을 위임하시겠습니까? 기존 대표는 일반 직원이 됩니다.')) {
+          e.preventDefault();
+        }
+      });
+    })();
+  </script>
 </body>
 
 </html>

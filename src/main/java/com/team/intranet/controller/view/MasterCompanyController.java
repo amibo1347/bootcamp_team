@@ -28,8 +28,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MasterCompanyController {
 
-    private static final int MIN_PASSWORD_LENGTH = 8;
-
     private final CompanyService companyService;
 
     /** 회사 목록 + 검색 + 생성 폼. */
@@ -51,19 +49,18 @@ public class MasterCompanyController {
                          @RequestParam(name = "adminLoginId", required = false) String adminLoginId,
                          @RequestParam(name = "adminName", required = false) String adminName,
                          @RequestParam(name = "adminEmail", required = false) String adminEmail,
-                         @RequestParam(name = "adminPassword", required = false) String adminPassword,
-                         @RequestParam(name = "adminConfirmPassword", required = false) String adminConfirmPassword,
                          Model model, RedirectAttributes redirectAttributes) {
         if (master == null) return "redirect:/master/login";
 
-        String error = validateCreate(companyName, adminLoginId, adminName, adminPassword, adminConfirmPassword);
+        String error = validateCreate(companyName, adminLoginId, adminName);
         if (error == null) {
             try {
-                companyService.create(companyName, companyDomain,
-                        adminLoginId, adminName, adminEmail, adminPassword);
+                String tempPassword = companyService.create(companyName, companyDomain,
+                        adminLoginId, adminName, adminEmail);
                 redirectAttributes.addFlashAttribute("successMessage",
                         "회사가 생성되었습니다: " + companyName.trim()
-                        + " — 대표 계정 아이디는 " + adminLoginId.trim() + " 입니다.");
+                        + " — 대표 계정 아이디: " + adminLoginId.trim()
+                        + ", 초기 비밀번호: " + tempPassword);
                 return "redirect:/master/companies"; // PRG
             } catch (IllegalArgumentException | IllegalStateException e) {
                 error = e.getMessage();
@@ -93,6 +90,8 @@ public class MasterCompanyController {
         }
         model.addAttribute("master", master);
         model.addAttribute("hasLogo", companyService.hasLogo(id));
+        model.addAttribute("companyAdmin", companyService.findCompanyAdmin(id));
+        model.addAttribute("delegationCandidates", companyService.listDelegationCandidates(id));
         return "master/company-edit";
     }
 
@@ -154,6 +153,44 @@ public class MasterCompanyController {
         return "redirect:/master/companies/" + id;
     }
 
+    /** 회사 대표(ADMIN) 비밀번호 초기화. 발급된 임시 비밀번호를 안내 메시지로 표시. */
+    @PostMapping("/{id}/admin/reset-password")
+    public String resetAdminPassword(@SessionAttribute(name = "masterSession", required = false) MasterSession master,
+                                     @PathVariable Long id, RedirectAttributes redirectAttributes) {
+        if (master == null) return "redirect:/master/login";
+        try {
+            CompanyService.AdminPasswordReset result = companyService.resetAdminPassword(id);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "대표 계정(" + result.loginId() + ") 비밀번호를 초기화했습니다. "
+                    + "임시 비밀번호: " + result.tempPassword() + " " +result.companyName() + " 대표에게 전달하세요.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/master/companies/" + id;
+    }
+
+    /** 회사 대표(ADMIN) 위임 — 같은 회사의 다른 재직 회원에게 대표직을 넘긴다. */
+    @PostMapping("/{id}/admin/delegate")
+    public String delegateAdmin(@SessionAttribute(name = "masterSession", required = false) MasterSession master,
+                                @PathVariable Long id,
+                                @RequestParam(name = "newAdminMemberId", required = false) Long newAdminMemberId,
+                                RedirectAttributes redirectAttributes) {
+        if (master == null) return "redirect:/master/login";
+        if (newAdminMemberId == null) {
+            redirectAttributes.addFlashAttribute("errorMessage", "위임할 직원을 선택하세요.");
+            return "redirect:/master/companies/" + id;
+        }
+        try {
+            CompanyService.AdminDelegation result = companyService.delegateAdmin(id, newAdminMemberId);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "대표직을 " + result.newAdminName() + "(" + result.newAdminLoginId() + ")님에게 위임했습니다. "
+                    + "기존 대표(" + result.oldAdminLoginId() + ")는 일반 직원으로 변경되었습니다.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/master/companies/" + id;
+    }
+
     /** 회사 활성/비활성 토글. */
     @PostMapping("/{id}/toggle")
     public String toggle(@SessionAttribute(name = "masterSession", required = false) MasterSession master,
@@ -165,18 +202,10 @@ public class MasterCompanyController {
         return "redirect:/master/companies";
     }
 
-    /** 회사 생성 입력값 검증. 문제가 없으면 null. */
-    private String validateCreate(String companyName, String adminLoginId, String adminName,
-                                  String password, String confirmPassword) {
-        if (isBlank(companyName) || isBlank(adminLoginId) || isBlank(adminName)
-                || isBlank(password) || isBlank(confirmPassword)) {
-            return "회사명, 대표 아이디·이름·비밀번호를 모두 입력하세요.";
-        }
-        if (password.length() < MIN_PASSWORD_LENGTH) {
-            return "대표 비밀번호는 " + MIN_PASSWORD_LENGTH + "자 이상이어야 합니다.";
-        }
-        if (!password.equals(confirmPassword)) {
-            return "대표 비밀번호와 확인이 일치하지 않습니다.";
+    /** 회사 생성 입력값 검증. 문제가 없으면 null. (초기 비밀번호는 서버 자동 생성이라 검증 대상 아님) */
+    private String validateCreate(String companyName, String adminLoginId, String adminName) {
+        if (isBlank(companyName) || isBlank(adminLoginId) || isBlank(adminName)) {
+            return "회사명, 대표 아이디·이름을 모두 입력하세요.";
         }
         return null;
     }
