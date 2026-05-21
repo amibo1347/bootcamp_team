@@ -77,8 +77,9 @@
                     class="p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
                     <h2 class="mb-6 text-xl font-semibold text-black dark:text-white">기존 부서 목록</h2>
 
-                    <div class="flex min-h-[400px] flex-col rounded-xl border border-gray-400 dark:border-gray-700">
-                        <div class="flex-1" id="deptListContainer">
+                    <!-- 목록 높이 = 행 개수만큼만 (min-h·하단 flex-1 제거 → 하단 테두리·구분선이 마지막 행에 맞춤) -->
+                    <div class="overflow-hidden rounded-xl border border-gray-400 dark:border-gray-700">
+                        <div id="deptListContainer">
                             <div th:each="dept : ${departments}" th:id="'dept-row-' + ${dept.deptId}"
                                 class="flex items-center justify-between border-b border-gray-400 p-5 transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5">
                                 <input type="hidden" th:id="'dept-code-' + ${dept.deptId}" th:value="${dept.deptCode}">
@@ -126,7 +127,6 @@
                             <div th:if="${departments == null or #lists.isEmpty(departments)}"
                                 class="p-20 text-center text-gray-400 dark:text-gray-300">등록된 부서가 없습니다.</div>
                         </div>
-                        <div class="flex-1 bg-white dark:bg-boxdark"></div>
                     </div>
                 </section>
             </main>

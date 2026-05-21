@@ -56,7 +56,7 @@
               체크하면 이 회사의 직원은 회원가입·로그인 시 '아이디' 대신 '사번'을 입력하고, 화면에도 사번이 표시됩니다.
             </p>
           </div>
-          <button type="submit" class="master-btn" style="margin-top: 1.5rem;">정보 저장</button>
+          <button type="submit" class="master-btn-outline master-btn--block" style="margin-top: 1.5rem;">정보 저장</button>
         </form>
 
         <hr class="master-divider" />
@@ -71,7 +71,7 @@
           <!-- th:action 으로 CSRF 토큰 자동 주입 -->
           <form method="post" style="margin-top: 0.5rem;"
                 th:action="@{/master/companies/{id}/logo/delete(id=${company.companyId})}">
-            <button type="submit" class="master-btn-danger">로고 삭제</button>
+            <button type="submit" class="master-btn master-btn--inline">로고 삭제</button>
           </form>
         </div>
         <p th:unless="${hasLogo}" class="master-sub" style="margin-bottom: 1rem;">등록된 로고가 없습니다.</p>
@@ -94,7 +94,7 @@
         <!-- th:action 으로 CSRF 토큰 자동 주입 -->
         <form method="post" th:action="@{/master/companies/{id}/code(id=${company.companyId})}"
               style="margin-top: 0.75rem;">
-          <button type="submit" class="master-btn-outline">코드 재발급</button>
+          <button type="submit" class="master-btn master-btn--inline">코드 재발급</button>
         </form>
 
         <hr class="master-divider" />
@@ -115,7 +115,7 @@
                 th:action="@{/master/companies/{id}/admin/reset-password(id=${company.companyId})}"
                 style="margin-top: 0.75rem;"
                 onsubmit="return confirm('대표 계정의 비밀번호를 초기화하시겠습니까?');">
-            <button type="submit" class="master-btn-outline">비밀번호 초기화</button>
+            <button type="submit" class="master-btn master-btn--inline">비밀번호 초기화</button>
           </form>
 
           <!-- 대표 위임 -->
@@ -147,7 +147,7 @@
             <p class="master-sub" style="margin-top:0.5rem;">
               선택: <strong id="delegate-selected-label">없음</strong>
             </p>
-            <button type="submit" class="master-btn-outline" style="margin-top: 0.3rem;">대표 위임</button>
+            <button type="submit" class="master-btn master-btn--inline" style="margin-top: 0.3rem;">대표 위임</button>
           </form>
           <p th:if="${#lists.isEmpty(delegationCandidates)}" class="master-sub" style="margin-top: 0.5rem;">
             위임할 수 있는 다른 재직 직원이 없습니다.
@@ -167,7 +167,7 @@
         <!-- th:action 으로 CSRF 토큰 자동 주입 -->
         <form method="post" th:action="@{/master/companies/{id}/toggle(id=${company.companyId})}">
           <button type="submit"
-                  th:class="${company.isActiveCompany()} ? 'master-btn-pause' : 'master-btn-restore'"
+                  th:class="${company.isActiveCompany()} ? 'master-btn-outline' : 'master-btn master-btn--inline'"
                   th:text="${company.isActiveCompany()} ? '비활성화' : '활성화'">토글</button>
         </form>
 

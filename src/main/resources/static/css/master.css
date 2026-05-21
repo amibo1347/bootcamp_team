@@ -70,38 +70,37 @@ body.master-page {
   font-size: 1.2rem; letter-spacing: 0.35em; text-align: center;
 }
 
-/* --- 버튼 --- */
+/* --- 버튼 (MASTER 전용 흑백 2종) --- */
+/* 1) 회색 배경 + 흰 텍스트 — .master-btn */
 .master-btn {
   display: inline-block; width: 100%; height: 3rem; border: none;
-  border-radius: 0.75rem; background: #818cf8; color: #fff;
+  border-radius: 0.75rem; background: #64748b; color: #ffffff;
   font-size: 0.9rem; font-weight: 600; text-align: center; line-height: 3rem;
-  text-decoration: none; cursor: pointer; transition: background 0.15s;
+  text-decoration: none; cursor: pointer; transition: background 0.15s, color 0.15s;
 }
-.master-btn:hover { background: #6366f1; }
+.master-btn:hover { background: #475569; color: #ffffff; }
+/* 테이블·헤더 등 컴팩트 버튼 */
+.master-btn.master-btn--inline {
+  width: auto; height: auto; line-height: normal;
+  font-size: 0.83rem; font-weight: 500; padding: 0.55rem 1rem;
+}
+/* 2) 흰 배경 + 회색 텍스트 — .master-btn-outline */
 .master-btn-outline {
-  display: inline-block; border: none; background: #c7d2fe; color: #4338ca;
+  display: inline-block; border: 1px solid #e2e8f0; background: #ffffff; color: #64748b;
   border-radius: 0.75rem; font-size: 0.83rem; font-weight: 500;
   padding: 0.55rem 1rem; text-decoration: none; cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.master-btn-outline:hover { background: #a5b4fc; }
-.master-btn-danger {
-  display: inline-block; border: none; background: #fecdd3; color: #f43f5e;
-  border-radius: 0.75rem; font-size: 0.83rem; font-weight: 500;
-  padding: 0.55rem 1rem; text-decoration: none; cursor: pointer;
+.master-btn-outline:hover {
+  background: #f8fafc; color: #475569; border-color: #cbd5e1;
 }
-.master-btn-danger:hover { background: #fda4af; }
-.master-btn-pause {
-  display: inline-block; border: none; background: #ddd6fe; color: #6d28d9;
-  border-radius: 0.75rem; font-size: 0.83rem; font-weight: 500;
-  padding: 0.55rem 1rem; text-decoration: none; cursor: pointer;
+/* 전체 너비 — 흰 배경(2번) 스타일 */
+.master-btn-outline.master-btn--block,
+button.master-btn-outline.master-btn--block,
+a.master-btn-outline.master-btn--block {
+  display: block; width: 100%; height: 3rem; line-height: 3rem;
+  text-align: center; font-size: 0.9rem; font-weight: 600; padding: 0;
 }
-.master-btn-pause:hover { background: #c4b5fd; }
-.master-btn-restore {
-  display: inline-block; border: none; background: #a7f3d0; color: #047857;
-  border-radius: 0.75rem; font-size: 0.83rem; font-weight: 500;
-  padding: 0.55rem 1rem; text-decoration: none; cursor: pointer;
-}
-.master-btn-restore:hover { background: #6ee7b7; }
 
 /* --- 알림 박스 --- */
 .alert-box {

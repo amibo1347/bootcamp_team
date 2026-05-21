@@ -52,30 +52,30 @@
             --:--:--
           </div>
           <div class="flex min-w-0 w-full items-stretch">
-            <!-- 미출근: 출근 버튼만 노출 -->
+            <!-- 미출근: 출근 — Primary(4-1) -->
             <button
               type="button"
               id="home-btn-checkin"
               th:hidden="${hasTodayCheckIn == true or hasTodayCheckOut == true}"
-              class="w-full rounded-lg bg-blue-500 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              class="w-full rounded-lg bg-indigo-400 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             >
               출근
             </button>
-            <!-- 출근 후: 퇴근 버튼 -->
+            <!-- 출근 후: 퇴근 — Danger(4-3) -->
             <button
               type="button"
               id="home-btn-checkout"
               th:hidden="${hasTodayCheckIn != true}"
-              class="w-full rounded-lg bg-red-500 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              class="w-full rounded-lg bg-rose-200 px-3 py-2 text-sm font-medium text-rose-500 shadow-sm hover:bg-rose-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             >
               퇴근
             </button>
-            <!-- 퇴근 완료 후: 퇴근 취소 버튼 (실수 복구용, Neutral 톤) -->
+            <!-- 퇴근 완료 후: 퇴근 취소 — Neutral A(4-4) -->
             <button
               type="button"
               id="home-btn-checkout-cancel"
               th:hidden="${hasTodayCheckOut != true}"
-              class="w-full rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              class="w-full rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
             >
               퇴근 취소
             </button>

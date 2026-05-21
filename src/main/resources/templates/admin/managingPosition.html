@@ -90,8 +90,9 @@
                     class="p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
                     <h2 class="mb-6 text-xl font-semibold text-black dark:text-white">기존 직급 목록</h2>
 
-                    <div class="flex min-h-[400px] flex-col overflow-hidden rounded-xl border border-gray-400 dark:border-gray-700">
-                        <div class="flex-1" id="positionListContainer">
+                    <!-- 목록 높이 = 행 개수만큼만 (min-h·하단 flex-1 제거 → 하단 테두리·구분선이 마지막 행에 맞춤) -->
+                    <div class="overflow-hidden rounded-xl border border-gray-400 dark:border-gray-700">
+                        <div id="positionListContainer">
                             <th:block th:fragment="positionListContainer">
 
                                 <div th:each="pos : ${positions}" th:id="'pos-row-' + ${pos.positionId}"
@@ -167,7 +168,6 @@
                                     class="p-20 text-center text-gray-400 dark:text-gray-300">등록된 직급이 없습니다.</div>
                             </th:block>
                         </div>
-                        <div class="flex-1 bg-white dark:bg-boxdark"></div>
                     </div>
                 </section>
             </main>

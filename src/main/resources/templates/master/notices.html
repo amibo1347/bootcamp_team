@@ -65,7 +65,7 @@
               <td style="text-align: right;">
                 <!-- th:action 으로 CSRF 토큰 자동 주입 -->
                 <form method="post" th:action="@{/master/notices/{id}/delete(id=${notice.noticeId})}">
-                  <button type="submit" class="master-btn-danger">삭제</button>
+                  <button type="submit" class="master-btn-outline">삭제</button>
                 </form>
               </td>
             </tr>
@@ -97,7 +97,7 @@
             <label for="endsAt" class="field-label">종료 시각 (비우면 무기한)</label>
             <input type="datetime-local" id="endsAt" name="endsAt" class="field-input" />
           </div>
-          <button type="submit" class="master-btn" style="margin-top: 1.5rem;">공지 등록</button>
+          <button type="submit" class="master-btn-outline master-btn--block" style="margin-top: 1.5rem;">공지 등록</button>
         </form>
 
       </div>
