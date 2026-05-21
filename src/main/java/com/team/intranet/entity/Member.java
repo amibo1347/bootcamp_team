@@ -29,13 +29,17 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "tbl_member")
+// loginId 는 전역이 아니라 '회사 단위'로만 유니크하다 (회사가 다르면 같은 사번/아이디 허용).
+@Table(name = "tbl_member",
+       uniqueConstraints = @UniqueConstraint(name = "uk_member_company_login",
+                                             columnNames = {"company_id", "login_id"}))
 @Getter
 @Setter
 @NoArgsConstructor

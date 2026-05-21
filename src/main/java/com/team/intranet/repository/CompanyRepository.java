@@ -11,6 +11,15 @@ public interface CompanyRepository extends JpaRepository<Company, Long>{
     Optional<Company> findByCompanyCodeIgnoreCase(String companyCode);
     boolean existsByCompanyCode(String companyCode);
 
+    /** 도메인으로 회사 조회 — /{companyDomain}/login 로그인 페이지 진입 시 사용. */
+    Optional<Company> findByCompanyDomainIgnoreCase(String companyDomain);
+
+    /** 도메인 중복 확인 (회사 생성 시). */
+    boolean existsByCompanyDomainIgnoreCase(String companyDomain);
+
+    /** 도메인 중복 확인 (회사 수정 시 — 자기 자신 제외). */
+    boolean existsByCompanyDomainIgnoreCaseAndCompanyIdNot(String companyDomain, Long companyId);
+
     /** 회사명 부분 일치 검색 (MASTER 회사 목록). */
     List<Company> findByCompanyNameContainingIgnoreCaseOrderByCompanyIdAsc(String keyword);
 

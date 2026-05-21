@@ -23,7 +23,7 @@ public class PositionController {
     @GetMapping("/list")
     public String positionList(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
                                Model model) {
-        if (ms == null) return "redirect:/member/login";
+        if (ms == null) return "redirect:/company-login";
 
         List<PositionDto> positions = positionService.findAllLevelDesc(ms.getCompanyId())
             .stream().map(PositionDto::fromEntity)

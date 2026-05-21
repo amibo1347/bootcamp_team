@@ -90,22 +90,25 @@
              ">
             </div>
 
-            <form method="post" action="/member/signup" th:action="@{/member/signup}" id="form-signup"
+            <form method="post" th:action="@{/{companyDomain}/signup(companyDomain=${companyDomain})}" id="form-signup"
                 name="form-signup">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                 <input type="hidden" name="companyId" th:value="${companyId}">
                 <input type="hidden" name="companyCode" th:value="${companyCode}">
                 <div style="display:flex; flex-direction:column; gap:0.625rem;">
 
-                    <!-- 아이디 입력 필드 -->
+                    <!-- 아이디/사번 입력 필드 (회사가 사번제면 '사번') -->
                     <div style="display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.625rem;">
 
-                        <label style="font-size: 0.875rem; font-weight: 500; color: #374151;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: #374151;"
+                               th:text="${usesEmployeeNo} ? '사번' : '아이디'">
                             아이디
                         </label>
 
                         <div style="display: flex; gap: 0.5rem; width: 100%; align-items: center;">
-                            <input type="text" id="loginId" name="loginId" placeholder="아이디를 입력하세요" minlength="4" style="
+                            <input type="text" id="loginId" name="loginId" placeholder="아이디를 입력하세요"
+                                th:placeholder="${usesEmployeeNo} ? '사번을 입력하세요' : '아이디를 입력하세요'"
+                                th:data-uses-employee-no="${usesEmployeeNo}" minlength="2" style="
         flex: 1;
         height: 2.75rem;
         border: none;
@@ -397,7 +400,7 @@
                     <!-- 버튼 영역: 가입하기(블루그레이)와 로그인으로(outline) 가로 1:1 배치 -->
                     <div style="display:flex; gap:0.75rem; margin-top:0.875rem;">
                         <!-- 로그인으로 버튼: outline 스타일 -->
-                        <a href="/member/login" style="
+                        <a href="/company-login" th:href="@{/{companyDomain}/login(companyDomain=${companyDomain})}" style="
                 flex: 1;
                 height: 3rem;
                 display: flex;

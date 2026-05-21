@@ -56,9 +56,6 @@ public class MemberService {
      */
     @Transactional
     public MemberType join(MemberDto dto) {
-        if (memberRepository.findByLoginId(dto.getLoginId()).isPresent()) {
-            return MemberType.ALREADY_MEMBER;
-        }
         if (!dto.is_Password_Match()) {
             return MemberType.NOT_MATCH_PASSWORD;
         }
@@ -70,6 +67,11 @@ public class MemberService {
             .orElse(null);
         if (company == null) {
             return MemberType.NOT_COMPANY;
+        }
+
+        // loginId(=사번/아이디)는 회사 단위로만 유니크 — 같은 회사 안에서만 중복 검사.
+        if (memberRepository.existsByCompany_CompanyIdAndLoginId(company.getCompanyId(), dto.getLoginId())) {
+            return MemberType.ALREADY_MEMBER;
         }
 
         String encodedPassword = passwordEncoder.encode(dto.getPassword());
@@ -231,10 +233,30 @@ public class MemberService {
     // ===== 조회 =====
 
     /**
-     * 아이디 중복 확인
+     * 아이디/사번 중복 확인 — 같은 회사 안에서만 검사한다.
      */
-    public boolean isDuplicateId(String loginId) {
-        return memberRepository.existsByLoginId(loginId);
+    public boolean isDuplicateId(Long companyId, String loginId) {
+        return memberRepository.existsByCompany_CompanyIdAndLoginId(companyId, loginId);
+    }
+
+    /**
+     * 회사가 사번제인지 여부 — 회원가입 화면의 입력 칸 라벨(사번/아이디) 결정용.
+     */
+    public boolean usesEmployeeNo(Long companyId) {
+        if (companyId == null) return false;
+        return companyRepository.findById(companyId)
+            .map(Company::usesEmployeeNo)
+            .orElse(false);
+    }
+
+    /**
+     * 회사 도메인 — 회원가입 성공 후 그 회사 로그인 페이지로 보내기 위함. 없으면 null.
+     */
+    public String getCompanyDomain(Long companyId) {
+        if (companyId == null) return null;
+        return companyRepository.findById(companyId)
+            .map(Company::getCompanyDomain)
+            .orElse(null);
     }
 
     /**

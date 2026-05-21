@@ -36,27 +36,37 @@ public class MemberApiController {
     private final MemberService memberService;
 
     @GetMapping("/check-id")
-    public ResponseEntity<Boolean> checkId(@RequestParam("loginId") String loginId) {
-        boolean isDuplicate = memberService.isDuplicateId(loginId);
+    public ResponseEntity<Boolean> checkId(@RequestParam("loginId") String loginId,
+                                           @RequestParam("companyId") Long companyId) {
+        // loginId(사번/아이디)는 회사 단위로만 유니크 → 회사 안에서만 중복 검사.
+        boolean isDuplicate = memberService.isDuplicateId(companyId, loginId);
         return ResponseEntity.ok(isDuplicate); // true/false 데이터를 반환
     }
 
+    /**
+     * 회원가입용 기업 코드 인증.
+     *  - expectedCompanyId : 현재 접속 중인 회사 로그인 페이지(/{도메인}/login)의 회사.
+     *    입력한 코드가 이 회사의 것이 아니면 인증 거부 → 다른 회사로의 가입을 차단한다.
+     */
     @GetMapping("/company/verify")
-    public Map<String, Object> verifyCompany(@RequestParam String companyCode, HttpSession session) {
+    public Map<String, Object> verifyCompany(@RequestParam String companyCode,
+                                             @RequestParam("expectedCompanyId") Long expectedCompanyId,
+                                             HttpSession session) {
         Long companyId = memberService.getVerifyCompanyId(companyCode);
         Map<String, Object> response = new HashMap<>();
 
-        if (companyId != null) {
-            String logoPath = memberService.getLogoPath(companyId);
-
-            session.setAttribute("verifiedCompanyId", companyId);
-            session.setAttribute("verifiedCompanyCode", companyCode);
-            session.setAttribute("logoPath", logoPath);
-            response.put("isVerify", true);
-            response.put("companyId", companyId);
-        } else {
+        if (companyId == null || !companyId.equals(expectedCompanyId)) {
             response.put("isVerify", false);
+            response.put("message", "인증 코드가 일치하지 않습니다.");
+            return response;
         }
+
+        String logoPath = memberService.getLogoPath(companyId);
+        session.setAttribute("verifiedCompanyId", companyId);
+        session.setAttribute("verifiedCompanyCode", companyCode);
+        session.setAttribute("logoPath", logoPath);
+        response.put("isVerify", true);
+        response.put("companyId", companyId);
         return response;
     }
 

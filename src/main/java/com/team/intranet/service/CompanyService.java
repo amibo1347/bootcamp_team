@@ -71,14 +71,17 @@ public class CompanyService {
      * @throws IllegalArgumentException ADMIN 아이디가 이미 사용 중인 경우
      */
     @Transactional
-    public String create(String companyName, String companyDomain,
+    public String create(String companyName, String companyDomain, boolean usesEmployeeNo,
                           String adminLoginId, String adminName, String adminEmail) {
         String loginId = adminLoginId.trim();
-        if (memberRepository.existsByLoginId(loginId)) {
-            throw new IllegalArgumentException("이미 사용 중인 아이디입니다: " + loginId);
+        // 도메인은 /{companyDomain}/login 로그인 URL 의 키이므로 필수 + 전역 유니크.
+        String domain = normalizeDomain(companyDomain);
+        if (companyRepository.existsByCompanyDomainIgnoreCase(domain)) {
+            throw new IllegalArgumentException("이미 사용 중인 도메인입니다: " + domain);
         }
+        // 신규 회사에는 회원이 없으므로 대표 아이디는 회사 안에서 항상 유니크 — 별도 중복 검사 불필요.
 
-        Company company = Company.create(companyName.trim(), generateUniqueCode(), blankToNull(companyDomain));
+        Company company = Company.create(companyName.trim(), generateUniqueCode(), domain, usesEmployeeNo);
         companyRepository.save(company);
 
         Position adminPosition = Position.createPosition("대표", company, 1, Role.ADMIN);
@@ -95,12 +98,47 @@ public class CompanyService {
         return tempPassword;
     }
 
-    /** 회사 정보(이름/도메인) 수정. */
+    /** 회사 정보(이름/도메인/사번제 여부) 수정. */
     @Transactional
-    public void updateInfo(Long companyId, String companyName, String companyDomain) {
+    public void updateInfo(Long companyId, String companyName, String companyDomain, boolean usesEmployeeNo) {
         Company company = get(companyId);
-        company.updateInfo(companyName.trim(), blankToNull(companyDomain));
+        String domain = normalizeDomain(companyDomain);
+        if (companyRepository.existsByCompanyDomainIgnoreCaseAndCompanyIdNot(domain, companyId)) {
+            throw new IllegalArgumentException("이미 사용 중인 도메인입니다: " + domain);
+        }
+        company.updateInfo(companyName.trim(), domain, usesEmployeeNo);
         companyRepository.save(company);
+    }
+
+    /** 도메인으로 회사 조회 — 회사별 로그인 페이지 진입용. 없으면 null. */
+    @Transactional(readOnly = true)
+    public Company findByDomain(String companyDomain) {
+        if (companyDomain == null || companyDomain.isBlank()) return null;
+        return companyRepository.findByCompanyDomainIgnoreCase(companyDomain.trim()).orElse(null);
+    }
+
+    /** /{companyDomain}/login 경로와 충돌하면 안 되는 예약어. */
+    private static final java.util.Set<String> RESERVED_DOMAINS = java.util.Set.of(
+            "member", "master", "api", "admin", "subadmin", "css", "js", "images",
+            "uploads", "error", "index", "calendar", "profile", "settings");
+
+    /**
+     * 도메인 정규화 + 검증.
+     *  - 필수, 영문/숫자/.-_ 만, 2~40자, 예약어 금지.
+     * @throws IllegalArgumentException 형식이 맞지 않으면
+     */
+    private static String normalizeDomain(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException("회사 도메인을 입력하세요. (회사별 로그인 주소로 사용됩니다)");
+        }
+        String domain = raw.trim();
+        if (!domain.matches("^[A-Za-z0-9._-]{2,40}$")) {
+            throw new IllegalArgumentException("도메인은 영문/숫자/.-_ 조합 2~40자로 입력하세요.");
+        }
+        if (RESERVED_DOMAINS.contains(domain.toLowerCase())) {
+            throw new IllegalArgumentException("사용할 수 없는 도메인입니다: " + domain);
+        }
+        return domain;
     }
 
     /** 로고 이미지 교체. */

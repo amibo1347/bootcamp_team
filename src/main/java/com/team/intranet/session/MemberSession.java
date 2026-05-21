@@ -15,7 +15,7 @@ import lombok.Getter;
     @Getter
     @AllArgsConstructor
     public class MemberSession implements Serializable {
-        private static final long serialVersionUID = 3L; // 직렬화 버전 체크용 (phone/birthDay 필드 추가로 bump)
+        private static final long serialVersionUID = 4L; // 직렬화 버전 체크용 (usesEmployeeNo 필드 추가로 bump)
 
         private final Long memberId;        // DB 식별자
         private final String loginId;       // 로그인 아이디
@@ -31,6 +31,7 @@ import lombok.Getter;
         private final Integer positionLevel;    // 직급 레벨 (추가)
         private final Long deptId;          // 부서 id (추가)
         private final String deptName;    // 부서명 (대시보드 등 표시용)
+        private final boolean usesEmployeeNo; // 소속 회사가 사번제면 true — index/화면에 loginId(=사번) 노출 여부 결정
         /**
          * 실효 권한 스냅샷 = 직급 권한 ∪ 회원 예외 권한.
          *  - ADMIN/MASTER 는 hasPermission() 에서 자동 통과하므로 비어 있어도 됨.
@@ -49,6 +50,7 @@ import lombok.Getter;
             this.role = member.getRole();
             this.companyId = member.getCompany().getCompanyId();
             this.companyName = member.getCompany().getCompanyName();
+            this.usesEmployeeNo = member.getCompany().usesEmployeeNo();
             // position/dept 는 미지정(null) 일 수 있음 — 신규 ADMIN 계정 등. NPE 없이 null 로 둔다.
             var position = member.getPosition();
             this.positionId = position != null ? position.getPositionId() : null;

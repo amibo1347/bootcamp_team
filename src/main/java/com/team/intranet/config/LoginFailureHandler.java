@@ -34,8 +34,13 @@ public class LoginFailureHandler implements AuthenticationFailureHandler {
     }
     // 💡 세션에 직접 메시지를 저장합니다.
     request.getSession().setAttribute("loginError", errorMessage);
-    
-    // 리다이렉트 (파라미터 없이 깔끔하게 보냅니다)
-    response.sendRedirect("/member/login");
+
+    // 로그인 폼 hidden 필드(companyDomain)로 어느 회사 로그인 페이지였는지 알 수 있으면 그곳으로 되돌린다.
+    String companyDomain = request.getParameter("companyDomain");
+    if (companyDomain != null && !companyDomain.isBlank()) {
+        response.sendRedirect("/" + companyDomain.trim() + "/login");
+    } else {
+        response.sendRedirect("/company-login");
+    }
 }
 }

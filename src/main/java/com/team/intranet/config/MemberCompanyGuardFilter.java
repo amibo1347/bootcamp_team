@@ -64,7 +64,7 @@ public class MemberCompanyGuardFilter extends OncePerRequestFilter {
             // 일반 페이지 요청: 로그인 화면으로 리다이렉트 + 안내 메시지.
             HttpSession fresh = request.getSession(true);
             fresh.setAttribute("loginError", "회사가 비활성화되었습니다. 관리자에게 문의하세요.");
-            response.sendRedirect("/member/login");
+            response.sendRedirect("/company-login");
         }
     }
 
@@ -79,6 +79,8 @@ public class MemberCompanyGuardFilter extends OncePerRequestFilter {
                 || uri.startsWith("/uploads/") || uri.startsWith("/api/uploads/")
                 || uri.startsWith("/api/company/")
                 || uri.equals("/favicon.ico") || uri.equals("/error")
-                || uri.equals("/member/login") || uri.equals("/member/logout");
+                // 회사 선택 랜딩 + 회사별 로그인/회원가입 페이지 모두 제외
+                || uri.equals("/company-login") || uri.endsWith("/login")
+                || uri.endsWith("/signup") || uri.equals("/member/logout");
     }
 }

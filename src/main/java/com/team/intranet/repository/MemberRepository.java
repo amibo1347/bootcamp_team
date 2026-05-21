@@ -15,10 +15,14 @@ import com.team.intranet.enums.member.Status;
 
 public interface MemberRepository extends JpaRepository<Member, Long>{
     
-    Optional<Member> findByLoginId(String loginId);
     List<Member> findByCompanyCompanyId(Long companyId);
     List<Member> findByStatusAndCompanyCompanyId(Status status, Long companyId);
-    boolean existsByLoginId(String loginId);
+
+    /** 로그인 인증 — loginId 는 회사별로만 유니크하므로 (회사, loginId) 복합키로 조회. */
+    Optional<Member> findByCompany_CompanyIdAndLoginId(Long companyId, String loginId);
+
+    /** 회원가입 아이디/사번 중복 확인 — 같은 회사 안에서만 검사. */
+    boolean existsByCompany_CompanyIdAndLoginId(Long companyId, String loginId);
 
     /** 회사별 회원 수 (MASTER 사용량 대시보드). */
     long countByCompany_CompanyId(Long companyId);

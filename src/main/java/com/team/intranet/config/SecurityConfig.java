@@ -44,20 +44,12 @@ public class SecurityConfig {
                 .build();
     }
 
-    @Bean
-    public AuthenticationProvider authenticationProvider(CustomUserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
-    DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder);
-    
-        provider.setHideUserNotFoundExceptions(false); 
-    
-        return provider;
-    }
+    // 일반 회원 인증은 MemberAuthenticationProvider(회사+loginId 복합키)가 담당한다.
+    // → 전역 DaoAuthenticationProvider 빈은 더 이상 두지 않는다. MASTER 체인은 자체 provider 사용.
 
     /**
      * MASTER 전용 보안 체인. /master/**, /api/master/** 에만 적용된다 (@Order(1) → 먼저 매칭).
-     *  - 일반 회원 form-login(/member/login)과 완전히 분리된 /master/login 경로 사용.
+     *  - 일반 회원 form-login(/{companyDomain}/login)과 완전히 분리된 /master/login 경로 사용.
      *  - 인증 주체는 MasterAdmin (MasterUserDetailsService). DaoAuthenticationProvider 는
      *    이 체인 안에서만 쓰이도록 지역 변수로 생성 (전역 AuthenticationProvider 빈과 충돌 방지).
      */
@@ -105,7 +97,8 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider,
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+            MemberAuthenticationProvider memberAuthenticationProvider,
             CompanyRepository companyRepository) throws Exception {
         http
                 .csrf(csrf -> csrf
@@ -122,23 +115,26 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**", "/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/subAdmin/**", "/subAdmin/**").hasRole("SUB_ADMIN")
                 // 3. 누구나 접근 가능한 페이지 및 API (나중에 선언)
-                .requestMatchers("/error", "/index", "/calendar", "/member/**", "/api/member/**", "/api/company/**", "/images/**", "/api/uploads/**", "/uploads/**").permitAll()
+                //  ※ /company-login = 회사 선택 랜딩, /*/login·/*/signup = 회사별 로그인/회원가입
+                .requestMatchers("/error", "/index", "/calendar", "/company-login", "/*/login", "/*/signup", "/member/logout", "/api/member/**", "/api/company/**", "/images/**", "/api/uploads/**", "/uploads/**").permitAll()
                 // 4. 그 외 모든 요청은 로그인 필요
                 .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
-                .loginPage("/member/login")
-                .loginProcessingUrl("/member/login") // 💡 HTML <form action="/member/login">과 일치
+                .loginPage("/company-login") // 💡 비로그인 진입 시 보내는 회사 선택 랜딩
+                .loginProcessingUrl("/*/login") // 💡 회사 로그인 폼이 POST 하는 경로 /{companyDomain}/login
                 .usernameParameter("loginId") // 💡 HTML <input name="loginId">와 일치
                 .passwordParameter("password") // 💡 HTML <input name="password">와 일치
+                // 💡 로그인 폼 hidden 필드 companyId 를 인증 컨텍스트(details)에 싣는다.
+                .authenticationDetailsSource(new CompanyAwareAuthenticationDetailsSource())
                 .successHandler(loginSuccessHandler) // 💡 로그인 성공 시 세션 처리기
                 .failureHandler(loginFailureHandler) // 💡 로그인 실패 시 에러 처리기
                 .permitAll()
                 )
-                .authenticationProvider(authenticationProvider)
+                .authenticationProvider(memberAuthenticationProvider)
                 .logout(logout -> logout
                 .logoutUrl("/member/logout") // 💡 HTML에서 호출할 로그아웃 주소
-                .logoutSuccessUrl("/member/login") // 💡 로그아웃 성공 후 이동할 페이지
+                .logoutSuccessUrl("/company-login") // 💡 로그아웃 성공 후 이동할 페이지
                 .invalidateHttpSession(true) // 💡 서버 세션 완전히 삭제 (중요!)
                 .deleteCookies("JSESSIONID") // 💡 브라우저에 남은 세션 쿠키 삭제
                 .permitAll()

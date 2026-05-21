@@ -46,6 +46,7 @@ public class MasterCompanyController {
     public String create(@SessionAttribute(name = "masterSession", required = false) MasterSession master,
                          @RequestParam(name = "companyName", required = false) String companyName,
                          @RequestParam(name = "companyDomain", required = false) String companyDomain,
+                         @RequestParam(name = "usesEmployeeNo", defaultValue = "false") boolean usesEmployeeNo,
                          @RequestParam(name = "adminLoginId", required = false) String adminLoginId,
                          @RequestParam(name = "adminName", required = false) String adminName,
                          @RequestParam(name = "adminEmail", required = false) String adminEmail,
@@ -55,7 +56,7 @@ public class MasterCompanyController {
         String error = validateCreate(companyName, adminLoginId, adminName);
         if (error == null) {
             try {
-                String tempPassword = companyService.create(companyName, companyDomain,
+                String tempPassword = companyService.create(companyName, companyDomain, usesEmployeeNo,
                         adminLoginId, adminName, adminEmail);
                 redirectAttributes.addFlashAttribute("successMessage",
                         "회사가 생성되었습니다: " + companyName.trim()
@@ -72,6 +73,7 @@ public class MasterCompanyController {
         model.addAttribute("errorMessage", error);
         model.addAttribute("formCompanyName", companyName);
         model.addAttribute("formCompanyDomain", companyDomain);
+        model.addAttribute("formUsesEmployeeNo", usesEmployeeNo);
         model.addAttribute("formAdminLoginId", adminLoginId);
         model.addAttribute("formAdminName", adminName);
         model.addAttribute("formAdminEmail", adminEmail);
@@ -101,14 +103,19 @@ public class MasterCompanyController {
                          @PathVariable Long id,
                          @RequestParam(name = "companyName", required = false) String companyName,
                          @RequestParam(name = "companyDomain", required = false) String companyDomain,
+                         @RequestParam(name = "usesEmployeeNo", defaultValue = "false") boolean usesEmployeeNo,
                          RedirectAttributes redirectAttributes) {
         if (master == null) return "redirect:/master/login";
         if (companyName == null || companyName.isBlank()) {
             redirectAttributes.addFlashAttribute("errorMessage", "회사명을 입력하세요.");
             return "redirect:/master/companies/" + id;
         }
-        companyService.updateInfo(id, companyName, companyDomain);
-        redirectAttributes.addFlashAttribute("successMessage", "회사 정보가 수정되었습니다.");
+        try {
+            companyService.updateInfo(id, companyName, companyDomain, usesEmployeeNo);
+            redirectAttributes.addFlashAttribute("successMessage", "회사 정보가 수정되었습니다.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
         return "redirect:/master/companies/" + id;
     }
 

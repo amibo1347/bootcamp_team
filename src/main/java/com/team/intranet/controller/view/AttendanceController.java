@@ -27,7 +27,7 @@ public class AttendanceController {
     public String adminAttendanceList(
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
             Model model) {
-        if (ms == null) return "redirect:/member/login";
+        if (ms == null) return "redirect:/company-login";
         // 정책은 페이지 헤더에 표시 (출근/퇴근 시각 안내용)
         model.addAttribute("policy", attendanceService.getPolicyDto(ms.getCompanyId()));
         return "admin/attendanceList";
@@ -38,7 +38,7 @@ public class AttendanceController {
     public String myAttendance(
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
             Model model) {
-        if (ms == null) return "redirect:/member/login";
+        if (ms == null) return "redirect:/company-login";
         model.addAttribute("policy", attendanceService.getPolicyDto(ms.getCompanyId()));
         return "me/attendance";
     }

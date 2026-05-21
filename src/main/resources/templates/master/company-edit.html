@@ -39,10 +39,22 @@
             <input type="text" id="companyName" name="companyName" class="field-input"
                    th:value="${company.companyName}" required />
           </div>
-          <div class="field-group" style="margin-bottom: 0;">
-            <label for="companyDomain" class="field-label">도메인 (선택)</label>
+          <div class="field-group">
+            <label for="companyDomain" class="field-label">도메인 (필수)</label>
             <input type="text" id="companyDomain" name="companyDomain" class="field-input"
-                   th:value="${company.companyDomain}" placeholder="example.com" />
+                   th:value="${company.companyDomain}" placeholder="예: acme" required />
+            <p class="master-sub" style="margin-top: 0.35rem;">
+              회사별 로그인 주소(<code>/회사도메인/login</code>)로 사용됩니다. 영문/숫자/.-_ 2~40자.
+            </p>
+          </div>
+          <div class="field-group" style="margin-bottom: 0;">
+            <label class="field-label" style="display: flex; align-items: center; gap: 0.5rem;">
+              <input type="checkbox" name="usesEmployeeNo" th:checked="${company.usesEmployeeNo()}" />
+              <span>사번 사용 회사</span>
+            </label>
+            <p class="master-sub" style="margin-top: 0.35rem;">
+              체크하면 이 회사의 직원은 회원가입·로그인 시 '아이디' 대신 '사번'을 입력하고, 화면에도 사번이 표시됩니다.
+            </p>
           </div>
           <button type="submit" class="master-btn" style="margin-top: 1.5rem;">정보 저장</button>
         </form>

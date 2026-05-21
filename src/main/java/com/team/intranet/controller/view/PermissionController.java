@@ -38,7 +38,7 @@ public class PermissionController {
     @PreAuthorize("hasRole('ADMIN')")
     public String permissionList(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
                                   Model model) {
-        if (ms == null) return "redirect:/member/login";
+        if (ms == null) return "redirect:/company-login";
 
         // 대표(Role.ADMIN) 직급은 권한 관리 대상에서 제외 — 항상 모든 권한을 가지므로 토글할 의미가 없음.
         List<PositionDto> positions = positionService.findAllLevelDesc(ms.getCompanyId())

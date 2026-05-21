@@ -24,9 +24,11 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, 
                                         Authentication authentication) throws IOException, ServletException {
         
-        // 1. 로그인한 사용자 정보 가져오기
+        // 1. 로그인한 사용자 정보 가져오기 — loginId 는 회사별 스코프이므로 companyId 와 함께 조회.
         String loginId = authentication.getName();
-        Member member = memberRepository.findByLoginId(loginId).orElseThrow();
+        Long companyId = (authentication.getDetails() instanceof CompanyAwareWebAuthenticationDetails details)
+                ? details.getCompanyId() : null;
+        Member member = memberRepository.findByCompany_CompanyIdAndLoginId(companyId, loginId).orElseThrow();
 
         // 2. 태호님이 만든 MemberSession 객체 생성 및 세션 저장
         MemberSession ms = new MemberSession(member);

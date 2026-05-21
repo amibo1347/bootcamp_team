@@ -38,7 +38,7 @@ window.getApiErrorMessage = async function (res, fallback) {
     const res = await originalFetch(...args);
     try {
       if (res.status === 401 && res.headers.get('X-Logout-Reason')) {
-        window.location.href = '/member/login';
+        window.location.href = '/company-login';
       }
     } catch (e) {
       // 헤더 접근 실패 등은 무시 — 원래 응답은 그대로 반환.

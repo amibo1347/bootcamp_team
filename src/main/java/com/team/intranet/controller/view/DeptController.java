@@ -24,7 +24,7 @@ public class DeptController {
     public String deptList(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
                            Model model) {
         if (ms == null || ms.getCompanyId() == null) {
-            return "redirect:/member/login";
+            return "redirect:/company-login";
         }
 
         List<Dept> depts = deptService.findAll(ms.getCompanyId());

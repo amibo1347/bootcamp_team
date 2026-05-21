@@ -5,6 +5,11 @@
     const $loginId = document.querySelector('#loginId');
     const $btnLoginIdCheck = document.querySelector('#loginIdCheck');
 
+    // 회사가 사번제면 입력 칸은 '사번' — 검증 규칙/안내 문구가 달라진다.
+    const usesEmployeeNo = $loginId && $loginId.dataset.usesEmployeeNo === 'true';
+    const idLabel = usesEmployeeNo ? '사번' : '아이디';
+    const $companyId = document.querySelector('input[name="companyId"]');
+
     const $password = document.querySelector('#password');
     const $passwordCheck = document.querySelector('#passwordCheck');
 
@@ -32,9 +37,11 @@
         $loginId.setCustomValidity("");
     });
 
-    // 1. 아이디 조건 검사 (영문 소문자/숫자, 4~12자)
+    // 1. 아이디/사번 조건 검사
+    //  - 아이디: 영문 소문자/숫자 4~12자
+    //  - 사번  : 영문/숫자/-_ 2~20자 (회사마다 사번 체계가 달라 더 느슨하게)
     const validateId = (id) => {
-        const idRegex = /^[a-z0-9]{4,12}$/;
+        const idRegex = usesEmployeeNo ? /^[A-Za-z0-9_-]{2,20}$/ : /^[a-z0-9]{4,12}$/;
         return idRegex.test(id);
     };
 
@@ -75,15 +82,17 @@
             $loginId.setCustomValidity("");
 
             if (!validateId(loginId)) {
-                showTooltip($loginId, '아이디는 영문 소문자, 숫자 조합 4~12자로 입력해주세요.');
+                showTooltip($loginId, usesEmployeeNo
+                    ? '사번은 영문/숫자/-_ 조합 2~20자로 입력해주세요.'
+                    : '아이디는 영문 소문자, 숫자 조합 4~12자로 입력해주세요.');
                 $loginId.focus();
                 return;
             }
 
             try {
-                // 2. 서버로 중복 체크 요청 (Spring Boot Controller의 @GetMapping과 매칭)
-                // URL은 실제 환경에 맞게 수정하세요 (예: /api/check-id)
-                const response = await fetch(`/api/member/check-id?loginId=${loginId}`, {
+                // 2. 서버로 중복 체크 요청 — loginId 는 회사 단위 유니크라 companyId 를 함께 보낸다.
+                const companyId = $companyId ? $companyId.value : '';
+                const response = await fetch(`/api/member/check-id?loginId=${encodeURIComponent(loginId)}&companyId=${companyId}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
@@ -99,12 +108,12 @@
 
                 // 3. 결과 처리
                 if (!result) {
-                    showTooltip($loginId, "사용 가능한 아이디입니다.");
+                    showTooltip($loginId, "사용 가능한 " + idLabel + "입니다.");
                     applyStatusStyle($loginId, "#10B981"); // 초록색
                     isIdChecked = true;
                     $loginId.setCustomValidity("");
                 } else {
-                    showTooltip($loginId, "이미 사용 중인 아이디입니다.");
+                    showTooltip($loginId, "이미 사용 중인 " + idLabel + "입니다.");
                     applyStatusStyle($loginId, "#EF4444"); // 빨간색
                     isIdChecked = false;
                 }
@@ -183,13 +192,13 @@
 
         if (!validateId(loginId)) {
             event.preventDefault();
-            showTooltip($loginId, '아이디 조건을 확인해주세요 (4~12자).');
+            showTooltip($loginId, idLabel + ' 조건을 확인해주세요.');
             return;
         }
 
         if (!isIdChecked) {
             event.preventDefault();
-            showTooltip($loginId, "아이디 중복 확인이 필요합니다.");
+            showTooltip($loginId, idLabel + " 중복 확인이 필요합니다.");
             return;
         }
 

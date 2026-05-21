@@ -38,6 +38,11 @@
               <span
                 class="min-w-0 truncate text-xs font-normal leading-snug text-gray-500 dark:text-gray-400 sm:text-sm"
                 th:if="${session.memberSession.deptName != null}" th:text="${session.memberSession.deptName}">부서</span>
+              <!-- 사번: 사번제 회사만 표시. ml-auto 로 오른쪽 끝에 고정 → 사번 길이와 무관하게 우측 정렬 유지 -->
+              <span
+                class="ml-auto shrink-0 pl-2 text-xs font-semibold leading-snug text-gray-500 dark:text-gray-400 sm:text-sm"
+                th:if="${session.memberSession.usesEmployeeNo}"
+                th:text="${session.memberSession.loginId}">00000</span>
             </p>
           </div>
           <div class="flex min-h-0 min-w-0 flex-1 flex-col max-lg:flex-none">

@@ -31,7 +31,7 @@ public class BoardAdminController {
             Model model) {
 
         if (ms == null || ms.getCompanyId() == null) {
-            return "redirect:/member/login";
+            return "redirect:/company-login";
         }
 
         List<Board> boards = boardService.findAll(ms.getCompanyId());

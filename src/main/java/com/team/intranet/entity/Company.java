@@ -42,6 +42,15 @@ public class Company {
     @Column(name = "company_domain")
     private String companyDomain;
 
+    /**
+     * 사번제 회사 여부.
+     *  - true  : 직원이 회원가입/로그인 시 'loginId' 칸을 '사번'으로 입력·표시한다.
+     *  - false : 기존처럼 '아이디'.
+     *  - 기존 데이터(컬럼 추가 전 row)는 NULL → usesEmployeeNo() 에서 false 로 간주.
+     */
+    @Column(name = "uses_employee_no")
+    private Boolean usesEmployeeNo;
+
     /** 회사 로고 이미지 (BLOB). 회원 프로필 사진(Member.profileImg)과 동일한 방식. null 이면 로고 없음. */
     @Lob
     @Basic(fetch = FetchType.LAZY)
@@ -49,19 +58,27 @@ public class Company {
     private byte[] logo;
 
     /** 신규 회사 생성. 활성(Y) 상태로 시작. */
-    public static Company create(String companyName, String companyCode, String companyDomain) {
+    public static Company create(String companyName, String companyCode, String companyDomain,
+                                 boolean usesEmployeeNo) {
         Company company = new Company();
         company.companyName = companyName;
         company.companyCode = companyCode;
         company.companyDomain = companyDomain;
+        company.usesEmployeeNo = usesEmployeeNo;
         company.isActive = IsActive.Y;
         return company;
     }
 
-    /** 회사 정보 수정 (이름/도메인). 로고는 updateLogo 로 별도 처리. */
-    public void updateInfo(String companyName, String companyDomain) {
+    /** 회사 정보 수정 (이름/도메인/사번제 여부). 로고는 updateLogo 로 별도 처리. */
+    public void updateInfo(String companyName, String companyDomain, boolean usesEmployeeNo) {
         this.companyName = companyName;
         this.companyDomain = companyDomain;
+        this.usesEmployeeNo = usesEmployeeNo;
+    }
+
+    /** 사번제 회사 여부 — NULL(기존 데이터)은 false 로 간주. */
+    public boolean usesEmployeeNo() {
+        return Boolean.TRUE.equals(this.usesEmployeeNo);
     }
 
     /** 로고 이미지 교체. */
