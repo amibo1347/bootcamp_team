@@ -21,3 +21,28 @@ window.getApiErrorMessage = async function (res, fallback) {
     return def;
   }
 };
+
+/**
+ * 세션 강제 종료 가드 (회사 비활성화 등).
+ *  - 서버(MemberCompanyGuardFilter)가 API 요청에 401 + 'X-Logout-Reason' 헤더를 주면,
+ *    fetch 응답을 가로채 즉시 로그인 화면으로 보낸다.
+ *  - 일반 페이지 요청은 서버가 직접 302 리다이렉트하므로 여기서 다룰 필요 없음.
+ *  - 헤더가 없는 일반 401(미인증 API 등)은 건드리지 않는다 — 기존 호출부 처리 유지.
+ */
+(function () {
+  if (window.__memberLogoutGuardInstalled || typeof window.fetch !== 'function') return;
+  window.__memberLogoutGuardInstalled = true;
+
+  const originalFetch = window.fetch.bind(window);
+  window.fetch = async function (...args) {
+    const res = await originalFetch(...args);
+    try {
+      if (res.status === 401 && res.headers.get('X-Logout-Reason')) {
+        window.location.href = '/member/login';
+      }
+    } catch (e) {
+      // 헤더 접근 실패 등은 무시 — 원래 응답은 그대로 반환.
+    }
+    return res;
+  };
+})();

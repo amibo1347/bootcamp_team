@@ -51,12 +51,26 @@ public class MemberCompanyGuardFilter extends OncePerRequestFilter {
         }
 
         // 소속 회사가 비활성 → 강제 로그아웃.
-        //  - 기존 세션 무효화 후, 새 세션에 안내 메시지를 담아 로그인 화면이 읽도록 한다.
         session.invalidate();
         SecurityContextHolder.clearContext();
-        HttpSession fresh = request.getSession(true);
-        fresh.setAttribute("loginError", "회사가 비활성화되었습니다. 관리자에게 문의하세요.");
-        response.sendRedirect("/member/login");
+
+        if (isApiRequest(request)) {
+            // AJAX/API 요청: 302 리다이렉트는 fetch 가 조용히 삼켜 화면이 안 바뀐다.
+            //  → 401 + X-Logout-Reason 헤더로 알려, 프론트 공통 가드(api-error.js)가
+            //    어떤 행동(AJAX 포함)이든 즉시 로그인 화면으로 보내도록 한다.
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setHeader("X-Logout-Reason", "company-inactive");
+        } else {
+            // 일반 페이지 요청: 로그인 화면으로 리다이렉트 + 안내 메시지.
+            HttpSession fresh = request.getSession(true);
+            fresh.setAttribute("loginError", "회사가 비활성화되었습니다. 관리자에게 문의하세요.");
+            response.sendRedirect("/member/login");
+        }
+    }
+
+    /** AJAX/API 요청 여부 — /api/ 로 시작하면 fetch 호출로 간주. */
+    private boolean isApiRequest(HttpServletRequest request) {
+        return request.getRequestURI().startsWith("/api/");
     }
 
     /** 정적 리소스·로그인/로그아웃·에러 등 검사 제외 경로. */

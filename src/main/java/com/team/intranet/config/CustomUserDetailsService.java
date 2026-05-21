@@ -29,10 +29,11 @@ public class CustomUserDetailsService implements UserDetailsService {
         // role 은 익명화 시 null 일 수 있으나, 그 전에 LEAVE/BANNED 가 잡혀 차단되므로
         // 실제 인증 흐름에서는 도달하지 않음. 방어적으로 USER 폴백.
         String roleName = member.getRole() != null ? member.getRole().name() : "USER";
-        // 소속 회사가 비활성(IsActive.N) 이면 로그인 차단.
+        // 소속 회사가 명시적으로 활성(IsActive.Y) 상태가 아니면 로그인 차단.
+        //  - 비활성(N) + 미설정(null) + 회사 없음 모두 차단 → MemberCompanyGuardFilter(자동 로그아웃)와 동일 기준.
         //  - 사용 가능한 4개 플래그 중 credentialsExpired 만 비어 있어 이를 사용 (CredentialsExpiredException).
-        boolean companyInactive = member.getCompany() != null
-                && member.getCompany().getIsActive() == IsActive.N;
+        boolean companyInactive = member.getCompany() == null
+                || member.getCompany().getIsActive() != IsActive.Y;
         return User.builder()
                 .username(member.getLoginId())
           .password(member.getPassword())
