@@ -1,80 +1,47 @@
 <!-- ================================================================ -->
 <!-- [내 결재함] 테이블 뼈대 — 행은 user/my-inbox.js 가 채움 -->
 <!-- ================================================================ -->
-<div xmlns:th="http://www.thymeleaf.org" th:fragment="myInboxTable" class="approval-my-inbox-root space-y-4">
-  <!-- [결재선 팝업] 테이블 overflow 에 잘리지 않도록 — 토글 박스 배치·레이어만 제어 -->
-  <style>
-    /* 테이블 가로 스크롤은 유지하되, 세로 overflow 로 팝업이 잘리지 않게 분리 */
-    .approval-my-inbox-table-wrap {
-      overflow-x: auto;
-      overflow-y: visible;
-    }
-    /* 결재자 셀·행: absolute/fixed 팝업이 tbody 경계에 막히지 않도록 */
-    .approval-my-inbox-root td[data-approver-toggle="1"] {
-      overflow: visible;
-    }
-    .approval-my-inbox-root tbody tr {
-      position: relative;
-    }
-    /* JS 가 fixed 로 올릴 때 최상단 레이어 (전자결재 대시보드 위) */
-    .approval-my-inbox-root [data-approver-dropdown].approval-approver-dropdown--open {
-      z-index: 99950;
-    }
-  </style>
-  <!-- [결재선 팝업] 스타일 끝 -->
-
-  <!-- [필터] 서버 enum 기준 상태만 노출 -->
+<div xmlns:th="http://www.thymeleaf.org" th:fragment="myInboxTable" class="approval-inbox-table-root space-y-4">
+  <!-- [필터] -->
   <div class="flex flex-wrap items-center justify-between gap-3">
-    <div class="flex items-center gap-2">
-      <label for="approval-my-status-filter" class="text-sm text-gray-600 dark:text-gray-400">상태</label>
-      <select id="approval-my-status-filter"
-        class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-        <!-- JS가 PENDING/APPROVED/REJECTED 필터 옵션 삽입 -->
-      </select>
+    <div class="relative z-20 w-44">
+        <select id="approval-my-status-filter" class="sr-only pointer-events-none" tabindex="-1" aria-hidden="true" aria-label="상태 필터">
+          <!-- JS가 필터 옵션 삽입 -->
+        </select>
     </div>
     <span id="approval-my-inbox-count" class="text-xs text-gray-500 dark:text-gray-400">총 0건</span>
   </div>
-  <!-- [필터] 끝 -->
 
-  <!-- [목록 테이블] 시작 -->
-  <div class="approval-my-inbox-table-wrap rounded-xl border border-gray-200 dark:border-gray-800">
-    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+  <!-- [목록] 모바일 카드 · md~lg 가로 스크롤 · lg+ 고정 열 -->
+  <div class="approval-inbox-table-wrap rounded-xl border border-gray-200 dark:border-gray-800">
+    <table class="approval-inbox-table min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+      <colgroup th:replace="~{approval/common/inbox-table-colgroup :: myInboxColgroup}"></colgroup>
       <thead class="bg-gray-50 dark:bg-white/[0.03]">
         <tr>
-          <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">문서번호</th>
-          <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">제목</th>
-          <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">상태</th>
-          <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">결재자</th>
-          <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">사유</th>
-          <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">기안일</th>
-          <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-400"><span class="sr-only">취소/삭제</span></th>
+          <th scope="col" data-col="id">문서번호</th>
+          <th scope="col" data-col="title">제목</th>
+          <th scope="col" data-col="status">상태</th>
+          <th scope="col" data-col="approver">결재자</th>
+          <th scope="col" data-col="comment">사유</th>
+          <th scope="col" data-col="date">기안일</th>
+          <th scope="col" data-col="action" class="approval-inbox-th--right"><span class="sr-only">취소/삭제</span></th>
         </tr>
       </thead>
-      <tbody id="approval-my-inbox-body" class="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-white/[0.02]">
-        <!-- JS 삽입 -->
-      </tbody>
+      <tbody id="approval-my-inbox-body" class="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-white/[0.02]"></tbody>
     </table>
   </div>
-  <!-- [목록 테이블] 끝 -->
 
-  <!-- [빈 상태] 시작 -->
   <div id="approval-my-inbox-empty" class="hidden">
     <div class="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 py-12 text-center dark:border-gray-700 dark:bg-white/[0.03]" role="status">
       <p class="text-sm text-gray-500 dark:text-gray-400">표시할 결재 문서가 없습니다.</p>
     </div>
   </div>
-  <!-- [빈 상태] 끝 -->
 
-  <!-- [페이지네이션] 페이지 1개 이하일 때는 숨김 -->
   <div id="approval-my-inbox-pagination" class="hidden items-center justify-center gap-2 pt-2">
     <button type="button" id="approval-my-inbox-prev"
-      class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
-      이전
-    </button>
+      class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">이전</button>
     <span id="approval-my-inbox-page-info" class="text-xs text-gray-500 dark:text-gray-400">1 / 1</span>
     <button type="button" id="approval-my-inbox-next"
-      class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
-      다음
-    </button>
+      class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">다음</button>
   </div>
 </div>

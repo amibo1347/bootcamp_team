@@ -455,7 +455,7 @@
                                         게시판 보기
                                     </a>
                                     <button type="button"
-                                        class="rounded-lg bg-indigo-100 px-3 py-1.5 text-sm text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-200 dark:hover:bg-indigo-900/60"
+                                        class="rounded-lg bg-indigo-200 px-3 py-1.5 text-sm text-indigo-700 hover:bg-indigo-300 dark:bg-indigo-900/40 dark:text-indigo-200 dark:hover:bg-indigo-900/60"
                                         th:attr="data-board-id=${board.boardId},
                                                  data-board-name=${board.boardName},
                                                  data-board-type=${board.boardType},
@@ -598,9 +598,13 @@
         </div>
     </div>
 
-    <div id="editModal" class="fixed inset-0 z-9999 hidden items-center justify-center bg-black/50 p-4 dark:bg-black/70">
+    <!-- 게시판 수정 모달 (배경 클릭 시 닫기 — calendar 모달과 동일 패턴) -->
+    <div id="editModal"
+        class="fixed inset-0 z-9999 hidden items-center justify-center overflow-y-auto p-4 sm:p-6 dark:bg-transparent">
+        <!-- 배경 딤: 바깥 영역 클릭 시 닫기 -->
+        <div class="modal-close-btn fixed inset-0 z-0 bg-black/50 dark:bg-black/70" aria-hidden="true"></div>
         <div
-            class="w-full max-w-4xl rounded-2xl border border-gray-100 bg-white shadow-xl dark:border-strokedark dark:bg-boxdark">
+            class="relative z-10 w-full max-w-4xl rounded-2xl border border-gray-100 bg-white shadow-xl dark:border-strokedark dark:bg-boxdark">
             <form id="editBoardForm" class="max-h-[85vh] overflow-y-auto p-6 md:p-7">
                 <h3 class="mb-6 text-2xl font-bold text-gray-900 dark:text-white">게시판 수정</h3>
                 <input id="editBoardId" type="hidden" />

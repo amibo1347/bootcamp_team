@@ -14,6 +14,7 @@
   <meta name="_csrf_header" th:content="${_csrf.headerName}" />
   <link rel="stylesheet" th:href="@{/css/output.css}" />
   <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+  <th:block th:replace="~{approval/common/inbox-table-styles :: inboxTableStyles}"></th:block>
   <!-- [전자결재 전용] : 글로벌 utility 가 숨긴 네이티브 달력 picker 를 복구.
        output.css 가 재빌드 되면 이 블록은 잉여 (input.css 에서 .flatpickr-input 으로 스코프 됨). -->
   <style>
@@ -95,7 +96,7 @@
         <!-- [탭] 전환 버튼 — 관리자 탭은 서버에서만 렌더 -->
         <div class="flex flex-wrap gap-2 border-b border-gray-200 pb-4 dark:border-gray-800" role="tablist">
           <button type="button" id="approval-tab-wizard" data-approval-tab="wizard"
-            class="rounded-lg px-4 py-2 text-sm font-medium bg-brand-500 text-white">
+            class="rounded-lg px-4 py-2 text-sm font-medium bg-indigo-400 text-white">
             기안
           </button>
           <button type="button" id="approval-tab-my" data-approval-tab="my"
@@ -128,7 +129,7 @@
                   <li class="flex flex-col items-center lg:items-stretch">
                     <div class="flex items-center gap-3 lg:gap-4">
                       <span id="approval-step-indicator-1"
-                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500 text-sm font-semibold leading-none text-white"
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-400 text-sm font-semibold leading-none text-white"
                         aria-hidden="true">1</span>
                       <span id="approval-step-label-1"
                         class="text-center font-semibold leading-none text-brand-600 dark:text-brand-400 lg:text-left">양식</span>
@@ -163,9 +164,9 @@
                 </ol>
               </nav>
 
-              <!-- ===== 우측: 스텝 콘텐츠 + 하단 버튼 (넉넉한 패딩 · 컴팩트 max-width) ===== -->
-              <div class="flex min-h-0 flex-1 flex-col py-8 pl-8 pr-4 lg:py-10 lg:pl-12 lg:pr-6">
-                <div class="flex w-full max-w-xl flex-1 flex-col lg:ml-[max(0px,calc((100%-36rem)/2))] lg:mr-[max(0px,calc((100%-36rem)/4))]">
+              <!-- ===== 우측: 스텝 콘텐츠 + 하단 버튼 (적당한 좌우 여백 · 콘텐츠는 max-width 안에서 확장) ===== -->
+              <div class="flex min-h-0 flex-1 flex-col py-8 px-6 lg:py-10 lg:px-10">
+                <div class="mx-auto flex w-full min-w-0 max-w-2xl flex-1 flex-col">
                 <div class="flex-1 space-y-6">
                   <div id="approval-step-1" class="approval-wizard-step">
                     <th:block th:replace="~{approval/user/wizard-step-form :: wizardStepForm}"></th:block>
@@ -185,9 +186,9 @@
                     disabled>이전</button>
                   <div class="flex gap-2">
                     <button type="button" id="approval-wizard-next"
-                      class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">다음</button>
+                      class="rounded-lg bg-indigo-400 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">다음</button>
                     <button type="button" id="approval-wizard-submit"
-                      class="hidden rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">제출</button>
+                      class="hidden rounded-lg bg-indigo-400 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">제출</button>
                   </div>
                 </div>
                 <p id="approval-wizard-message" class="mt-4 hidden text-sm text-green-600 dark:text-green-400"

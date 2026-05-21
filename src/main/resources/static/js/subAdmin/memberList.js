@@ -124,6 +124,16 @@ document.addEventListener('DOMContentLoaded', () => {
             openResignModal(resignButton);
         }
     });
+
+    // 수정 모달: 배경(딤) 클릭 시 닫기 — calendar 의 .modal-close-btn 과 동일
+    document.querySelectorAll('#editModal .modal-close-btn').forEach((btn) => {
+        btn.addEventListener('click', closeEditModal);
+    });
+
+    // 퇴사 사유 모달: 배경(딤) 클릭 시 닫기
+    document.querySelectorAll('#resignTypeModal .modal-close-btn').forEach((btn) => {
+        btn.addEventListener('click', closeResignModal);
+    });
 });
 
 

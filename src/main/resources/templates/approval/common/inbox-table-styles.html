@@ -1,0 +1,200 @@
+<!-- ================================================================ -->
+<!-- [전자결재 함 목록] 반응형 테이블 — 모바일 카드 / 태블릿 축소 / lg 고정 열 -->
+<!-- ================================================================ -->
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="inboxTableStyles">
+  <style>
+    /* ── 공통 ── */
+    .approval-inbox-table-root .approval-inbox-table-wrap {
+      overflow-x: auto;
+      overflow-y: visible;
+      -webkit-overflow-scrolling: touch;
+    }
+    .approval-inbox-table-root tbody td.approval-inbox-td-approver,
+    .approval-inbox-table-root td[data-approver-toggle="1"] {
+      overflow: visible;
+    }
+    .approval-inbox-table-root table.approval-inbox-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .approval-inbox-table-root .approval-inbox-td-value {
+      min-width: 0;
+    }
+
+    /* ── 모바일 (&lt;768px): 카드형 목록 ── */
+    @media (max-width: 767px) {
+      .approval-inbox-table-root .approval-inbox-table-wrap {
+        overflow-x: visible;
+      }
+      .approval-inbox-table-root .approval-inbox-table thead {
+        display: none;
+      }
+      .approval-inbox-table-root .approval-inbox-table colgroup {
+        display: none;
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody {
+        display: block;
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody tr {
+        display: block;
+        height: auto;
+        margin-bottom: 0.75rem;
+        border: 1px solid rgb(229 231 235);
+        border-radius: 0.75rem;
+        background: rgb(255 255 255);
+        overflow: hidden;
+      }
+      .dark .approval-inbox-table-root .approval-inbox-table tbody tr {
+        border-color: rgb(31 41 55);
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.625rem 1rem;
+        overflow: visible;
+        border-bottom: 1px solid rgb(243 244 246);
+      }
+      .dark .approval-inbox-table-root .approval-inbox-table tbody td {
+        border-bottom-color: rgb(31 41 55);
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody td:last-child {
+        border-bottom: none;
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody td::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        width: 4.25rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        font-weight: 600;
+        color: rgb(107 114 128);
+      }
+      .dark .approval-inbox-table-root .approval-inbox-table tbody td::before {
+        color: rgb(156 163 175);
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody td[data-label=""]::before {
+        display: none;
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody td[data-col="action"] {
+        justify-content: flex-end;
+        border-top: 1px solid rgb(243 244 246);
+        padding-top: 0.75rem;
+      }
+      .dark .approval-inbox-table-root .approval-inbox-table tbody td[data-col="action"] {
+        border-top-color: rgb(31 41 55);
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody td.approval-inbox-td-approver {
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody td .approval-inbox-td-value {
+        flex: 1;
+        justify-content: flex-end;
+        text-align: right;
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody td[data-col="title"] .approval-inbox-td-value {
+        justify-content: flex-end;
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody td.approval-inbox-td-action--empty {
+        display: none;
+      }
+    }
+
+    /* ── 태블릿 (768px~1023px): 테이블 + 부가 열 숨김 + 가로 스크롤 ── */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      .approval-inbox-table-root .approval-inbox-table {
+        table-layout: fixed;
+        min-width: 40rem;
+      }
+      .approval-inbox-table-root .approval-inbox-table thead th {
+        padding: 0.75rem 0.75rem;
+        text-align: left;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        font-weight: 600;
+        color: rgb(75 85 99);
+        vertical-align: middle;
+      }
+      .dark .approval-inbox-table-root .approval-inbox-table thead th {
+        color: rgb(156 163 175);
+      }
+      .approval-inbox-table-root .approval-inbox-table thead th.approval-inbox-th--right {
+        text-align: right;
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody tr {
+        height: 4rem;
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody td {
+        display: table-cell;
+        padding: 0.75rem 0.75rem;
+        overflow: hidden;
+        vertical-align: middle;
+        box-sizing: border-box;
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody td::before {
+        display: none;
+      }
+      /* 양식·사유는 태블릿에서 숨김 */
+      .approval-inbox-table-root .approval-inbox-table [data-col="comment"],
+      .approval-inbox-table-root .approval-inbox-table [data-col="form"] {
+        display: none;
+      }
+      .approval-inbox-table-root .approval-col-comment,
+      .approval-inbox-table-root .approval-col-form {
+        display: none;
+      }
+    }
+
+    /* ── 데스크톱 (≥1024px): 고정 열 너비·내 결재함 ‘전체’ 기준 ── */
+    @media (min-width: 1024px) {
+      .approval-inbox-table-root .approval-inbox-table {
+        table-layout: fixed;
+        min-width: 0;
+      }
+      .approval-inbox-table-root .approval-inbox-table thead th {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        font-weight: 600;
+        color: rgb(75 85 99);
+        vertical-align: middle;
+      }
+      .dark .approval-inbox-table-root .approval-inbox-table thead th {
+        color: rgb(156 163 175);
+      }
+      .approval-inbox-table-root .approval-inbox-table thead th.approval-inbox-th--right {
+        text-align: right;
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody tr {
+        position: relative;
+        height: 4rem;
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody td {
+        display: table-cell;
+        padding: 0.75rem 1rem;
+        overflow: hidden;
+        vertical-align: middle;
+        box-sizing: border-box;
+      }
+      .approval-inbox-table-root .approval-inbox-table tbody td::before {
+        display: none;
+      }
+      .approval-inbox-table-root .approval-col-id { width: 4.75rem; }
+      .approval-inbox-table-root .approval-col-form { width: 4.25rem; }
+      .approval-inbox-table-root .approval-col-status { width: 5.5rem; }
+      .approval-inbox-table-root .approval-col-drafter { width: 7rem; }
+      .approval-inbox-table-root .approval-col-approver { width: 14rem; }
+      .approval-inbox-table-root .approval-col-comment { width: 10rem; }
+      .approval-inbox-table-root .approval-col-date { width: 6.5rem; }
+      .approval-inbox-table-root .approval-col-action { width: 10.5rem; }
+    }
+
+    .approval-inbox-table-root [data-approver-dropdown].approval-approver-dropdown--open {
+      z-index: 99950;
+    }
+  </style>
+</th:block>

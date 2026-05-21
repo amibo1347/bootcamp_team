@@ -143,7 +143,7 @@
             <td class="whitespace-nowrap px-5 py-3">
               <div class="flex flex-wrap gap-2">
                 <button type="button" data-action="restore" data-board-id="${boardId}" data-article-id="${articleId}"
-                  class="rounded-xl bg-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-300 dark:bg-indigo-600/35 dark:text-indigo-100 dark:hover:bg-indigo-600/50">
+                  class="rounded-xl bg-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-300 dark:bg-emerald-600/35 dark:text-emerald-100 dark:hover:bg-emerald-600/50">
                   복구
                 </button>
                 <button type="button" data-action="permanent" data-board-id="${boardId}" data-article-id="${articleId}"

@@ -1335,8 +1335,8 @@ document.addEventListener("DOMContentLoaded", () => {
           <span class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">${name}</span>
         </div>
         <div class="flex shrink-0 gap-2">
-          <button type="button" class="btn-cat-edit rounded-lg border border-transparent px-3 py-1.5 text-xs font-medium text-brand-600 transition hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10">수정</button>
-          <button type="button" class="btn-cat-delete rounded-lg border border-transparent px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40">삭제</button>
+          <button type="button" class="btn-cat-edit rounded-lg border border-transparent px-3 py-1.5 text-xs font-medium text-indigo-700 transition bg-indigo-200 hover:bg-indigo-300 dark:bg-indigo-500/25 dark:text-indigo-100 dark:hover:bg-indigo-500/40">수정</button>
+          <button type="button" class="btn-cat-delete rounded-lg border border-transparent px-3 py-1.5 text-xs font-medium text-rose-500 transition bg-rose-200 hover:bg-rose-300 dark:bg-rose-500/25 dark:text-rose-200 dark:hover:bg-rose-500/40">삭제</button>
         </div>
       </li>`;
       })
@@ -1800,7 +1800,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const rowBg = isShared ? "bg-brand-50 dark:bg-brand-500/15" : "";
     const btnCls = isShared
       ? "border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-      : "border-brand-500 bg-brand-500 text-white hover:bg-brand-600";
+      : "border-indigo-400 bg-indigo-400 text-white hover:bg-indigo-500";
     const btnText = isShared ? "해제" : "공유";
     return `
       <div data-result-row-id="${escapeHtml(id)}"
@@ -1831,7 +1831,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition " +
         (isShared
           ? "border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-          : "border-brand-500 bg-brand-500 text-white hover:bg-brand-600");
+          : "border-indigo-400 bg-indigo-400 text-white hover:bg-indigo-500");
     }
   }
 

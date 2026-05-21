@@ -57,7 +57,7 @@
               type="button"
               id="home-btn-checkin"
               th:hidden="${hasTodayCheckIn == true or hasTodayCheckOut == true}"
-              class="w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              class="w-full rounded-lg bg-blue-500 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             >
               출근
             </button>
@@ -66,20 +66,16 @@
               type="button"
               id="home-btn-checkout"
               th:hidden="${hasTodayCheckIn != true}"
-              class="w-full rounded-lg bg-slate-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              class="w-full rounded-lg bg-red-500 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             >
               퇴근
             </button>
-            <!-- 퇴근 완료 후: 퇴근 취소 버튼 (실수 복구용)
-                 ※ Tailwind output.css 에 bg-rose-500 이 빌드 안 되어 있을 수 있어 inline style 로 색 강제. -->
+            <!-- 퇴근 완료 후: 퇴근 취소 버튼 (실수 복구용, Neutral 톤) -->
             <button
               type="button"
               id="home-btn-checkout-cancel"
               th:hidden="${hasTodayCheckOut != true}"
-              style="background-color: #f43f5e; color: #ffffff;"
-              onmouseover="this.style.backgroundColor='#e11d48'"
-              onmouseout="this.style.backgroundColor='#f43f5e'"
-              class="w-full rounded-lg px-3 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+              class="w-full rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
             >
               퇴근 취소
             </button>

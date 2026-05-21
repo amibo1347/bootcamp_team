@@ -68,7 +68,8 @@
                 <!-- th:action 으로 CSRF 토큰 자동 주입 -->
                 <form method="post" style="display: inline;"
                       th:action="@{/master/companies/{id}/toggle(id=${company.companyId})}">
-                  <button type="submit" class="master-btn-outline"
+                  <button type="submit"
+                          th:class="${company.isActiveCompany()} ? 'master-btn-pause' : 'master-btn-restore'"
                           th:text="${company.isActiveCompany()} ? '비활성화' : '활성화'">토글</button>
                 </form>
               </td>
