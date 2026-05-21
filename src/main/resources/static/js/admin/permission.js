@@ -62,8 +62,8 @@ window.savePermissions = async (button) => {
             alert('직급 권한이 저장되었습니다. 페이지를 새로고침합니다.');
             window.location.reload();
         } else {
-            const text = await response.text();
-            alert(`저장 실패: ${text || '서버 오류가 발생했습니다.'}`);
+            // ErrorCode.message 를 그대로 노출 — 공통 헬퍼로 통일.
+            alert(await window.getApiErrorMessage(response, '권한 저장에 실패했습니다.'));
         }
     } catch (e) {
         console.error('Permission save error:', e);
@@ -239,8 +239,8 @@ window.submitMemberPermissions = async () => {
             alert('회원 예외 권한이 저장되었습니다. (변경 사항은 해당 회원이 다시 로그인하면 반영됩니다.)\n페이지를 새로고침합니다.');
             window.location.reload();
         } else {
-            const text = await response.text();
-            alert(`저장 실패: ${text || '서버 오류가 발생했습니다.'}`);
+            // ErrorCode.message 를 그대로 노출 — 공통 헬퍼로 통일.
+            alert(await window.getApiErrorMessage(response, '권한 저장에 실패했습니다.'));
         }
     } catch (e) {
         console.error('Member permission save error:', e);

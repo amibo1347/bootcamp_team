@@ -27,6 +27,7 @@ import com.team.intranet.dto.approval.ExpensePayload;
 import com.team.intranet.dto.approval.GenericPayload;
 import com.team.intranet.dto.approval.VacationPayload;
 import com.team.intranet.entity.Approval;
+import com.team.intranet.entity.ApprovalAttachment;
 import com.team.intranet.entity.ApprovalFieldValue;
 import com.team.intranet.entity.ApprovalLine;
 import com.team.intranet.entity.Calendar;
@@ -42,6 +43,7 @@ import com.team.intranet.enums.Visibility;
 import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.Status;
 import com.team.intranet.exception.BusinessException;
+import com.team.intranet.repository.ApprovalAttachmentRepository;
 import com.team.intranet.repository.ApprovalFieldValueRepository;
 import com.team.intranet.repository.ApprovalLineRepository;
 import com.team.intranet.repository.ApprovalRepository;
@@ -75,6 +77,7 @@ public class ApprovalService {
     private final CalendarRepository calendarRepository;
     private final AlertService alertService;
     private final ApprovalFieldValueRepository fieldValueRepository;
+    private final ApprovalAttachmentRepository approvalAttachmentRepository;
     private final ObjectMapper objectMapper;
 
     // ===== Submit =====
@@ -164,6 +167,9 @@ public class ApprovalService {
                 default -> { /* 본문 없는 양식이면 헤더만 저장 */ }
             }
         }
+
+        // 첨부파일 연결 — 미리 업로드된 ApprovalAttachment 를 이 결재 문서에 묶는다. 선택 사항.
+        linkAttachments(approval, req.getAttachmentIds(), drafter);
 
         // 1단계 결재자에게 알림 발송. 알림이 실패해도 결재 저장은 영향 없도록 호출 측에서도 흡수.
         // (REQUIRES_NEW 의 commit 시점 UnexpectedRollbackException 은 메서드 내부 try 로는 못 잡음)
@@ -310,11 +316,14 @@ public class ApprovalService {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
 
+        List<ApprovalAttachment> attachments = approvalAttachmentRepository
+            .findByApproval_ApprovalId(approvalId);
+
         // 동적 본문 결재(B안): schemaSnapshot 이 있으면 양식 후속 변경과 무관하게 그 스냅샷 + 필드값으로 응답.
         if (approval.getSchemaSnapshot() != null && !approval.getSchemaSnapshot().isBlank()) {
             List<ApprovalFieldValue> values = fieldValueRepository
                 .findByApproval_ApprovalIdOrderByFieldValueIdAsc(approvalId);
-            return ApprovalDetailResponse.ofDynamic(approval, lines, values);
+            return ApprovalDetailResponse.ofDynamic(approval, lines, values, attachments);
         }
 
         String code = approval.getFormTemplate().getFormCode() == null
@@ -330,7 +339,63 @@ public class ApprovalService {
             ? expenseRequestRepository.findByApproval_ApprovalId(approvalId).orElse(null)
             : null;
 
-        return ApprovalDetailResponse.of(approval, lines, vacation, generic, expense);
+        return ApprovalDetailResponse.of(approval, lines, vacation, generic, expense, attachments);
+    }
+
+    // ===== Delete (취소 / 삭제) =====
+
+    /**
+     * 결재 문서 취소 — 내 결재함의 [취소] 버튼.
+     * 대기(PENDING)·보류(ON_HOLD) 상태에서만 가능. 진행·승인·반려는 취소 불가.
+     *  - 기안자 본인만 가능.
+     *  - 하위 데이터(결재선·본문·첨부·필드값)를 먼저 제거해 FK 제약 회피.
+     *  - 휴가 승인 시 자동 등록된 캘린더 일정은 별도 엔티티라 영향 없음.
+     */
+    @Transactional
+    public void deleteApproval(MemberSession ms, Long approvalId) {
+        if (approvalId == null) {
+            throw new BusinessException(ErrorCode.APPROVAL_NOT_FOUND);
+        }
+        Approval approval = approvalRepository.findById(approvalId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.APPROVAL_NOT_FOUND));
+
+        // 기안자 본인만 취소 가능.
+        if (approval.getDrafter() == null
+            || !approval.getDrafter().getMemberId().equals(ms.getMemberId())) {
+            throw new BusinessException(ErrorCode.NO_AUTHORITY);
+        }
+        // 회사 격리.
+        if (approval.getCompany() == null
+            || !approval.getCompany().getCompanyId().equals(ms.getCompanyId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+        // 대기·보류 상태만 취소 가능 — 진행·승인·반려는 불가.
+        if (approval.getStatus() != ApprovalStatus.PENDING
+            && approval.getStatus() != ApprovalStatus.ON_HOLD) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
+
+        // 자식 먼저 제거 (FK 제약 회피).
+        List<ApprovalAttachment> attachments =
+            approvalAttachmentRepository.findByApproval_ApprovalId(approvalId);
+        if (!attachments.isEmpty()) approvalAttachmentRepository.deleteAll(attachments);
+
+        List<ApprovalFieldValue> fieldValues =
+            fieldValueRepository.findByApproval_ApprovalIdOrderByFieldValueIdAsc(approvalId);
+        if (!fieldValues.isEmpty()) fieldValueRepository.deleteAll(fieldValues);
+
+        vacationRepository.findByApproval_ApprovalId(approvalId)
+            .ifPresent(vacationRepository::delete);
+        genericRequestRepository.findByApproval_ApprovalId(approvalId)
+            .ifPresent(genericRequestRepository::delete);
+        expenseRequestRepository.findByApproval_ApprovalId(approvalId)
+            .ifPresent(expenseRequestRepository::delete);
+
+        List<ApprovalLine> lines =
+            approvalLineRepository.findByApproval_ApprovalIdOrderByLevelAsc(approvalId);
+        if (!lines.isEmpty()) approvalLineRepository.deleteAll(lines);
+
+        approvalRepository.delete(approval);
     }
 
     // ===== Lists =====
@@ -428,6 +493,31 @@ public class ApprovalService {
     }
 
     // ===== 내부 헬퍼 =====
+
+    /**
+     * 미리 업로드된 첨부파일을 결재 문서에 연결한다. (게시글 첨부 연결과 동일한 흐름)
+     *  - 같은 회사 + 업로더가 기안자 본인인 첨부만 연결.
+     *  - 이미 다른 결재에 연결된 첨부는 건너뜀.
+     *  - 첨부는 선택 사항 — 목록이 비어 있으면 아무것도 안 함.
+     */
+    private void linkAttachments(Approval approval, List<Long> attachmentIds, Member drafter) {
+        if (attachmentIds == null || attachmentIds.isEmpty()) return;
+        for (Long id : attachmentIds) {
+            if (id == null) continue;
+            ApprovalAttachment att = approvalAttachmentRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ATTACHMENT_NOT_FOUND));
+            if (att.getCompany() == null
+                || !att.getCompany().getCompanyId().equals(drafter.getCompany().getCompanyId())) {
+                throw new BusinessException(ErrorCode.ACCESS_DENIED);
+            }
+            if (att.getUploader() == null
+                || !att.getUploader().getMemberId().equals(drafter.getMemberId())) {
+                throw new BusinessException(ErrorCode.ACCESS_DENIED);
+            }
+            if (att.getApproval() != null) continue; // 이미 다른 결재에 연결됨
+            att.setApproval(approval);
+        }
+    }
 
     private List<Long> normalizeApprovalLine(ApprovalSubmitRequest req) {
         if (req.getApprovalLine() != null && !req.getApprovalLine().isEmpty()) {

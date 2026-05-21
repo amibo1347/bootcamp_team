@@ -181,8 +181,16 @@ public class AiChatService {
         String rawContent = resp.content() != null ? resp.content() : "";
         AiProposalExtractor.Extracted ex = proposalExtractor.extract(rawContent);
 
-        AiChatMessage assistantMsg = AiChatMessage.assistant(session,
-            ex.cleanedContent() != null ? ex.cleanedContent() : "",
+        // Oracle 은 빈 문자열('')을 NULL 로 저장 → content NOT NULL 제약 위반(ORA-01400).
+        // AI 가 본문 없이 액션 카드(JSON 블록)만 응답하면 cleanedContent 가 "" 가 되므로 안내 문구로 대체.
+        String content = ex.cleanedContent() != null ? ex.cleanedContent().trim() : "";
+        if (content.isBlank()) {
+            content = ex.proposalJson() != null
+                ? "아래 내용을 확인하고 진행해 주세요."
+                : "죄송합니다. 답변을 생성하지 못했어요. 다시 시도해 주세요.";
+        }
+
+        AiChatMessage assistantMsg = AiChatMessage.assistant(session, content,
             resp.promptTokens(), resp.completionTokens());
         if (ex.proposalJson() != null) {
             // 휴가 제안이면 결재자 이름에 부서/직급을 보강 → 카드에서 "홍길동(인사팀/부장)" 표시.
@@ -395,9 +403,11 @@ public class AiChatService {
      *
      * @param vacationTypeOverride 카드 dropdown 에서 사용자가 최종 확정한 휴가 종류 코드.
      *                             비어 있으면 AI 추론값(proposal)을 사용.
+     * @param attachmentIds 카드 하단에서 미리 업로드한 첨부파일 id (선택 사항, null/빈 리스트 허용).
      */
     @Transactional
-    public AiChatMessageDto confirmLeaveProposal(MemberSession ms, Long messageId, String vacationTypeOverride) {
+    public AiChatMessageDto confirmLeaveProposal(MemberSession ms, Long messageId,
+                                                 String vacationTypeOverride, List<Long> attachmentIds) {
         AiChatMessage msg = messageRepository.findById(messageId)
             .orElseThrow(() -> new BusinessException(ErrorCode.AI_SESSION_NOT_FOUND));
         AiChatSession session = loadAndAssertOwner(ms, msg.getSession().getSessionId());
@@ -444,6 +454,7 @@ public class AiChatService {
             vacationType,
             p.totalDays() != null ? p.totalDays() : 1.0,
             startDate, endDate));
+        req.setAttachmentIds(attachmentIds); // 선택 사항 — null/빈 리스트면 첨부 없음
 
         try {
             approvalService.submit(ms, req);
@@ -704,6 +715,11 @@ public class AiChatService {
             - 추측·창작 금지. 데이터에 있는 내용만 인용하세요.
 
             📅 일정 관리 (등록 / 수정 / 삭제):
+            ⚠️ 휴가 신청은 일정(calendar)이 아닙니다 — 절대 혼동 금지:
+            - "휴가/연차/반차/월차/병가/경조사/휴직" 신청 의도가 보이면 json:calendar 블록을 만들지 마세요.
+            - 휴가 신청은 아래 "🏖️ 휴가 신청" 절차에 따라 오직 json:leave 블록으로만 처리합니다.
+            - 결재자(결재선) 성함을 attendeeNames(참여자)에 넣지 마세요. 결재선은 json:leave 의 approverNames 입니다.
+            - 휴가가 승인되면 일정은 전자결재 시스템이 자동 등록합니다. AI 가 일정으로 등록하지 마세요.
             • 자연어 시간 해석 — 모호한 표현도 그대로 등록하세요. 사용자에게 정확한 시간을 다시 묻지 마세요:
                 "아침"     → 08:00 ~ 09:00
                 "오전"     → 10:00 ~ 11:00
@@ -820,7 +836,10 @@ public class AiChatService {
 
             [3단계] 카드 출력
             • 기간·사유 + 확정된 결재선이 모두 모이면 짧은 확인 문장 + json:leave 블록 1개 출력.
+            • ⚠️ 휴가 신청 카드는 반드시 json:leave 블록만 사용하세요. json:calendar 블록은 절대 출력 금지.
             • AI 는 자동 제출하지 않습니다. 카드만 제시하고 사용자가 [신청] 버튼을 누릅니다.
+            • [신청] 버튼을 누르면 전자결재가 상신되고 1단계 결재자에게 알림이 갑니다.
+              최종 승인 후 일정 등록까지는 전자결재 시스템이 처리하므로 AI 가 일정을 따로 만들지 마세요.
 
             ```json:leave
             {

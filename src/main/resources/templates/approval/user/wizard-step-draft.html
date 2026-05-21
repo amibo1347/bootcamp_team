@@ -15,4 +15,18 @@
     <th:block th:replace="~{approval/forms/vacation-form-fields :: vacationFormFields}"></th:block>
   </div>
   <!-- [동적 양식] 끝 -->
+
+  <!-- [공통 첨부파일] 시작 — 모든 양식 공통, 제목과 동일하게 가로 전체. 선택 사항. -->
+  <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+    <label for="approval-attachments" class="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
+      첨부파일 <span class="font-normal text-gray-400">(선택)</span>
+    </label>
+    <input id="approval-attachments" type="file" multiple
+      class="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-600 dark:text-gray-300" />
+    <p class="mt-1 text-xs text-gray-400">파일당 최대 10MB, 최대 5개까지 첨부할 수 있습니다.</p>
+    <ul id="approval-attachment-list" class="mt-2 space-y-1 text-xs text-gray-600 dark:text-gray-300">
+      <li class="text-gray-400">선택된 파일이 없습니다.</li>
+    </ul>
+  </div>
+  <!-- [공통 첨부파일] 끝 -->
 </div>

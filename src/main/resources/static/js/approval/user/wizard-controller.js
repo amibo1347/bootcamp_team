@@ -12,6 +12,12 @@ import {
 } from '../forms/form-registry.js';
 import { openApproverLineModal } from './approver-line-modal.js';
 import { mountApprovalCombobox } from '../common/approval-combobox.js';
+import {
+  getApprovalAttachmentIds,
+  isApprovalAttachmentUploading,
+  mountApprovalAttachment,
+  resetApprovalAttachments,
+} from '../forms/approval-attachment.js';
 
 /** @type {number} */
 let wizardStep = 1;
@@ -329,6 +335,9 @@ function buildSubmitPayload(memberId) {
   if (!selected) {
     return { valid: false, message: '양식을 선택하세요.', payload: {} };
   }
+  if (isApprovalAttachmentUploading()) {
+    return { valid: false, message: '첨부파일 업로드가 끝날 때까지 잠시만 기다려주세요.', payload: {} };
+  }
 
   // 본문 분기: definition === DYNAMIC → dynamicFields 키, fixed → vacation/generic/expense 키, 없음 → 본문 키 생략
   let bodyPayload = {};
@@ -358,6 +367,7 @@ function buildSubmitPayload(memberId) {
       approvalLine: currentApprovalLine.slice(),
       title: titleText,
       drafterMemberId: memberId ?? null,
+      attachmentIds: getApprovalAttachmentIds(),
       ...bodyPayload,
     },
   };
@@ -370,6 +380,7 @@ function resetWizard() {
   const title = document.getElementById('approval-draft-title');
   if (title instanceof HTMLInputElement) title.value = '';
   resetRegisteredApprovalForms();
+  resetApprovalAttachments();
   currentApprovalLine = [];
   const select = document.getElementById('approval-approver-select');
   if (select instanceof HTMLSelectElement) {
@@ -391,6 +402,7 @@ export function initApprovalWizard(options) {
   currentApprovalLine = [];
 
   renderFormTemplates(formTemplates);
+  mountApprovalAttachment(document);
   renderApprovalLineSelect();
   ensureApprovalLineSummary();
   renderApprovalLineSummary();
@@ -426,7 +438,8 @@ export function initApprovalWizard(options) {
       await options.onSubmitted?.();
     } catch (error) {
       console.error('[approval-wizard] 제출 실패', error);
-      setWizardMessage('제출 중 오류가 발생했습니다.', 'error');
+      // approval-client 가 getApiErrorMessage 로 만든 서버 메시지(ErrorCode.message)를 error.message 로 전달.
+      setWizardMessage(error?.message || '제출 중 오류가 발생했습니다.', 'error');
     } finally {
       if (submitButton instanceof HTMLButtonElement) submitButton.disabled = false;
     }

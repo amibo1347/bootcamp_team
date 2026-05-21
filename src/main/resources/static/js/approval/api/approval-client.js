@@ -188,6 +188,14 @@ export function getApprovalDetail(approvalId) {
   );
 }
 
+/**
+ * 결재 문서 삭제/취소 (기안자 본인). Mock 폴백 없이 실 API 만 호출.
+ * @param {number} approvalId
+ */
+export function deleteApproval(approvalId) {
+  return fetchJsonPost(`${APPROVAL_API_BASE}/${encodeURIComponent(String(approvalId))}/delete`, {});
+}
+
 // ===== Admin: 양식 관리 =====
 // admin 엔드포인트는 Mock 폴백 없이 실 API 만 호출 (관리자 페이지에서만 사용).
 

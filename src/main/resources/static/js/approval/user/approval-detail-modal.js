@@ -211,6 +211,31 @@ function renderDynamicBody(schemaJson, values) {
 }
 
 /**
+ * 첨부파일 목록.
+ */
+function renderAttachments(attachments) {
+  if (!Array.isArray(attachments) || attachments.length === 0) return '';
+  const items = attachments.map((att) => {
+    const n = Number(att.size);
+    const sizeText = Number.isFinite(n) ? `${Math.ceil(n / 1024)} KB` : '';
+    const url = att.downloadUrl || `/api/approval-attachment/${att.id}`;
+    return `
+      <li class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 dark:border-gray-700 dark:bg-white/[0.03]">
+        <span class="min-w-0 truncate text-sm text-gray-800 dark:text-gray-200">${esc(att.filename)}${sizeText ? ` <span class="text-xs text-gray-400">(${sizeText})</span>` : ''}</span>
+        <a href="${esc(url)}" download
+           class="shrink-0 rounded-md bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-100 dark:bg-brand-500/15 dark:text-brand-300">
+          다운로드
+        </a>
+      </li>`;
+  }).join('');
+  return `
+    <div>
+      <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">첨부파일</h3>
+      <ul class="flex flex-col gap-2">${items}</ul>
+    </div>`;
+}
+
+/**
  * 결재선 표시.
  */
 function renderApprovalLine(approvers, currentLevel, overallStatus) {
@@ -283,6 +308,7 @@ function renderDetail(detail) {
         </dl>
       </div>
       ${body}
+      ${renderAttachments(detail.attachments)}
       <div>
         <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">결재선</h3>
         ${renderApprovalLine(detail.approvers, detail.currentLevel, status)}
