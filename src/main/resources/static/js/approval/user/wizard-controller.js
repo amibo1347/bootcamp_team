@@ -110,7 +110,7 @@ function activateSectionForSelected() {
 function showWizardStep(nextStep) {
   wizardStep = nextStep;
   const indicatorActive =
-    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500 text-sm font-semibold text-white';
+    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-400 text-sm font-semibold text-white';
   const indicatorInactive =
     'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-400 dark:bg-gray-800 dark:text-gray-500';
 

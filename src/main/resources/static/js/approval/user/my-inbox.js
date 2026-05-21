@@ -10,34 +10,22 @@ import {
   USER_STATUS_FILTERS,
   approvalStatusBadgeClass,
   approvalStatusLabel,
-  renderApprovalStatusBadge,
 } from '../common/status-badges.js';
 import {
-  renderApproverCell,
   renderApproverDropdown,
   bindApproverDropdownToggle,
 } from '../common/approver-cell.js';
+import {
+  renderIdCell,
+  renderTitleCell,
+  renderStatusCell,
+  renderCommentCell,
+  renderDateCell,
+  renderActionCell,
+  renderApproverCell,
+} from '../common/inbox-table-cells.js';
 import { openApprovalDetailModal } from './approval-detail-modal.js';
-
-/**
- * HTML 이스케이프
- * @param {unknown} value
- * @returns {string}
- */
-function escapeHtml(value) {
-  const div = document.createElement('div');
-  div.textContent = value == null ? '' : String(value);
-  return div.innerHTML;
-}
-
-/**
- * ISO 문자열을 날짜 표시로 줄인다.
- * @param {unknown} value
- * @returns {string}
- */
-function formatDate(value) {
-  return String(value || '').slice(0, 10);
-}
+import { mountApprovalCombobox } from '../common/approval-combobox.js';
 
 /**
  * 내 결재함 필터 옵션을 구성한다.
@@ -50,20 +38,7 @@ function renderFilterOptions(filter) {
 }
 
 /**
- * 사유 셀. 18자 초과 시 자르고 hover 시 전체 노출.
- */
-function renderCommentCell(row) {
-  const raw = typeof row.approverComment === 'string' ? row.approverComment.trim() : '';
-  if (!raw) {
-    return `<td class="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">—</td>`;
-  }
-  const trunc = raw.length > 18 ? `${raw.slice(0, 18)}…` : raw;
-  return `<td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-300" title="${escapeHtml(raw)}">${escapeHtml(trunc)}</td>`;
-}
-
-/**
  * 취소 가능 여부 — 대기(PENDING) · 보류(ON_HOLD) 상태만 취소할 수 있다.
- * 진행·승인·반려 상태는 취소/삭제 불가 (버튼 자체를 표시하지 않음).
  * @param {unknown} status
  * @returns {boolean}
  */
@@ -72,24 +47,27 @@ function canCancel(status) {
   return s === 'PENDING' || s === 'ON_HOLD';
 }
 
+/**
+ * 목록 행을 내 결재함(전체 필터) 스타일로 렌더링한다.
+ * @param {HTMLElement} tbody
+ * @param {Array<Record<string, unknown>>} items
+ */
 function renderRows(tbody, items) {
   tbody.innerHTML = '';
   items.forEach((row) => {
     const tr = document.createElement('tr');
     tr.dataset.approvalId = String(row.approvalId);
     const actionCell = canCancel(row.status)
-      ? `<button type="button" class="approval-delete-trigger rounded-lg border border-rose-300 px-3 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-900/20">취소</button>`
+      ? `<button type="button" class="approval-delete-trigger rounded-lg bg-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">취소</button>`
       : '';
     tr.innerHTML = `
-      <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-800 dark:text-gray-200">${escapeHtml(row.approvalId)}</td>
-      <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
-        <button type="button" class="approval-detail-trigger text-left underline-offset-2 hover:underline">${escapeHtml(row.title)}</button>
-      </td>
-      <td class="px-4 py-3">${renderApprovalStatusBadge(String(row.status || ''))}</td>
+      ${renderIdCell(row.approvalId)}
+      ${renderTitleCell(row.title)}
+      ${renderStatusCell(row.status)}
       ${renderApproverCell(row)}
       ${renderCommentCell(row)}
-      <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(formatDate(row.draftedAt))}</td>
-      <td class="whitespace-nowrap px-4 py-3 text-right">${actionCell}</td>`;
+      ${renderDateCell(row.draftedAt)}
+      ${renderActionCell(actionCell, actionCell ? '관리' : '')}`;
     tbody.appendChild(tr);
   });
 }
@@ -109,8 +87,11 @@ export function initMyInbox(options = {}) {
   const prevBtn = document.getElementById('approval-my-inbox-prev');
   const nextBtn = document.getElementById('approval-my-inbox-next');
 
-  if (filter instanceof HTMLSelectElement && filter.options.length === 0) {
-    renderFilterOptions(filter);
+  if (filter instanceof HTMLSelectElement) {
+    if (filter.options.length === 0) {
+      renderFilterOptions(filter);
+    }
+    mountApprovalCombobox(filter);
   }
 
   if (tbody instanceof HTMLElement) {
@@ -119,7 +100,6 @@ export function initMyInbox(options = {}) {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
 
-      // [취소] 버튼 — 대기·보류 상태에서만 노출. 문서 + 하위 데이터 삭제.
       const cancelBtn = target.closest('.approval-delete-trigger');
       if (cancelBtn instanceof HTMLElement) {
         const row = cancelBtn.closest('tr');
@@ -137,7 +117,6 @@ export function initMyInbox(options = {}) {
         return;
       }
 
-      // 제목 클릭 — 상세 모달.
       const trigger = target.closest('.approval-detail-trigger');
       if (!(trigger instanceof HTMLElement)) return;
       const row = trigger.closest('tr');
@@ -146,7 +125,6 @@ export function initMyInbox(options = {}) {
     });
   }
 
-  // 현재 페이지 상태. 필터 변경 시 1로 리셋.
   let currentPage = 1;
   let totalPages = 1;
 
@@ -204,7 +182,6 @@ export function initMyInbox(options = {}) {
   return { refresh };
 }
 
-// 외부에서 helper 가 필요할 수 있어 재export (approval-main.js 의 완료함에서 동일 셀 사용)
 export {
   renderApproverCell,
   renderApproverDropdown,

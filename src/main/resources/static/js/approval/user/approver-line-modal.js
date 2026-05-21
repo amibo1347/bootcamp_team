@@ -109,11 +109,11 @@ function ensureModal() {
 
         <footer class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50/90 px-5 py-4 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/80 sm:px-6">
           <button type="button" data-approver-modal-close
-                  class="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+                  class="rounded-xl bg-gray-200 px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
             취소
           </button>
           <button type="button" id="approver-line-confirm" disabled
-                  class="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300 dark:focus:ring-offset-gray-900">
+                  class="rounded-xl bg-indigo-400 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300 dark:focus:ring-offset-gray-900">
             확인
           </button>
         </footer>
@@ -194,7 +194,7 @@ function renderResults() {
                   ? 'bg-gray-200 text-gray-500 dark:bg-meta-4 dark:text-gray-400'
                   : fullCapacity
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
-                    : 'bg-brand-500 text-white hover:bg-brand-600'}">
+                    : 'bg-indigo-400 text-white hover:bg-indigo-500'}">
           ${already ? '추가됨' : '추가'}
         </button>
       </div>

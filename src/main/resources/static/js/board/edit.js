@@ -175,7 +175,7 @@
             <button
               type="button"
               data-delete-attachment-id="${file.id}"
-              class="shrink-0 rounded-md bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-600 hover:bg-rose-200 dark:bg-rose-400/20 dark:text-rose-200 dark:hover:bg-rose-400/30">
+              class="shrink-0 rounded-md bg-rose-200 px-2.5 py-1 text-xs font-medium text-rose-500 hover:bg-rose-300 dark:bg-rose-500/25 dark:text-rose-200 dark:hover:bg-rose-500/40">
               삭제
             </button>
           </li>

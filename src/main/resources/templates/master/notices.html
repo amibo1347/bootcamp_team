@@ -65,7 +65,7 @@
               <td style="text-align: right;">
                 <!-- th:action 으로 CSRF 토큰 자동 주입 -->
                 <form method="post" th:action="@{/master/notices/{id}/delete(id=${notice.noticeId})}">
-                  <button type="submit" class="master-btn-outline">삭제</button>
+                  <button type="submit" class="master-btn-danger">삭제</button>
                 </form>
               </td>
             </tr>

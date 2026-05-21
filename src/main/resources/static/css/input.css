@@ -269,7 +269,7 @@ layer(base);
       dark:border-gray-600 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:bg-white/5;
   }
   .cal-weekday-btn[aria-pressed="true"] {
-    @apply border-brand-500 bg-brand-500 text-white hover:bg-brand-600;
+    @apply border-indigo-400 bg-indigo-400 text-white hover:bg-indigo-500;
   }
 
   /* 매월 반복 일자 셀 (1~31 미니 그리드) */
@@ -278,7 +278,7 @@ layer(base);
       dark:border-gray-600 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:bg-white/5;
   }
   .cal-monthday-btn[aria-pressed="true"] {
-    @apply border-brand-500 bg-brand-500 text-white hover:bg-brand-600;
+    @apply border-indigo-400 bg-indigo-400 text-white hover:bg-indigo-500;
   }
 
   /*
@@ -679,7 +679,7 @@ span.flatpickr-weekday,
   @apply flex h-10! w-auto! min-w-10 shrink-0 items-center justify-center rounded-lg! border border-gray-200 bg-transparent px-2.5! text-xs font-medium text-gray-700 hover:border-gray-200 hover:bg-gray-50 focus:shadow-none active:border-gray-200! active:bg-transparent! active:shadow-none! dark:border-gray-800 dark:text-gray-200 dark:hover:border-gray-800 dark:hover:bg-gray-900 sm:px-3 sm:text-sm;
 }
 .fc-addEventButton-button {
-  @apply bg-brand-500! hover:bg-brand-600! rounded-lg! border-0! px-4! py-2.5! text-sm! font-medium! focus:shadow-none!;
+  @apply bg-indigo-400! text-white! hover:bg-indigo-500! rounded-lg! border-0! px-4! py-2.5! text-sm! font-medium! focus:shadow-none!;
 }
 .fc-toolbar-title {
   @apply text-lg! font-medium! text-gray-800 dark:text-white/90;

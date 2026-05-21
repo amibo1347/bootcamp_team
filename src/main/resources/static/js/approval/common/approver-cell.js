@@ -9,6 +9,13 @@ import {
   approvalStatusBadgeClass,
   approvalStatusLabel,
 } from './status-badges.js';
+import {
+  INBOX_COL,
+  inboxColAttrs,
+  INBOX_TD_CLASS,
+  INBOX_APPROVER_INNER_CLASS,
+  INBOX_APPROVER_SUBLINE_CLASS,
+} from './inbox-table-layout.js';
 
 function escapeHtml(value) {
   const div = document.createElement('div');
@@ -19,7 +26,19 @@ function escapeHtml(value) {
 /** 프로필 이미지 IMG 태그 (memberId 기반). 빈 ID 면 빈 문자열. */
 export function avatarImg(memberId, sizeCls = 'h-8 w-8') {
   if (memberId == null) return '';
-  return `<img src="/api/member/${encodeURIComponent(String(memberId))}/profileImg" alt="" class="${sizeCls} rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700" />`;
+  return `<img src="/api/member/${encodeURIComponent(String(memberId))}/profileImg" alt="" class="${sizeCls} shrink-0 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700" />`;
+}
+
+/**
+ * 아바타 슬롯 — 이미지가 없어도 행 높이를 맞추기 위해 빈 32px 영역을 둔다.
+ * @param {unknown} memberId
+ * @param {string} sizeCls
+ * @returns {string}
+ */
+function avatarSlot(memberId, sizeCls = 'h-8 w-8') {
+  const img = avatarImg(memberId, sizeCls);
+  if (img) return img;
+  return `<span class="${sizeCls} shrink-0" aria-hidden="true"></span>`;
 }
 
 const CHEVRON_SVG = `
@@ -50,23 +69,24 @@ export function renderApproverCell(row) {
 
   const subLine = stageLabel
     ? `${escapeHtml(stageLabel)}${meta ? ` · ${escapeHtml(meta)}` : ''}`
-    : (meta ? escapeHtml(meta) : '');
+    : (meta ? escapeHtml(meta) : '&#8203;');
 
   const cellCls = hasMulti
     ? 'cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-white/[0.03]'
     : '';
 
   return `
-    <td class="px-4 py-3 ${cellCls}"
+    <td class="${INBOX_TD_CLASS} approval-inbox-td-approver ${cellCls}"
         style="position: relative;"
+        ${inboxColAttrs(INBOX_COL.APPROVER, '결재자')}
         ${hasMulti ? 'data-approver-toggle="1"' : ''}>
-      <div class="flex items-center gap-2">
-        ${avatarImg(id)}
-        <div class="min-w-0">
-          <div class="truncate text-sm font-medium text-gray-900 dark:text-white">${escapeHtml(name)}</div>
-          ${subLine ? `<div class="truncate text-xs text-gray-400 dark:text-gray-500">${subLine}</div>` : ''}
+      <div class="${INBOX_APPROVER_INNER_CLASS} approval-inbox-td-value">
+        ${avatarSlot(id)}
+        <div class="min-w-0 flex-1">
+          <div class="truncate text-sm font-medium leading-5 text-gray-900 dark:text-white">${escapeHtml(name)}</div>
+          <div class="${INBOX_APPROVER_SUBLINE_CLASS}">${subLine}</div>
         </div>
-        ${hasMulti ? CHEVRON_SVG : ''}
+        ${hasMulti ? CHEVRON_SVG : '<span class="ml-1 h-4 w-4 shrink-0" aria-hidden="true"></span>'}
       </div>
       ${hasMulti ? renderApproverDropdown(row) : ''}
     </td>`;
@@ -123,8 +143,8 @@ export function renderApproverDropdown(row) {
     </div>`;
 }
 
-/** 내 결재함: 테이블 overflow 에 가리지 않도록 fixed 배치 사용 */
-const MY_INBOX_ROOT_SELECTOR = '.approval-my-inbox-root';
+/** 함 목록 테이블: overflow 에 가리지 않도록 fixed 배치 사용 (내·대기·완료 공통) */
+const INBOX_TABLE_ROOT_SELECTOR = '.approval-inbox-table-root';
 
 /**
  * 열린 결재선 팝업을 뷰포트 기준 fixed 로 배치한다. (내 결재함 전용)
@@ -177,7 +197,7 @@ function resetMyInboxDropdownPosition(panel) {
  * 내 결재함에서 열린 드롭다운 위치를 스크롤·리사이즈 시 갱신한다.
  */
 function syncOpenMyInboxDropdowns() {
-  document.querySelectorAll(`${MY_INBOX_ROOT_SELECTOR} [data-approver-dropdown]:not(.hidden)`).forEach((node) => {
+  document.querySelectorAll(`${INBOX_TABLE_ROOT_SELECTOR} [data-approver-dropdown]:not(.hidden)`).forEach((node) => {
     if (!(node instanceof HTMLElement)) return;
     const td = node.closest('td[data-approver-toggle="1"]');
     if (td instanceof HTMLElement) positionMyInboxDropdown(node, td);
@@ -204,12 +224,12 @@ export function bindApproverDropdownToggle(tbody) {
     if (!(panel instanceof HTMLElement)) return;
 
     const willOpen = panel.classList.contains('hidden');
-    const useMyInboxFixed = panel.closest(MY_INBOX_ROOT_SELECTOR) != null;
+    const useMyInboxFixed = panel.closest(INBOX_TABLE_ROOT_SELECTOR) != null;
     // 다른 열려있던 드롭다운 닫기
     document.querySelectorAll('[data-approver-dropdown]').forEach((d) => {
       if (d === panel) return;
       d.classList.add('hidden');
-      if (d instanceof HTMLElement && d.closest(MY_INBOX_ROOT_SELECTOR)) {
+      if (d instanceof HTMLElement && d.closest(INBOX_TABLE_ROOT_SELECTOR)) {
         resetMyInboxDropdownPosition(d);
       }
     });
@@ -240,7 +260,7 @@ export function bindApproverDropdownToggle(tbody) {
       if (t.closest('[data-approver-dropdown]')) return;
       document.querySelectorAll('[data-approver-dropdown]').forEach((d) => {
         d.classList.add('hidden');
-        if (d instanceof HTMLElement && d.closest(MY_INBOX_ROOT_SELECTOR)) {
+        if (d instanceof HTMLElement && d.closest(INBOX_TABLE_ROOT_SELECTOR)) {
           resetMyInboxDropdownPosition(d);
         }
       });

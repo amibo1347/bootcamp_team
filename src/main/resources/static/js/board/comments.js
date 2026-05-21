@@ -235,7 +235,7 @@
             class="comment-edit-input w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-strokedark dark:bg-boxdark dark:text-gray-100 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/30"></textarea>
           <div class="mt-2 flex flex-wrap gap-2">
             <button type="button" data-comment-action="save" data-comment-id="${id}"
-              class="rounded-lg bg-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-800 hover:bg-indigo-300 dark:bg-indigo-500/30 dark:text-indigo-100">저장</button>
+              class="rounded-lg bg-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-300 dark:bg-indigo-500/30 dark:text-indigo-100">저장</button>
             <button type="button" data-comment-action="cancel" data-comment-id="${id}"
               class="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300 dark:bg-white/10 dark:text-gray-200">취소</button>
           </div>
@@ -247,7 +247,7 @@
             placeholder="답글 내용을 입력하세요."></textarea>
           <div class="mt-2 flex flex-wrap gap-2">
             <button type="button" data-comment-action="reply-save" data-comment-id="${id}"
-              class="rounded-lg bg-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-800 hover:bg-indigo-300 dark:bg-indigo-500/30 dark:text-indigo-100">등록</button>
+              class="rounded-lg bg-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-300 dark:bg-indigo-500/30 dark:text-indigo-100">등록</button>
             <button type="button" data-comment-action="reply-cancel" data-comment-id="${id}"
               class="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300 dark:bg-white/10 dark:text-gray-200">취소</button>
           </div>

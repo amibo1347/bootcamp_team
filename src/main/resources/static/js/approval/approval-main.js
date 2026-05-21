@@ -5,15 +5,23 @@
  */
 
 import * as approvalClient from './api/approval-client.js';
-import { renderApprovalStatusBadge } from './common/status-badges.js';
+import { bindApproverDropdownToggle } from './common/approver-cell.js';
 import {
+  renderIdCell,
+  renderTitleCell,
+  renderFormCodeCell,
+  renderDrafterNameCell,
+  renderStatusCell,
+  renderCommentCell,
+  renderDateCell,
+  renderPendingActionsCell,
   renderApproverCell,
-  bindApproverDropdownToggle,
-} from './common/approver-cell.js';
+} from './common/inbox-table-cells.js';
 import { initMyInbox } from './user/my-inbox.js';
 import { initApprovalWizard } from './user/wizard-controller.js';
 import { populateVacationTypeOptions } from './forms/vacation-form.js';
 import { openApprovalDetailModal } from './user/approval-detail-modal.js';
+import { mountApprovalCombobox } from './common/approval-combobox.js';
 
 /** @type {{ refresh: () => Promise<void> }|null} */
 let myInboxController = null;
@@ -27,26 +35,6 @@ function getMemberIdFromDom() {
   if (raw === undefined || raw === '') return null;
   const n = Number(raw);
   return Number.isFinite(n) ? n : null;
-}
-
-/**
- * HTML 이스케이프
- * @param {unknown} value
- * @returns {string}
- */
-function escapeHtml(value) {
-  const div = document.createElement('div');
-  div.textContent = value == null ? '' : String(value);
-  return div.innerHTML;
-}
-
-/**
- * ISO 날짜 문자열을 목록 표시 형식으로 변환한다.
- * @param {unknown} value
- * @returns {string}
- */
-function formatDateTime(value) {
-  return String(value || '').slice(0, 16).replace('T', ' ');
 }
 
 /**
@@ -67,22 +55,14 @@ async function refreshPending() {
     const tr = document.createElement('tr');
     tr.dataset.approvalId = String(row.approvalId);
     tr.innerHTML = `
-      <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-800 dark:text-gray-200">${escapeHtml(row.approvalId)}</td>
-      <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(row.formCode || '')}</td>
-      <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
-        <button type="button" class="approval-detail-trigger text-left underline-offset-2 hover:underline">${escapeHtml(row.title)}</button>
-      </td>
-      <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">${escapeHtml(row.drafterName)}</td>
-      <td class="px-4 py-3">${renderApprovalStatusBadge(String(row.status || ''))}</td>
+      ${renderIdCell(row.approvalId)}
+      ${renderFormCodeCell(row.formCode)}
+      ${renderTitleCell(row.title)}
+      ${renderDrafterNameCell(row.drafterName, '기안자')}
+      ${renderStatusCell(row.status)}
       ${renderApproverCell(row)}
-      <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(formatDateTime(row.draftedAt))}</td>
-      <td class="px-4 py-3">
-        <div class="flex flex-wrap gap-1">
-          <button type="button" data-act="APPROVE" class="approval-act rounded bg-emerald-600 px-2 py-1 text-xs text-white hover:bg-emerald-700">승인</button>
-          <button type="button" data-act="REJECT" class="approval-act rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700">반려</button>
-          <button type="button" data-act="HOLD" class="approval-act rounded bg-violet-600 px-2 py-1 text-xs text-white hover:bg-violet-700">보류</button>
-        </div>
-      </td>`;
+      ${renderDateCell(row.draftedAt)}
+      ${renderPendingActionsCell()}`;
     tbody.appendChild(tr);
   });
 
@@ -121,35 +101,14 @@ function renderCompletedRows(filterValue) {
   rows.forEach((row) => {
     const tr = document.createElement('tr');
     tr.dataset.approvalId = String(row.approvalId);
-    const commentRaw = typeof row.approverComment === 'string' ? row.approverComment.trim() : '';
-    const commentTrunc = commentRaw.length > 18 ? `${commentRaw.slice(0, 18)}…` : commentRaw;
-    const commentCell = commentRaw
-      ? `<td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-300" title="${escapeHtml(commentRaw)}">${escapeHtml(commentTrunc)}</td>`
-      : `<td class="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">—</td>`;
-
-    // 신청자 셀 — 사진 + 이름만 (부서/직급 없음)
-    const drafterId = row.drafterMemberId;
-    const drafterImg = drafterId != null
-      ? `<img src="/api/member/${encodeURIComponent(String(drafterId))}/profileImg" alt="" class="h-8 w-8 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700" />`
-      : '';
-    const drafterCell = `
-      <td class="px-4 py-3">
-        <div class="flex items-center gap-2">
-          ${drafterImg}
-          <span class="truncate text-sm text-gray-800 dark:text-gray-200">${escapeHtml(row.drafterName || '')}</span>
-        </div>
-      </td>`;
-
     tr.innerHTML = `
-      <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-800 dark:text-gray-200">${escapeHtml(row.approvalId)}</td>
-      <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
-        <button type="button" class="approval-detail-trigger text-left underline-offset-2 hover:underline">${escapeHtml(row.title)}</button>
-      </td>
-      ${drafterCell}
-      <td class="px-4 py-3">${renderApprovalStatusBadge(String(row.status || ''))}</td>
+      ${renderIdCell(row.approvalId)}
+      ${renderTitleCell(row.title)}
+      ${renderDrafterNameCell(row.drafterName, '신청자')}
+      ${renderStatusCell(row.status)}
       ${renderApproverCell(row)}
-      ${commentCell}
-      <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(formatDateTime(row.processedAt))}</td>`;
+      ${renderCommentCell(row)}
+      ${renderDateCell(row.processedAt, '처리일')}`;
     tbody.appendChild(tr);
   });
 
@@ -163,7 +122,7 @@ function renderCompletedRows(filterValue) {
 function activateTab(id) {
   document.querySelectorAll('[data-approval-tab]').forEach((btn) => {
     const active = btn.getAttribute('data-approval-tab') === id;
-    btn.classList.toggle('bg-brand-500', active);
+    btn.classList.toggle('bg-indigo-400', active);
     btn.classList.toggle('text-white', active);
     btn.classList.toggle('font-medium', active);
     btn.classList.toggle('text-gray-600', !active);
@@ -182,6 +141,11 @@ function activateTab(id) {
  * 탭, 필터, 관리자 처리 버튼 이벤트를 연결한다.
  */
 function bindEvents() {
+  const completedFilter = document.getElementById('approval-completed-filter');
+  if (completedFilter instanceof HTMLSelectElement) {
+    mountApprovalCombobox(completedFilter);
+  }
+
   document.querySelectorAll('[data-approval-tab]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-approval-tab');
