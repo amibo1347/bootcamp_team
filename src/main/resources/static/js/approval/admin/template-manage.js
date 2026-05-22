@@ -21,6 +21,7 @@ import {
   updateFormTemplate,
   deleteFormTemplate,
 } from '../api/approval-client.js';
+import { mountApprovalCombobox } from '../common/approval-combobox.js';
 
 // ===== 양식 목록 상태 =====
 
@@ -223,6 +224,18 @@ function populateRegisterTypeOptions() {
   const sel = /** @type {HTMLSelectElement|null} */ (document.getElementById('reg-type'));
   if (!sel) return;
   sel.innerHTML = FIELD_TYPES.map((t) => `<option value="${t}">${escapeHtml(FIELD_TYPE_LABELS[t] || t)}</option>`).join('');
+  mountApprovalCombobox(sel);
+}
+
+/**
+ * 입력 형식 select 값을 바꾸고 커스텀 콤보박스 UI·연동 로직을 동기화한다.
+ * @param {string} value
+ */
+function setRegTypeValue(value) {
+  const typeEl = /** @type {HTMLSelectElement|null} */ (document.getElementById('reg-type'));
+  if (!typeEl) return;
+  typeEl.value = value;
+  typeEl.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 function populateComputedFnOptions() {
@@ -241,7 +254,6 @@ function nextAutoFieldKey() {
 function resetRegisterForm() {
   selectedFieldId = null;
   const labelEl = /** @type {HTMLInputElement|null} */ (document.getElementById('reg-label'));
-  const typeEl = /** @type {HTMLSelectElement|null} */ (document.getElementById('reg-type'));
   const keyEl = /** @type {HTMLInputElement|null} */ (document.getElementById('reg-key'));
   const optsEl = /** @type {HTMLInputElement|null} */ (document.getElementById('reg-options'));
   const rowsEl = /** @type {HTMLInputElement|null} */ (document.getElementById('reg-rows'));
@@ -252,7 +264,7 @@ function resetRegisterForm() {
   const compFnEl = /** @type {HTMLSelectElement|null} */ (document.getElementById('reg-computed-fn'));
 
   if (labelEl) labelEl.value = '';
-  if (typeEl) typeEl.value = 'text';
+  setRegTypeValue('text');
   if (keyEl) keyEl.value = nextAutoFieldKey();
   if (optsEl) optsEl.value = '';
   if (rowsEl) rowsEl.value = String(DEFAULT_TEXTAREA_ROWS);
@@ -270,7 +282,6 @@ function resetRegisterForm() {
 function loadFieldIntoRegisterForm(field) {
   selectedFieldId = field.id;
   const labelEl = /** @type {HTMLInputElement|null} */ (document.getElementById('reg-label'));
-  const typeEl = /** @type {HTMLSelectElement|null} */ (document.getElementById('reg-type'));
   const keyEl = /** @type {HTMLInputElement|null} */ (document.getElementById('reg-key'));
   const optsEl = /** @type {HTMLInputElement|null} */ (document.getElementById('reg-options'));
   const rowsEl = /** @type {HTMLInputElement|null} */ (document.getElementById('reg-rows'));
@@ -281,7 +292,7 @@ function loadFieldIntoRegisterForm(field) {
   const compFnEl = /** @type {HTMLSelectElement|null} */ (document.getElementById('reg-computed-fn'));
 
   if (labelEl) labelEl.value = field.label || '';
-  if (typeEl) typeEl.value = FIELD_TYPES.includes(field.type) ? field.type : 'text';
+  setRegTypeValue(FIELD_TYPES.includes(field.type) ? field.type : 'text');
   if (keyEl) keyEl.value = field.key || '';
   if (optsEl) optsEl.value = field.options || '';
   if (rowsEl) rowsEl.value = String(field.rows || DEFAULT_TEXTAREA_ROWS);
@@ -830,19 +841,19 @@ function renderRowHtml(t) {
 
   return `
     <div data-id="${escapeHtml(t.id)}" data-form-code="${escapeHtml(t.formCode)}" data-system="${isSystem ? '1' : '0'}"
-         class="flex items-center justify-between border-b border-gray-400 p-5 transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5">
-      <div class="ml-4 flex min-w-0 flex-1 items-center gap-5">
-        <div class="w-72 min-w-0 flex-shrink-0">
+         class="flex items-center justify-between gap-6 border-b border-gray-400 px-5 py-3.5 transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5">
+      <div class="ml-4 flex min-w-0 flex-1 items-center gap-8 lg:gap-10">
+        <div class="min-w-0 flex-1">
           <div class="text-lg font-semibold text-gray-900 dark:text-white">${escapeHtml(t.name)}</div>
-          <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(t.formCode)}</div>
+          <div class="mt-0.5 text-sm text-gray-500 dark:text-gray-300 truncate">${content}</div>
+          <div class="mt-0.5 text-xs text-gray-400 dark:text-gray-500">${escapeHtml(t.formCode)}</div>
         </div>
-        <div class="hidden min-w-0 flex-1 text-sm text-gray-500 dark:text-gray-300 md:block truncate">${content}</div>
-        <div class="flex flex-shrink-0 items-center gap-2">
+        <div class="flex shrink-0 items-center gap-2">
           ${sourceBadge}
           ${activeBadge}
         </div>
       </div>
-      <div class="mr-4 flex items-center gap-3">
+      <div class="mr-4 flex shrink-0 items-center gap-3">
         ${actions}
       </div>
     </div>`;
@@ -855,12 +866,7 @@ function renderRows() {
   if (!listRoot) return;
 
   loading?.classList.add('hidden');
-
-  Array.from(listRoot.children).forEach((child) => {
-    if (child.id !== 'approval-template-loading' && child.id !== 'approval-template-empty') {
-      child.remove();
-    }
-  });
+  listRoot.replaceChildren();
 
   if (templates.length === 0) {
     empty?.classList.remove('hidden');
@@ -872,13 +878,17 @@ function renderRows() {
   const wrapper = document.createElement('div');
   wrapper.innerHTML = html;
   Array.from(wrapper.children).forEach((row) => {
-    listRoot.insertBefore(row, empty || null);
+    listRoot.appendChild(row);
   });
 }
 
 async function refresh() {
   const loading = document.getElementById('approval-template-loading');
+  const empty = document.getElementById('approval-template-empty');
+  const listRoot = document.getElementById('approval-template-list');
   loading?.classList.remove('hidden');
+  empty?.classList.add('hidden');
+  listRoot?.replaceChildren([]);
   try {
     const data = await listAdminFormTemplates();
     templates = Array.isArray(data) ? data : [];

@@ -175,11 +175,21 @@
     return Number.isFinite(value) && value > 0 ? value : null;
   }
 
+  /** 개별 체크 상태에 맞춰 "전체 선택" 체크박스 동기화 */
+  function syncSelectAllForGroup(groupId) {
+    const selectAll = document.querySelector(`input[data-select-all="${groupId}"]`);
+    if (!selectAll) return;
+    const individuals = document.querySelectorAll(`input[data-multi-group="${groupId}"]`);
+    const anyChecked = Array.from(individuals).some((cb) => cb.checked);
+    selectAll.checked = !anyChecked;
+  }
+
   function setSingleGroupSelection(id, rawValue) {
     const value = String(rawValue || '');
     document.querySelectorAll(`input[data-multi-group="${id}"]`).forEach((checkbox) => {
       checkbox.checked = value !== '' && checkbox.value === value;
     });
+    syncSelectAllForGroup(id);
   }
 
   /**
