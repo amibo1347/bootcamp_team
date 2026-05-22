@@ -378,9 +378,9 @@ layer(base);
     @apply space-y-8 p-8;
   }
 
-  /* 캘린더: 우하단 FAB·채팅과 겹침 방지 여백 */
+  /* 캘린더: 우하단 채팅 FAB 겹침 방지(하단만). 가로는 page-main 과 동일(p-8) */
   .page-main--calendar {
-    @apply pb-28 pr-20 sm:pb-32 sm:pr-24;
+    @apply pb-28 sm:pb-32;
   }
 
   /* 페이지 최상단 제목(h2) */
@@ -609,12 +609,16 @@ span.flatpickr-weekday,
 }
 
 /* fullcalendar */
+#calendar {
+  @apply w-full max-w-full;
+}
 .fc {
   /* 테마 기본값의 오늘 칸 배경(연한 색) 제거 — 오늘은 숫자/헤더만 브랜드 박스로 표시 */
   --fc-today-bg-color: transparent;
+  @apply w-full max-w-full;
 }
 .fc .fc-view-harness {
-  @apply custom-scrollbar max-w-full overflow-x-auto;
+  @apply custom-scrollbar w-full max-w-full overflow-x-auto;
 }
 .fc-dayGridMonth-view.fc-view.fc-daygrid {
   @apply min-w-[718px];
@@ -909,4 +913,139 @@ body.dark #approval-panel-wizard select.approval-wizard-select {
 
 body.dark #approval-panel-wizard select.approval-wizard-select:focus {
   box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.4);
+}
+
+/*
+  근태·내 근무표 — 오늘/이번 달 네비 버튼
+  캘린더 todayCal 과 동일: 흰 박스 + 테두리, 가운데 indigo 점(::before), 라벨 텍스트 없음
+*/
+.att-today-nav-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(229 231 235);
+  background-color: rgb(255 255 255);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  flex-shrink: 0;
+  font-size: 0;
+  line-height: 0;
+}
+.att-today-nav-btn::before {
+  content: "";
+  display: block;
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 9999px;
+  background-color: rgb(79 70 229);
+  flex-shrink: 0;
+}
+.att-today-nav-btn:hover {
+  background-color: rgb(249 250 251);
+}
+.dark .att-today-nav-btn {
+  border-color: rgb(55 65 81);
+  background-color: rgb(17 24 39);
+}
+.dark .att-today-nav-btn::before {
+  background-color: rgb(129 140 248);
+}
+.dark .att-today-nav-btn:hover {
+  background-color: rgb(31 41 55);
+}
+
+/*
+  권한 관리 — 회원 검색 select (DESIGN_RULES 5-2)
+  ※ 레이어 밖 고정 CSS. permission.js 커스텀 콤보박스 트리거와 동일 톤.
+*/
+.perm-filter-combobox-trigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  color: #1f2937;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.perm-filter-combobox-trigger:hover {
+  border-color: #c7d2fe;
+  background-color: rgb(238 242 255 / 0.4);
+}
+.perm-filter-combobox-trigger:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #a5b4fc;
+}
+.perm-filter-combobox-panel {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 10001;
+  margin-top: 0.25rem;
+  max-height: 16rem;
+  width: 100%;
+  overflow: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  padding: 0.25rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+.perm-filter-combobox-option {
+  display: block;
+  width: 100%;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+  color: #374151;
+}
+.perm-filter-combobox-option:hover {
+  background-color: #f9fafb;
+}
+.perm-filter-combobox-option.is-selected {
+  background-color: #eef2ff;
+  font-weight: 600;
+  color: #4338ca;
+}
+body.dark .perm-filter-combobox-trigger {
+  border-color: #344054;
+  background-color: #1d2939;
+  color: #e5e7eb;
+}
+body.dark .perm-filter-combobox-trigger:hover {
+  border-color: rgb(99 102 241 / 0.4);
+  background-color: rgb(30 27 75 / 0.3);
+}
+body.dark .perm-filter-combobox-trigger:focus {
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.4);
+}
+body.dark .perm-filter-combobox-panel {
+  border-color: #344054;
+  background-color: #313d4a;
+  color: #d1d5db;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.35);
+}
+body.dark .perm-filter-combobox-option {
+  color: #d1d5db;
+}
+body.dark .perm-filter-combobox-option:hover {
+  background-color: rgb(255 255 255 / 0.1);
+}
+body.dark .perm-filter-combobox-option.is-selected {
+  background-color: rgb(99 102 241 / 0.15);
+  color: #a5b4fc;
 }

@@ -55,13 +55,13 @@
                     <!-- ===== 탭 1: 직급별 권한 부여 ===== -->
                     <section id="permTabPosition" class="js-perm-tab-panel p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
                         <!--
-                            탭 헤더: 제목 + [직급 관리] 버튼.
-                            ※ 권한과 직급은 함께 운영되므로 같은 탭에서 직급 페이지로 바로 점프할 수 있게 한다.
+                            탭 헤더: 제목 + 우측 액션 — 회원 탭과 동일 레이아웃( mb-6 · h3 스타일 · min-h )로 타이틀 위치 일치
+                            ※ [직급 관리] 색상: DESIGN_RULES 4-4 Neutral Action (회색)
                         -->
-                        <div class="mb-6 flex items-center justify-between gap-3">
-                            <h3 class="text-xl font-semibold text-black dark:text-white">직급별 권한 부여</h3>
+                        <div class="mb-6 flex min-h-[38px] items-center justify-between gap-3">
+                            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">직급별 권한 부여</h3>
                             <a th:href="@{/admin/position/list}"
-                                class="flex h-[38px] shrink-0 items-center justify-center rounded-xl bg-indigo-200 py-2 px-5 text-sm font-medium text-indigo-700 transition hover:bg-indigo-300">
+                                class="flex h-[38px] shrink-0 items-center justify-center rounded-xl bg-gray-200 px-5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
                                 직급 관리
                             </a>
                         </div>
@@ -125,7 +125,12 @@
 
                     <!-- ===== 탭 2: 회원별 권한 부여 ===== -->
                     <section id="permTabMember" class="js-perm-tab-panel hidden p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
-                        <h3 class="mb-2 text-xl font-semibold text-black dark:text-white">회원별 권한 부여</h3>
+                        <!-- 탭 헤더: 직급 탭과 동일 — 우측에 보이지 않는 spacer 로 [직급 관리] 버튼 폭 맞춤 -->
+                        <div class="mb-6 flex min-h-[38px] items-center justify-between gap-3">
+                            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">회원별 권한 부여</h3>
+                            <span class="pointer-events-none invisible flex h-[38px] shrink-0 items-center justify-center rounded-xl px-5 py-2 text-sm font-medium"
+                                aria-hidden="true">직급 관리</span>
+                        </div>
                         <p class="mb-6 text-xs text-gray-500 dark:text-gray-300">
                             회원을 체크하고 권한을 선택해 [등록]을 누르면, 선택된 회원들의 예외 권한이 일괄 설정됩니다.<br/>
                             ※ 직급 권한과 합산되어 적용되며, 변경 사항은 회원이 다시 로그인할 때 반영됩니다.
@@ -138,17 +143,20 @@
                         -->
                         <div class="mb-4 rounded-xl border border-stroke bg-white px-5 py-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
                             <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
-                                <div class="flex-1">
-                                    <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">부서별 조회</label>
-                                    <select id="memberSearchDept" onchange="filterMemberList()"
-                                        class="w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white">
+                                <!-- DESIGN_RULES 5-2: 네이티브 select 숨김 + permission.js 커스텀 콤보박스 -->
+                                <div class="relative z-20 flex-1">
+                                    <label for="memberSearchDept"
+                                        class="mb-1 block text-sm text-gray-600 dark:text-gray-300">부서별 조회</label>
+                                    <select id="memberSearchDept" class="hidden" tabindex="-1" aria-hidden="true"
+                                        onchange="filterMemberList()">
                                         <option value="">전체 부서</option>
                                     </select>
                                 </div>
-                                <div class="flex-1">
-                                    <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">직급별 조회</label>
-                                    <select id="memberSearchPosition" onchange="filterMemberList()"
-                                        class="w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white">
+                                <div class="relative z-20 flex-1">
+                                    <label for="memberSearchPosition"
+                                        class="mb-1 block text-sm text-gray-600 dark:text-gray-300">직급별 조회</label>
+                                    <select id="memberSearchPosition" class="hidden" tabindex="-1" aria-hidden="true"
+                                        onchange="filterMemberList()">
                                         <option value="">전체 직급</option>
                                     </select>
                                 </div>

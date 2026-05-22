@@ -186,14 +186,131 @@ window.resetMemberSearch = () => {
     const dept = document.getElementById('memberSearchDept');
     const pos = document.getElementById('memberSearchPosition');
     const name = document.getElementById('memberSearchName');
-    if (dept) dept.value = '';
-    if (pos) pos.value = '';
+    if (dept) {
+        dept.value = '';
+        syncMemberFilterSelect('memberSearchDept');
+    }
+    if (pos) {
+        pos.value = '';
+        syncMemberFilterSelect('memberSearchPosition');
+    }
     if (name) name.value = '';
     window.filterMemberList();
 };
 
+// ============================================================================
+// 회원 검색 — DESIGN_RULES 5-2 커스텀 콤보박스 (managingBoard 패턴, 값은 숨긴 select 유지)
+// ============================================================================
+
+/** @type {Map<string, { select: HTMLSelectElement, trigger: HTMLButtonElement, triggerText: HTMLElement, menu: HTMLElement, container: HTMLElement | null }>} */
+const memberFilterSelectMap = new Map();
+
+/** 열린 회원 검색 콤보박스 모두 닫기 */
+function closeMemberFilterSelects() {
+    memberFilterSelectMap.forEach(({ menu, trigger, container }) => {
+        menu.classList.add('hidden');
+        trigger.setAttribute('aria-expanded', 'false');
+        if (container) container.style.zIndex = '';
+    });
+}
+
+/**
+ * 숨긴 select 값 → 트리거 라벨·메뉴 선택 상태 동기화
+ * @param {string} selectId
+ */
+function syncMemberFilterSelect(selectId) {
+    const ui = memberFilterSelectMap.get(selectId);
+    if (!ui) return;
+    const { select, triggerText, menu } = ui;
+    const selectedOption = select.options[select.selectedIndex];
+    triggerText.textContent = selectedOption ? selectedOption.textContent : '';
+    menu.querySelectorAll('[data-value]').forEach((btn) => {
+        const isSelected = btn.getAttribute('data-value') === select.value;
+        btn.classList.toggle('is-selected', isSelected);
+    });
+}
+
+/**
+ * 단일 native select → 커스텀 버튼+패널 (filterMemberList 는 select change 로 유지)
+ * @param {HTMLSelectElement} select
+ */
+function createMemberFilterCustomSelect(select) {
+    if (!select?.id || select.dataset.permCombobox === 'true') return;
+
+    const container = select.parentElement;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'relative';
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'perm-filter-combobox-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    const triggerText = document.createElement('span');
+    triggerText.className = 'truncate';
+    const arrow = document.createElement('span');
+    arrow.className = 'form-combobox-arrow ml-2 shrink-0';
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.textContent = '▾';
+
+    trigger.appendChild(triggerText);
+    trigger.appendChild(arrow);
+
+    const menu = document.createElement('div');
+    menu.className = 'perm-filter-combobox-panel hidden';
+    menu.setAttribute('role', 'listbox');
+
+    Array.from(select.options).forEach((option) => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.dataset.value = option.value;
+        item.className = 'perm-filter-combobox-option';
+        item.textContent = option.textContent;
+        item.addEventListener('click', () => {
+            select.value = option.value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            closeMemberFilterSelects();
+        });
+        menu.appendChild(item);
+    });
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = !menu.classList.contains('hidden');
+        closeMemberFilterSelects();
+        if (!isOpen) {
+            if (container) container.style.zIndex = '9999';
+            menu.classList.remove('hidden');
+            trigger.setAttribute('aria-expanded', 'true');
+        }
+    });
+
+    select.insertAdjacentElement('afterend', wrapper);
+    wrapper.appendChild(trigger);
+    wrapper.appendChild(menu);
+
+    select.dataset.permCombobox = 'true';
+    memberFilterSelectMap.set(select.id, { select, trigger, triggerText, menu, container });
+    select.addEventListener('change', () => syncMemberFilterSelect(select.id));
+    syncMemberFilterSelect(select.id);
+}
+
+/** 부서·직급 검색 select 에 커스텀 UI 적용 (옵션 채운 뒤 호출) */
+function initMemberFilterCustomSelects() {
+    ['memberSearchDept', 'memberSearchPosition'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el instanceof HTMLSelectElement) createMemberFilterCustomSelect(el);
+    });
+    if (!window.__permFilterSelectClickBound) {
+        document.addEventListener('click', closeMemberFilterSelects);
+        window.__permFilterSelectClickBound = true;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initMemberSearchOptions();
+    initMemberFilterCustomSelects();
 });
 
 /**

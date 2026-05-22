@@ -142,12 +142,13 @@
             <td class="whitespace-nowrap px-5 py-3">${created}</td>
             <td class="whitespace-nowrap px-5 py-3">
               <div class="flex flex-wrap gap-2">
+                <!-- 복구: DESIGN_RULES 4-2 Secondary · 영구 삭제: 4-3 Danger -->
                 <button type="button" data-action="restore" data-board-id="${boardId}" data-article-id="${articleId}"
-                  class="rounded-xl bg-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-300 dark:bg-emerald-600/35 dark:text-emerald-100 dark:hover:bg-emerald-600/50">
+                  class="rounded-lg bg-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-300">
                   복구
                 </button>
                 <button type="button" data-action="permanent" data-board-id="${boardId}" data-article-id="${articleId}"
-                  class="btn-delete-hover rounded-xl bg-rose-200 px-3 py-1.5 text-xs font-medium text-rose-500 transition dark:bg-rose-600/35 dark:text-rose-100">
+                  class="btn-delete-hover rounded-lg bg-rose-200 px-3 py-1.5 text-xs font-medium text-rose-500 transition dark:bg-rose-600/35 dark:text-rose-100">
                   영구 삭제
                 </button>
               </div>

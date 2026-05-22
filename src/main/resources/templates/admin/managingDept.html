@@ -55,18 +55,19 @@
             <main class="page-main">
                 <h2 class="page-heading">부서 관리</h2>
 
+                <!-- 부서 추가 생성 — 목록보다 한 단계 작은 톤( managingPosition 과 동일 ) -->
                 <section
-                    class="p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark flex items-center space-x-12">
-                    <h2 class="flex-shrink-0 text-xl font-semibold text-gray-900 dark:text-white">부서 추가 생성</h2>
+                    class="flex items-center gap-4 rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark sm:gap-6">
+                    <h2 class="shrink-0 text-lg font-semibold text-gray-900 dark:text-white">부서 추가 생성</h2>
 
-                    <div class="hidden sm:block h-10 w-[1px] bg-gray-200 dark:bg-strokedark"></div>
+                    <div class="hidden h-8 w-px shrink-0 bg-gray-200 sm:block dark:bg-strokedark"></div>
 
-                    <div class="flex items-center space-x-10">
+                    <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-3">
                         <input type="text" placeholder="부서명" id="deptNameInput"
-                            class="h-12 w-80 rounded-lg border border-gray-400 bg-white px-4 text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-300 dark:border-gray-600 dark:bg-meta-4 dark:text-white dark:placeholder:text-gray-300">
+                            class="h-10 w-48 shrink-0 rounded-lg border border-gray-400 bg-white px-3 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-300 dark:border-gray-600 dark:bg-meta-4 dark:text-white dark:placeholder:text-gray-300">
 
                         <button type="button"
-                            class="px-8 py-3 bg-indigo-400 text-white font-medium rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm flex-shrink-0"
+                            class="shrink-0 rounded-lg bg-indigo-400 px-5 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-indigo-500 active:scale-[0.98]"
                             th:attr="onclick=|createDept('${companyId}')|">
                             생성
                         </button>
@@ -81,27 +82,27 @@
                     <div class="overflow-hidden rounded-xl border border-gray-400 dark:border-gray-700">
                         <div id="deptListContainer">
                             <div th:each="dept : ${departments}" th:id="'dept-row-' + ${dept.deptId}"
-                                class="flex items-center justify-between border-b border-gray-400 p-5 transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5">
+                                class="flex items-center justify-between border-b border-gray-400 px-5 py-3.5 transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5">
                                 <input type="hidden" th:id="'dept-code-' + ${dept.deptId}" th:value="${dept.deptCode}">
 
                                 <span th:id="'dept-name-text-' + ${dept.deptId}"
-                                    class="ml-4 text-lg font-semibold text-gray-900 dark:text-white" th:text="${dept.deptName}"></span>
+                                    class="ml-4 text-base font-medium text-gray-900 md:text-[17px] dark:text-white" th:text="${dept.deptName}"></span>
 
                                 <input type="text" th:id="'dept-name-input-' + ${dept.deptId}"
                                     th:value="${dept.deptName}"
-                                    class="ml-4 hidden rounded-lg border-2 border-indigo-300 py-1 text-lg font-semibold text-gray-900 focus:border-indigo-500 focus:outline-none dark:border-indigo-500/50 dark:bg-meta-4 dark:text-white">
+                                    class="ml-4 hidden rounded-lg border-2 border-indigo-300 py-0.5 text-base font-medium text-gray-900 focus:border-indigo-500 focus:outline-none md:text-[17px] dark:border-indigo-500/50 dark:bg-meta-4 dark:text-white">
 
-                                <div class="flex items-center space-x-3 mr-4">
+                                <div class="mr-4 flex shrink-0 items-center gap-2">
                                     <div class="relative">
                                         <span aria-hidden="true"
-                                            class="invisible block px-8 py-2.5 font-medium rounded-xl shadow-sm">수정</span>
+                                            class="invisible block whitespace-nowrap rounded-xl px-6 py-2 text-sm font-medium shadow-sm">수정</span>
                                         <button type="button" th:id="'btn-edit-' + ${dept.deptId}"
-                                            class="absolute inset-0 px-8 py-2.5 bg-indigo-200 text-indigo-700 font-medium rounded-xl hover:bg-indigo-300 transition-all shadow-sm"
+                                            class="absolute inset-0 whitespace-nowrap rounded-xl bg-indigo-200 px-6 py-2 text-sm font-medium text-indigo-700 shadow-sm transition-all hover:bg-indigo-300"
                                             th:attr="onclick=|toggleEditMode('${dept.deptId}', true)|">
                                             수정
                                         </button>
                                         <button type="button" th:id="'btn-save-' + ${dept.deptId}"
-                                            class="hidden absolute inset-0 px-8 py-2.5 bg-indigo-200 text-indigo-700 font-medium rounded-xl hover:bg-indigo-300 transition-all shadow-sm"
+                                            class="absolute inset-0 hidden whitespace-nowrap rounded-xl bg-indigo-200 px-6 py-2 text-sm font-medium text-indigo-700 shadow-sm transition-all hover:bg-indigo-300"
                                             th:attr="onclick=|saveDept('${dept.deptId}')|">
                                             저장
                                         </button>
@@ -109,15 +110,15 @@
 
                                     <div class="relative">
                                         <span aria-hidden="true"
-                                            class="invisible block px-8 py-2.5 font-medium rounded-xl shadow-sm">삭제</span>
+                                            class="invisible block whitespace-nowrap rounded-xl px-6 py-2 text-sm font-medium shadow-sm">삭제</span>
                                         <button type="button" th:id="'btn-delete-' + ${dept.deptId}"
-                                            class="btn-delete-hover absolute inset-0 px-8 py-2.5 bg-rose-200 text-rose-500 font-medium rounded-xl transition-all shadow-sm"
+                                            class="btn-delete-hover absolute inset-0 whitespace-nowrap rounded-xl bg-rose-200 px-6 py-2 text-sm font-medium text-rose-500 shadow-sm transition-all"
                                             th:attr="onclick=|deleteDept('${dept.deptId}')|">
                                             삭제
                                         </button>
                                         <button type="button" th:id="'btn-cancel-' + ${dept.deptId}"
                                             th:attr="onclick=|toggleEditMode('${dept.deptId}', false)|"
-                                            class="hidden absolute inset-0 px-8 py-2.5 bg-gray-200 font-medium text-gray-500 rounded-xl shadow-sm transition-all hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+                                            class="absolute inset-0 hidden whitespace-nowrap rounded-xl bg-gray-200 px-6 py-2 text-sm font-medium text-gray-500 shadow-sm transition-all hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
                                             취소
                                         </button>
                                     </div>

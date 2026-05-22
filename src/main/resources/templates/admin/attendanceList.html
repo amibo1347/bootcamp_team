@@ -150,8 +150,11 @@
                                 class="min-w-0 cursor-pointer rounded border border-stroke bg-transparent py-1 px-2 text-xs outline-none focus:border-primary dark:border-form-strokedark dark:bg-meta-4 dark:text-white" />
                             <button type="button" id="nextDayBtn"
                                 class="shrink-0 rounded-lg border border-gray-300 px-2.5 py-1 text-xs hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-meta-4">→</button>
+                            <!-- 오늘: 캘린더 todayCal 과 동일 — 텍스트 없음, indigo 점( att-today-nav-btn ) -->
                             <button type="button" id="todayBtn"
-                                class="ml-1 shrink-0 whitespace-nowrap rounded-lg bg-indigo-200 px-2 py-1 text-xs font-medium leading-none text-indigo-700 hover:bg-indigo-300">오늘</button>
+                                class="att-today-nav-btn ml-1"
+                                aria-label="오늘 날짜로 이동"
+                                title="오늘"></button>
                             <span id="dateLabel" class="ml-3 text-sm font-semibold text-gray-700 dark:text-gray-200"></span>
 
                             <!-- 일/주/월 토글 — 시프트 사진 참고 -->

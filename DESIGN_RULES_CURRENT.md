@@ -70,7 +70,7 @@
 - 스타일:
   - `bg-indigo-400 text-white`
   - `hover:bg-indigo-500`
-  - 공통 형태: `rounded-xl font-medium` (+ 필요 시 `px-6~8 py-2.5~3`)
+  - 공통 형태: `rounded-lg font-medium` (+ 필요 시 `px-6~8 py-2.5~3`)
 - 동일 규칙으로 묶이는 버튼:
   - `생성` (부서/직급 생성)
   - `글쓰기`
@@ -81,7 +81,7 @@
 - 스타일:
   - `bg-indigo-200 text-indigo-700`
   - `hover:bg-indigo-300`
-  - `rounded-xl font-medium`
+  - `rounded-lg font-medium`
 - 동일 규칙으로 묶이는 버튼:
   - `수정`
   - `저장`
@@ -91,19 +91,19 @@
 - 스타일:
   - `bg-rose-200 text-rose-500`
   - hover는 클래스 대신 고정 CSS `.btn-delete-hover:hover { background-color: #fda4af; }`
-  - `rounded-xl font-medium`
+  - `rounded-lg font-medium`
 - 동일 규칙으로 묶이는 버튼:
   - `삭제` (부서/직급 목록)
 
 ### 4-4. Neutral Action (취소/목록 이동)
 
 - 유형 A: 라이트 중립 버튼
-  - 스타일: `bg-gray-200 text-gray-700 hover:bg-gray-300`
+  - 스타일: `bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg font-medium`
   - 버튼:
     - `취소` (게시글 작성 페이지 링크 버튼)
     - `목록으로` (게시글 상세 페이지, 라이트 모드 기준)
 - 유형 B: 편집 취소(리스트 아이템 내)
-  - 스타일: `bg-gray-200 text-gray-500 hover:bg-gray-300`
+  - 스타일: `bg-gray-200 text-gray-500 hover:bg-gray-300 rounded-lg font-medium`
   - 다크모드: `dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800`
   - 버튼:
     - `취소` (부서/직급 목록 편집 취소)
@@ -113,7 +113,7 @@
 - 스타일:
   - `bg-violet-200 text-violet-700`
   - `hover:bg-violet-300`
-  - `rounded-xl font-medium`
+  - `rounded-lg font-medium`
 - 동일 규칙으로 묶이는 버튼:
   - `휴직` (직원 목록)
 - 적용 맥락:
@@ -126,7 +126,7 @@
 - 스타일:
   - `bg-emerald-200 text-emerald-700`
   - `hover:bg-emerald-300`
-  - `rounded-xl font-medium`
+  - `rounded-lg font-medium`
 - 동일 규칙으로 묶이는 버튼:
   - `복귀` (휴직 직원 목록)
 - 적용 맥락:
@@ -182,7 +182,7 @@
 
 #### 대형 섹션 접기/펼치기(아코디언형, 예: 권한 설정·기타 설정)
 
-- 전체 폭 버튼 트리거: `group flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white px-4 py-3.5 text-left shadow-sm transition hover:border-indigo-200 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:border-strokedark dark:from-meta-4 dark:to-boxdark dark:hover:border-indigo-500/50 dark:focus-visible:ring-offset-gray-900`
+- 전체 폭 버튼 트리거: `group flex w-full items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white px-4 py-3.5 text-left shadow-sm transition hover:border-indigo-200 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:border-strokedark dark:from-meta-4 dark:to-boxdark dark:hover:border-indigo-500/50 dark:focus-visible:ring-offset-gray-900`
 - 아이콘 타일·부제·화살표 색은 해당 템플릿의 `권한 설정` / `기타 설정` 블록과 동일 계열(indigo·slate 아이콘 박스, `group-hover:text-indigo-500` 등)을 재사용한다.
 
 ## 6) 다크모드 시 템플릿 지정값 (라이트 → 다크)
