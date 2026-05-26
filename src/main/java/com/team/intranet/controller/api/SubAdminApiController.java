@@ -118,13 +118,42 @@ public class SubAdminApiController {
     // 상태 처리
     @PostMapping("/status/{id}/{action}")
     @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
-    public String changeStatus(@PathVariable("id") Long memberId, 
+    public String changeStatus(@PathVariable("id") Long memberId,
                              @PathVariable("action") Status action,
                              @SessionAttribute("memberSession") MemberSession ms) {
 
         memberService.changeStatus(ms, memberId, action);
-       
+
         return "redirect:/admin/memberList";
+    }
+
+    /**
+     * 직원 비밀번호 초기화 (수정 모달 → "보안" 섹션 → [비밀번호 초기화]).
+     *  - 같은 회사 직원만 대상 (서비스에서 검증).
+     *  - 응답으로 평문 임시 비번을 1회 노출 → 관리자가 직원에게 직접 전달.
+     *  - MASTER 의 회사 대표 비번 초기화(/master/companies/{id}/admin/reset-password) 와 동일 패턴.
+     */
+    @PostMapping("/{id}/reset-password")
+    @ResponseBody
+    @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
+    public ResponseEntity<java.util.Map<String, Object>> resetMemberPassword(
+            @PathVariable("id") Long memberId,
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+
+        if (ms == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            String tempPassword = memberService.resetMemberPassword(ms, memberId);
+            return ResponseEntity.ok(java.util.Map.of(
+                "success", true,
+                "tempPassword", tempPassword,
+                "message", "임시 비밀번호가 발급되었습니다. 해당 직원에게 직접 전달하세요."
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("success", false, "message", e.getMessage()));
+        }
     }
 
 }

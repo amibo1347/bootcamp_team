@@ -193,6 +193,39 @@ public class MemberService {
     }
 
     /**
+     * 관리자(SUB_ADMIN/ADMIN) 가 직원 비밀번호를 임시 비번으로 강제 초기화한다.
+     *  - 같은 회사 직원에 한해서만 가능 (findMemberAndValidateOwner 로 검증).
+     *  - 영문 대소문자 + 숫자로 구성된 안전한 임시 비번 8자를 생성해 인코딩 저장.
+     *  - 평문 임시 비번을 반환 → 컨트롤러가 응답으로 내려 관리자가 직원에게 직접 전달.
+     *  - (후속) 직원 다음 로그인 시 비번 변경 강제는 별도 mustChangePassword 플래그로 추가 예정.
+     *
+     * @return 발급된 평문 임시 비밀번호 (관리자 화면에 1회 노출 후 폐기)
+     */
+    @Transactional
+    public String resetMemberPassword(MemberSession ms, Long memberId) {
+        Member target = findMemberAndValidateOwner(ms, memberId);
+        String tempPassword = generateTempPassword(TEMP_PASSWORD_LENGTH);
+        target.changePassword(passwordEncoder.encode(tempPassword));
+        return tempPassword;
+    }
+
+    private static final int TEMP_PASSWORD_LENGTH = 8;
+    // 사용자가 1·l·I·0·O 등 혼동하기 쉬운 문자는 제외 → 구두 전달 오류 방지
+    private static final String TEMP_PASSWORD_ALPHABET =
+            "ABCDEFGHJKLMNPQRSTUVWXYZ" +  // I, O 제외
+            "abcdefghjkmnpqrstuvwxyz" +   // i, l, o 제외
+            "23456789";                   // 0, 1 제외
+
+    private static String generateTempPassword(int length) {
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append(TEMP_PASSWORD_ALPHABET.charAt(random.nextInt(TEMP_PASSWORD_ALPHABET.length())));
+        }
+        return sb.toString();
+    }
+
+    /**
      * 로그인 회원 본인의 정보 수정 (내 프로필 페이지용).
      *  - 이름/이메일/전화/생년월일만 변경. 부서/직급/역할/프로필 사진은 다른 경로로만.
      *  - 트랜잭션 안에서 새 MemberSession 을 만들어 반환 → 컨트롤러가 세션에 박아 즉시 반영.

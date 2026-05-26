@@ -619,3 +619,100 @@ window.submitReassign = async () => {
         alert('서버와 통신 중 오류가 발생했습니다.');
     }
 };
+
+// ============================================================================
+// 비밀번호 초기화 (수정 모달 → 보안 섹션 → [비밀번호 초기화])
+//   1) 수정 모달 안 #editEmpId 의 회원 ID 를 사용해 POST /api/subAdmin/{id}/reset-password.
+//   2) 응답으로 받은 평문 임시 비번을 #tempPasswordModal 에 노출 (1회만).
+//   3) [복사] 버튼은 클립보드에 임시 비번을 복사한다.
+//  ※ MASTER 회사 대표 비번 초기화와 동일한 단방향 흐름 — 모달 닫으면 다시 못 봄.
+// ============================================================================
+
+/**
+ * 직원 비밀번호 초기화.
+ *  - 수정 모달이 열려있는 상태에서만 동작 (대상 회원 ID 를 #editEmpId 에서 가져옴).
+ */
+window.resetMemberPassword = async () => {
+    const memberId = document.querySelector('#editEmpId')?.value;
+    if (!memberId) {
+        alert('대상 직원 정보가 없습니다. 다시 시도해주세요.');
+        return;
+    }
+    if (!confirm('이 직원의 비밀번호를 임시 비밀번호로 초기화합니다.\n계속하시겠습니까?')) return;
+
+    const token = document.querySelector('meta[name="_csrf"]')?.content;
+    const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+    const headers = {};
+    if (token && header) headers[header] = token;
+
+    try {
+        const response = await fetch(`/api/subAdmin/${memberId}/reset-password`, {
+            method: 'POST',
+            headers,
+        });
+
+        let payload = null;
+        try { payload = await response.json(); } catch (_) { /* no body */ }
+
+        if (response.ok && payload?.success && payload?.tempPassword) {
+            // 수정 모달은 닫고 결과(임시 비번) 모달만 보여 준다 — 시각적 흐름 분리.
+            closeEditModal();
+            openTempPasswordModal(payload.tempPassword);
+        } else {
+            alert(payload?.message || '비밀번호 초기화에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('Reset password error:', error);
+        alert('통신 중 오류가 발생했습니다.');
+    }
+};
+
+/** 임시 비번 결과 모달 열기 — 화면에 비번 노출. */
+function openTempPasswordModal(tempPassword) {
+    const modal = document.querySelector('#tempPasswordModal');
+    const view = document.querySelector('#tempPasswordValue');
+    if (!modal || !view) return;
+    view.textContent = tempPassword;
+    modal.classList.remove('hidden');
+}
+
+/** 임시 비번 결과 모달 닫기 — 표시값 초기화로 노출 흔적 제거. */
+window.closeTempPasswordModal = () => {
+    const modal = document.querySelector('#tempPasswordModal');
+    const view = document.querySelector('#tempPasswordValue');
+    if (view) view.textContent = '--------';
+    modal?.classList.add('hidden');
+};
+
+/** 클립보드 복사 — navigator.clipboard 우선, 실패 시 execCommand fallback. */
+window.copyTempPassword = async () => {
+    const view = document.querySelector('#tempPasswordValue');
+    const text = view?.textContent?.trim();
+    if (!text) return;
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            // 일부 사내망/구버전 브라우저용 fallback
+            const tmp = document.createElement('textarea');
+            tmp.value = text;
+            tmp.style.position = 'fixed';
+            tmp.style.opacity = '0';
+            document.body.appendChild(tmp);
+            tmp.select();
+            document.execCommand('copy');
+            document.body.removeChild(tmp);
+        }
+        alert('임시 비밀번호가 복사되었습니다.');
+    } catch (error) {
+        console.error('Clipboard copy error:', error);
+        alert('복사에 실패했습니다. 직접 선택해서 복사해주세요.');
+    }
+};
+
+// 임시 비번 모달: 배경(딤) 클릭 시 닫기 — 다른 모달들과 동일 패턴.
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('#tempPasswordModal .modal-close-btn').forEach((btn) => {
+        btn.addEventListener('click', closeTempPasswordModal);
+    });
+});

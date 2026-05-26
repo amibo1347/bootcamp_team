@@ -550,11 +550,65 @@
                 </div>
             </div>
 
+            <!--
+                [보안] 섹션 — 직원 비밀번호 초기화 액션.
+                ※ 정보 수정과 별도 영역으로 시각 분리 (hr + 소제목 + 작은 버튼).
+                ※ 클릭 시 confirm → POST /api/subAdmin/{id}/reset-password → 임시 비번을 결과 모달에 노출.
+            -->
+            <hr class="my-6 border-stroke dark:border-strokedark" />
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90">보안</h4>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-300">
+                        임시 비밀번호를 발급하면 직원에게 직접 전달해야 합니다.
+                    </p>
+                </div>
+                <button type="button" onclick="resetMemberPassword()"
+                    class="shrink-0 whitespace-nowrap rounded-lg border border-stroke bg-white py-2 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-strokedark dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]">
+                    비밀번호 초기화
+                </button>
+            </div>
+
             <div class="mt-10 flex justify-center gap-4">
                 <button onclick="updateMember()"
                     class="w-32 rounded-lg bg-indigo-200 py-3 font-semibold text-indigo-700 hover:bg-indigo-300 transition">수정</button>
                 <button onclick="closeEditModal()"
                     class="w-32 rounded-lg bg-gray-200 py-3 font-semibold text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!--
+        [임시 비밀번호 결과 모달]
+        ※ 비밀번호 초기화 성공 시 발급된 임시 비번을 1회 노출. 모달 닫기 후에는 다시 볼 수 없음.
+        ※ 복사 버튼 클릭 시 클립보드에 복사. 닫기로 종료.
+        ※ MASTER 회사 대표 비번 초기화 결과 노출 톤과 동일 (임시 비번 + 안내문).
+    -->
+    <div id="tempPasswordModal"
+        class="fixed inset-0 z-[100001] flex hidden items-center justify-center overflow-y-auto p-4 sm:p-6">
+        <div class="modal-close-btn fixed inset-0 z-0 bg-black/50" aria-hidden="true"></div>
+        <div class="relative z-10 w-full rounded-2xl border border-stroke bg-white p-6 shadow-2xl dark:border-strokedark dark:bg-boxdark mx-4"
+            style="max-width: 26rem;">
+            <h3 class="mb-2 text-lg font-bold text-black dark:text-white">임시 비밀번호 발급 완료</h3>
+            <p class="mb-4 text-xs text-gray-500 dark:text-gray-300">
+                아래 임시 비밀번호를 복사하여 직원에게 직접 전달하세요.<br />
+                이 모달을 닫으면 다시 확인할 수 없습니다.
+            </p>
+
+            <div class="mb-5 flex items-center gap-2 rounded-lg border border-stroke bg-gray py-3 px-4 dark:border-strokedark dark:bg-meta-4">
+                <code id="tempPasswordValue"
+                    class="flex-1 select-all font-mono text-base font-semibold tracking-widest text-black dark:text-white">--------</code>
+                <button type="button" onclick="copyTempPassword()"
+                    class="shrink-0 rounded-md bg-indigo-200 py-1.5 px-3 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-300">
+                    복사
+                </button>
+            </div>
+
+            <div class="flex justify-end">
+                <button type="button" onclick="closeTempPasswordModal()"
+                    class="w-24 rounded-lg bg-gray-200 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+                    닫기
+                </button>
             </div>
         </div>
     </div>
