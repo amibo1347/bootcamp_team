@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}" />
+  <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : ''}" />
+  <link rel="stylesheet" th:href="@{/css/master.css}" />
+  <title>MASTER · AI 설정</title>
+</head>
+
+<body class="master-page">
+  <div class="master-shell">
+    <div class="master-container" style="max-width: 640px;">
+      <div class="master-panel">
+
+        <a th:href="@{/master}" class="master-link">← 콘솔로 돌아가기</a>
+
+        <div style="margin-top: 0.75rem;">
+          <span class="master-badge">MASTER</span>
+          <h1 class="master-title">AI 설정</h1>
+          <p class="master-sub">AI 비서의 LLM 제공자/모델/하이퍼파라미터를 관리합니다. 저장 후 즉시 적용됩니다.</p>
+        </div>
+
+        <!--
+            상태 패널 — provider 의 API key 등록 여부 등 현재 운영 상태 요약.
+            GET /api/master/ai/status 결과를 표시.
+        -->
+        <div id="ai-status-box" class="alert-box" style="margin-top: 1.25rem; display: none;" role="status"></div>
+
+        <!-- 메시지 alert -->
+        <div id="ai-error" class="alert-box alert-error" style="display: none; margin-top: 1rem;" role="alert"></div>
+        <div id="ai-success" class="alert-box alert-success" style="display: none; margin-top: 1rem;" role="status"></div>
+
+        <hr class="master-divider" />
+        <h2 class="master-section-title">설정</h2>
+
+        <form id="ai-config-form" onsubmit="return false;">
+          <div class="field-group">
+            <label for="provider" class="field-label">제공자 (Provider)</label>
+            <select id="provider" name="provider" class="field-input">
+              <option value="GEMINI">GEMINI (Google Generative AI)</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label for="modelName" class="field-label">모델 (Model)</label>
+            <select id="modelName" name="modelName" class="field-input">
+              <!--
+                  알려진 Gemini 모델만 노출 (오타 방지).
+                  ※ 새 모델이 출시되면 이 목록에 추가하기. 자동 마이그레이션은 AiConfigService 가 담당.
+              -->
+              <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (기본, 빠르고 저렴)</option>
+              <option value="gemini-2.5-pro">gemini-2.5-pro (고품질)</option>
+              <option value="gemini-2.0-flash">gemini-2.0-flash (이전 버전)</option>
+              <option value="gemini-1.5-flash">gemini-1.5-flash (구버전)</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label for="temperature" class="field-label">Temperature (0.0 ~ 2.0)</label>
+            <input type="number" id="temperature" name="temperature" class="field-input"
+                   step="0.1" min="0" max="2" />
+          </div>
+
+          <div class="field-group">
+            <label for="maxTokens" class="field-label">최대 응답 토큰 (max tokens)</label>
+            <input type="number" id="maxTokens" name="maxTokens" class="field-input"
+                   step="1" min="1" max="8192" />
+          </div>
+
+          <div class="field-group" style="margin-bottom: 0;">
+            <label for="rateLimitPerDay" class="field-label">사용자별 1일 메시지 한도 (rate limit)</label>
+            <input type="number" id="rateLimitPerDay" name="rateLimitPerDay" class="field-input"
+                   step="1" min="1" max="100000" />
+          </div>
+
+          <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
+            <button type="button" id="ai-save-btn" class="master-btn" style="flex: 1;">저장</button>
+            <button type="button" id="ai-test-btn" class="master-btn-outline" style="flex: 1;">테스트 호출</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const $ = (id) => document.getElementById(id);
+      const errorBox = $('ai-error');
+      const successBox = $('ai-success');
+      const statusBox = $('ai-status-box');
+
+      function csrfHeaders(extra) {
+        const token = document.querySelector('meta[name="_csrf"]')?.content;
+        const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+        const headers = Object.assign({}, extra || {});
+        if (token && header) headers[header] = token;
+        return headers;
+      }
+
+      function showError(msg) {
+        successBox.style.display = 'none';
+        errorBox.textContent = msg || '오류가 발생했습니다.';
+        errorBox.style.display = 'block';
+      }
+      function showSuccess(msg) {
+        errorBox.style.display = 'none';
+        successBox.textContent = msg || '완료되었습니다.';
+        successBox.style.display = 'block';
+      }
+      function clearMessages() {
+        errorBox.style.display = 'none';
+        successBox.style.display = 'none';
+      }
+
+      // ─── 현재 설정 로드 ───────────────────────────────────────────
+      async function loadConfig() {
+        try {
+          const res = await fetch('/api/master/ai/config');
+          if (!res.ok) { showError('설정을 불러올 수 없습니다.'); return; }
+          const cfg = await res.json();
+          if (cfg.provider)        $('provider').value        = cfg.provider;
+          if (cfg.modelName)       setSelectValue('modelName', cfg.modelName);
+          if (cfg.temperature != null)     $('temperature').value     = cfg.temperature;
+          if (cfg.maxTokens != null)       $('maxTokens').value       = cfg.maxTokens;
+          if (cfg.rateLimitPerDay != null) $('rateLimitPerDay').value = cfg.rateLimitPerDay;
+        } catch (e) {
+          showError('설정 로드 중 네트워크 오류가 발생했습니다.');
+        }
+      }
+
+      // 드롭다운에 현재 modelName 옵션이 없으면 동적으로 추가 (예: 자동 마이그레이션 전 옵션 유지).
+      function setSelectValue(id, value) {
+        const sel = $(id);
+        if (!sel) return;
+        const exists = Array.from(sel.options).some(o => o.value === value);
+        if (!exists) {
+          const opt = document.createElement('option');
+          opt.value = value;
+          opt.textContent = value + ' (사용 중)';
+          sel.appendChild(opt);
+        }
+        sel.value = value;
+      }
+
+      // ─── 상태 표시 (API key 등록 여부 등) ─────────────────────────
+      async function loadStatus() {
+        try {
+          const res = await fetch('/api/master/ai/status');
+          if (!res.ok) return;
+          const s = await res.json();
+          // 응답 구조는 AdminAiConfigController.status() 에 따라 일부 필드는 옵션.
+          const hasKey = s.apiKeyAvailable !== false; // 명시 false 가 아니면 등록된 것으로 간주
+          const summary = (s.provider || '?') + ' · ' + (s.modelName || '?')
+            + (hasKey ? ' · API 키 OK' : ' · ⚠️ API 키 미등록');
+          statusBox.textContent = '현재 상태 — ' + summary;
+          statusBox.className = 'alert-box ' + (hasKey ? 'alert-success' : 'alert-error');
+          statusBox.style.display = 'block';
+        } catch (e) { /* 상태는 부가 정보 — 실패해도 무시 */ }
+      }
+
+      // ─── 저장 ────────────────────────────────────────────────────
+      $('ai-save-btn').addEventListener('click', async () => {
+        clearMessages();
+        const body = {
+          provider:        $('provider').value || null,
+          modelName:       $('modelName').value || null,
+          temperature:     parseFloatOrNull($('temperature').value),
+          maxTokens:       parseIntOrNull($('maxTokens').value),
+          rateLimitPerDay: parseIntOrNull($('rateLimitPerDay').value),
+        };
+        try {
+          const res = await fetch('/api/master/ai/config', {
+            method: 'PUT',
+            headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) {
+            const msg = await safeText(res, '저장에 실패했습니다.');
+            showError(msg);
+            return;
+          }
+          showSuccess('AI 설정이 저장되었습니다.');
+          loadStatus();
+        } catch (e) {
+          showError('저장 중 네트워크 오류가 발생했습니다.');
+        }
+      });
+
+      // ─── 테스트 호출 (POST /api/master/ai/test) ───────────────────
+      $('ai-test-btn').addEventListener('click', async () => {
+        clearMessages();
+        const btn = $('ai-test-btn');
+        btn.disabled = true;
+        const original = btn.textContent;
+        btn.textContent = '호출 중...';
+        try {
+          const res = await fetch('/api/master/ai/test', {
+            method: 'POST',
+            headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ prompt: 'ping' }),
+          });
+          if (!res.ok) {
+            showError(await safeText(res, '테스트 호출 실패. API 키와 모델명을 확인하세요.'));
+            return;
+          }
+          const data = await res.json().catch(() => null);
+          const sample = data && (data.output || data.message || data.text);
+          showSuccess(sample
+            ? '테스트 성공 — 응답: ' + truncate(String(sample), 80)
+            : '테스트 호출 성공.');
+        } catch (e) {
+          showError('테스트 중 네트워크 오류가 발생했습니다.');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = original;
+        }
+      });
+
+      function parseFloatOrNull(v) {
+        if (v === '' || v == null) return null;
+        const n = parseFloat(v);
+        return isNaN(n) ? null : n;
+      }
+      function parseIntOrNull(v) {
+        if (v === '' || v == null) return null;
+        const n = parseInt(v, 10);
+        return isNaN(n) ? null : n;
+      }
+      async function safeText(res, fallback) {
+        try {
+          const t = await res.text();
+          return t && t.length > 0 ? t : fallback;
+        } catch (e) { return fallback; }
+      }
+      function truncate(s, n) {
+        return s.length <= n ? s : s.substring(0, n) + '…';
+      }
+
+      loadConfig();
+      loadStatus();
+    })();
+  </script>
+</body>
+
+</html>
