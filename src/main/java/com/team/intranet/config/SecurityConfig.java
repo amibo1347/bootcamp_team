@@ -99,7 +99,8 @@ public class SecurityConfig {
     @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
             MemberAuthenticationProvider memberAuthenticationProvider,
-            CompanyRepository companyRepository) throws Exception {
+            CompanyRepository companyRepository,
+            com.team.intranet.service.SystemMaintenanceService systemMaintenanceService) throws Exception {
         http
                 .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/api/**", "/company/**")
@@ -130,6 +131,8 @@ public class SecurityConfig {
                 //     나머지(me/**, {id}/profileImg)는 로그인 후 호출만 존재 → authenticated 로 떨어진다.
                 .requestMatchers("/api/member/check-id", "/api/member/company/verify").permitAll()
                 .requestMatchers("/error", "/index", "/company-login", "/*/login", "/*/signup", "/member/logout", "/api/company/**").permitAll()
+                // 시스템 점검 안내 페이지 + 점검 상태 폴링 API — 점검 중에도, 비로그인도 접근 가능해야 함.
+                .requestMatchers("/maintenance", "/api/system-maintenance/**").permitAll()
                 // 4. 그 외 모든 요청은 로그인 필요
                 .anyRequest().authenticated()
                 )
@@ -153,7 +156,10 @@ public class SecurityConfig {
                 .permitAll()
                 )
                 // 비활성 회사 소속 회원 자동 로그아웃 게이트
-                .addFilterAfter(new MemberCompanyGuardFilter(companyRepository), AuthorizationFilter.class);
+                .addFilterAfter(new MemberCompanyGuardFilter(companyRepository), AuthorizationFilter.class)
+                // 시스템 점검 모드 게이트 — 점검 중 일반 회원 차단 (페이지: /maintenance 로 redirect, API: 503)
+                //  ※ MASTER 콘솔(/master/**) 은 @Order(1) 별도 체인이라 이 필터의 영향을 받지 않는다.
+                .addFilterAfter(new SystemMaintenanceGuardFilter(systemMaintenanceService), AuthorizationFilter.class);
 
         return http.build();
     }
