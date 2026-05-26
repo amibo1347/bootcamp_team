@@ -54,8 +54,10 @@ public class AiChatService {
 
     /** LLM 호출 시 전달할 최근 메시지 수 (USER+ASSISTANT 합산). */
     private static final int HISTORY_LIMIT = 8;
-    /** 세션 제목 자동 갱신 시 첫 USER 메시지에서 잘라낼 길이. */
-    private static final int TITLE_MAX_LEN = 24;
+    /** 세션 제목 자동 갱신 시 첫 USER 메시지에서 잘라낼 길이 — ChatGPT 등 평균(30~40자) 톤. */
+    private static final int TITLE_MAX_LEN = 40;
+    /** 사용자 직접 [제목 수정] 시 허용 최대 길이 (DB title 컬럼 100 길이와 정합). */
+    private static final int TITLE_USER_MAX_LEN = 60;
     /** 결재자 후보가 이 수 이하면 system prompt 에 전체 명단 첨부, 초과하면 생략 (토큰 절약). */
     private static final int LEAVE_CANDIDATE_LIST_LIMIT = 30;
 
@@ -101,6 +103,21 @@ public class AiChatService {
     public List<AiChatSessionDto> findMySessions(MemberSession ms) {
         Member me = loadMember(ms);
         List<AiChatSession> sessions = sessionRepository.findByMemberOrderByUpdatedAtDesc(me);
+        // 정렬: 고정(pinned)이 항상 위 — 고정끼리는 제목 가나다순, 비고정끼리는 updatedAt 최신순 (Repository 기본 정렬 유지).
+        // sort 는 stable 이라 같은 그룹 내에서는 기존 순서가 보존된다.
+        sessions = new ArrayList<>(sessions);
+        sessions.sort((a, b) -> {
+            boolean pa = a.isPinned();
+            boolean pb = b.isPinned();
+            if (pa != pb) return pa ? -1 : 1;       // 고정이 위
+            if (pa) {                                // 둘 다 고정 → 제목 가나다순
+                String ta = a.getTitle() == null ? "" : a.getTitle();
+                String tb = b.getTitle() == null ? "" : b.getTitle();
+                return ta.compareTo(tb);
+            }
+            return 0; // 둘 다 비고정 → 기존 최신순 유지
+        });
+
         List<AiChatSessionDto> out = new ArrayList<>(sessions.size());
         for (AiChatSession s : sessions) {
             AiChatMessage last = messageRepository
@@ -122,6 +139,37 @@ public class AiChatService {
     public void deleteSession(MemberSession ms, Long sessionId) {
         AiChatSession s = loadAndAssertOwner(ms, sessionId);
         sessionRepository.delete(s);
+    }
+
+    /**
+     * 세션 제목 수정 — 점 3개 메뉴 [제목 수정].
+     *  - 빈 제목·길이 초과는 거절.
+     *  - 본인 소유 세션만 (loadAndAssertOwner 가 검증).
+     */
+    @Transactional
+    public AiChatSessionDto renameSession(MemberSession ms, Long sessionId, String newTitle) {
+        if (newTitle == null || newTitle.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+        String trimmed = newTitle.trim();
+        if (trimmed.length() > TITLE_USER_MAX_LEN) {
+            trimmed = trimmed.substring(0, TITLE_USER_MAX_LEN);
+        }
+        AiChatSession s = loadAndAssertOwner(ms, sessionId);
+        s.rename(trimmed);
+        return AiChatSessionDto.from(s, null);
+    }
+
+    /**
+     * 세션 고정/고정 해제 토글 — 점 3개 메뉴 [고정하기 / 고정 해제].
+     *  - 본인 소유 세션만.
+     *  - 반환: 새 pinned 상태.
+     */
+    @Transactional
+    public boolean togglePinSession(MemberSession ms, Long sessionId) {
+        AiChatSession s = loadAndAssertOwner(ms, sessionId);
+        s.togglePin();
+        return s.isPinned();
     }
 
     // ─── 메시지 ─────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -122,6 +123,47 @@ public class ChatApiController {
         if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         Long peerId = body == null ? null : body.get("peerId");
         return ResponseEntity.ok(chatService.getOrCreateConversation(ms, peerId));
+    }
+
+    /**
+     * 대화방 제목 수정 (per-user) — 점 3개 메뉴 [제목 수정]. body: { "title": "새 제목" }.
+     *  - title 이 null/blank 면 기본 제목(상대 이름)으로 복귀.
+     */
+    @PostMapping("/conversations/{id}/title")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ChatConversationDto> renameConversation(
+            @PathVariable("id") Long conversationId,
+            @RequestBody(required = false) Map<String, String> body,
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        String title = body == null ? null : body.get("title");
+        return ResponseEntity.ok(chatService.renameConversation(ms, conversationId, title));
+    }
+
+    /** 대화방 고정/고정 해제 토글 (per-user). 응답: { pinned: boolean }. */
+    @PostMapping("/conversations/{id}/pin")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Boolean>> togglePinConversation(
+            @PathVariable("id") Long conversationId,
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        boolean pinned = chatService.togglePinConversation(ms, conversationId);
+        return ResponseEntity.ok(Map.of("pinned", pinned));
+    }
+
+    /**
+     * 대화방 나가기 (per-user) — 점 3개 메뉴 [채팅방 나가기].
+     *  - 본인 시점에서만 숨김. 양쪽 모두 나가면 메시지/첨부까지 완전 삭제.
+     *  - 새 메시지 도착 시 자동 복귀.
+     */
+    @DeleteMapping("/conversations/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> leaveConversation(
+            @PathVariable("id") Long conversationId,
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        chatService.leaveConversation(ms, conversationId);
+        return ResponseEntity.noContent().build();
     }
 
     // ─── 메시지 ──────────────────────────────────────────────────────

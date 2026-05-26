@@ -105,17 +105,80 @@ public class ChatService {
         return ChatConversationDto.from(conv, ms.getMemberId(), last);
     }
 
-    /** 내 대화방 목록 (최근순). 각 대화방의 안 읽음 메시지 수 포함. */
+    /**
+     * 내 대화방 목록.
+     *  - 본인이 [나가기] 한 방(hiddenAt 세팅)은 목록에서 제외 (새 메시지 도착 시 touch() 가 자동 해제).
+     *  - 정렬: 본인 시점 고정 방이 항상 위 → 고정끼리는 displayTitle(=customTitle ?: 상대 이름) 가나다순,
+     *         비고정끼리는 Repository 기본(최신순) 유지.
+     */
     @Transactional(readOnly = true)
     public List<ChatConversationDto> findMyConversations(MemberSession ms) {
         List<ChatConversation> convs = conversationRepository.findMineByCompany(ms.getCompanyId(), ms.getMemberId());
-        return convs.stream().map(conv -> {
+        Long meId = ms.getMemberId();
+
+        List<ChatConversationDto> dtos = new ArrayList<>(convs.size());
+        for (ChatConversation conv : convs) {
+            if (conv.isHiddenBy(meId)) continue; // 본인 시점 숨김
             ChatMessage last = messageRepository
                 .findFirstByConversation_ConversationIdOrderByCreatedAtDescMessageIdDesc(conv.getConversationId())
                 .orElse(null);
             long unread = alertService.countMyChatUnreadForConv(ms, conv.getConversationId());
-            return ChatConversationDto.from(conv, ms.getMemberId(), last, unread);
-        }).toList();
+            dtos.add(ChatConversationDto.from(conv, meId, last, unread));
+        }
+
+        // 정렬: 고정 우선 + 고정끼리 displayTitle 가나다순.
+        dtos.sort((a, b) -> {
+            if (a.isPinned() != b.isPinned()) return a.isPinned() ? -1 : 1;
+            if (a.isPinned()) {
+                String ta = a.getDisplayTitle() == null ? "" : a.getDisplayTitle();
+                String tb = b.getDisplayTitle() == null ? "" : b.getDisplayTitle();
+                return ta.compareTo(tb);
+            }
+            return 0; // 비고정 → 기존 최신순 유지
+        });
+        return dtos;
+    }
+
+    /**
+     * 대화방 제목 수정 (per-user) — 점 3개 메뉴 [제목 수정].
+     *  - 빈 값/null → 기본 제목(상대 이름)으로 복귀.
+     *  - 참여자 검증.
+     */
+    @Transactional
+    public ChatConversationDto renameConversation(MemberSession ms, Long conversationId, String newTitle) {
+        ChatConversation conv = loadAndAssertParticipant(ms, conversationId);
+        conv.setCustomTitleFor(ms.getMemberId(), newTitle);
+        ChatMessage last = messageRepository
+            .findFirstByConversation_ConversationIdOrderByCreatedAtDescMessageIdDesc(conv.getConversationId())
+            .orElse(null);
+        long unread = alertService.countMyChatUnreadForConv(ms, conv.getConversationId());
+        return ChatConversationDto.from(conv, ms.getMemberId(), last, unread);
+    }
+
+    /**
+     * 대화방 고정/고정 해제 토글 (per-user) — 점 3개 메뉴 [고정하기 / 고정 해제].
+     *  - 참여자 검증.
+     *  - 반환: 새 pinned 상태.
+     */
+    @Transactional
+    public boolean togglePinConversation(MemberSession ms, Long conversationId) {
+        ChatConversation conv = loadAndAssertParticipant(ms, conversationId);
+        conv.togglePin(ms.getMemberId());
+        return conv.isPinnedBy(ms.getMemberId());
+    }
+
+    /**
+     * 대화방 나가기 (per-user) — 점 3개 메뉴 [채팅방 나가기].
+     *  - 본인 시점 hidden 처리. 양쪽 모두 hidden 이면 메시지/첨부까지 cascade delete.
+     *  - 새 메시지 도착 시 ChatConversation.touch() 가 양쪽 hidden 을 해제 (카톡 패턴).
+     */
+    @Transactional
+    public void leaveConversation(MemberSession ms, Long conversationId) {
+        ChatConversation conv = loadAndAssertParticipant(ms, conversationId);
+        conv.hide(ms.getMemberId());
+        if (conv.isHiddenByBoth()) {
+            conversationRepository.delete(conv); // 메시지·첨부 cascade
+        }
     }
 
     /** 채팅방 진입 = 그 대화방의 본인 알림 일괄 삭제 (읽음 처리). */

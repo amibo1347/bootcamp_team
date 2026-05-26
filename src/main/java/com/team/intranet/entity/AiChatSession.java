@@ -55,7 +55,7 @@ public class AiChatSession {
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
-    /** 세션 제목. 첫 메시지 앞 20자로 자동 갱신. */
+    /** 세션 제목. 첫 메시지 앞 N자로 자동 갱신, 이후 사용자가 [제목 수정] 메뉴로 변경 가능. */
     @Column(name = "title", nullable = false, length = 100)
     private String title;
 
@@ -64,6 +64,14 @@ public class AiChatSession {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    /**
+     * 고정한 시점. null 이면 미고정.
+     *  - 목록 정렬: 고정 세션이 항상 위 (제목 가나다순), 미고정은 updatedAt 최신순.
+     *  - 사용자가 [고정하기] / [고정 해제] 토글.
+     */
+    @Column(name = "pinned_at")
+    private LocalDateTime pinnedAt;
 
     public static AiChatSession createNew(Member member) {
         LocalDateTime now = LocalDateTime.now();
@@ -78,5 +86,19 @@ public class AiChatSession {
 
     public void touch() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    /** 사용자 직접 제목 변경. 빈 값 거부는 호출자(서비스)가 책임. */
+    public void rename(String newTitle) {
+        this.title = newTitle;
+    }
+
+    /** 고정/고정 해제 토글. 고정 상태면 해제, 아니면 현재 시각으로 고정. */
+    public void togglePin() {
+        this.pinnedAt = (this.pinnedAt == null) ? LocalDateTime.now() : null;
+    }
+
+    public boolean isPinned() {
+        return this.pinnedAt != null;
     }
 }

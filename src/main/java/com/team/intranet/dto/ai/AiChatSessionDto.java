@@ -24,6 +24,8 @@ public class AiChatSessionDto {
     private String title;
     private String lastMessagePreview;
     private String updatedAt;
+    /** 본인이 고정했는지 — 프론트가 ⭐ 표시 + 정렬 보조용 (정렬은 서버가 1차 수행). */
+    private boolean pinned;
 
     public static AiChatSessionDto from(AiChatSession s, AiChatMessage lastMsg) {
         AiChatSessionDto dto = new AiChatSessionDto();
@@ -35,6 +37,7 @@ public class AiChatSessionDto {
             dto.lastMessagePreview = preview;
         }
         dto.updatedAt = s.getUpdatedAt() != null ? s.getUpdatedAt().format(DT) : null;
+        dto.pinned = s.isPinned();
         return dto;
     }
 }

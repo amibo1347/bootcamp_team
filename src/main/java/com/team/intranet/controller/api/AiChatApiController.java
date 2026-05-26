@@ -63,6 +63,29 @@ public class AiChatApiController {
         return ResponseEntity.noContent().build();
     }
 
+    /** 세션 제목 수정 — 점 3개 메뉴 [제목 수정]. body: { "title": "새 제목" }. */
+    @PostMapping("/conversations/{id}/title")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AiChatSessionDto> renameSession(
+            @PathVariable("id") Long sessionId,
+            @RequestBody Map<String, String> body,
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        String title = body == null ? null : body.get("title");
+        return ResponseEntity.ok(aiChatService.renameSession(ms, sessionId, title));
+    }
+
+    /** 세션 고정/고정 해제 토글 — 점 3개 메뉴 [고정하기 / 고정 해제]. 응답: { pinned: boolean }. */
+    @PostMapping("/conversations/{id}/pin")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Boolean>> togglePinSession(
+            @PathVariable("id") Long sessionId,
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        boolean pinned = aiChatService.togglePinSession(ms, sessionId);
+        return ResponseEntity.ok(Map.of("pinned", pinned));
+    }
+
     @GetMapping("/conversations/{id}/messages")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<AiChatMessageDto>> listMessages(

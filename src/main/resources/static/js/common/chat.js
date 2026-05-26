@@ -237,20 +237,55 @@
           ? esc(item.lastMessagePreview)
           : '<span class="text-gray-300">대화를 시작해 보세요</span>';
         const time = fmtRelative(item.updatedAt);
+        const pinned = !!item.pinned;
+        const pinIcon = pinned
+          ? '<span class="ml-1 text-[10px] text-indigo-500" title="고정됨">📌</span>'
+          : '';
+        // row 자체를 div(role=button) 로 — 안쪽 ⋮ 버튼과 nested button 문제 회피.
         return ''
-          + '<button type="button" data-ai-session-id="' + esc(item.sessionId || '') + '" '
-          + '  data-ai-title="' + esc(item.title || 'AI 비서') + '" '
-          + '  class="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-white/5">'
-          +   aiAvatarHtml()
-          +   '<div class="min-w-0 flex-1">'
-          +     '<div class="flex items-center justify-between gap-2">'
-          +       '<span class="truncate text-sm font-semibold text-gray-900 dark:text-white">' + esc(item.title || 'AI 비서') + '</span>'
-          +       '<span class="shrink-0 text-[11px] text-gray-400">' + time + '</span>'
+          + '<div class="js-chat-row relative flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5"'
+          + '     data-row-kind="ai" data-row-id="' + esc(item.sessionId || '') + '"'
+          + '     data-row-title="' + esc(item.title || 'AI 비서') + '"'
+          + '     data-row-pinned="' + (pinned ? '1' : '0') + '">'
+          + '  <div class="js-chat-open flex flex-1 min-w-0 cursor-pointer items-start gap-3" role="button" tabindex="0">'
+          +     aiAvatarHtml()
+          +     '<div class="min-w-0 flex-1">'
+          +       '<div class="flex items-center justify-between gap-2">'
+          +         '<span class="truncate text-sm font-semibold text-gray-900 dark:text-white">' + esc(item.title || 'AI 비서') + pinIcon + '</span>'
+          +         '<span class="shrink-0 text-[11px] text-gray-400">' + time + '</span>'
+          +       '</div>'
+          +       '<div class="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">' + preview + '</div>'
           +     '</div>'
-          +     '<div class="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">' + preview + '</div>'
-          +   '</div>'
-          + '</button>';
+          + '  </div>'
+          +   chatRowMenuHtml(pinned)
+          + '</div>';
       }).join('');
+    }
+
+    /**
+     * 점 3개 메뉴 마크업 — AI/일반 채팅 공통.
+     * @param {boolean} pinned - 현재 고정 여부 (고정하기/고정 해제 라벨 토글)
+     */
+    function chatRowMenuHtml(pinned) {
+      const pinLabel = pinned ? '고정 해제' : '고정하기';
+      return ''
+        + '<div class="js-row-menu relative shrink-0">'
+        + '  <button type="button" class="js-row-menu-trigger rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/10" aria-label="메뉴">'
+        + '    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">'
+        + '      <circle cx="8" cy="3" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="8" cy="13" r="1.5"/>'
+        + '    </svg>'
+        + '  </button>'
+        + '  <div class="js-row-menu-pop hidden absolute right-0 top-full z-20 mt-1 w-32 overflow-hidden rounded-md border border-gray-200 bg-white text-xs shadow-lg dark:border-strokedark dark:bg-boxdark">'
+        + '    <button type="button" data-menu-action="rename" class="block w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-white/5">제목 수정</button>'
+        + '    <button type="button" data-menu-action="pin" class="block w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-white/5">' + pinLabel + '</button>'
+        + '    <button type="button" data-menu-action="leave" class="block w-full px-3 py-2 text-left text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10">채팅방 나가기</button>'
+        + '  </div>'
+        + '</div>';
+    }
+
+    /** 열려있는 모든 점 3개 메뉴 닫기. */
+    function closeAllRowMenus() {
+      document.querySelectorAll('.js-row-menu-pop').forEach((p) => p.classList.add('hidden'));
     }
 
     /**
@@ -512,13 +547,8 @@
       aiNewBtn.addEventListener('click', createAiConversation);
     }
     if (aiBodyEl) {
-      aiBodyEl.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-ai-session-id]');
-        if (!btn) return;
-        const sessionId = Number(btn.dataset.aiSessionId);
-        if (!sessionId) return;
-        showThread(sessionId, btn.dataset.aiTitle || 'AI 비서', 'ai');
-      });
+      // AI 카드 클릭 → thread 진입 + 점 3개 메뉴 처리. (위임)
+      aiBodyEl.addEventListener('click', (e) => handleChatRowClick(e, 'ai'));
     }
     // Esc 로도 닫음 — 단 입력 포커스 중일 땐 무시 (한글 IME 충돌 방지)
     document.addEventListener('keydown', (e) => {
@@ -565,18 +595,30 @@
         const unreadBadge = unread > 0
           ? '<span class="inline-flex h-5 min-w-5 max-w-[2.75rem] shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-500 px-1 text-[10px] font-bold tabular-nums leading-none text-white shadow-sm">' + (unread > 99 ? '99+' : unread) + '</span>'
           : '';
+        // 본인이 [제목 수정] 했으면 displayTitle, 아니면 상대 이름. 점 3개 메뉴 추가.
+        const pinned = !!c.pinned;
+        const pinIcon = pinned
+          ? '<span class="ml-1 text-[10px] text-indigo-500" title="고정됨">📌</span>'
+          : '';
+        const titleText = (c.displayTitle && c.displayTitle.trim()) ? c.displayTitle : (peer.name || '?');
         return ''
-          + '<button type="button" data-conv-id="' + c.conversationId + '" data-peer-name="' + esc(peer.name || '') + '" '
-          + '  class="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-white/5">'
-          +   avatar
-          +   '<div class="min-w-0 flex-1">'
-          +     '<div class="flex items-center justify-between gap-2">'
-          +       '<span class="truncate text-sm font-semibold text-gray-900 dark:text-white">' + esc(peer.name || '?') + '<span class="ml-1 text-xs font-normal text-gray-500">·' + esc(peer.deptName || '미지정') + '</span></span>'
-          +       '<span class="shrink-0 flex items-center gap-1.5 text-[11px] text-gray-400">' + time + unreadBadge + '</span>'
+          + '<div class="js-chat-row relative flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5"'
+          + '     data-row-kind="chat" data-row-id="' + c.conversationId + '"'
+          + '     data-row-title="' + esc(titleText) + '"'
+          + '     data-row-peer-name="' + esc(peer.name || '') + '"'
+          + '     data-row-pinned="' + (pinned ? '1' : '0') + '">'
+          + '  <div class="js-chat-open flex flex-1 min-w-0 cursor-pointer items-start gap-3" role="button" tabindex="0">'
+          +     avatar
+          +     '<div class="min-w-0 flex-1">'
+          +       '<div class="flex items-center justify-between gap-2">'
+          +         '<span class="truncate text-sm font-semibold text-gray-900 dark:text-white">' + esc(titleText) + pinIcon + '<span class="ml-1 text-xs font-normal text-gray-500">·' + esc(peer.deptName || '미지정') + '</span></span>'
+          +         '<span class="shrink-0 flex items-center gap-1.5 text-[11px] text-gray-400">' + time + unreadBadge + '</span>'
+          +       '</div>'
+          +       '<div class="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">' + preview + '</div>'
           +     '</div>'
-          +     '<div class="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">' + preview + '</div>'
-          +   '</div>'
-          + '</button>';
+          + '  </div>'
+          +   chatRowMenuHtml(pinned)
+          + '</div>';
       }).join('');
     }
 
@@ -620,12 +662,127 @@
         updateUnreadBadges(total);
       } catch (e) { /* 무시 */ }
     }
-    listEl.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-conv-id]');
-      if (!btn) return;
-      showThread(Number(btn.dataset.convId), btn.dataset.peerName || '');
-    });
+    // 일반 채팅 카드 클릭 → thread 진입 + 점 3개 메뉴 처리. (위임)
+    listEl.addEventListener('click', (e) => handleChatRowClick(e, 'chat'));
     newBtn.addEventListener('click', showPick);
+
+    // ─── 점 3개 메뉴: 위임 클릭 핸들러 + 외부 클릭 닫기 ──────────────────
+    /**
+     * 채팅 카드(.js-chat-row) 안에서 발생한 클릭을 분기.
+     *  - .js-row-menu-trigger : 드롭다운 열기/닫기 (다른 드롭다운은 닫음)
+     *  - [data-menu-action]   : 액션 실행 (rename/pin/leave)
+     *  - .js-chat-open        : 대화방 진입
+     * @param {MouseEvent} e
+     * @param {'chat'|'ai'} kindFallback row 의 data-row-kind 가 없을 때 폴백.
+     */
+    function handleChatRowClick(e, kindFallback) {
+      const trigger = e.target.closest('.js-row-menu-trigger');
+      if (trigger) {
+        e.stopPropagation();
+        const pop = trigger.parentElement.querySelector('.js-row-menu-pop');
+        const willOpen = pop.classList.contains('hidden');
+        closeAllRowMenus();
+        if (willOpen) pop.classList.remove('hidden');
+        return;
+      }
+
+      const menuBtn = e.target.closest('[data-menu-action]');
+      if (menuBtn) {
+        e.stopPropagation();
+        const row = menuBtn.closest('.js-chat-row');
+        if (!row) return;
+        closeAllRowMenus();
+        const id = Number(row.dataset.rowId);
+        const kind = row.dataset.rowKind || kindFallback;
+        const title = row.dataset.rowTitle || '';
+        const pinned = row.dataset.rowPinned === '1';
+        const peerName = row.dataset.rowPeerName || '';
+        const action = menuBtn.dataset.menuAction;
+        if (action === 'rename') return doRowRename(kind, id, title);
+        if (action === 'pin')    return doRowTogglePin(kind, id, pinned, peerName || title);
+        if (action === 'leave')  return doRowLeave(kind, id, peerName || title);
+        return;
+      }
+
+      const opener = e.target.closest('.js-chat-open');
+      if (opener) {
+        const row = opener.closest('.js-chat-row');
+        if (!row) return;
+        const id = Number(row.dataset.rowId);
+        const kind = row.dataset.rowKind || kindFallback;
+        if (kind === 'ai') {
+          showThread(id, row.dataset.rowTitle || 'AI 비서', 'ai');
+        } else {
+          // 일반 채팅의 thread 헤더는 상대 이름이 자연스러움 (custom title 이 있으면 그것).
+          showThread(id, row.dataset.rowTitle || row.dataset.rowPeerName || '');
+        }
+      }
+    }
+
+    /** 패널 외부 클릭으로 열린 메뉴 닫기. */
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.js-row-menu')) return;
+      closeAllRowMenus();
+    });
+
+    // ─── 점 3개 메뉴: API 호출 ──────────────────────────────────────────
+    async function doRowRename(kind, id, currentTitle) {
+      const next = window.prompt('새 제목을 입력하세요. (빈 값은 기본 제목으로 복귀)', currentTitle || '');
+      if (next === null) return; // 취소
+      const url = (kind === 'ai')
+        ? '/api/ai/conversations/' + id + '/title'
+        : '/api/chat/conversations/' + id + '/title';
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeader()),
+          body: JSON.stringify({ title: next })
+        });
+        if (!res.ok) {
+          alert(await window.getApiErrorMessage(res, '제목 수정에 실패했습니다.'));
+          return;
+        }
+        if (kind === 'ai') loadAiList(); else loadConversations();
+      } catch (err) {
+        alert('통신 중 오류가 발생했습니다.');
+      }
+    }
+
+    async function doRowTogglePin(kind, id, currentPinned, displayName) {
+      const url = (kind === 'ai')
+        ? '/api/ai/conversations/' + id + '/pin'
+        : '/api/chat/conversations/' + id + '/pin';
+      try {
+        const res = await fetch(url, { method: 'POST', headers: csrfHeader() });
+        if (!res.ok) {
+          alert(await window.getApiErrorMessage(res, '고정 상태 변경에 실패했습니다.'));
+          return;
+        }
+        if (kind === 'ai') loadAiList(); else loadConversations();
+      } catch (err) {
+        alert('통신 중 오류가 발생했습니다.');
+      }
+    }
+
+    async function doRowLeave(kind, id, displayName) {
+      const label = (kind === 'ai')
+        ? '이 AI 대화 세션을 나가시겠습니까?\n이전 대화 내용이 모두 삭제됩니다.'
+        : '"' + (displayName || '대화') + '" 채팅방을 나가시겠습니까?\n나에게서는 대화 내용이 사라집니다.\n(상대방이 새 메시지를 보내면 다시 나타납니다)';
+      if (!confirm(label)) return;
+      const url = (kind === 'ai')
+        ? '/api/ai/conversations/' + id
+        : '/api/chat/conversations/' + id;
+      try {
+        const res = await fetch(url, { method: 'DELETE', headers: csrfHeader() });
+        if (!res.ok && res.status !== 204) {
+          alert(await window.getApiErrorMessage(res, '나가기에 실패했습니다.'));
+          return;
+        }
+        if (kind === 'ai') loadAiList(); else loadConversations();
+      } catch (err) {
+        alert('통신 중 오류가 발생했습니다.');
+      }
+    }
 
     // ─── 회원 선택 ──────────────────────────────────────────────────
     async function loadPeers() {
