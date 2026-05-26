@@ -2,9 +2,8 @@ package com.team.intranet.controller.api;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -26,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import com.team.intranet.dto.ArticleDto;
 
 import java.util.List;
-@Controller
+@RestController
 @RequestMapping("/api/board/{boardId}/articles")
 @RequiredArgsConstructor
 public class ArticleApiController {
@@ -46,7 +45,6 @@ public class ArticleApiController {
     }
 
     @GetMapping("")
-    @ResponseBody
     public ResponseEntity<Page<ArticleDto>> listArticles(
           @PathVariable Long boardId,
           @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
@@ -58,7 +56,6 @@ public class ArticleApiController {
   }
 
   @GetMapping("/trash")
-  @ResponseBody
   public ResponseEntity<Page<ArticleDto>> listDeletedArticles(
           @PathVariable Long boardId,
           @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
@@ -70,7 +67,6 @@ public class ArticleApiController {
   }
 
   @GetMapping("/{articleId}")
-  @ResponseBody
   public ResponseEntity<ArticleDto> getArticle(
           @PathVariable Long boardId,
           @PathVariable Long articleId,
@@ -82,7 +78,6 @@ public class ArticleApiController {
   }
 
       @PostMapping("/{articleId}/edit")                                                                                            
-  @ResponseBody                                                                                                              
   public ResponseEntity<ArticleDto> updateArticle(
           @PathVariable Long boardId,
           @PathVariable Long articleId,
@@ -95,7 +90,6 @@ public class ArticleApiController {
   }
 
     @PostMapping("/{articleId}/delete")
-  @ResponseBody
   public ResponseEntity<Void> deleteArticle(
           @PathVariable Long boardId,
           @PathVariable Long articleId,
@@ -108,7 +102,6 @@ public class ArticleApiController {
   }
 
   @PostMapping("/trash/{articleId}/restore")
-  @ResponseBody
   public ResponseEntity<Void> restoreArticle(
           @PathVariable Long boardId,
           @PathVariable Long articleId,
@@ -121,7 +114,6 @@ public class ArticleApiController {
   }
 
   @PostMapping("/trash/{articleId}/delete")
-  @ResponseBody
   public ResponseEntity<Void> permanentlyDeleteArticle(
           @PathVariable Long boardId,
           @PathVariable Long articleId,

@@ -8,7 +8,7 @@ import com.team.intranet.enums.VacationType;
 @Entity
 @Table(name = "tbl_vacation_request")
 @Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor @Builder
 public class VacationRequest {
     
     @Id

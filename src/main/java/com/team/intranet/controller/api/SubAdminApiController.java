@@ -12,14 +12,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.SessionAttribute;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.team.intranet.dto.ArticleUnifiedTrashDto;
@@ -32,7 +31,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import com.team.intranet.enums.member.Status;
 
-@Controller
+@RestController
 @RequestMapping("/api/subAdmin")
 @RequiredArgsConstructor
 public class SubAdminApiController {
@@ -46,7 +45,6 @@ public class SubAdminApiController {
      *   — TRASH_MANAGEMENT 보유자는 회사 전체, 그 외는 본인 작성 글만.
      */
     @GetMapping("/articles/trash")
-    @ResponseBody
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<ArticleUnifiedTrashDto>> listUnifiedTrash(
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
@@ -103,7 +101,6 @@ public class SubAdminApiController {
 
     // 인사이동: 다수 회원의 부서/직급을 일괄 변경
     @PostMapping("/reassign")
-    @ResponseBody
     @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
     public ResponseEntity<Void> reassignMembers(
             @RequestParam("memberIds") List<Long> memberIds,
@@ -134,7 +131,6 @@ public class SubAdminApiController {
      *  - MASTER 의 회사 대표 비번 초기화(/master/companies/{id}/admin/reset-password) 와 동일 패턴.
      */
     @PostMapping("/{id}/reset-password")
-    @ResponseBody
     @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
     public ResponseEntity<java.util.Map<String, Object>> resetMemberPassword(
             @PathVariable("id") Long memberId,

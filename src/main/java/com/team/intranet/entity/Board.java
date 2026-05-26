@@ -13,6 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.FetchType;
 
@@ -28,7 +29,7 @@ import com.team.intranet.enums.board.BoardType;
 @Table(name = "tbl_board_master")
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class Board {
     

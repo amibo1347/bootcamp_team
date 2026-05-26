@@ -4,14 +4,13 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.SessionAttribute;
 
 import com.team.intranet.dto.CommentDto;
@@ -20,7 +19,7 @@ import com.team.intranet.service.CommentService;
 
 import lombok.RequiredArgsConstructor;
 
-@Controller
+@RestController
 @RequestMapping("/api/board/{boardId}/articles/{articleId}/comments")
 @RequiredArgsConstructor
 public class CommentApiController {
@@ -29,7 +28,6 @@ public class CommentApiController {
 
     /** 댓글/대댓글 작성. dto.parentCommentId 가 있으면 대댓글. */
     @PostMapping("/new")
-    @ResponseBody
     public ResponseEntity<Void> createComment(
             @PathVariable Long boardId,
             @PathVariable Long articleId,
@@ -45,7 +43,6 @@ public class CommentApiController {
 
     /** 게시글의 댓글 목록. 평면 리스트 [top1, top1.reply..., top2, top2.reply...]. */
     @GetMapping("")
-    @ResponseBody
     public ResponseEntity<List<CommentDto>> listComments(
             @PathVariable Long boardId,
             @PathVariable Long articleId,
@@ -59,7 +56,6 @@ public class CommentApiController {
 
     /** 댓글 수정 — 작성자 본인만. */
     @PostMapping("/{commentId}/edit")
-    @ResponseBody
     public ResponseEntity<Void> updateComment(
             @PathVariable Long boardId,
             @PathVariable Long articleId,
@@ -75,7 +71,6 @@ public class CommentApiController {
 
     /** 댓글 삭제 — 작성자 본인 또는 관리자. 최상위 댓글이면 대댓글까지 CASCADE 로 함께 삭제. */
     @PostMapping("/{commentId}/delete")
-    @ResponseBody
     public ResponseEntity<Void> deleteComment(
             @PathVariable Long boardId,
             @PathVariable Long articleId,

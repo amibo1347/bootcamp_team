@@ -14,6 +14,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 import lombok.Setter;
 
 import com.team.intranet.entity.Member;
@@ -23,7 +24,7 @@ import com.team.intranet.dto.CategoryDto;
 @Table(name = "tbl_category", uniqueConstraints = @UniqueConstraint(columnNames = {"member_id", "name"}))
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 public class Category {

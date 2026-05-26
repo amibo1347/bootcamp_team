@@ -11,7 +11,7 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "tbl_expense_request")
 @Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor @Builder
 public class ExpenseRequest {
 
     @Id

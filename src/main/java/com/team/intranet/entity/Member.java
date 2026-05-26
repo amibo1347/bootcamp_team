@@ -34,6 +34,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 
 @Entity
 // loginId 는 전역이 아니라 '회사 단위'로만 유니크하다 (회사가 다르면 같은 사번/아이디 허용).
@@ -42,7 +43,7 @@ import lombok.NoArgsConstructor;
                                              columnNames = {"company_id", "login_id"}))
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class Member {
 
@@ -89,15 +90,17 @@ public class Member {
     @Column(name = "status_changed_at")
     private LocalDateTime statusChangedAt;
 
-    @ManyToOne(optional = false)
+    // FetchType.EAGER 명시 — LoginSuccessHandler 가 트랜잭션 밖에서 회사/부서/직급에 접근하므로 EAGER 가 필요.
+    // 기본값(EAGER) 의존 대신 명시해서 의도를 코드로 드러낸다.
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "dept_id")
     private Dept dept;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "position_id")
     private Position position;
 

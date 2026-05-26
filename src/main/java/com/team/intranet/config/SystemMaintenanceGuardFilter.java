@@ -57,15 +57,13 @@ public class SystemMaintenanceGuardFilter extends OncePerRequestFilter {
     }
 
     private boolean isApiRequest(String uri) {
-        return uri.startsWith("/api/");
+        return GuardFilters.isApiRequest(uri);
     }
 
     /** 정적 리소스 / 점검 페이지 본인 / 폴링 API / 로그아웃·에러는 통과. */
     private boolean isExempt(String uri) {
-        return uri.startsWith("/css/") || uri.startsWith("/js/") || uri.startsWith("/images/")
-                || uri.equals("/favicon.ico") || uri.equals("/error")
+        return GuardFilters.isCommonExempt(uri)
                 || uri.equals("/maintenance")
-                || uri.startsWith("/api/system-maintenance/")
-                || uri.equals("/member/logout"); // 점검 중에도 로그아웃은 가능해야 함
+                || uri.startsWith("/api/system-maintenance/");
     }
 }

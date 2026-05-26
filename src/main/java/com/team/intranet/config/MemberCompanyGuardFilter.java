@@ -70,16 +70,15 @@ public class MemberCompanyGuardFilter extends OncePerRequestFilter {
 
     /** AJAX/API 요청 여부 — /api/ 로 시작하면 fetch 호출로 간주. */
     private boolean isApiRequest(HttpServletRequest request) {
-        return request.getRequestURI().startsWith("/api/");
+        return GuardFilters.isApiRequest(request.getRequestURI());
     }
 
     /** 정적 리소스·로그인/로그아웃·에러 등 검사 제외 경로. */
     private boolean isExempt(String uri) {
-        return uri.startsWith("/css/") || uri.startsWith("/js/") || uri.startsWith("/images/")
+        return GuardFilters.isCommonExempt(uri)
                 || uri.startsWith("/api/company/")
-                || uri.equals("/favicon.ico") || uri.equals("/error")
                 // 회사 선택 랜딩 + 회사별 로그인/회원가입 페이지 모두 제외
                 || uri.equals("/company-login") || uri.endsWith("/login")
-                || uri.endsWith("/signup") || uri.equals("/member/logout");
+                || uri.endsWith("/signup");
     }
 }

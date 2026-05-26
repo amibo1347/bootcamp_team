@@ -16,7 +16,7 @@ import lombok.*;
 @Table(name = "tbl_approval_line",
         uniqueConstraints = @UniqueConstraint(columnNames = {"approval_id", "level_no"}))
 @Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor @Builder
 public class ApprovalLine {
 
     @Id

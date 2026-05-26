@@ -14,6 +14,7 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 import lombok.Setter;
 import com.team.intranet.enums.board.ScopeType;
 
@@ -21,7 +22,7 @@ import com.team.intranet.enums.board.ScopeType;
 @Table(name = "tbl_board_scope_rule")
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class BoardScopeRule {
 
@@ -45,4 +46,14 @@ public class BoardScopeRule {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "position_id")
     private Position position; // 허용된 직급 (null이면 전체 허용)
+
+    /** BoardService 가 외부에서 인스턴스 생성하는 진입점 — 기본 생성자 PROTECTED 대응. */
+    public static BoardScopeRule of(Board board, ScopeType scopeType, Dept dept, Position position) {
+        BoardScopeRule rule = new BoardScopeRule();
+        rule.board = board;
+        rule.scopeType = scopeType;
+        rule.dept = dept;
+        rule.position = position;
+        return rule;
+    }
 }

@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 import lombok.Setter;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Column;
@@ -27,7 +28,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Table(name = "tbl_article")
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 // 게시글 엔티티 
@@ -114,6 +115,7 @@ public class Article {
     }
 
     public boolean isAuthor(Long memberId) {
-        return this.author.getMemberId().equals(memberId);
+        // author 는 회원 삭제 시 SET NULL 가능 → null 가드 필수 (Comment.isAuthor 와 동일 패턴).
+        return this.author != null && this.author.getMemberId().equals(memberId);
     }
 }

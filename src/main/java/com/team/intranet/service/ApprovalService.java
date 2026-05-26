@@ -84,13 +84,50 @@ public class ApprovalService {
 
     @Transactional
     public ApprovalSubmitResponse submit(MemberSession ms, ApprovalSubmitRequest req) {
+        List<Long> line = validateSubmitRequest(req, ms);
+
+        FormTemplate template = loadTemplate(req.getFormTemplateId(), ms);
+        Member drafter = memberRepository.findById(ms.getMemberId())
+            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+        List<Member> approvers = resolveApprovers(line, ms);
+        validateApprovalLineRoles(drafter.getRole(), approvers);
+
+        Approval approval = approvalRepository.save(Approval.builder()
+            .formTemplate(template)
+            .drafter(drafter)
+            .approver(approvers.get(0))           // 1단계 결재자 캐시
+            .currentLevel(1)
+            .maxLevel(approvers.size())
+            .title(req.getTitle())
+            .status(ApprovalStatus.PENDING)
+            .draftedAt(LocalDateTime.now())
+            .company(drafter.getCompany())
+            .build());
+
+        for (int i = 0; i < approvers.size(); i++) {
+            approvalLineRepository.save(ApprovalLine.builder()
+                .approval(approval)
+                .level(i + 1)
+                .approver(approvers.get(i))
+                .status(ApprovalStatus.PENDING)
+                .build());
+        }
+
+        saveBody(approval, template, req);
+        linkAttachments(approval, req.getAttachmentIds(), drafter);
+        notifyFirstApprover(approval, drafter, template, approvers.get(0));
+
+        return new ApprovalSubmitResponse(true, approval.getApprovalId(), "제출되었습니다.");
+    }
+
+    /** submit 요청의 헤더/결재선 검증. 정규화된 결재선을 반환. */
+    private List<Long> validateSubmitRequest(ApprovalSubmitRequest req, MemberSession ms) {
         if (req.getFormTemplateId() == null) {
             throw new BusinessException(ErrorCode.FORM_TEMPLATE_NOT_FOUND);
         }
         if (req.getTitle() == null || req.getTitle().isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_STATUS);
         }
-
         List<Long> line = normalizeApprovalLine(req);
         if (line.isEmpty()) {
             throw new BusinessException(ErrorCode.MEMBER_NOT_FOUND);
@@ -104,8 +141,12 @@ public class ApprovalService {
         if (new HashSet<>(line).size() != line.size()) {
             throw new BusinessException(ErrorCode.INVALID_STATUS);
         }
+        return line;
+    }
 
-        FormTemplate template = formTemplateRepository.findById(req.getFormTemplateId())
+    /** 양식 조회 + 활성/회사 스코프 검증. */
+    private FormTemplate loadTemplate(Long formTemplateId, MemberSession ms) {
+        FormTemplate template = formTemplateRepository.findById(formTemplateId)
             .orElseThrow(() -> new BusinessException(ErrorCode.FORM_TEMPLATE_NOT_FOUND));
         if (!template.isActive()) {
             throw new BusinessException(ErrorCode.FORM_TEMPLATE_INACTIVE);
@@ -114,11 +155,12 @@ public class ApprovalService {
             && !template.getCompany().getCompanyId().equals(ms.getCompanyId())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
+        return template;
+    }
 
-        Member drafter = memberRepository.findById(ms.getMemberId())
-            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
-
-        List<Member> approvers = new ArrayList<>();
+    /** 결재자 ID 목록을 Member 로 변환하면서 같은 회사인지 검증. */
+    private List<Member> resolveApprovers(List<Long> line, MemberSession ms) {
+        List<Member> approvers = new ArrayList<>(line.size());
         for (Long id : line) {
             Member m = memberRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
@@ -128,54 +170,36 @@ public class ApprovalService {
             }
             approvers.add(m);
         }
+        return approvers;
+    }
 
-        validateApprovalLineRoles(drafter.getRole(), approvers);
-
-        Approval approval = Approval.builder()
-            .formTemplate(template)
-            .drafter(drafter)
-            .approver(approvers.get(0))           // 1단계 결재자 캐시
-            .currentLevel(1)
-            .maxLevel(approvers.size())
-            .title(req.getTitle())
-            .status(ApprovalStatus.PENDING)
-            .draftedAt(LocalDateTime.now())
-            .company(drafter.getCompany())
-            .build();
-        approval = approvalRepository.save(approval);
-
-        for (int i = 0; i < approvers.size(); i++) {
-            approvalLineRepository.save(ApprovalLine.builder()
-                .approval(approval)
-                .level(i + 1)
-                .approver(approvers.get(i))
-                .status(ApprovalStatus.PENDING)
-                .build());
-        }
-
-        // 본문 분기:
-        //  - 회사 사본 + fieldSchema 있는 양식 = B안 동적 경로 (스냅샷 캡처 + 필드값 저장)
-        //  - 그 외 = 시스템 디폴트 fixed 본문 분기
+    /**
+     * 결재 본문 저장 분기:
+     *  - 회사 사본 + fieldSchema 있는 양식 = B안 동적 경로 (스냅샷 캡처 + 필드값 저장)
+     *  - 그 외 = 시스템 디폴트 fixed 본문 분기
+     */
+    private void saveBody(Approval approval, FormTemplate template, ApprovalSubmitRequest req) {
         if (isDynamicTemplate(template)) {
             saveDynamicBody(approval, template, req.getDynamicFields());
-        } else {
-            String code = template.getFormCode() == null ? "" : template.getFormCode().toUpperCase();
-            switch (code) {
-                case "VACATION" -> saveVacationBody(approval, req.getVacation());
-                case "GENERIC"  -> saveGenericBody(approval, req.getGeneric());
-                case "EXPENSE"  -> saveExpenseBody(approval, req.getExpense());
-                default -> { /* 본문 없는 양식이면 헤더만 저장 */ }
-            }
+            return;
         }
+        String code = template.getFormCode() == null ? "" : template.getFormCode().toUpperCase();
+        switch (code) {
+            case "VACATION" -> saveVacationBody(approval, req.getVacation());
+            case "GENERIC"  -> saveGenericBody(approval, req.getGeneric());
+            case "EXPENSE"  -> saveExpenseBody(approval, req.getExpense());
+            default -> { /* 본문 없는 양식이면 헤더만 저장 */ }
+        }
+    }
 
-        // 첨부파일 연결 — 미리 업로드된 ApprovalAttachment 를 이 결재 문서에 묶는다. 선택 사항.
-        linkAttachments(approval, req.getAttachmentIds(), drafter);
-
-        // 1단계 결재자에게 알림 발송. 알림이 실패해도 결재 저장은 영향 없도록 호출 측에서도 흡수.
-        // (REQUIRES_NEW 의 commit 시점 UnexpectedRollbackException 은 메서드 내부 try 로는 못 잡음)
+    /**
+     * 1단계 결재자에게 알림 발송. 알림 실패가 결재 저장에 영향 없도록 흡수.
+     * (REQUIRES_NEW 의 commit 시점 UnexpectedRollbackException 은 메서드 내부 try 로는 못 잡음)
+     */
+    private void notifyFirstApprover(Approval approval, Member drafter, FormTemplate template, Member firstApprover) {
         try {
             alertService.sendApprovalRequestAlert(
-                approvers.get(0).getMemberId(),
+                firstApprover.getMemberId(),
                 drafter.getMemberId(),
                 template.getName(),
                 approval.getTitle()
@@ -184,8 +208,6 @@ public class ApprovalService {
             log.warn("APPROVAL_REQUEST 알림 발송 실패 (approvalId={}): {}",
                 approval.getApprovalId(), e.getMessage());
         }
-
-        return new ApprovalSubmitResponse(true, approval.getApprovalId(), "제출되었습니다.");
     }
 
     // ===== Process =====
@@ -214,81 +236,91 @@ public class ApprovalService {
         LocalDateTime now = LocalDateTime.now();
 
         switch (action) {
-            case "APPROVE" -> {
-                currentLine.setStatus(ApprovalStatus.APPROVED);
-                currentLine.setProcessedAt(now);
-                currentLine.setComment(req.getComment());
-
-                boolean isFinal = approval.getCurrentLevel().equals(approval.getMaxLevel());
-                if (isFinal) {
-                    approval.setStatus(ApprovalStatus.APPROVED);
-                    approval.setApproverComment(req.getComment());
-                    approval.setProcessedAt(now);
-                    // 휴가 최종 승인 → 신청자 캘린더에 일정 자동 등록
-                    if ("VACATION".equalsIgnoreCase(approval.getFormTemplate().getFormCode())) {
-                        registerVacationOnCalendar(approval);
-                    }
-                    sendResultAlertSafe(approval, ms.getMemberId(), "승인");
-                } else {
-                    int nextLevel = approval.getCurrentLevel() + 1;
-                    ApprovalLine nextLine = approvalLineRepository
-                        .findByApproval_ApprovalIdAndLevel(approval.getApprovalId(), nextLevel)
-                        .orElseThrow(() -> new BusinessException(ErrorCode.APPROVAL_NOT_FOUND));
-                    approval.setCurrentLevel(nextLevel);
-                    approval.setApprover(nextLine.getApprover());
-                    approval.setStatus(ApprovalStatus.IN_PROGRESS);
-
-                    // 다음 단계 결재자에게 알림 발송 (실패해도 결재 진행에는 영향 없음)
-                    try {
-                        alertService.sendApprovalRequestAlert(
-                            nextLine.getApprover().getMemberId(),
-                            approval.getDrafter().getMemberId(),
-                            approval.getFormTemplate().getName(),
-                            approval.getTitle()
-                        );
-                    } catch (Exception e) {
-                        log.warn("APPROVAL_REQUEST 알림 발송 실패 (approvalId={}, level={}): {}",
-                            approval.getApprovalId(), nextLevel, e.getMessage());
-                    }
-                }
-            }
-            case "REJECT" -> {
-                currentLine.setStatus(ApprovalStatus.REJECTED);
-                currentLine.setProcessedAt(now);
-                currentLine.setComment(req.getComment());
-
-                // 반려 전파: 현재 단계 이후의 PENDING line 들도 REJECTED 로 일괄 변경
-                // (드롭다운에 "대기" 로 남아 있는 시각적 불일치 방지)
-                int currentLevelInt = approval.getCurrentLevel();
-                List<ApprovalLine> allLines = approvalLineRepository
-                    .findByApproval_ApprovalIdOrderByLevelAsc(approval.getApprovalId());
-                for (ApprovalLine line : allLines) {
-                    if (line.getLevel() != null
-                        && line.getLevel() > currentLevelInt
-                        && line.getStatus() == ApprovalStatus.PENDING) {
-                        line.setStatus(ApprovalStatus.REJECTED);
-                        line.setProcessedAt(now);
-                    }
-                }
-
-                approval.setStatus(ApprovalStatus.REJECTED);
-                approval.setApproverComment(req.getComment());
-                approval.setProcessedAt(now);
-                sendResultAlertSafe(approval, ms.getMemberId(), "반려");
-            }
-            case "HOLD" -> {
-                currentLine.setStatus(ApprovalStatus.ON_HOLD);
-                currentLine.setProcessedAt(now);
-                currentLine.setComment(req.getComment());
-                approval.setStatus(ApprovalStatus.ON_HOLD);
-                approval.setApproverComment(req.getComment());
-                approval.setProcessedAt(now);
-                sendResultAlertSafe(approval, ms.getMemberId(), "보류");
-            }
+            case "APPROVE" -> handleApprove(approval, currentLine, req, ms, now);
+            case "REJECT"  -> handleReject(approval, currentLine, req, ms, now);
+            case "HOLD"    -> handleHold(approval, currentLine, req, ms, now);
             default -> throw new BusinessException(ErrorCode.INVALID_STATUS);
         }
 
         return new ApprovalProcessResponse(true, approval.getApprovalId(), approval.getStatus());
+    }
+
+    /** 승인 처리 — 최종 단계면 결재 완료, 아니면 다음 단계로 이동 + 알림. */
+    private void handleApprove(Approval approval, ApprovalLine currentLine,
+                               ApprovalProcessRequest req, MemberSession ms, LocalDateTime now) {
+        currentLine.setStatus(ApprovalStatus.APPROVED);
+        currentLine.setProcessedAt(now);
+        currentLine.setComment(req.getComment());
+
+        boolean isFinal = approval.getCurrentLevel().equals(approval.getMaxLevel());
+        if (isFinal) {
+            approval.setStatus(ApprovalStatus.APPROVED);
+            approval.setApproverComment(req.getComment());
+            approval.setProcessedAt(now);
+            // 휴가 최종 승인 → 신청자 캘린더에 일정 자동 등록
+            if ("VACATION".equalsIgnoreCase(approval.getFormTemplate().getFormCode())) {
+                registerVacationOnCalendar(approval);
+            }
+            sendResultAlertSafe(approval, ms.getMemberId(), "승인");
+            return;
+        }
+
+        int nextLevel = approval.getCurrentLevel() + 1;
+        ApprovalLine nextLine = approvalLineRepository
+            .findByApproval_ApprovalIdAndLevel(approval.getApprovalId(), nextLevel)
+            .orElseThrow(() -> new BusinessException(ErrorCode.APPROVAL_NOT_FOUND));
+        approval.setCurrentLevel(nextLevel);
+        approval.setApprover(nextLine.getApprover());
+        approval.setStatus(ApprovalStatus.IN_PROGRESS);
+
+        try {
+            alertService.sendApprovalRequestAlert(
+                nextLine.getApprover().getMemberId(),
+                approval.getDrafter().getMemberId(),
+                approval.getFormTemplate().getName(),
+                approval.getTitle()
+            );
+        } catch (Exception e) {
+            log.warn("APPROVAL_REQUEST 알림 발송 실패 (approvalId={}, level={}): {}",
+                approval.getApprovalId(), nextLevel, e.getMessage());
+        }
+    }
+
+    /** 반려 처리 — 현재 단계 이후 PENDING line 도 일괄 REJECTED 로 전파해 시각적 불일치 방지. */
+    private void handleReject(Approval approval, ApprovalLine currentLine,
+                              ApprovalProcessRequest req, MemberSession ms, LocalDateTime now) {
+        currentLine.setStatus(ApprovalStatus.REJECTED);
+        currentLine.setProcessedAt(now);
+        currentLine.setComment(req.getComment());
+
+        int currentLevelInt = approval.getCurrentLevel();
+        List<ApprovalLine> allLines = approvalLineRepository
+            .findByApproval_ApprovalIdOrderByLevelAsc(approval.getApprovalId());
+        for (ApprovalLine line : allLines) {
+            if (line.getLevel() != null
+                && line.getLevel() > currentLevelInt
+                && line.getStatus() == ApprovalStatus.PENDING) {
+                line.setStatus(ApprovalStatus.REJECTED);
+                line.setProcessedAt(now);
+            }
+        }
+
+        approval.setStatus(ApprovalStatus.REJECTED);
+        approval.setApproverComment(req.getComment());
+        approval.setProcessedAt(now);
+        sendResultAlertSafe(approval, ms.getMemberId(), "반려");
+    }
+
+    /** 보류 처리 — line/approval 둘 다 ON_HOLD. */
+    private void handleHold(Approval approval, ApprovalLine currentLine,
+                            ApprovalProcessRequest req, MemberSession ms, LocalDateTime now) {
+        currentLine.setStatus(ApprovalStatus.ON_HOLD);
+        currentLine.setProcessedAt(now);
+        currentLine.setComment(req.getComment());
+        approval.setStatus(ApprovalStatus.ON_HOLD);
+        approval.setApproverComment(req.getComment());
+        approval.setProcessedAt(now);
+        sendResultAlertSafe(approval, ms.getMemberId(), "보류");
     }
 
     // ===== Detail =====

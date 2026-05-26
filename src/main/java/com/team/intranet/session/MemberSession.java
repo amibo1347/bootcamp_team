@@ -91,7 +91,7 @@ import lombok.Getter;
      *  - USER 는 SUB_ADMIN 메뉴 자체가 사이드바에서 안 나오지만, 안전장치로 false 반환.
      */
     public boolean hasPermission(SubAdminPermission permission) {
-        if (role == Role.ADMIN || role == Role.MASTER) return true;
+        if (isAdminOrMaster()) return true;
         if (role != Role.SUB_ADMIN) return false;
         return permissions != null && permissions.contains(permission);
     }
@@ -109,7 +109,7 @@ import lombok.Getter;
      */
     public boolean canReadMember(Long targetMemberId, Integer targetLevel) {
         if (memberId != null && memberId.equals(targetMemberId)) return true;
-        if (role == Role.ADMIN || role == Role.MASTER) return true;
+        if (isAdminOrMaster()) return true;
         return hasPermission(SubAdminPermission.MEMBER_MANAGEMENT);
     }
 
@@ -133,7 +133,7 @@ import lombok.Getter;
      */
     public boolean canManageMember(Long targetMemberId, Integer targetLevel) {
         if (memberId != null && memberId.equals(targetMemberId)) return true;
-        if (role == Role.ADMIN || role == Role.MASTER) return true;
+        if (isAdminOrMaster()) return true;
 
         boolean hasMemberMgmt = hasPermission(SubAdminPermission.MEMBER_MANAGEMENT);
         if (!hasMemberMgmt) return false;

@@ -2,11 +2,9 @@ package com.team.intranet.controller.api;
 
   import java.time.LocalDateTime;
   import java.util.Map;
-  import java.util.Set;
 
   import org.springframework.http.HttpHeaders;
   import org.springframework.http.HttpStatus;
-  import org.springframework.http.MediaType;
   import org.springframework.http.ResponseEntity;
   import org.springframework.web.bind.annotation.*;
   import org.springframework.web.multipart.MultipartFile;
@@ -18,6 +16,7 @@ package com.team.intranet.controller.api;
   import com.team.intranet.repository.CompanyRepository;
   import com.team.intranet.repository.MemberRepository;
   import com.team.intranet.session.MemberSession;
+  import com.team.intranet.util.FileValidator;
 
   import lombok.RequiredArgsConstructor;
 
@@ -26,12 +25,10 @@ package com.team.intranet.controller.api;
   @RequiredArgsConstructor
   public class UploadApiController {
 
-      private static final Set<String> ALLOWED =
-              Set.of("image/png", "image/jpeg", "image/gif", "image/webp");
-
       private final ArticleImageRepository imageRepository;
       private final MemberRepository memberRepository;
       private final CompanyRepository companyRepository;
+      private final FileValidator fileValidator;
 
       // 업로드 — JS에서 fetch('/api/article-image', FormData)
       @PostMapping
@@ -40,9 +37,7 @@ package com.team.intranet.controller.api;
               @SessionAttribute(name = "memberSession", required = false) MemberSession ms) throws Exception {
 
           if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-          if (file == null || file.isEmpty()) return ResponseEntity.badRequest().build();
-          if (!ALLOWED.contains(file.getContentType())) return ResponseEntity.badRequest().build();
-          if (file.getSize() > 10L * 1024 * 1024) return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+          fileValidator.validateImage(file);
 
           Member uploader = memberRepository.findById(ms.getMemberId()).orElseThrow();
           Company company = companyRepository.findById(ms.getCompanyId()).orElseThrow();

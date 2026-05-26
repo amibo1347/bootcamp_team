@@ -5,12 +5,11 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.SessionAttribute;
 
 import com.team.intranet.dto.AlertDto;
@@ -19,7 +18,7 @@ import com.team.intranet.session.MemberSession;
 
 import lombok.RequiredArgsConstructor;
 
-@Controller
+@RestController
 @RequestMapping("/api/alerts")
 @RequiredArgsConstructor
 public class AlertApiController {
@@ -28,7 +27,6 @@ public class AlertApiController {
 
     // 내 알림 전체 (최신순)
     @GetMapping("")
-    @ResponseBody
     public ResponseEntity<List<AlertDto>> getMyAlerts(
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
         if (ms == null) {
@@ -39,7 +37,6 @@ public class AlertApiController {
 
     // 안 읽은 알림만
     @GetMapping("/unread")
-    @ResponseBody
     public ResponseEntity<List<AlertDto>> getMyUnreadAlerts(
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
         if (ms == null) {
@@ -50,7 +47,6 @@ public class AlertApiController {
 
     // 안 읽은 알림 개수 (헤더 종 아이콘 뱃지용)
     @GetMapping("/unread/count")
-    @ResponseBody
     public ResponseEntity<Map<String, Long>> getMyUnreadCount(
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
         if (ms == null) {
@@ -61,7 +57,6 @@ public class AlertApiController {
 
     // 단일 읽음 처리
     @PostMapping("/{alertId}/read")
-    @ResponseBody
     public ResponseEntity<Void> markAsRead(
             @PathVariable Long alertId,
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
@@ -74,7 +69,6 @@ public class AlertApiController {
 
     // 전체 읽음 처리
     @PostMapping("/read-all")
-    @ResponseBody
     public ResponseEntity<Void> markAllAsRead(
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
         if (ms == null) {
@@ -86,7 +80,6 @@ public class AlertApiController {
 
     // 단일 삭제
     @PostMapping("/{alertId}")
-    @ResponseBody
     public ResponseEntity<Void> deleteAlert(
             @PathVariable Long alertId,
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
@@ -99,7 +92,6 @@ public class AlertApiController {
 
     // 전체 삭제
     @PostMapping("")
-    @ResponseBody
     public ResponseEntity<Void> deleteAllMyAlerts(
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
         if (ms == null) {

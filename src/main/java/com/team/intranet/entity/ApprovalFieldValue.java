@@ -14,7 +14,7 @@ import lombok.*;
 @Table(name = "tbl_approval_field_value",
     indexes = @Index(name = "idx_afv_approval", columnList = "approval_id"))
 @Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor @Builder
 public class ApprovalFieldValue {
 
     @Id

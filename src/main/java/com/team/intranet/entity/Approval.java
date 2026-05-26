@@ -8,7 +8,7 @@ import com.team.intranet.enums.ApprovalStatus;
 @Entity
 @Table(name = "tbl_approval")
 @Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor @Builder
 public class Approval {
 
     @Id

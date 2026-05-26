@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 
 import com.team.intranet.entity.CalendarShareDept;
@@ -15,6 +16,9 @@ public interface CalendarShareDeptRepository extends JpaRepository<CalendarShare
 
     List<CalendarShareDept> findAllByCalendar(Calendar calendar);
     List<CalendarShareDept> findAllByDept(Dept dept);
+
+    /** 일정 리스트의 dept 공유를 한 방에 — getCalendars() 의 N+1 회피용. */
+    List<CalendarShareDept> findAllByCalendarIn(Collection<Calendar> calendars);
 
     /** {@link CalendarShareMemberRepository#deleteAllByCalendar} 와 동일 패턴 — 즉시 flush. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)

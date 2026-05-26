@@ -1,6 +1,9 @@
 package com.team.intranet.service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -194,17 +197,27 @@ public class CalendarService {
             .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
         Dept myDept = me.getDept();
 
-        // 일정 셀에 공유자 프로필 동그라미·부서명 배지를 그리려면 목록 조회에도 shareIds 가 필요.
-        // 단건 조회(getCalendar) 와 동일하게 dept/member share 를 추가로 채워 응답한다.
-        return calendarRepository.findAccessibleByMember(me, myDept).stream()
+        List<Calendar> calendars = calendarRepository.findAccessibleByMember(me, myDept);
+        if (calendars.isEmpty()) return List.of();
+
+        // N+1 회피: 한 번의 IN 쿼리로 모든 share 를 끌어와 calendarId 별로 그룹핑.
+        // (CalendarShare* 의 Calendar 는 LAZY proxy 라 getCalendarId() 호출은 추가 쿼리 없음)
+        Map<Long, List<Long>> deptIdsByCalendar = shareDeptRepository.findAllByCalendarIn(calendars).stream()
+            .collect(Collectors.groupingBy(
+                s -> s.getCalendar().getCalendarId(),
+                Collectors.mapping(s -> s.getDept().getDeptId(), Collectors.toList())
+            ));
+        Map<Long, List<Long>> memberIdsByCalendar = shareMemberRepository.findAllByCalendarIn(calendars).stream()
+            .collect(Collectors.groupingBy(
+                s -> s.getCalendar().getCalendarId(),
+                Collectors.mapping(s -> s.getMember().getMemberId(), Collectors.toList())
+            ));
+
+        return calendars.stream()
                 .map(c -> {
                     CalendarDto dto = CalendarDto.from(c);
-                    dto.setShareDeptIds(
-                        shareDeptRepository.findAllByCalendar(c).stream()
-                            .map(s -> s.getDept().getDeptId()).toList());
-                    dto.setShareMemberIds(
-                        shareMemberRepository.findAllByCalendar(c).stream()
-                            .map(s -> s.getMember().getMemberId()).toList());
+                    dto.setShareDeptIds(deptIdsByCalendar.getOrDefault(c.getCalendarId(), Collections.emptyList()));
+                    dto.setShareMemberIds(memberIdsByCalendar.getOrDefault(c.getCalendarId(), Collections.emptyList()));
                     return dto;
                 })
                 .toList();
@@ -216,20 +229,21 @@ public class CalendarService {
         if (calendar.getVisibility() == Visibility.COMPANY
             && calendar.getMember().getCompany().getCompanyId().equals(ms.getCompanyId())) return;
 
-        if (calendar.getVisibility() == Visibility.DEPARTMENT) {
+        // DEPARTMENT / SPECIFIC 검증은 Member 가 필요 → 한 번만 lazy 조회.
+        if (calendar.getVisibility() == Visibility.DEPARTMENT
+                || calendar.getVisibility() == Visibility.SPECIFIC) {
             Member me = memberRepository.findById(ms.getMemberId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
-            if (me.getDept() != null
-                && shareDeptRepository.existsByCalendarAndDept(calendar, me.getDept())) return;
+
+            if (calendar.getVisibility() == Visibility.DEPARTMENT
+                    && me.getDept() != null
+                    && shareDeptRepository.existsByCalendarAndDept(calendar, me.getDept())) return;
+
+            if (calendar.getVisibility() == Visibility.SPECIFIC
+                    && shareMemberRepository.existsByCalendarAndMember(calendar, me)) return;
         }
 
-        if (calendar.getVisibility() == Visibility.SPECIFIC) {
-            Member me = memberRepository.findById(ms.getMemberId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
-            if (shareMemberRepository.existsByCalendarAndMember(calendar, me)) return;
-        }
-
-      throw new BusinessException(ErrorCode.CALENDAR_ACCESS_DENIED);   
+        throw new BusinessException(ErrorCode.CALENDAR_ACCESS_DENIED);
      }
 
      private void assertOwner(Calendar calendar, MemberSession ms){

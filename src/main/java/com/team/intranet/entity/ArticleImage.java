@@ -10,7 +10,7 @@ import com.team.intranet.entity.Company;
 @Entity
 @Table(name="tbl_article_image")
 @Getter @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 public class ArticleImage {

@@ -320,12 +320,7 @@ public class BoardService {
                     position = findPosition(pId);
                     validateSameCompany(position.getCompany().getCompanyId(), companyId);
                 }
-                BoardScopeRule rule = new BoardScopeRule();
-                rule.setBoard(board);
-                rule.setScopeType(scopeType);
-                rule.setDept(dept);
-                rule.setPosition(position);
-                scopeRuleRepository.save(rule);
+                scopeRuleRepository.save(BoardScopeRule.of(board, scopeType, dept, position));
             }
         }
     }

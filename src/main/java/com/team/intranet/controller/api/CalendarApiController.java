@@ -2,14 +2,13 @@ package com.team.intranet.controller.api;
 
 import org.springframework.http.HttpStatus;
   import org.springframework.http.ResponseEntity;
-  import org.springframework.stereotype.Controller;
+  import org.springframework.web.bind.annotation.RestController;
   import org.springframework.web.bind.annotation.GetMapping;
   import org.springframework.web.bind.annotation.ModelAttribute;
   import org.springframework.web.bind.annotation.PathVariable;
   import org.springframework.web.bind.annotation.PostMapping;
   import org.springframework.web.bind.annotation.RequestMapping;
-  import org.springframework.web.bind.annotation.ResponseBody;
-  import org.springframework.web.bind.annotation.SessionAttribute;
+    import org.springframework.web.bind.annotation.SessionAttribute;
 
   import com.team.intranet.dto.CalendarDto;
   import com.team.intranet.service.CalendarService;
@@ -19,7 +18,7 @@ import org.springframework.http.HttpStatus;
 
   import lombok.RequiredArgsConstructor;
 
-  @Controller
+  @RestController
   @RequestMapping("/api/calendars")
   @RequiredArgsConstructor
 public class CalendarApiController {
@@ -27,7 +26,6 @@ public class CalendarApiController {
     private final CalendarService calendarService;
 
     @GetMapping("")
-    @ResponseBody
     public ResponseEntity<List<CalendarDto>> getCalendars(
             @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
             if( ms == null) {
@@ -38,7 +36,6 @@ public class CalendarApiController {
     
 
      @GetMapping("/{calendarId}")
-  @ResponseBody
   public ResponseEntity<CalendarDto> getCalendar(
           @PathVariable Long calendarId,
           @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
@@ -49,7 +46,6 @@ public class CalendarApiController {
   }
 
   @PostMapping("/new")
-  @ResponseBody
   public ResponseEntity<Void> createCalendar(
           @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
           @ModelAttribute CalendarDto dto) {
@@ -61,7 +57,6 @@ public class CalendarApiController {
   }
 
   @PostMapping("/{calendarId}/edit")
-  @ResponseBody
   public ResponseEntity<Void> updateCalendar(
           @PathVariable Long calendarId,
           @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
@@ -74,7 +69,6 @@ public class CalendarApiController {
   }
 
   @PostMapping("/{calendarId}/delete")
-  @ResponseBody
   public ResponseEntity<Void> deleteCalendar(
           @PathVariable Long calendarId,
           @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {

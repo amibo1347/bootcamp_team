@@ -10,7 +10,7 @@ import lombok.*;
 @Entity
 @Table(name = "tbl_generic_request")
 @Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor @Builder
 public class GenericRequest {
 
     @Id

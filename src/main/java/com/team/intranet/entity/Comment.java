@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 import lombok.Setter;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Column;
@@ -24,7 +25,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Table(name="tbl_comment")
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor 
 @Builder
 public class Comment {

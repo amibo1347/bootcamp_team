@@ -1,13 +1,12 @@
 package com.team.intranet.controller.api;
 
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URLEncoder;
   import java.nio.charset.StandardCharsets;
   import java.time.LocalDateTime;
   import java.util.List;
   import java.util.Map;
-  import java.util.Set;
 
   import org.springframework.http.*;
   import org.springframework.web.bind.annotation.*;
@@ -16,6 +15,7 @@ import java.net.URLEncoder;
   import com.team.intranet.entity.*;
   import com.team.intranet.repository.*;
   import com.team.intranet.session.MemberSession;
+  import com.team.intranet.util.FileValidator;
 
   import lombok.RequiredArgsConstructor;
 
@@ -24,14 +24,10 @@ import java.net.URLEncoder;
   @RequiredArgsConstructor
   public class AttachmentApiController {
 
-      // 위험 확장자 블랙리스트 (실행 가능 파일 차단)
-      private static final Set<String> BLOCKED_EXT =
-              Set.of("exe", "bat", "sh", "cmd", "com", "msi", "scr", "jar");
-      private static final long MAX_BYTES = 50L * 1024 * 1024; // 50MBㅂ
-
       private final AttachmentRepository attachmentRepository;
       private final MemberRepository memberRepository;
       private final CompanyRepository companyRepository;
+      private final FileValidator fileValidator;
 
       // 업로드 — 글 저장 전에 미리 호출. 받은 id를 글 폼에 같이 보냄
       @PostMapping
@@ -40,12 +36,9 @@ import java.net.URLEncoder;
               @SessionAttribute(name = "memberSession", required = false) MemberSession ms) throws Exception {
 
           if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-          if (file == null || file.isEmpty()) return ResponseEntity.badRequest().build();
-          if (file.getSize() > MAX_BYTES) return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build();
+          fileValidator.validateAttachment(file);
 
           String name = file.getOriginalFilename() == null ? "file" : file.getOriginalFilename();
-          String ext = name.contains(".") ? name.substring(name.lastIndexOf('.') + 1).toLowerCase() : "";
-          if (BLOCKED_EXT.contains(ext)) return ResponseEntity.badRequest().build();
 
           Member uploader = memberRepository.findById(ms.getMemberId()).orElseThrow();
           Company company = companyRepository.findById(ms.getCompanyId()).orElseThrow();
