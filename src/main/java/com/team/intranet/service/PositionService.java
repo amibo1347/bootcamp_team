@@ -50,52 +50,59 @@ public class PositionService {
     }
 
     /**
-     * 직급 생성
+     * 직급 생성.
+     *  - 동일 level 허용 (예: 인사팀 부장, 개발팀 부장).
+     *  - 화면 정렬은 PositionRepository 가 level DESC, 이름 ASC 보조키로 안정성 보장.
      */
     @Transactional
     public void createPosition(MemberSession ms, PositionDto dto) {
         Company company = findCompany(ms.getCompanyId());
-        
-        // 레벨 중복 검증
-        validateUniqueLevel(ms.getCompanyId(), dto.getPositionLevel(), null);
-        
+
         Role role = dto.isAdmin() ? Role.SUB_ADMIN : Role.USER;
-        
+
         Position position = Position.createPosition(
             dto.getPositionName(),
             company,
             dto.getPositionLevel(),
             role
         );
-        
+
         positionRepository.save(position);
     }
 
     /**
-     * 직급 수정
+     * 직급 수정.
+     *  - 시스템 기본 직급(isSystem)은 이름만 변경 허용. level/role 변경 시도는 거부.
+     *  - 일반 직급은 level 중복 검증 없음 (동일 level 허용).
      */
     @Transactional
     public void updatePosition(MemberSession ms, PositionDto dto, Long positionId) {
         Position position = findPositionAndValidateOwner(ms, positionId);
-        
-        // 레벨이 바뀌었으면 중복 검증
-        if (!position.getPositionLevel().equals(dto.getPositionLevel())) {
-            validateUniqueLevel(ms.getCompanyId(), dto.getPositionLevel(), positionId);
+
+        Role newRole = dto.isAdmin() ? Role.SUB_ADMIN : Role.USER;
+
+        if (position.isSystemDefault()) {
+            boolean levelChanged = !position.getPositionLevel().equals(dto.getPositionLevel());
+            boolean roleChanged = position.getRole() != newRole;
+            if (levelChanged || roleChanged) {
+                throw new BusinessException(ErrorCode.SYSTEM_PROTECTED_POSITION_FIELD);
+            }
         }
-        
-        Role role = dto.isAdmin() ? Role.SUB_ADMIN : Role.USER;
-        
-        // ⭐ Entity의 update 메서드 사용 (setter 대신)
-        position.update(dto.getPositionName(), dto.getPositionLevel(), role);
+
+        // ⭐ Entity의 update 메서드 사용 (setter 대신) — isSystem 이면 엔티티가 이름만 갱신
+        position.update(dto.getPositionName(), dto.getPositionLevel(), newRole);
         // JPA 변경 감지로 자동 저장 (save 불필요)
     }
 
     /**
-     * 직급 삭제
+     * 직급 삭제 — 시스템 기본 직급은 삭제 금지.
      */
     @Transactional
     public void deletePosition(MemberSession ms, Long positionId) {
         Position position = findPositionAndValidateOwner(ms, positionId);
+        if (position.isSystemDefault()) {
+            throw new BusinessException(ErrorCode.SYSTEM_PROTECTED_POSITION);
+        }
         positionRepository.delete(position);
     }
 
@@ -149,23 +156,6 @@ public class PositionService {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
         return position;
-    }
-
-    /**
-     * 직급 레벨 중복 검증
-     * 같은 회사 내에 동일 레벨이 이미 있으면 예외
-     * @param excludePositionId 수정 시 자기 자신 제외용 (생성 시 null)
-     */
-    private void validateUniqueLevel(Long companyId, Integer level, Long excludePositionId) {
-        if (level == null) return;
-        
-        boolean exists = positionRepository.existsByCompanyCompanyIdAndPositionLevelAndPositionIdNot(
-            companyId, level, excludePositionId != null ? excludePositionId : -1L
-        );
-        
-        if (exists) {
-            throw new BusinessException(ErrorCode.DUPLICATE_POSITION_LEVEL);
-        }
     }
 
 }

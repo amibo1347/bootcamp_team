@@ -112,6 +112,14 @@ public class SecurityConfig {
                 // 근태 관리: /admin/** prefix 지만 SUB_ADMIN 도 ATTENDANCE_MANAGEMENT 권한이 있으면 진입.
                 //  - 실제 권한 검증은 컨트롤러 PreAuthorize + AttendanceService 내부에서 수행.
                 .requestMatchers("/admin/attendance/**").authenticated()
+                // 조직도 구성·승인 대기·부서/직급 관리: URL 은 /admin/** 이지만 SUB_ADMIN 도 진입한다.
+                //  - 컨트롤러(@PreAuthorize SUB_ADMIN OR ADMIN) + 서비스(권한별 분기) 에서 세부 검증.
+                //  - /admin/** 의 ADMIN 전용 매처보다 먼저 선언해야 hasAnyRole 이 우선 적용된다.
+                .requestMatchers(
+                    "/admin/waitingList", "/admin/memberList",
+                    "/admin/dept/**", "/admin/position/**",
+                    "/api/admin/dept/**", "/api/admin/position/**"
+                ).hasAnyRole("SUB_ADMIN", "ADMIN")
                 .requestMatchers("/api/admin/**", "/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/subAdmin/**", "/subAdmin/**").hasRole("SUB_ADMIN")
                 // 3. 누구나 접근 가능한 페이지 및 API (나중에 선언)

@@ -84,10 +84,12 @@ public class CompanyService {
         Company company = Company.create(companyName.trim(), generateUniqueCode(), domain, usesEmployeeNo);
         companyRepository.save(company);
 
-        Position adminPosition = Position.createPosition("대표", company, 1, Role.ADMIN);
+        // 시스템 디폴트 — 회원 승인 시 직급/부서가 반드시 1개는 보장되도록 보호.
+        // level = 99: "높을수록 상위" 의미. 신규 회사의 일반 직급은 보통 한 자리 수로 만들기 시작 → 충돌 없음.
+        Position adminPosition = Position.createSystemPosition("대표", company, 99, Role.ADMIN);
         positionRepository.save(adminPosition);
 
-        Dept defaultDept = Dept.createDept("경영지원팀", null, company);
+        Dept defaultDept = Dept.createSystemDept("경영지원팀", null, company);
         deptRepository.save(defaultDept);
 
         // 대표 초기 비밀번호는 서버가 자동 생성 — 비밀번호 초기화 기능과 동일한 방식.

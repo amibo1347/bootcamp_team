@@ -111,9 +111,13 @@
                                     <div class="relative">
                                         <span aria-hidden="true"
                                             class="invisible block whitespace-nowrap rounded-xl px-6 py-2 text-sm font-medium shadow-sm">삭제</span>
+                                        <!-- 시스템 기본 부서는 삭제 불가 — 백엔드도 거부, UI 도 disabled + tooltip -->
                                         <button type="button" th:id="'btn-delete-' + ${dept.deptId}"
-                                            class="btn-delete-hover absolute inset-0 whitespace-nowrap rounded-xl bg-rose-200 px-6 py-2 text-sm font-medium text-rose-500 shadow-sm transition-all"
-                                            th:attr="onclick=|deleteDept('${dept.deptId}')|">
+                                            th:disabled="${dept.systemDefault}"
+                                            th:classappend="${dept.systemDefault} ? ' cursor-not-allowed opacity-50' : ' btn-delete-hover'"
+                                            th:title="${dept.systemDefault} ? '시스템 기본 부서는 삭제할 수 없습니다' : ''"
+                                            class="absolute inset-0 whitespace-nowrap rounded-xl bg-rose-200 px-6 py-2 text-sm font-medium text-rose-500 shadow-sm transition-all"
+                                            th:attr="onclick=${dept.systemDefault} ? null : |deleteDept('${dept.deptId}')|">
                                             삭제
                                         </button>
                                         <button type="button" th:id="'btn-cancel-' + ${dept.deptId}"

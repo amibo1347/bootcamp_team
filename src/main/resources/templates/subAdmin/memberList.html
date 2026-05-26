@@ -276,7 +276,9 @@
                         </div>
 
                         <div th:if="${members != null and !#lists.isEmpty(members)}" class="space-y-4">
+                            <!-- canManage: 백엔드 MemberService.validateLevelHierarchy 와 같은 정책. 상위 직급 회원은 액션 비활성. -->
                             <div th:each="emp : ${members}"
+                                th:with="canManage=${session.memberSession.canManageMember(emp.memberId, emp.position != null ? emp.position.positionLevel : null)}"
                                 class="rounded-2xl border border-stroke p-5 transition-hover hover:shadow-md dark:border-strokedark bg-white dark:bg-boxdark">
 
                                 <div class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
@@ -288,7 +290,11 @@
                                             ※ 기본 hidden. JOIN 탭에서만 인사이동 의미가 있으므로 JOIN 탭에서만 렌더링.
                                         -->
                                         <th:block th:if="${selectedStatusKey == 'JOIN'}">
+                                            <!-- 상위 직급 회원은 인사이동 대상에서도 제외 -->
                                             <input type="checkbox" th:value="${emp.memberId}"
+                                                th:disabled="${!canManage}"
+                                                th:title="${!canManage} ? '본인과 동등하거나 상위 직급 회원은 인사이동 대상이 될 수 없습니다' : ''"
+                                                th:classappend="${!canManage} ? ' cursor-not-allowed opacity-40' : ''"
                                                 onclick="onReassignMemberCheck(this)"
                                                 class="js-reassign-toggle js-reassign-member-check hidden h-5 w-5 cursor-pointer accent-indigo-500" />
                                         </th:block>
@@ -359,11 +365,14 @@
                                     <!-- 행별 액션 버튼: selectedStatusKey(= selectedStatus.name()) 에 따라 분기 -->
                                     <div class="flex flex-col gap-2">
 
-                                        <!-- [활성 직원 탭] 수정 / 휴직 / 퇴사 -->
+                                        <!-- [활성 직원 탭] 수정 / 휴직 / 퇴사 — 상위 직급 회원은 모두 비활성 -->
                                         <th:block th:if="${selectedStatusKey == 'JOIN'}">
                                             <!-- 수정 버튼 (Secondary, indigo-200) -->
                                             <button type="button"
-                                                class="rounded-md bg-indigo-200 px-6 py-1 text-sm font-medium text-indigo-700 transition hover:bg-indigo-300 js-edit-member-btn"
+                                                th:disabled="${!canManage}"
+                                                th:title="${!canManage} ? '본인과 동등하거나 상위 직급 회원의 정보는 수정할 수 없습니다' : ''"
+                                                th:classappend="${!canManage} ? ' cursor-not-allowed opacity-50' : ' hover:bg-indigo-300'"
+                                                class="rounded-md bg-indigo-200 px-6 py-1 text-sm font-medium text-indigo-700 transition js-edit-member-btn"
                                                 th:attr="data-member-id=${emp.memberId},
                                                              data-member-name=${emp.name},
                                                              data-dept-id=${emp.dept != null ? emp.dept.deptId : ''},
@@ -377,8 +386,12 @@
                                                 수정
                                             </button>
                                             <!-- 휴직 버튼 (State Toggle - Pause, violet-200) -->
-                                            <button type="button" th:attr="onclick=|leaveMember(${emp.memberId})|"
-                                                class="rounded-md bg-violet-200 px-6 py-1 text-sm font-medium text-violet-700 transition hover:bg-violet-300">
+                                            <button type="button"
+                                                th:disabled="${!canManage}"
+                                                th:title="${!canManage} ? '본인과 동등하거나 상위 직급 회원의 상태는 변경할 수 없습니다' : ''"
+                                                th:classappend="${!canManage} ? ' cursor-not-allowed opacity-50' : ' hover:bg-violet-300'"
+                                                th:attr="onclick=${canManage} ? |leaveMember(${emp.memberId})| : null"
+                                                class="rounded-md bg-violet-200 px-6 py-1 text-sm font-medium text-violet-700 transition">
                                                 휴직
                                             </button>
                                             <!--
@@ -387,23 +400,33 @@
                                                   - data-member-name 은 모달 헤더에 "OOO 님을 퇴사 처리합니다" 처럼 보여주기 위한 보조 정보.
                                             -->
                                             <button type="button"
-                                                class="btn-delete-hover rounded-md bg-rose-200 px-6 py-1 text-sm font-medium text-rose-500 transition js-resign-btn"
+                                                th:disabled="${!canManage}"
+                                                th:title="${!canManage} ? '본인과 동등하거나 상위 직급 회원은 퇴사 처리할 수 없습니다' : ''"
+                                                th:classappend="${!canManage} ? ' cursor-not-allowed opacity-50' : ' btn-delete-hover'"
+                                                class="rounded-md bg-rose-200 px-6 py-1 text-sm font-medium text-rose-500 transition js-resign-btn"
                                                 th:attr="data-member-id=${emp.memberId},
                                                              data-member-name=${emp.name}">
                                                 퇴사
                                             </button>
                                         </th:block>
 
-                                        <!-- [휴직 직원 탭] 복귀 / 퇴사 -->
+                                        <!-- [휴직 직원 탭] 복귀 / 퇴사 — 상위 직급 회원은 모두 비활성 -->
                                         <th:block th:if="${selectedStatusKey == 'ON_LEAVE'}">
                                             <!-- 복귀 버튼 (State Toggle - Restore, emerald-200) -->
-                                            <button type="button" th:attr="onclick=|restoreMember(${emp.memberId})|"
-                                                class="rounded-md bg-emerald-200 px-6 py-1 text-sm font-medium text-emerald-700 transition hover:bg-emerald-300">
+                                            <button type="button"
+                                                th:disabled="${!canManage}"
+                                                th:title="${!canManage} ? '본인과 동등하거나 상위 직급 회원의 상태는 변경할 수 없습니다' : ''"
+                                                th:classappend="${!canManage} ? ' cursor-not-allowed opacity-50' : ' hover:bg-emerald-300'"
+                                                th:attr="onclick=${canManage} ? |restoreMember(${emp.memberId})| : null"
+                                                class="rounded-md bg-emerald-200 px-6 py-1 text-sm font-medium text-emerald-700 transition">
                                                 복귀
                                             </button>
                                             <!-- 퇴사 버튼 (Danger, rose-200) - 자진퇴사/해고 선택 모달 오픈 -->
                                             <button type="button"
-                                                class="btn-delete-hover rounded-md bg-rose-200 px-6 py-1 text-sm font-medium text-rose-500 transition js-resign-btn"
+                                                th:disabled="${!canManage}"
+                                                th:title="${!canManage} ? '본인과 동등하거나 상위 직급 회원은 퇴사 처리할 수 없습니다' : ''"
+                                                th:classappend="${!canManage} ? ' cursor-not-allowed opacity-50' : ' btn-delete-hover'"
+                                                class="rounded-md bg-rose-200 px-6 py-1 text-sm font-medium text-rose-500 transition js-resign-btn"
                                                 th:attr="data-member-id=${emp.memberId},
                                                              data-member-name=${emp.name}">
                                                 퇴사
@@ -551,20 +574,12 @@
             </div>
 
             <!--
-                [보안] 섹션 — 직원 비밀번호 초기화 액션.
-                ※ 정보 수정과 별도 영역으로 시각 분리 (hr + 소제목 + 작은 버튼).
-                ※ 클릭 시 confirm → POST /api/subAdmin/{id}/reset-password → 임시 비번을 결과 모달에 노출.
+                직원 비밀번호 초기화 — 정보 입력 필드 아래에 가볍게 우측 정렬된 단일 버튼.
+                ※ 안내 문구·구분선은 제거. 클릭 시 confirm → POST /api/subAdmin/{id}/reset-password.
             -->
-            <hr class="my-6 border-stroke dark:border-strokedark" />
-            <div class="flex items-center justify-between gap-4">
-                <div>
-                    <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90">보안</h4>
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-300">
-                        임시 비밀번호를 발급하면 직원에게 직접 전달해야 합니다.
-                    </p>
-                </div>
+            <div class="mt-4 flex justify-end">
                 <button type="button" onclick="resetMemberPassword()"
-                    class="shrink-0 whitespace-nowrap rounded-lg border border-stroke bg-white py-2 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-strokedark dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]">
+                    class="whitespace-nowrap rounded-md border border-stroke bg-white py-1.5 px-3 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-strokedark dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]">
                     비밀번호 초기화
                 </button>
             </div>

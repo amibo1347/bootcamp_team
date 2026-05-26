@@ -108,8 +108,12 @@
                                         <div class="flex items-center">
                                             <span th:id="'pos-level-text-' + ${pos.positionId}"
                                                 class="text-sm font-medium text-gray-700 dark:text-gray-300" th:text="${pos.positionLevel}"></span>
+                                            <!-- 시스템 기본 직급은 레벨 변경 금지 — 백엔드도 거부, UI 도 readonly + 시각 단서 -->
                                             <input type="number" th:id="'pos-level-input-' + ${pos.positionId}"
                                                 th:value="${pos.positionLevel}" min="0"
+                                                th:readonly="${pos.isSystem}"
+                                                th:classappend="${pos.isSystem} ? ' bg-gray-100 cursor-not-allowed dark:bg-gray-800' : ''"
+                                                th:title="${pos.isSystem} ? '시스템 기본 직급은 레벨을 변경할 수 없습니다' : ''"
                                                 class="hidden h-8 w-16 rounded-lg border-2 border-indigo-300 px-2 text-center text-sm font-medium">
                                         </div>
                                     </div>
@@ -149,9 +153,13 @@
                                         <div class="relative">
                                             <span aria-hidden="true"
                                                 class="invisible block whitespace-nowrap rounded-xl px-6 py-2 text-sm font-medium shadow-sm">삭제</span>
+                                            <!-- 시스템 기본 직급은 삭제 불가 — 백엔드도 거부, UI 도 disabled + tooltip -->
                                             <button type="button" th:id="'btn-delete-' + ${pos.positionId}"
-                                                class="btn-delete-hover absolute inset-0 whitespace-nowrap rounded-xl bg-rose-200 px-6 py-2 text-sm font-medium text-rose-500 shadow-sm transition-all"
-                                                th:attr="onclick=|deletePosition('${pos.positionId}')|">삭제</button>
+                                                th:disabled="${pos.isSystem}"
+                                                th:classappend="${pos.isSystem} ? ' cursor-not-allowed opacity-50' : ' btn-delete-hover'"
+                                                th:title="${pos.isSystem} ? '시스템 기본 직급은 삭제할 수 없습니다' : ''"
+                                                class="absolute inset-0 whitespace-nowrap rounded-xl bg-rose-200 px-6 py-2 text-sm font-medium text-rose-500 shadow-sm transition-all"
+                                                th:attr="onclick=${pos.isSystem} ? null : |deletePosition('${pos.positionId}')|">삭제</button>
                                             <button type="button" th:id="'btn-cancel-' + ${pos.positionId}"
                                                 th:attr="onclick=|toggleEditMode('${pos.positionId}', false)|"
                                                 class="absolute inset-0 hidden whitespace-nowrap rounded-xl bg-gray-200 px-6 py-2 text-sm font-medium text-gray-500 shadow-sm transition-all hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">

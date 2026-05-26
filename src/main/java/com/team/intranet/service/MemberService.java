@@ -19,6 +19,7 @@ import com.team.intranet.entity.Member;
 import com.team.intranet.entity.Position;
 import com.team.intranet.enums.ErrorCode;
 import com.team.intranet.enums.member.MemberType;
+import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.Status;
 import com.team.intranet.enums.member.SubAdminPermission;
 import com.team.intranet.exception.BusinessException;
@@ -398,16 +399,42 @@ public class MemberService {
     // ===== 헬퍼 메서드 (멀티테넌시 검증) =====
 
     /**
-     * 회원 조회 + 회사 일치 검증
+     * 회원 조회 + 회사 일치 검증 + 상위 직급 보호 가드.
+     *  - 회사 일치 검증(멀티테넌시) 통과 후 level 위계 검증.
      */
     private Member findMemberAndValidateOwner(MemberSession ms, Long memberId) {
         Member member = memberRepository.findById(memberId)
             .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
-        
+
         if (!member.getCompany().getCompanyId().equals(ms.getCompanyId())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
+        validateLevelHierarchy(ms, member);
         return member;
+    }
+
+    /**
+     * 상위 직급 보호 가드 — 본인보다 같거나 높은 level 회원의 정보는 변경 불가.
+     *  통과 조건:
+     *   - 본인 자신 (안전망 — 본인 정보는 별도 me/ 경로를 사용해야 한다).
+     *   - 요청자가 ADMIN / MASTER (회사 대표·시스템 관리자라 level 무관).
+     *   - 요청자가 MEMBER_MANAGEMENT 권한 보유자 (조직도 구성 위임자 — 회사 전체 회원 관리 필요).
+     *   - target.level 이 me.level 보다 낮은 경우.
+     *   - 한쪽이라도 level 이 null 이면 위계 미정으로 보고 통과 (PENDING 가입자 승인 등).
+     *  차단: target.level >= me.level (동등도 차단 — 자기 보호).
+     */
+    private void validateLevelHierarchy(MemberSession ms, Member target) {
+        if (ms.getMemberId().equals(target.getMemberId())) return;
+        if (ms.getRole() == Role.ADMIN || ms.getRole() == Role.MASTER) return;
+        if (ms.hasPermission(SubAdminPermission.MEMBER_MANAGEMENT)) return;
+
+        Integer myLevel = ms.getPositionLevel();
+        Integer targetLevel = target.getPosition() != null ? target.getPosition().getPositionLevel() : null;
+        if (myLevel == null || targetLevel == null) return;
+
+        if (targetLevel >= myLevel) {
+            throw new BusinessException(ErrorCode.SUPERIOR_MEMBER_PROTECTED);
+        }
     }
 
     /**

@@ -96,4 +96,23 @@ import lombok.Getter;
         return permissions != null && permissions.contains(permission);
     }
 
+    /**
+     * 다른 회원을 편집/관리할 수 있는지 — 백엔드 MemberService.validateLevelHierarchy 와 동일 정책.
+     * UI 가드(버튼 disabled) 와 서버 가드의 정책 일관성을 위해 한 곳에 모아둔다.
+     *  통과:
+     *   - 본인 자신
+     *   - ADMIN / MASTER
+     *   - MEMBER_MANAGEMENT 권한 보유자
+     *   - target.level 이 내 level 보다 낮은 경우
+     *   - 한쪽이라도 level 이 null 이면 (위계 미정)
+     *  차단: target.level >= 내 level
+     */
+    public boolean canManageMember(Long targetMemberId, Integer targetLevel) {
+        if (memberId != null && memberId.equals(targetMemberId)) return true;
+        if (role == Role.ADMIN || role == Role.MASTER) return true;
+        if (hasPermission(SubAdminPermission.MEMBER_MANAGEMENT)) return true;
+        if (positionLevel == null || targetLevel == null) return true;
+        return targetLevel < positionLevel;
+    }
+
 }

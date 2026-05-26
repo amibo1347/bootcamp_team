@@ -63,11 +63,14 @@ public class DeptService {
     }
 
     /**
-     * 부서 삭제
+     * 부서 삭제 — 시스템 기본 부서는 삭제 금지.
      */
     @Transactional
     public void deleteDept(MemberSession ms, Long deptId) {
         Dept dept = findDeptAndValidateOwner(ms, deptId);
+        if (dept.isSystemDefault()) {
+            throw new BusinessException(ErrorCode.SYSTEM_PROTECTED_DEPT);
+        }
         deptRepository.delete(dept);
     }
 

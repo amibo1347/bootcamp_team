@@ -34,13 +34,20 @@ public class PositionDto {
     /** SUB_ADMIN 인 경우의 세부 권한 집합. USER 직급이면 비어있다. */
     private Set<SubAdminPermission> permissions;
 
+    /** 시스템 보호 직급 여부 — UI에서 삭제/레벨/역할 변경을 잠그는 데 사용. */
+    @JsonProperty("isSystem")
+    private boolean isSystem;
+
     public Position toEntity(){
         Role role = isAdmin ? Role.SUB_ADMIN : Role.USER;
         // EnumSet.copyOf(Collection) 은 빈 컬렉션을 받으면 IllegalArgumentException 을 던지므로 isEmpty 가드 필수.
         Set<SubAdminPermission> perms = (permissions == null || permissions.isEmpty())
             ? EnumSet.noneOf(SubAdminPermission.class)
             : EnumSet.copyOf(permissions);
-        return new Position(null, positionName, company, positionLevel, role, perms);
+        // 일반 직급 생성 경로 — isSystem 은 항상 false. 시스템 직급은 CompanyService 에서만 만든다.
+        // 인자 순서는 Position 의 필드 선언 순서(@AllArgsConstructor) 와 일치해야 한다:
+        //   positionId, positionName, company, positionLevel, role, isSystem, permissions
+        return new Position(null, positionName, company, positionLevel, role, Boolean.FALSE, perms);
     }
 
     public static PositionDto fromEntity(Position position) {
@@ -56,7 +63,8 @@ public class PositionDto {
             position.getPositionLevel(),
             isAdmin,
             isCompanyAdmin,
-            perms
+            perms,
+            position.isSystemDefault()
         );
     }
 }

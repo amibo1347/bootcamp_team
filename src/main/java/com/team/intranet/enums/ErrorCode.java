@@ -35,6 +35,7 @@ public enum ErrorCode {
     MEMBER_NOT_WAITING(400, "승인 대기 상태가 아닌 회원입니다"),
     INVALID_STATUS(400, "변경할 수 없는 상태값입니다"),
     MEMBER_NOT_OWNER(400, "본인이 아닙니다"),
+    SUPERIOR_MEMBER_PROTECTED(403, "본인과 동등하거나 상위 직급 회원의 정보는 변경할 수 없습니다"),
     
     // 기업
     COMPANY_NOT_FOUND(404, "해당 기업을 찾을 수 없습니다"),
@@ -46,11 +47,13 @@ public enum ErrorCode {
     DUPLICATE_DEPT_NAME(409, "이미 존재하는 부서 이름입니다"),
     DEPT_IN_USE(409, "소속된 회원이 있어 부서를 삭제할 수 없습니다"),
     DEPT_NOT_MATCH(400, "소속된 부서가 아닙니다"),
-    
+    SYSTEM_PROTECTED_DEPT(409, "시스템 기본 부서는 삭제할 수 없습니다"),
+
     // 직급
     POSITION_NOT_FOUND(404, "해당 직급을 찾을 수 없습니다"),
-    DUPLICATE_POSITION_LEVEL(409, "이미 사용 중인 직급 레벨입니다"),
     POSITION_IN_USE(409, "사용 중인 직급은 삭제할 수 없습니다"),
+    SYSTEM_PROTECTED_POSITION(409, "시스템 기본 직급은 삭제할 수 없습니다"),
+    SYSTEM_PROTECTED_POSITION_FIELD(409, "시스템 기본 직급은 레벨/역할을 변경할 수 없습니다"),
     
     // 게시판
     NO_BOARD_READ_PERMISSION(403, "게시판 조회 권한이 없습니다"),

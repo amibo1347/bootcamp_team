@@ -52,6 +52,20 @@ public class Position {
     private Role role;
 
     /**
+     * 시스템 보호 직급 — 회사 생성 시 자동 생성된 "대표" 가 true.
+     *  - 삭제 금지(서비스에서 차단).
+     *  - level / role 변경 금지(이름은 회사가 자유롭게 바꿀 수 있다).
+     *  - 회원 승인 시 직급 필수라 최소 1개 보장이 필요해 시스템이 책임진다.
+     *  - DDL: 기존 row 는 null/false 로 들어오며 SystemDefaultMigration 이 마이그레이션.
+     */
+    @Column(name = "is_system")
+    private Boolean isSystem;
+
+    public boolean isSystemDefault() {
+        return Boolean.TRUE.equals(isSystem);
+    }
+
+    /**
      * SUB_ADMIN 세부 권한 집합.
      *  - ADMIN/MASTER 는 이 집합과 무관하게 모든 권한 통과(애플리케이션 로직에서 분기).
      *  - USER 직급은 비어 있어야 함(권한 관리 페이지에서 SUB_ADMIN 직급만 편집 가능하도록 가드).
@@ -84,16 +98,31 @@ public class Position {
         position.setRole(role);
         position.setPositionLevel(positionLevel);
         position.setPermissions(EnumSet.noneOf(SubAdminPermission.class));
+        position.setIsSystem(Boolean.FALSE);
         return position;
     }
 
+    /** 시스템 디폴트 직급 생성 — 회사 생성 시 "대표" 용. 삭제·의미 변경 차단 대상. */
+    public static Position createSystemPosition(String positionName, Company company, Integer positionLevel, Role role) {
+        Position position = createPosition(positionName, company, positionLevel, role);
+        position.setIsSystem(Boolean.TRUE);
+        return position;
+    }
+
+    /**
+     * 직급 수정.
+     *  - isSystem 직급은 level / role 을 그대로 유지하고 이름만 갱신한다.
+     *    (서비스 단에서도 차단하지만 엔티티가 마지막 안전망.)
+     */
     public void update(String positionName, Integer positionLevel, Role role) {
         this.positionName = positionName;
-        this.positionLevel = positionLevel;
-        this.role = role;
-        // SUB_ADMIN 이 아닌 직급으로 전환되면 기존 권한은 의미가 없으므로 비운다.
-        if (role != Role.SUB_ADMIN && this.permissions != null) {
-            this.permissions.clear();
+        if (!isSystemDefault()) {
+            this.positionLevel = positionLevel;
+            this.role = role;
+            // SUB_ADMIN 이 아닌 직급으로 전환되면 기존 권한은 의미가 없으므로 비운다.
+            if (role != Role.SUB_ADMIN && this.permissions != null) {
+                this.permissions.clear();
+            }
         }
     }
 

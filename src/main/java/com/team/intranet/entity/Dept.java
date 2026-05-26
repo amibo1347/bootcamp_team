@@ -40,11 +40,32 @@ public class Dept {
     @JoinColumn(name="company_id")
     private Company company;
 
+    /**
+     * 시스템 보호 부서 — 회사 생성 시 자동 생성된 "경영지원팀" 이 true.
+     *  - 삭제 금지(서비스에서 차단).
+     *  - 이름 변경은 자유 (회사가 "총무팀" 등으로 바꿔도 됨).
+     *  - 회원 승인 시 부서 필수라 최소 1개 보장이 필요해 시스템이 책임진다.
+     */
+    @Column(name = "is_system")
+    private Boolean isSystem;
+
+    public boolean isSystemDefault() {
+        return Boolean.TRUE.equals(isSystem);
+    }
+
     public static Dept createDept(String deptName, String deptCode, Company company){
         Dept dept = new Dept();
         dept.setDeptName(deptName);
         dept.setDeptCode(deptCode);
         dept.setCompany(company);
+        dept.setIsSystem(Boolean.FALSE);
+        return dept;
+    }
+
+    /** 시스템 디폴트 부서 생성 — 회사 생성 시 "경영지원팀" 용. 삭제 차단 대상. */
+    public static Dept createSystemDept(String deptName, String deptCode, Company company){
+        Dept dept = createDept(deptName, deptCode, company);
+        dept.setIsSystem(Boolean.TRUE);
         return dept;
     }
 
