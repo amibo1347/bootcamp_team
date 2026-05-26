@@ -149,14 +149,15 @@ public class ArticleService {
 
     /**
      * 통합 휴지통 조회.
-     * ※ TRASH_MANAGEMENT 권한 보유자 → 회사 전체 삭제 글.
-     * ※ 그 외 일반 회원 → 본인 작성 글 중 삭제분만 (자기 글 복구/조회 용도).
+     * ※ TRASH_MANAGEMENT 권한 보유자 또는 ADMIN/MASTER 만 사용 가능 — 회사 전체 삭제 글.
+     * ※ 권한 없는 회원이 호출하면 ACCESS_DENIED 로 거절 (본인 글 노출 로직 제거 — 휴지통은 관리 도구).
      */
     @Transactional(readOnly = true)
     public Page<ArticleUnifiedTrashDto> findDeletedArticlesForCompanyUnified(MemberSession ms, Pageable pageable) {
-        Page<Article> page = ms.hasPermission(SubAdminPermission.TRASH_MANAGEMENT)
-            ? articleRepository.findDeletedByCompanyId(ms.getCompanyId(), pageable)
-            : articleRepository.findDeletedByCompanyIdAndAuthorId(ms.getCompanyId(), ms.getMemberId(), pageable);
+        if (!ms.isAdminOrMaster() && !ms.hasPermission(SubAdminPermission.TRASH_MANAGEMENT)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+        Page<Article> page = articleRepository.findDeletedByCompanyId(ms.getCompanyId(), pageable);
         return page.map(ArticleUnifiedTrashDto::from);
     }
 

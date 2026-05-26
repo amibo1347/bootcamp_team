@@ -97,6 +97,23 @@ import lombok.Getter;
     }
 
     /**
+     * 다른 회원의 정보를 **조회(읽기)** 할 수 있는지.
+     *  - canManageMember 와 별개 — 쓰기 권한 위계 보호와 무관하게 "읽기"만 따짐.
+     *  - 정책:
+     *    · 본인 자신 → 통과.
+     *    · ADMIN / MASTER → 회사 내 모든 회원 조회 가능.
+     *    · MEMBER_MANAGEMENT 권한 보유자 → 위계 무관, 회사 내 모든 회원 조회 가능.
+     *    · 그 외 → 차단.
+     *  - 화면(memberList) 의 카드 노출 정책과 일치 (인사 권한자는 상위 직급 카드도 본다).
+     *  - AI 비서가 회원 정보 질문에 답할지 여부도 이 메서드로 판단해야 한다.
+     */
+    public boolean canReadMember(Long targetMemberId, Integer targetLevel) {
+        if (memberId != null && memberId.equals(targetMemberId)) return true;
+        if (role == Role.ADMIN || role == Role.MASTER) return true;
+        return hasPermission(SubAdminPermission.MEMBER_MANAGEMENT);
+    }
+
+    /**
      * 다른 회원을 편집/관리할 수 있는지 — 백엔드 MemberService.validateLevelHierarchy 와 동일 정책.
      * UI 가드(버튼 disabled) 와 서버 가드의 정책 일관성을 위해 한 곳에 모아둔다.
      *

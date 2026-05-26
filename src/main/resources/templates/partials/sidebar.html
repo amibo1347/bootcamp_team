@@ -280,10 +280,12 @@
                     </li>
                     <!--
                       Menu Item Unified trash.
-                      ※ 메뉴 자체는 로그인된 모든 회원에게 노출 — 자기 작성 글 휴지통은 누구나 확인 가능.
-                      ※ TRASH_MANAGEMENT 권한 보유자만 회사 전체 삭제 글을 볼 수 있다 (서비스 단에서 분기).
+                      ※ TRASH_MANAGEMENT 권한 보유자 또는 ADMIN/MASTER 만 메뉴 노출.
+                        - ms.isAdminOrMaster() = ADMIN/MASTER (SUB_ADMIN 배제)
+                        - ms.hasPermission(TRASH_MANAGEMENT) = SUB_ADMIN 으로서 명시적 권한 보유
+                      ※ 일반 회원에게는 메뉴 자체가 안 보임 — 휴지통은 관리 도구.
                     -->
-                    <li th:if="${ms != null}">
+                    <li th:if="${ms != null and (ms.isAdminOrMaster() or ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).TRASH_MANAGEMENT))}">
                         <a th:href="@{/subAdmin/unified-trash}" @click="page = 'unifiedTrash'"
                             class="menu-item group -ml-px"
                             :class="page === 'unifiedTrash' ? 'menu-item-active' : 'menu-item-inactive'">
