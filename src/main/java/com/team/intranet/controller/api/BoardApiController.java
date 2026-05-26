@@ -7,10 +7,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
-
 import com.team.intranet.dto.BoardDto;
 import com.team.intranet.service.BoardService;
+import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
 
 import lombok.RequiredArgsConstructor;
@@ -30,7 +29,7 @@ public class BoardApiController {
     @PostMapping("/create")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
     public ResponseEntity<Void> createBoard(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+            @AuthenticatedMember MemberSession ms,
             @RequestBody BoardDto dto) {
         boardService.createBoard(ms, dto);
         return ResponseEntity.noContent().build();
@@ -39,7 +38,7 @@ public class BoardApiController {
     @PostMapping("/update/{boardId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
     public ResponseEntity<Void> updateBoard(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+            @AuthenticatedMember MemberSession ms,
             @PathVariable Long boardId,
             @RequestBody BoardDto boardDto) {
         boardService.updateBoard(ms, boardId, boardDto);
@@ -49,7 +48,7 @@ public class BoardApiController {
     @PostMapping("/delete/{boardId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
     public ResponseEntity<Void> deleteBoard(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+            @AuthenticatedMember MemberSession ms,
             @PathVariable Long boardId) {
         boardService.deleteBoard(ms, boardId);
         return ResponseEntity.noContent().build();

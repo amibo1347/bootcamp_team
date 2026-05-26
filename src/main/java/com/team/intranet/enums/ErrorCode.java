@@ -18,6 +18,7 @@ public enum ErrorCode {
      */
 
     // 인증/인가
+    AUTHENTICATION_REQUIRED(401, "로그인이 필요합니다"),
     LOGIN_FAILED(401, "아이디 혹은 비밀번호가 틀렸습니다"),
     ACCESS_DENIED(403, "해당 데이터에 관한 권한이 없습니다"),
     WAITING_ACCEPT(403, "관리자의 승인을 기다리는 중입니다 "),

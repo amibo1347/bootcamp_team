@@ -102,10 +102,6 @@ public class MemberApiController {
     public ResponseEntity<byte[]> getProfileImg(@PathVariable Long id, HttpSession session) {
         try {
             MemberSession ms = (MemberSession) session.getAttribute("memberSession");
-            if (ms == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
-
             // 본인 요청이 아니면 회사 스코프 검증. 존재하지 않는 ID 면 404, 타 회사면 403.
             if (!ms.getMemberId().equals(id)) {
                 Long targetCompanyId = memberService.getCompanyIdByMemberId(id);
@@ -152,9 +148,6 @@ public class MemberApiController {
             HttpSession session) throws IOException {
 
         MemberSession ms = (MemberSession) session.getAttribute("memberSession");
-        if (ms == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         if (profileImg == null || profileImg.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
@@ -181,10 +174,6 @@ public class MemberApiController {
             HttpSession session) {
 
         MemberSession ms = (MemberSession) session.getAttribute("memberSession");
-        if (ms == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
         MemberSession updated = memberService.updateMyInfo(ms, name, email, phone, parseBirthDay(birthDay));
         session.setAttribute("memberSession", updated);
 
@@ -214,10 +203,6 @@ public class MemberApiController {
             HttpSession session) {
 
         MemberSession ms = (MemberSession) session.getAttribute("memberSession");
-        if (ms == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
         String error = validatePasswordInput(currentPassword, newPassword, confirmPassword);
         if (error != null) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", error));

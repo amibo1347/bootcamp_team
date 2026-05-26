@@ -2,6 +2,7 @@ package com.team.intranet.controller.api;
 
 import com.team.intranet.dto.PositionDto;
 import com.team.intranet.service.PositionService;
+import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
 import lombok.RequiredArgsConstructor;
 
@@ -21,7 +22,7 @@ public class PositionApiController {
     // 직급 생성 처리
     @PostMapping("/create")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
-    public String createPosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+    public String createPosition(@AuthenticatedMember MemberSession ms,
             @RequestBody PositionDto dto, Model model) {
 
         positionService.createPosition(ms, dto);
@@ -36,7 +37,7 @@ public class PositionApiController {
     // 직급 수정 처리
     @PostMapping("/update/{positionId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
-    public String updatePosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+    public String updatePosition(@AuthenticatedMember MemberSession ms,
             @PathVariable Long positionId,
             @RequestBody PositionDto positionDto, Model model) {
 
@@ -55,7 +56,7 @@ public class PositionApiController {
 
     @PostMapping("/delete/{positionId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
-        public String deletePosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+        public String deletePosition(@AuthenticatedMember MemberSession ms,
             @PathVariable Long positionId, Model model) {
 
         positionService.deletePosition(ms, positionId);

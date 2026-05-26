@@ -10,7 +10,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.team.intranet.dto.ArticleUnifiedTrashDto;
 import com.team.intranet.service.ArticleService;
 import com.team.intranet.service.MemberService;
+import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
 
 import jakarta.servlet.http.HttpSession;
@@ -47,11 +47,8 @@ public class SubAdminApiController {
     @GetMapping("/articles/trash")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<ArticleUnifiedTrashDto>> listUnifiedTrash(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+            @AuthenticatedMember MemberSession ms,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        if (ms == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         return ResponseEntity.ok(articleService.findDeletedArticlesForCompanyUnified(ms, pageable));
     }
 
@@ -134,12 +131,7 @@ public class SubAdminApiController {
     @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
     public ResponseEntity<java.util.Map<String, Object>> resetMemberPassword(
             @PathVariable("id") Long memberId,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-
-        if (ms == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
+            @AuthenticatedMember MemberSession ms) {
         try {
             String tempPassword = memberService.resetMemberPassword(ms, memberId);
             return ResponseEntity.ok(java.util.Map.of(

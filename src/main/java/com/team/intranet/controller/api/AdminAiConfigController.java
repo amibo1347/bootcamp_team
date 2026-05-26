@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,8 +12,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
-
 import com.team.intranet.dto.ai.LlmMessage;
 import com.team.intranet.dto.ai.LlmResponse;
 import com.team.intranet.entity.AiConfig;
@@ -22,6 +19,7 @@ import com.team.intranet.enums.AiProvider;
 import com.team.intranet.service.ai.AiConfigService;
 import com.team.intranet.service.ai.LlmClient;
 import com.team.intranet.service.ai.LlmClientFactory;
+import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
 
 import lombok.RequiredArgsConstructor;
@@ -54,8 +52,7 @@ public class AdminAiConfigController {
     @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<AiConfig> updateConfig(
             @RequestBody UpdateConfigRequest body,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         AiConfig updated = configService.update(
             body.provider(), body.modelName(),
             body.temperature(), body.maxTokens(), body.rateLimitPerDay(),

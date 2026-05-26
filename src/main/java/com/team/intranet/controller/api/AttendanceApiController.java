@@ -5,7 +5,6 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,11 +13,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
-
 import com.team.intranet.dto.AttendanceDto;
 import com.team.intranet.dto.AttendancePolicyDto;
 import com.team.intranet.service.AttendanceService;
+import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
 
 import lombok.RequiredArgsConstructor;
@@ -40,32 +38,28 @@ public class AttendanceApiController {
     @PostMapping("/clock-in")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AttendanceDto> clockIn(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         return ResponseEntity.ok(attendanceService.clockIn(ms));
     }
 
     @PostMapping("/clock-out")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AttendanceDto> clockOut(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         return ResponseEntity.ok(attendanceService.clockOut(ms));
     }
 
     @PostMapping("/clock-out-cancel")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AttendanceDto> clockOutCancel(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         return ResponseEntity.ok(attendanceService.cancelClockOut(ms));
     }
 
     @GetMapping("/today")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AttendanceDto> today(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         return attendanceService.findToday(ms.getMemberId())
             .map(ResponseEntity::ok)
             .orElseGet(() -> ResponseEntity.noContent().build());
@@ -75,8 +69,7 @@ public class AttendanceApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<AttendanceDto>> myMonth(
             @RequestParam(value = "month", required = false) String month,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         YearMonth ym = parseMonth(month);
         return ResponseEntity.ok(attendanceService.findMyMonth(ms.getMemberId(), ym));
     }
@@ -85,8 +78,7 @@ public class AttendanceApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<AttendanceDto>> companyMonth(
             @RequestParam(value = "month", required = false) String month,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         YearMonth ym = parseMonth(month);
         return ResponseEntity.ok(attendanceService.findCompanyMonth(ms, ym));
     }
@@ -95,8 +87,7 @@ public class AttendanceApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<AttendanceDto>> companyDay(
             @RequestParam(value = "date", required = false) String date,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         LocalDate day;
         try {
             day = (date == null || date.isBlank()) ? LocalDate.now() : LocalDate.parse(date);
@@ -112,8 +103,7 @@ public class AttendanceApiController {
     public ResponseEntity<List<AttendanceDto>> companyRange(
             @RequestParam("from") String from,
             @RequestParam("to") String to,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         LocalDate fromDate, toDate;
         try {
             fromDate = LocalDate.parse(from);
@@ -127,8 +117,7 @@ public class AttendanceApiController {
     @GetMapping("/policy")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AttendancePolicyDto> policy(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         return ResponseEntity.ok(attendanceService.getPolicyDto(ms.getCompanyId()));
     }
 
@@ -136,8 +125,7 @@ public class AttendanceApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AttendancePolicyDto> updatePolicy(
             @RequestBody AttendancePolicyDto dto,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         return ResponseEntity.ok(attendanceService.updatePolicy(ms, dto));
     }
 

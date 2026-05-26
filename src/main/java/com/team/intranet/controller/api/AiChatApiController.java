@@ -3,7 +3,6 @@ package com.team.intranet.controller.api;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,11 +12,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
-
 import com.team.intranet.dto.ai.AiChatMessageDto;
 import com.team.intranet.dto.ai.AiChatSessionDto;
 import com.team.intranet.service.ai.AiChatService;
+import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
 
 import lombok.RequiredArgsConstructor;
@@ -40,16 +38,14 @@ public class AiChatApiController {
     @GetMapping("/conversations")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<AiChatSessionDto>> listSessions(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         return ResponseEntity.ok(aiChatService.findMySessions(ms));
     }
 
     @PostMapping("/conversations")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AiChatSessionDto> createSession(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         return ResponseEntity.ok(aiChatService.createSession(ms));
     }
 
@@ -57,8 +53,7 @@ public class AiChatApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> deleteSession(
             @PathVariable("id") Long sessionId,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         aiChatService.deleteSession(ms, sessionId);
         return ResponseEntity.noContent().build();
     }
@@ -69,8 +64,7 @@ public class AiChatApiController {
     public ResponseEntity<AiChatSessionDto> renameSession(
             @PathVariable("id") Long sessionId,
             @RequestBody Map<String, String> body,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         String title = body == null ? null : body.get("title");
         return ResponseEntity.ok(aiChatService.renameSession(ms, sessionId, title));
     }
@@ -80,8 +74,7 @@ public class AiChatApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Boolean>> togglePinSession(
             @PathVariable("id") Long sessionId,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         boolean pinned = aiChatService.togglePinSession(ms, sessionId);
         return ResponseEntity.ok(Map.of("pinned", pinned));
     }
@@ -90,8 +83,7 @@ public class AiChatApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<AiChatMessageDto>> listMessages(
             @PathVariable("id") Long sessionId,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         return ResponseEntity.ok(aiChatService.findMessages(ms, sessionId));
     }
 
@@ -101,8 +93,7 @@ public class AiChatApiController {
     public ResponseEntity<AiChatMessageDto> sendMessage(
             @PathVariable("id") Long sessionId,
             @RequestBody Map<String, String> body,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         String content = body == null ? null : body.get("content");
         return ResponseEntity.ok(aiChatService.sendMessage(ms, sessionId, content));
     }
@@ -115,8 +106,7 @@ public class AiChatApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AiChatMessageDto> confirmCalendar(
             @RequestBody Map<String, Long> body,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         Long messageId = body == null ? null : body.get("messageId");
         if (messageId == null) return ResponseEntity.badRequest().build();
         return ResponseEntity.ok(aiChatService.confirmCalendarProposal(ms, messageId));
@@ -133,8 +123,7 @@ public class AiChatApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AiChatMessageDto> confirmLeave(
             @RequestBody Map<String, Object> body,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         Object midObj = body == null ? null : body.get("messageId");
         if (midObj == null) return ResponseEntity.badRequest().build();
         Long messageId;
@@ -159,8 +148,7 @@ public class AiChatApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AiChatMessageDto> confirmExpense(
             @RequestBody Map<String, Object> body,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         Object midObj = body == null ? null : body.get("messageId");
         if (midObj == null) return ResponseEntity.badRequest().build();
         Long messageId;

@@ -7,12 +7,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
-
 import com.team.intranet.entity.Member;
 import com.team.intranet.enums.member.Status;
 import com.team.intranet.service.DeptService;
 import com.team.intranet.service.MemberService;
+import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
 
 import lombok.RequiredArgsConstructor;
@@ -36,7 +35,7 @@ public class SelectApiController {
     /** 로그인 회사 부서 전체 (다중 선택용) */
     @GetMapping("/depts")
     public List<DeptOption> listDepts(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+            @AuthenticatedMember MemberSession ms) {
         if (ms == null || ms.getCompanyId() == null) {
             return Collections.emptyList();
         }
@@ -53,7 +52,7 @@ public class SelectApiController {
     @GetMapping("/members")
     public List<MemberOption> searchMembers(
             @RequestParam(value = "q", required = false) String q,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+            @AuthenticatedMember MemberSession ms) {
         if (ms == null || ms.getCompanyId() == null) {
             return Collections.emptyList();
         }

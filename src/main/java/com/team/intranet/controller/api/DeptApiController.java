@@ -4,6 +4,7 @@ import com.team.intranet.dto.DeptDto;
 import com.team.intranet.entity.Dept;
 
 import com.team.intranet.service.DeptService;
+import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
 import lombok.RequiredArgsConstructor;
 
@@ -23,7 +24,7 @@ public class DeptApiController {
     // 부서 생성 처리
     @PostMapping("/create")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
-    public String createDept(@RequestBody DeptDto dto, Model model, @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
+    public String createDept(@RequestBody DeptDto dto, Model model, @AuthenticatedMember MemberSession ms) {
         
         // 1. 부서 생성 로직 수행
         deptService.createDept(ms, dto);
@@ -38,7 +39,7 @@ public class DeptApiController {
     // 부서 수정 처리
     @PostMapping("/update/{deptId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
-    public String updateDept(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+    public String updateDept(@AuthenticatedMember MemberSession ms,
             @PathVariable Long deptId,
             @RequestBody DeptDto deptDto, Model model) {
 
@@ -52,7 +53,7 @@ public class DeptApiController {
     // 부서 삭제 처리
     @PostMapping("/delete/{deptId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
-    public String deleteDept(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+    public String deleteDept(@AuthenticatedMember MemberSession ms,
             @PathVariable Long deptId, Model model) {
 
         deptService.deleteDept(ms, deptId);

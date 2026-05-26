@@ -14,7 +14,8 @@ import java.net.URLEncoder;
 
   import com.team.intranet.entity.*;
   import com.team.intranet.repository.*;
-  import com.team.intranet.session.MemberSession;
+  import com.team.intranet.config.AuthenticatedMember;
+import com.team.intranet.session.MemberSession;
   import com.team.intranet.util.FileValidator;
 
   import lombok.RequiredArgsConstructor;
@@ -33,9 +34,7 @@ import java.net.URLEncoder;
       @PostMapping
       public ResponseEntity<Map<String, Object>> upload(
               @RequestParam("file") MultipartFile file,
-              @SessionAttribute(name = "memberSession", required = false) MemberSession ms) throws Exception {
-
-          if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+              @AuthenticatedMember MemberSession ms) throws Exception {
           fileValidator.validateAttachment(file);
 
           String name = file.getOriginalFilename() == null ? "file" : file.getOriginalFilename();
@@ -65,10 +64,7 @@ import java.net.URLEncoder;
       @GetMapping("/{id}")
       public ResponseEntity<byte[]> download(
               @PathVariable Long id,
-              @SessionAttribute(name = "memberSession", required = false) MemberSession ms) throws Exception {
-
-          if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
+              @AuthenticatedMember MemberSession ms) throws Exception {
           ArticleAttachment att = attachmentRepository.findById(id).orElse(null);
           if (att == null || !att.getCompany().getCompanyId().equals(ms.getCompanyId())) {
               return ResponseEntity.notFound().build();
@@ -94,10 +90,7 @@ import java.net.URLEncoder;
       @GetMapping
       public ResponseEntity<List<Map<String, Object>>> listByArticle(
               @RequestParam Long articleId,
-              @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-
-          if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
+              @AuthenticatedMember MemberSession ms) {
           List<Map<String, Object>> result = attachmentRepository.findByArticle_ArticleId(articleId).stream()
                   .filter(a -> a.getCompany().getCompanyId().equals(ms.getCompanyId()))
                   .map(a -> Map.<String, Object>of(
@@ -113,10 +106,7 @@ import java.net.URLEncoder;
       @DeleteMapping("/{id}")
   public ResponseEntity<Void> delete(
           @PathVariable Long id,
-          @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-
-      if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
+          @AuthenticatedMember MemberSession ms) {
       ArticleAttachment att = attachmentRepository.findById(id).orElse(null);
       if (att == null) return ResponseEntity.notFound().build();
 

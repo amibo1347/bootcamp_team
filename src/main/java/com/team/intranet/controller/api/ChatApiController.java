@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,9 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.team.intranet.dto.ChatConversationDto;
@@ -28,6 +25,7 @@ import com.team.intranet.dto.ChatPeerDto;
 import com.team.intranet.entity.ChatAttachment;
 import com.team.intranet.service.ChatService;
 import com.team.intranet.service.ChatSseService;
+import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
 
 import lombok.RequiredArgsConstructor;
@@ -55,9 +53,7 @@ public class ChatApiController {
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @PreAuthorize("isAuthenticated()")
-    public SseEmitter stream(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+    public SseEmitter stream(@AuthenticatedMember MemberSession ms) {
         return chatSseService.subscribe(ms.getMemberId());
     }
 
@@ -66,8 +62,7 @@ public class ChatApiController {
     @GetMapping("/members")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ChatPeerDto>> listPeers(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         return ResponseEntity.ok(chatService.searchPeers(ms));
     }
 
@@ -75,8 +70,7 @@ public class ChatApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<byte[]> profileImage(
             @PathVariable Long memberId,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         byte[] img = chatService.getMemberProfileImage(ms, memberId);
         if (img == null || img.length == 0) return ResponseEntity.notFound().build();
         return ResponseEntity.ok()
@@ -89,8 +83,7 @@ public class ChatApiController {
     @GetMapping("/conversations")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ChatConversationDto>> listConversations(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         return ResponseEntity.ok(chatService.findMyConversations(ms));
     }
 
@@ -98,8 +91,7 @@ public class ChatApiController {
     @GetMapping("/unread")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Long> totalUnread(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         return ResponseEntity.ok(chatService.countMyChatUnreadTotal(ms));
     }
 
@@ -108,8 +100,7 @@ public class ChatApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> markRead(
             @PathVariable("id") Long conversationId,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         chatService.markConversationRead(ms, conversationId);
         return ResponseEntity.ok().build();
     }
@@ -119,8 +110,7 @@ public class ChatApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ChatConversationDto> openConversation(
             @RequestBody Map<String, Long> body,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         Long peerId = body == null ? null : body.get("peerId");
         return ResponseEntity.ok(chatService.getOrCreateConversation(ms, peerId));
     }
@@ -134,8 +124,7 @@ public class ChatApiController {
     public ResponseEntity<ChatConversationDto> renameConversation(
             @PathVariable("id") Long conversationId,
             @RequestBody(required = false) Map<String, String> body,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         String title = body == null ? null : body.get("title");
         return ResponseEntity.ok(chatService.renameConversation(ms, conversationId, title));
     }
@@ -145,8 +134,7 @@ public class ChatApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Boolean>> togglePinConversation(
             @PathVariable("id") Long conversationId,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         boolean pinned = chatService.togglePinConversation(ms, conversationId);
         return ResponseEntity.ok(Map.of("pinned", pinned));
     }
@@ -160,8 +148,7 @@ public class ChatApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> leaveConversation(
             @PathVariable("id") Long conversationId,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         chatService.leaveConversation(ms, conversationId);
         return ResponseEntity.noContent().build();
     }
@@ -172,8 +159,7 @@ public class ChatApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ChatMessageDto>> listMessages(
             @PathVariable("id") Long conversationId,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         return ResponseEntity.ok(chatService.findMessages(ms, conversationId));
     }
 
@@ -184,8 +170,7 @@ public class ChatApiController {
             @PathVariable("id") Long conversationId,
             @RequestParam(value = "text", required = false) String text,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         return ResponseEntity.ok(chatService.sendMessage(ms, conversationId, text, files));
     }
 
@@ -195,8 +180,7 @@ public class ChatApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<byte[]> downloadAttachment(
             @PathVariable("id") Long attachmentId,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) {
         ChatAttachment att = chatService.loadAttachment(ms, attachmentId);
         MediaType mt = MediaType.APPLICATION_OCTET_STREAM;
         try { if (att.getMimeType() != null) mt = MediaType.parseMediaType(att.getMimeType()); } catch (Exception ignored) { /* 폴백 유지 */ }

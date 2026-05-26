@@ -1,6 +1,5 @@
 package com.team.intranet.controller.api;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,9 +14,9 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.SessionAttribute;
 import com.team.intranet.dto.BoardDto;
 import com.team.intranet.entity.Article;
+import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
 import com.team.intranet.service.BoardService;
 import com.team.intranet.service.ArticleService;
@@ -36,7 +35,7 @@ public class ArticleApiController {
     @PostMapping("/new") 
     public ResponseEntity<?> createArticle(
             @PathVariable Long boardId,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+            @AuthenticatedMember MemberSession ms,
             @ModelAttribute ArticleDto dto) {
         
         dto.setBoardId(boardId);
@@ -47,22 +46,16 @@ public class ArticleApiController {
     @GetMapping("")
     public ResponseEntity<Page<ArticleDto>> listArticles(
           @PathVariable Long boardId,
-          @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+          @AuthenticatedMember MemberSession ms,
         @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-      if (ms == null) {
-          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-      }
       return ResponseEntity.ok(articleService.findArticlesByBoard(ms, boardId, pageable));
   }
 
   @GetMapping("/trash")
   public ResponseEntity<Page<ArticleDto>> listDeletedArticles(
           @PathVariable Long boardId,
-          @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+          @AuthenticatedMember MemberSession ms,
           @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-      if (ms == null) {
-          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-      }
       return ResponseEntity.ok(articleService.findDeletedArticles(ms, boardId, pageable));
   }
 
@@ -70,10 +63,7 @@ public class ArticleApiController {
   public ResponseEntity<ArticleDto> getArticle(
           @PathVariable Long boardId,
           @PathVariable Long articleId,
-          @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-      if (ms == null) {
-          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-      }
+          @AuthenticatedMember MemberSession ms) {
       return ResponseEntity.ok(articleService.findArticle(ms, boardId, articleId));
   }
 
@@ -81,11 +71,8 @@ public class ArticleApiController {
   public ResponseEntity<ArticleDto> updateArticle(
           @PathVariable Long boardId,
           @PathVariable Long articleId,
-          @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+          @AuthenticatedMember MemberSession ms,
           @ModelAttribute ArticleDto dto) {
-      if (ms == null) {
-          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-      }
       return ResponseEntity.ok(articleService.updateArticle(ms, boardId, articleId, dto));
   }
 
@@ -93,10 +80,7 @@ public class ArticleApiController {
   public ResponseEntity<Void> deleteArticle(
           @PathVariable Long boardId,
           @PathVariable Long articleId,
-          @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-      if (ms == null) {
-          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-      }
+          @AuthenticatedMember MemberSession ms) {
       articleService.deleteArticle(ms, boardId, articleId);
       return ResponseEntity.noContent().build();
   }
@@ -105,10 +89,7 @@ public class ArticleApiController {
   public ResponseEntity<Void> restoreArticle(
           @PathVariable Long boardId,
           @PathVariable Long articleId,
-          @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-      if (ms == null) {
-          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-      }
+          @AuthenticatedMember MemberSession ms) {
       articleService.restoreArticle(ms, boardId, articleId);
       return ResponseEntity.noContent().build();
   }
@@ -117,10 +98,7 @@ public class ArticleApiController {
   public ResponseEntity<Void> permanentlyDeleteArticle(
           @PathVariable Long boardId,
           @PathVariable Long articleId,
-          @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-      if (ms == null) {
-          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-      }
+          @AuthenticatedMember MemberSession ms) {
       articleService.permanentlyDeleteArticle(ms, boardId, articleId);
       return ResponseEntity.noContent().build();
   }

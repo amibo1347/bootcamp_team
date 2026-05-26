@@ -1,6 +1,5 @@
 package com.team.intranet.controller.api;
 
-import org.springframework.http.HttpStatus;
   import org.springframework.http.ResponseEntity;
   import org.springframework.web.bind.annotation.RestController;
   import org.springframework.web.bind.annotation.GetMapping;
@@ -8,11 +7,10 @@ import org.springframework.http.HttpStatus;
   import org.springframework.web.bind.annotation.PathVariable;
   import org.springframework.web.bind.annotation.PostMapping;
   import org.springframework.web.bind.annotation.RequestMapping;
-    import org.springframework.web.bind.annotation.SessionAttribute;
-
-  import com.team.intranet.dto.CalendarDto;
+      import com.team.intranet.dto.CalendarDto;
   import com.team.intranet.service.CalendarService;
-  import com.team.intranet.session.MemberSession;
+  import com.team.intranet.config.AuthenticatedMember;
+import com.team.intranet.session.MemberSession;
 
   import java.util.List;
 
@@ -27,10 +25,7 @@ public class CalendarApiController {
 
     @GetMapping("")
     public ResponseEntity<List<CalendarDto>> getCalendars(
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-            if( ms == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
+            @AuthenticatedMember MemberSession ms) {
             return ResponseEntity.ok(calendarService.getCalendars(ms));
         }
     
@@ -38,20 +33,14 @@ public class CalendarApiController {
      @GetMapping("/{calendarId}")
   public ResponseEntity<CalendarDto> getCalendar(
           @PathVariable Long calendarId,
-          @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-      if (ms == null) {
-          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-      }
+          @AuthenticatedMember MemberSession ms) {
       return ResponseEntity.ok(calendarService.getCalendar(ms, calendarId));
   }
 
   @PostMapping("/new")
   public ResponseEntity<Void> createCalendar(
-          @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+          @AuthenticatedMember MemberSession ms,
           @ModelAttribute CalendarDto dto) {
-      if (ms == null) {
-          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-      }
       calendarService.createCalendar(ms, dto);
       return ResponseEntity.ok().build();
   }
@@ -59,11 +48,8 @@ public class CalendarApiController {
   @PostMapping("/{calendarId}/edit")
   public ResponseEntity<Void> updateCalendar(
           @PathVariable Long calendarId,
-          @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+          @AuthenticatedMember MemberSession ms,
           @ModelAttribute CalendarDto dto) {
-      if (ms == null) {
-          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-      }
       calendarService.updateCalendar(ms, calendarId, dto);
       return ResponseEntity.ok().build();
   }
@@ -71,10 +57,7 @@ public class CalendarApiController {
   @PostMapping("/{calendarId}/delete")
   public ResponseEntity<Void> deleteCalendar(
           @PathVariable Long calendarId,
-          @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-      if (ms == null) {
-          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-      }
+          @AuthenticatedMember MemberSession ms) {
       calendarService.deleteCalendar(ms, calendarId);
       return ResponseEntity.noContent().build();
   }

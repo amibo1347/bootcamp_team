@@ -4,8 +4,7 @@ package com.team.intranet.controller.api;
   import java.util.Map;
 
   import org.springframework.http.HttpHeaders;
-  import org.springframework.http.HttpStatus;
-  import org.springframework.http.ResponseEntity;
+    import org.springframework.http.ResponseEntity;
   import org.springframework.web.bind.annotation.*;
   import org.springframework.web.multipart.MultipartFile;
 
@@ -15,7 +14,8 @@ package com.team.intranet.controller.api;
   import com.team.intranet.repository.ArticleImageRepository;
   import com.team.intranet.repository.CompanyRepository;
   import com.team.intranet.repository.MemberRepository;
-  import com.team.intranet.session.MemberSession;
+  import com.team.intranet.config.AuthenticatedMember;
+import com.team.intranet.session.MemberSession;
   import com.team.intranet.util.FileValidator;
 
   import lombok.RequiredArgsConstructor;
@@ -34,9 +34,7 @@ package com.team.intranet.controller.api;
       @PostMapping
       public ResponseEntity<Map<String, String>> upload(
               @RequestParam("file") MultipartFile file,
-              @SessionAttribute(name = "memberSession", required = false) MemberSession ms) throws Exception {
-
-          if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+              @AuthenticatedMember MemberSession ms) throws Exception {
           fileValidator.validateImage(file);
 
           Member uploader = memberRepository.findById(ms.getMemberId()).orElseThrow();

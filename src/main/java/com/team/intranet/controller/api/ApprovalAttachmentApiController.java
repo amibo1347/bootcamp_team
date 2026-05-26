@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.team.intranet.entity.ApprovalAttachment;
@@ -24,6 +23,7 @@ import com.team.intranet.repository.ApprovalAttachmentRepository;
 import com.team.intranet.repository.ApprovalLineRepository;
 import com.team.intranet.repository.CompanyRepository;
 import com.team.intranet.repository.MemberRepository;
+import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
 import com.team.intranet.util.FileValidator;
 
@@ -49,9 +49,7 @@ public class ApprovalAttachmentApiController {
     @PostMapping
     public ResponseEntity<Map<String, Object>> upload(
             @RequestParam("file") MultipartFile file,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) throws Exception {
-
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @AuthenticatedMember MemberSession ms) throws Exception {
         fileValidator.validateAttachment(file);
 
         String name = file.getOriginalFilename() == null ? "file" : file.getOriginalFilename();
@@ -81,10 +79,7 @@ public class ApprovalAttachmentApiController {
     @GetMapping("/{id}")
     public ResponseEntity<byte[]> download(
             @PathVariable Long id,
-            @SessionAttribute(name = "memberSession", required = false) MemberSession ms) {
-
-        if (ms == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
+            @AuthenticatedMember MemberSession ms) {
         ApprovalAttachment att = approvalAttachmentRepository.findById(id).orElse(null);
         if (att == null || att.getCompany() == null
                 || !att.getCompany().getCompanyId().equals(ms.getCompanyId())) {
