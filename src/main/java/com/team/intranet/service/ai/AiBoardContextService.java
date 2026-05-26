@@ -11,13 +11,17 @@ import com.team.intranet.entity.Article;
 import com.team.intranet.entity.Board;
 import com.team.intranet.repository.ArticleRepository;
 import com.team.intranet.repository.BoardRepository;
+import com.team.intranet.service.BoardService;
+import com.team.intranet.session.MemberSession;
 
 import lombok.RequiredArgsConstructor;
 
 /**
  * AI 비서가 참고할 게시판 컨텍스트를 system prompt 용 텍스트로 빌드한다.
- *  - 회사 격리: 입력 companyId 의 게시판만.
+ *  - 회사 격리: 로그인 회원 회사의 게시판만.
  *  - 활성 + isAiUse=true 게시판만.
+ *  - 게시판 ACL 적용: BoardService.canRead(ms, board) 로 RESTRICTED 게시판의 부서/직급 필터 검사.
+ *    → 회원이 인트라넷 화면에서 못 보는 게시판은 AI 컨텍스트에도 포함하지 않는다.
  *  - 각 게시판당 최근 N개 (제목 + 본문 앞 부분).
  *  - LLM 토큰 절약을 위해 본문은 잘라서 첨부.
  */
@@ -32,15 +36,24 @@ public class AiBoardContextService {
 
     private final BoardRepository boardRepository;
     private final ArticleRepository articleRepository;
+    private final BoardService boardService;
 
     /**
-     * 회사의 AI 활성 게시판 + 최근 게시글 목록을 system prompt 용 문자열로 빌드.
-     * AI 활성 게시판이 0개면 명시적으로 알림 문구만 반환.
+     * 로그인 회원이 읽을 수 있는 AI 활성 게시판 + 최근 게시글 목록을 system prompt 용 문자열로 빌드.
+     * AI 활성 게시판이 0개 또는 권한 필터 후 모두 제외되면 명시적으로 알림 문구만 반환.
+     *
+     * @param ms 로그인 회원 세션 — 회사 격리 + 게시판 ACL(BoardService.canRead) 검사에 사용
      */
     @Transactional(readOnly = true)
-    public String buildContext(Long companyId) {
+    public String buildContext(MemberSession ms) {
+        Long companyId = ms.getCompanyId();
+        // 회사 + 활성 + isAiUse 필터링은 기존 그대로, 거기서 추가로 BoardService.canRead 로 ACL 검사.
+        // → 회원의 직급/부서로 RESTRICTED 게시판의 BoardScopeRule(READ) 매칭 여부를 검증.
+        //   회원이 인트라넷 화면에서 못 보는 게시판은 AI 컨텍스트에도 포함되지 않는다.
         List<Board> aiBoards =
-            boardRepository.findAllByCompany_CompanyIdAndIsAiUseTrueAndIsActiveTrue(companyId);
+            boardRepository.findAllByCompany_CompanyIdAndIsAiUseTrueAndIsActiveTrue(companyId).stream()
+                .filter(b -> boardService.canRead(ms, b))
+                .toList();
 
         StringBuilder sb = new StringBuilder();
         sb.append("\n\n[참고 가능 게시판 데이터]\n");

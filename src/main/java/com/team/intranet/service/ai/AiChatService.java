@@ -860,12 +860,42 @@ public class AiChatService {
         String companyName = me.getCompany()  != null ? me.getCompany().getCompanyName()  : "(미지정)";
         Long companyId     = me.getCompany()  != null ? me.getCompany().getCompanyId()    : null;
 
+        // ───────── 사용자 역할/권한 요약 (LLM 에 명시) ─────────
+        // 시스템 프롬프트만으론 우회 가능하므로 이 라벨은 보조 가이드. 1차 보호는 데이터 소스 권한 필터.
+        String roleLabel = roleLabelFor(ms.getRole());
+        String permLabel = permissionsLabelFor(ms);
+
         String basePrompt = """
             당신은 한국 회사 인트라넷의 AI 비서입니다.
             - 한국어로 정중하고 간결하게 답변하세요.
             - 사용자 정보: 이름=%s, 회사=%s, 직급=%s, 부서=%s
+            - 사용자 역할: %s
+            - 사용자 보유 권한: %s
             - 오늘 날짜: %s
-            - 모르는 내용은 추측하지 말고 모른다고 답하세요.
+
+            🚫 팩트 기반 응답 원칙 (절대 위반 금지 — 최우선):
+            - 아래 첨부된 데이터(게시판/일정/회원 명단/휴가 양식 등) 안의 사실만 인용하세요.
+            - 데이터에 없는 내용은 "확인되지 않습니다" 라고만 답하세요. 추측·창작·일반 상식 보충 절대 금지.
+            - "아마", "추측컨대", "보통", "일반적으로", "대체로" 같은 어휘로 사실 외 내용을 만들지 마세요.
+            - 외부 지식(인터넷 정보·일반 통계·뉴스) 으로 빈자리를 채우지 마세요.
+            - 사내 규정·정책·복지·급여 체계 등은 시스템에 등록된 자료(게시판 공지 등)에만 근거하세요.
+              등록되지 않은 규정은 "사내 공지에 등록되지 않은 내용입니다" 라고 답하세요.
+            - 게시글 제목/내용/작성자, 회원 이름/직급/부서, 일정 제목/시간을 지어내지 마세요.
+
+            🔐 권한 기반 접근 통제 (회원이 못 보는 정보 = AI 도 못 봄):
+            - 사용자 본인이 인트라넷 화면에서 직접 볼 수 없는 정보는 AI 도 절대 답하지 마세요.
+              아래 항목 중 사용자에게 권한이 없는 케이스는 "해당 정보는 권한이 없어 확인해 드릴 수 없습니다" 라고만 답하세요.
+              · 다른 회원의 개인정보(연락처 / 이메일 / 생년월일 / 주민번호 / 급여 등) →
+                MEMBER_MANAGEMENT 권한 또는 ADMIN/MASTER 가 아니면 응답 거부.
+              · 다른 회원의 결재 내역(승인 / 반려 / 대기 / 양식) →
+                본인이 기안자이거나 결재선에 포함된 경우만 허용. 그 외 응답 거부.
+              · 회사 전체 근태 (출/퇴근 시각, 야근 시간 등) →
+                ATTENDANCE_MANAGEMENT 권한 또는 ADMIN/MASTER 가 아니면 응답 거부.
+              · 다른 회원의 비공개 일정 → 본인 일정 또는 본인이 공유받은 일정만 답변 가능.
+              · 관리자 전용 통계/대시보드/매출/회사 운영 데이터 → ADMIN/MASTER 가 아니면 응답 거부.
+              · 다른 회사의 모든 데이터 → 회사 격리, 절대 응답 거부.
+            - 사용자가 "내 정보"·"내 일정"·"내 휴가" 처럼 본인 정보를 요청하면 첨부 데이터 안에서만 답하세요.
+            - 권한 거부 시 우회 방법(예: "관리자에게 물어보세요") 외엔 다른 정보를 추가하지 마세요.
 
             👥 답변은 일반 직장인 입장에서 이해할 수 있는 자연스러운 말로 작성하세요:
             - "id", "calendarId", "boardId", "row" 같은 개발자/시스템 용어 금지.
@@ -968,12 +998,14 @@ public class AiChatService {
             • 반대로 사용자가 "수정해줘 / 변경해줘 / 옮겨줘" 처럼 명시적으로 수정을 요청하고 본인 일정 목록에 있으면 `json:calendar_update` 를 사용.
             """.formatted(
                 me.getName(), companyName, position, dept,
+                roleLabel, permLabel,
                 LocalDate.now().toString(),
                 companyName);
 
         // 회사 게시판 / 본인 일정 / 휴가 컨텍스트는 lazy 첨부 — 토큰 절약.
+        // 게시판은 ms 를 전달해 ACL(canRead) 까지 검사 → 회원이 못 보는 게시판은 AI 컨텍스트에도 미포함.
         String boardContext    = (includeBoard && companyId != null)
-            ? aiBoardContextService.buildContext(companyId) : "";
+            ? aiBoardContextService.buildContext(ms) : "";
         String calendarContext = includeCalendar
             ? aiCalendarContextService.buildContext(me.getMemberId()) : "";
         String leaveContext    = includeLeave ? buildLeaveGuide(ms) : "";
@@ -1128,5 +1160,59 @@ public class AiChatService {
         String oneLine = s.replaceAll("\\s+", " ").trim();
         if (oneLine.isEmpty()) return "새 대화";
         return oneLine.length() <= n ? oneLine : oneLine.substring(0, n) + "…";
+    }
+
+    /**
+     * 사용자 역할을 시스템 프롬프트에 노출할 한국어 라벨로.
+     *  - LLM 이 권한 분기를 더 잘 따르도록 사람이 읽는 형태로.
+     */
+    private static String roleLabelFor(com.team.intranet.enums.member.Role role) {
+        if (role == null) return "일반 회원";
+        return switch (role) {
+            case MASTER    -> "MASTER (시스템 관리자)";
+            case ADMIN     -> "ADMIN (회사 대표) — 회사 내 모든 정보 조회 가능";
+            case SUB_ADMIN -> "SUB_ADMIN (부분 관리자) — 부여된 권한 범위 내 조회 가능";
+            case USER      -> "USER (일반 회원) — 본인 정보 및 공개 자료만 조회 가능";
+            default        -> role.name();
+        };
+    }
+
+    /**
+     * 사용자가 보유한 SUB_ADMIN 세부 권한 목록을 시스템 프롬프트용 한국어로.
+     *  - ADMIN / MASTER 는 모든 권한을 갖는 것으로 표시 (실제 검사에서도 자동 통과).
+     *  - 일반 회원은 "없음 (일반 회원 — 본인 자료만 조회 가능)".
+     */
+    private static String permissionsLabelFor(MemberSession ms) {
+        if (ms == null) return "없음";
+        if (ms.getRole() == com.team.intranet.enums.member.Role.ADMIN
+            || ms.getRole() == com.team.intranet.enums.member.Role.MASTER) {
+            return "전체 (회사 내 모든 데이터 조회 가능)";
+        }
+        java.util.Set<com.team.intranet.enums.member.SubAdminPermission> perms = ms.getPermissions();
+        if (perms == null || perms.isEmpty()) {
+            return "없음 (일반 회원 — 본인 자료만 조회 가능)";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (com.team.intranet.enums.member.SubAdminPermission p : perms) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(permissionLabelKo(p));
+        }
+        return sb.toString();
+    }
+
+    /** SubAdminPermission enum → 시스템 프롬프트에 적합한 한국어 한 단어. 모르는 값은 enum 이름 그대로. */
+    private static String permissionLabelKo(com.team.intranet.enums.member.SubAdminPermission p) {
+        if (p == null) return "";
+        // enum name 별 한국어 매핑. 누락된 enum 은 name() 그대로 노출.
+        return switch (p.name()) {
+            case "MEMBER_MANAGEMENT"     -> "회원 관리";
+            case "ATTENDANCE_MANAGEMENT" -> "근태 관리";
+            case "BOARD_MANAGEMENT"      -> "게시판 관리";
+            case "DEPT_MANAGEMENT"       -> "부서 관리";
+            case "POSITION_MANAGEMENT"   -> "직급 관리";
+            case "TRASH_MANAGEMENT"      -> "휴지통 관리";
+            case "APPROVAL_MANAGEMENT"   -> "결재 양식 관리";
+            default                      -> p.name();
+        };
     }
 }
