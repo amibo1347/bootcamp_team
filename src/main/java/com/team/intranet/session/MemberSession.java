@@ -99,18 +99,30 @@ import lombok.Getter;
     /**
      * 다른 회원을 편집/관리할 수 있는지 — 백엔드 MemberService.validateLevelHierarchy 와 동일 정책.
      * UI 가드(버튼 disabled) 와 서버 가드의 정책 일관성을 위해 한 곳에 모아둔다.
+     *
      *  통과:
-     *   - 본인 자신
-     *   - ADMIN / MASTER
-     *   - MEMBER_MANAGEMENT 권한 보유자
-     *   - target.level 이 내 level 보다 낮은 경우
-     *   - 한쪽이라도 level 이 null 이면 (위계 미정)
-     *  차단: target.level >= 내 level
+     *   - 본인 자신 (UI 는 본인 row 의 버튼을 별도로 숨기는 것을 권장)
+     *   - ADMIN / MASTER (회사 대표·시스템 관리자 — level 무관)
+     *   - SUB_ADMIN 으로서 MEMBER_MANAGEMENT 권한 보유자 AND target.level < 내 level
+     *   - level 한쪽이 null 인 PENDING/위계 미정 케이스: MEMBER_MANAGEMENT 권한자만 통과
+     *
+     *  차단:
+     *   - target.level >= 내 level (권한 보유 여부 무관, 동등도 차단 → 자기 보호)
+     *   - 권한이 없는 일반 회원
+     *
+     * ※ 변경 이력: 과거에는 MEMBER_MANAGEMENT 권한 보유자가 level 위계와 무관하게 통과했으나,
+     *   부장(SUB_ADMIN, level=3) 이 대표(ADMIN, level=99) 의 [수정] 버튼을 보는 문제가 있어
+     *   "권한이 있어도 상위 직급은 못 건드린다" 로 정책을 보수적으로 변경했다.
      */
     public boolean canManageMember(Long targetMemberId, Integer targetLevel) {
         if (memberId != null && memberId.equals(targetMemberId)) return true;
         if (role == Role.ADMIN || role == Role.MASTER) return true;
-        if (hasPermission(SubAdminPermission.MEMBER_MANAGEMENT)) return true;
+
+        boolean hasMemberMgmt = hasPermission(SubAdminPermission.MEMBER_MANAGEMENT);
+        if (!hasMemberMgmt) return false;
+
+        // 권한 보유자라도 level 위계는 지켜야 함.
+        // level 한쪽이라도 미정이면 PENDING 가입자 승인 등 위계 판정 불가 → 권한자에 한해 통과.
         if (positionLevel == null || targetLevel == null) return true;
         return targetLevel < positionLevel;
     }

@@ -418,19 +418,28 @@ public class MemberService {
      *  통과 조건:
      *   - 본인 자신 (안전망 — 본인 정보는 별도 me/ 경로를 사용해야 한다).
      *   - 요청자가 ADMIN / MASTER (회사 대표·시스템 관리자라 level 무관).
-     *   - 요청자가 MEMBER_MANAGEMENT 권한 보유자 (조직도 구성 위임자 — 회사 전체 회원 관리 필요).
-     *   - target.level 이 me.level 보다 낮은 경우.
-     *   - 한쪽이라도 level 이 null 이면 위계 미정으로 보고 통과 (PENDING 가입자 승인 등).
-     *  차단: target.level >= me.level (동등도 차단 — 자기 보호).
+     *   - 요청자가 MEMBER_MANAGEMENT 권한 보유자 AND target.level < me.level.
+     *   - level 한쪽이 null 인 위계 미정(PENDING 등): MEMBER_MANAGEMENT 권한자만 통과.
+     *  차단:
+     *   - target.level >= me.level (권한 보유 여부 무관, 동등도 차단 → 자기 보호).
+     *   - MEMBER_MANAGEMENT 권한 미보유자.
+     *
+     * ※ 변경 이력: 과거에는 MEMBER_MANAGEMENT 권한 보유자가 level 위계와 무관하게 통과했으나,
+     *   부장(SUB_ADMIN) 이 대표(ADMIN, level=99) 의 정보를 변경할 수 있는 문제가 있어
+     *   "권한이 있어도 상위 직급은 못 건드린다" 로 정책을 보수적으로 변경했다.
+     *   UI 가드(MemberSession.canManageMember) 와 동일 정책.
      */
     private void validateLevelHierarchy(MemberSession ms, Member target) {
         if (ms.getMemberId().equals(target.getMemberId())) return;
         if (ms.getRole() == Role.ADMIN || ms.getRole() == Role.MASTER) return;
-        if (ms.hasPermission(SubAdminPermission.MEMBER_MANAGEMENT)) return;
+
+        if (!ms.hasPermission(SubAdminPermission.MEMBER_MANAGEMENT)) {
+            throw new BusinessException(ErrorCode.SUPERIOR_MEMBER_PROTECTED);
+        }
 
         Integer myLevel = ms.getPositionLevel();
         Integer targetLevel = target.getPosition() != null ? target.getPosition().getPositionLevel() : null;
-        if (myLevel == null || targetLevel == null) return;
+        if (myLevel == null || targetLevel == null) return; // 위계 미정 → 권한자 통과
 
         if (targetLevel >= myLevel) {
             throw new BusinessException(ErrorCode.SUPERIOR_MEMBER_PROTECTED);
