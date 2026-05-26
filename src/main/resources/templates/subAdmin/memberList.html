@@ -318,6 +318,16 @@
                                                         th:text="${emp.dept != null ? emp.dept.deptName : '미지정'}">부서</span>
                                                     <span class="text-sm font-medium text-gray-500 dark:text-gray-300"
                                                         th:text="${emp.position != null ? emp.position.positionName : '직급 미지정'}">직급</span>
+                                                    <!--
+                                                        직급/로그인ID 사이 구분점 (●).
+                                                        ※ Tailwind output.css 에 w-1 / h-1 / bg-gray-400 유틸리티가 빌드 누락되어
+                                                          inline style 로 크기·색상만 강제. 좌우 간격은 부모의 gap-2(8px) 만 사용
+                                                          (span 자체 margin / 로그인ID 의 ml-2 둘 다 빼야 균등 간격이 됨).
+                                                    -->
+                                                    <span
+                                                        style="display:inline-block;width:4px;height:4px;background:#9ca3af;border-radius:9999px;vertical-align:middle;"></span>
+                                                    <span class="text-gray-400 text-sm font-normal"
+                                                        th:text="${emp.loginId}">로그인 아이디</span>
                                                 </th:block>
                                             </div>
 

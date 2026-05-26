@@ -59,6 +59,10 @@ public interface MemberRepository extends JpaRepository<Member, Long>{
    @Query("SELECT m.profileImg FROM Member m WHERE m.memberId = :id")
    byte[] findProfileImgById(@Param("id") Long id);
 
+   /** profileImg 회사 스코프 검증용 — 회원의 회사 ID 만 가볍게 조회. 회원 미존재 시 null. */
+   @Query("SELECT m.company.companyId FROM Member m WHERE m.memberId = :id")
+   Long findCompanyIdByMemberId(@Param("id") Long id);
+
    @Query("SELECT m FROM Member m " +
    "LEFT JOIN m.position p " +
    "WHERE m.company.companyId = :companyId " +

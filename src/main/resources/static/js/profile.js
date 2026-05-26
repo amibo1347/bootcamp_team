@@ -148,3 +148,92 @@ if (profileEditModal) {
         }
     });
 }
+
+// ---------------------------------------------------------------------------
+// 비밀번호 변경 모달 (MASTER /master/account/password 와 동일 입력 패턴)
+//  - 엔드포인트: POST /api/member/me/password
+//  - 입력값 검증·현재 비번 일치 확인은 서버에서 수행, 클라이언트는 비어있는지만 가볍게 체크
+// ---------------------------------------------------------------------------
+
+const passwordChangeModal = document.querySelector('#passwordChangeModal');
+
+/** 입력 필드 3개 초기화 */
+function resetPasswordChangeForm() {
+    const cur = document.querySelector('#pwdCurrent');
+    const nw = document.querySelector('#pwdNew');
+    const cf = document.querySelector('#pwdConfirm');
+    if (cur) cur.value = '';
+    if (nw) nw.value = '';
+    if (cf) cf.value = '';
+}
+
+/** 비밀번호 변경 모달 열기 */
+window.openPasswordChangeModal = () => {
+    if (!passwordChangeModal) return;
+    resetPasswordChangeForm();
+    passwordChangeModal.classList.remove('hidden');
+    document.querySelector('#pwdCurrent')?.focus();
+};
+
+/** 비밀번호 변경 모달 닫기 */
+window.closePasswordChangeModal = () => {
+    passwordChangeModal?.classList.add('hidden');
+};
+
+/** 비밀번호 변경 제출 — MemberApiController POST /api/member/me/password */
+window.submitPasswordChange = async () => {
+    const currentPassword = document.querySelector('#pwdCurrent')?.value || '';
+    const newPassword = document.querySelector('#pwdNew')?.value || '';
+    const confirmPassword = document.querySelector('#pwdConfirm')?.value || '';
+
+    // 클라이언트 가벼운 사전 체크 (서버에서 동일 검증을 다시 한 번 수행함)
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        alert('모든 항목을 입력하세요.');
+        return;
+    }
+    if (newPassword.length < 8) {
+        alert('새 비밀번호는 8자 이상이어야 합니다.');
+        return;
+    }
+    if (newPassword !== confirmPassword) {
+        alert('새 비밀번호와 확인이 일치하지 않습니다.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('currentPassword', currentPassword);
+    formData.append('newPassword', newPassword);
+    formData.append('confirmPassword', confirmPassword);
+
+    try {
+        const response = await fetch('/api/member/me/password', {
+            method: 'POST',
+            headers: getCsrfHeaders(),
+            body: formData,
+        });
+
+        // 서버는 success/message 를 JSON 으로 내려준다 (200 또는 400)
+        let payload = null;
+        try { payload = await response.json(); } catch (_) { /* no body */ }
+
+        if (response.ok && payload?.success) {
+            alert(payload.message || '비밀번호가 변경되었습니다.');
+            closePasswordChangeModal();
+            return;
+        }
+
+        alert(payload?.message
+            || await window.getApiErrorMessage(response, '비밀번호 변경에 실패했습니다.'));
+    } catch (error) {
+        console.error('Password change error:', error);
+        alert('통신 중 오류가 발생했습니다.');
+    }
+};
+
+if (passwordChangeModal) {
+    passwordChangeModal.addEventListener('click', (event) => {
+        if (event.target === passwordChangeModal) {
+            closePasswordChangeModal();
+        }
+    });
+}

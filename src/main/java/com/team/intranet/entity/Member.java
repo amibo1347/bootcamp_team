@@ -208,6 +208,12 @@ public class Member {
         this.birthDay = birthDay;
     }
 
+    // 비밀번호 변경 — 호출자가 이미 PasswordEncoder 로 인코딩한 값을 전달해야 한다.
+    // ※ MASTER 의 MasterAdmin#changePassword 와 동일 패턴 (도메인 객체 안에서 단일 책임).
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
     // 인사이동: 부서/직급만 일괄 변경. dept 또는 position 이 null 이면 해당 항목은 유지한다.
     public void reassign(Dept dept, Position position) {
         if (dept != null) {

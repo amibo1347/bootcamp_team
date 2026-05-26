@@ -76,7 +76,6 @@ public class MemberCompanyGuardFilter extends OncePerRequestFilter {
     /** 정적 리소스·로그인/로그아웃·에러 등 검사 제외 경로. */
     private boolean isExempt(String uri) {
         return uri.startsWith("/css/") || uri.startsWith("/js/") || uri.startsWith("/images/")
-                || uri.startsWith("/uploads/") || uri.startsWith("/api/uploads/")
                 || uri.startsWith("/api/company/")
                 || uri.equals("/favicon.ico") || uri.equals("/error")
                 // 회사 선택 랜딩 + 회사별 로그인/회원가입 페이지 모두 제외

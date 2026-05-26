@@ -230,6 +230,29 @@ public class MemberService {
         member.setProfileImg(profileImg);
     }
 
+    /**
+     * 본인 비밀번호 변경 (내 프로필 페이지용).
+     *  - MasterAccountService.changePassword 와 동일 패턴 — 현재 비밀번호 검증 후 새 비번 인코딩 저장.
+     *  - 입력값 검증(빈 값/길이/일치/현재 비번과 동일) 은 호출자(컨트롤러)가 수행.
+     *
+     * @throws IllegalArgumentException 계정이 없거나 현재 비밀번호가 틀린 경우
+     *                                  (호출자가 사용자 메시지로 그대로 사용)
+     */
+    @Transactional
+    public void changePassword(MemberSession ms, String currentRawPassword, String newRawPassword) {
+        if (ms == null || ms.getMemberId() == null) {
+            throw new BusinessException(ErrorCode.NO_AUTHORITY);
+        }
+        Member me = memberRepository.findById(ms.getMemberId())
+                .orElseThrow(() -> new IllegalArgumentException("계정을 찾을 수 없습니다."));
+
+        if (!passwordEncoder.matches(currentRawPassword, me.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        me.changePassword(passwordEncoder.encode(newRawPassword));
+    }
+
     // ===== 조회 =====
 
     /**
@@ -302,6 +325,11 @@ public class MemberService {
      */
     public byte[] getProfileImg(Long memberId) {
         return memberRepository.findProfileImgById(memberId);
+    }
+
+    /** profileImg 회사 스코프 검증용 — 회원의 회사 ID. 회원 미존재 시 null. */
+    public Long getCompanyIdByMemberId(Long memberId) {
+        return memberRepository.findCompanyIdByMemberId(memberId);
     }
 
     /**

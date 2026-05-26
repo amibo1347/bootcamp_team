@@ -71,11 +71,6 @@ public class MainController {
         return "index";
     }
 
-    @GetMapping("/tables")
-    public String tables() {
-        return "meterials/basic-tables";
-    }
-
     @GetMapping("/profile")
     public String profile() {
         return "profile";
@@ -88,16 +83,6 @@ public class MainController {
         // 일정 셀에서 본인 제외 처리를 위해 currentMemberId 를 meta 태그로 노출 (calendar.html)
         model.addAttribute("currentMemberId", ms != null ? ms.getMemberId() : null);
         return "calendar/calendar";
-    }
-
-    @GetMapping("/form-elements")
-    public String formElements() {
-        return "meterials/form-elements";
-    }
-
-    @GetMapping("/blank")
-    public String blank() {
-        return "meterials/blank";
     }
 
     @GetMapping("/settings")

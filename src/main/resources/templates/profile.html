@@ -14,6 +14,22 @@
   <title>내 프로필 | 인트라넷</title>
   <link rel="stylesheet" th:href="@{/css/output.css}" />
   <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+  <style>
+    /*
+        [개인 정보] 카드 우측 하단 비밀번호 버튼 핀 — lg(≥1024px) 화면에서만 적용.
+        ※ 비번 wrapper 를 absolute 로 흐름에서 빼서 카드 세로 길이를 좌측 grid 자연 높이로 고정.
+          ⇒ 좌측 "연락처/생년월일" 라인과 같은 세로 위치에 비번 버튼이 정렬되고 카드가 늘어나지 않는다.
+        ※ lg 미만(모바일) 에서는 자연 흐름 (수정 버튼 아래에 mt-6 로 배치) 으로 동작.
+    */
+    @media (min-width: 1024px) {
+      .profile-pwd-buttons-pin {
+        position: absolute;
+        right: 1.5rem;
+        bottom: 1.5rem;
+        margin-top: 0;
+      }
+    }
+  </style>
 </head>
 
 <body
@@ -108,69 +124,72 @@
           <!-- [프로필 요약] End -->
 
           <!-- [개인 정보] -->
+          <!--
+              section 을 position:relative 로 강제 — 비번 wrapper(.profile-pwd-buttons-pin) 의
+              lg 화면용 absolute 기준 컨테이너로 사용.
+          -->
           <section
-            class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
+            class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark"
+            style="position:relative;">
+
+            <!-- 상단 row : 좌측 텍스트 영역 + 우측 수정 버튼 (이전 상태 그대로 복원) -->
             <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                <div>
+
+              <div>
                 <h3 class="mb-5 text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
                   개인 정보
                 </h3>
 
-                  <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
-                    <div>
-                      <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300">
-                        이름
-                      </p>
-                      <p class="text-sm font-medium text-gray-800 dark:text-white/90" th:text="${ms.name}">
-                        -
-                      </p>
-                    </div>
-                    <div>
-                      <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300">
-                        이메일
-                      </p>
-                      <p class="text-sm font-medium text-gray-800 dark:text-white/90"
-                        th:text="${ms.email != null ? ms.email : '-'}">
-                        -
-                      </p>
-                    </div>
-
-                    <div>
-                      <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300">
-                        연락처
-                      </p>
-                      <p class="text-sm font-medium text-gray-800 dark:text-white/90"
-                        th:text="${ms.phone != null && !#strings.isEmpty(ms.phone) ? ms.phone : '-'}">
-                        -
-                      </p>
-                    </div>
-
-                    <div>
-                      <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300">
-                        생년월일
-                      </p>
-                      <p class="text-sm font-medium text-gray-800 dark:text-white/90"
-                        th:text="${ms.birthDay != null ? #temporals.format(ms.birthDay, 'yyyy-MM-dd') : '-'}">
-                        -
-                      </p>
-                    </div>
-
+                <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
+                  <div>
+                    <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300">이름</p>
+                    <p class="text-sm font-medium text-gray-800 dark:text-white/90" th:text="${ms.name}">-</p>
+                  </div>
+                  <div>
+                    <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300">이메일</p>
+                    <p class="text-sm font-medium text-gray-800 dark:text-white/90" th:text="${ms.email != null ? ms.email : '-'}">-</p>
+                  </div>
+                  <div>
+                    <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300">연락처</p>
+                    <p class="text-sm font-medium text-gray-800 dark:text-white/90" th:text="${ms.phone != null && !#strings.isEmpty(ms.phone) ? ms.phone : '-'}">-</p>
+                  </div>
+                  <div>
+                    <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-300">생년월일</p>
+                    <p class="text-sm font-medium text-gray-800 dark:text-white/90" th:text="${ms.birthDay != null ? #temporals.format(ms.birthDay, 'yyyy-MM-dd') : '-'}">-</p>
                   </div>
                 </div>
-
-                <button type="button" onclick="openProfileEditModal()"
-                  class="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto">
-                  <svg class="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd"
-                      d="M15.0911 2.78206C14.2125 1.90338 12.7878 1.90338 11.9092 2.78206L4.57524 10.116C4.26682 10.4244 4.0547 10.8158 3.96468 11.2426L3.31231 14.3352C3.25997 14.5833 3.33653 14.841 3.51583 15.0203C3.69512 15.1996 3.95286 15.2761 4.20096 15.2238L7.29355 14.5714C7.72031 14.4814 8.11172 14.2693 8.42013 13.9609L15.7541 6.62695C16.6327 5.74827 16.6327 4.32365 15.7541 3.44497L15.0911 2.78206ZM12.9698 3.84272C13.2627 3.54982 13.7376 3.54982 14.0305 3.84272L14.6934 4.50563C14.9863 4.79852 14.9863 5.2734 14.6934 5.56629L14.044 6.21573L12.3204 4.49215L12.9698 3.84272ZM11.2597 5.55281L5.6359 11.1766C5.53309 11.2794 5.46238 11.4099 5.43238 11.5522L5.01758 13.5185L6.98394 13.1037C7.1262 13.0737 7.25666 13.003 7.35947 12.9002L12.9833 7.27639L11.2597 5.55281Z"
-                      fill="" />
-                  </svg>
-                  수정
-                </button>
               </div>
+
+              <button type="button" onclick="openProfileEditModal()"
+                class="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto">
+                <svg class="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M15.0911 2.78206C14.2125 1.90338 12.7878 1.90338 11.9092 2.78206L4.57524 10.116C4.26682 10.4244 4.0547 10.8158 3.96468 11.2426L3.31231 14.3352C3.25997 14.5833 3.33653 14.841 3.51583 15.0203C3.69512 15.1996 3.95286 15.2761 4.20096 15.2238L7.29355 14.5714C7.72031 14.4814 8.11172 14.2693 8.42013 13.9609L15.7541 6.62695C16.6327 5.74827 16.6327 4.32365 15.7541 3.44497L15.0911 2.78206ZM12.9698 3.84272C13.2627 3.54982 13.7376 3.54982 14.0305 3.84272L14.6934 4.50563C14.9863 4.79852 14.9863 5.2734 14.6934 5.56629L14.044 6.21573L12.3204 4.49215L12.9698 3.84272ZM11.2597 5.55281L5.6359 11.1766C5.53309 11.2794 5.46238 11.4099 5.43238 11.5522L5.01758 13.5185L6.98394 13.1037C7.1262 13.0737 7.25666 13.003 7.35947 12.9002L12.9833 7.27639L11.2597 5.55281Z" fill="" />
+                </svg>
+                수정
+              </button>
+            </div>
+
+            <!--
+                비밀번호 변경/초기화 버튼들.
+                ※ lg(≥1024px) : .profile-pwd-buttons-pin 미디어쿼리로 absolute right:1.5rem bottom:1.5rem
+                  → 카드 흐름에서 빠져 카드 세로 길이가 좌측 grid 자연 높이로 고정되고,
+                    좌측 row 2(연락처/생년월일) 라인과 같은 세로 위치에 자연 정렬됨.
+                ※ lg 미만 : mt-6 로 자연 흐름 (수정 버튼 아래에 row 로 배치).
+                ※ whitespace-nowrap 으로 "비밀번호 초기화" 의 '화' 줄바꿈 방지.
+            -->
+            <div class="profile-pwd-buttons-pin mt-6 flex gap-2"
+              style="justify-content:flex-end;">
+              <button type="button" onclick="openPasswordChangeModal()"
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs transition hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
+                비밀번호 변경
+              </button>
+              <button type="button" onclick="resetPassword()"
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs transition hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
+                비밀번호 초기화
+              </button>
+            </div>
           </section>
-          <!-- [개인 정보] End -->
+   <!-- [개인 정보] End -->
         </div>
 
         <!-- [비로그인] 세션 없을 때 안내 -->
@@ -184,6 +203,53 @@
       <!-- ===== Main Content End ===== -->
       <!-- BEGIN MODAL : fixed 포지션이므로 main space-y 에 포함하지 않음 -->
       <div th:replace="~{partials/profile/profile-info-modal}"></div>
+      <!--
+          [비밀번호 변경 모달] MASTER 의 /master/account/password 와 동일 입력 패턴 (current/new/confirm).
+          ※ 모달 톤은 개인 정보 수정 모달과 동일 (rounded-2xl + indigo-200 / gray-200 버튼).
+          ※ JS 핸들러는 profile.js 의 openPasswordChangeModal / closePasswordChangeModal / submitPasswordChange.
+          ※ MASTER 비밀번호 변경 화면(master-container max-width: 520px) 의 사이즈에 맞춰
+            inline style 로 max-width 강제 (Tailwind max-w-* 빌드 누락 케이스 방어).
+          ※ 모달이 컴팩트해지도록 내부 padding 도 p-8 → p-6 으로 축소.
+      -->
+      <div id="passwordChangeModal"
+        class="fixed inset-0 z-[100000] flex hidden items-center justify-center bg-black/50">
+        <div
+          class="mx-4 w-full rounded-2xl border border-stroke bg-white p-6 shadow-2xl dark:border-strokedark dark:bg-boxdark"
+          style="max-width: 26rem;">
+          <h3 class="mb-5 text-xl font-bold text-black dark:text-white">비밀번호 변경</h3>
+
+          <div class="w-full space-y-3">
+            <div class="flex flex-col gap-1">
+              <label for="pwdCurrent" class="text-sm font-medium text-gray-600 dark:text-gray-300">현재 비밀번호</label>
+              <input type="password" id="pwdCurrent" name="currentPassword" autocomplete="current-password"
+                class="rounded border border-stroke bg-gray py-2 px-3 text-sm text-black outline-none focus:border-primary dark:text-white" />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label for="pwdNew" class="text-sm font-medium text-gray-600 dark:text-gray-300">새 비밀번호 (8자 이상)</label>
+              <input type="password" id="pwdNew" name="newPassword" autocomplete="new-password" minlength="8"
+                class="rounded border border-stroke bg-gray py-2 px-3 text-sm text-black outline-none focus:border-primary dark:text-white" />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label for="pwdConfirm" class="text-sm font-medium text-gray-600 dark:text-gray-300">새 비밀번호 확인</label>
+              <input type="password" id="pwdConfirm" name="confirmPassword" autocomplete="new-password" minlength="8"
+                class="rounded border border-stroke bg-gray py-2 px-3 text-sm text-black outline-none focus:border-primary dark:text-white" />
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-center gap-3">
+            <button type="button" onclick="submitPasswordChange()"
+              class="w-24 rounded-lg bg-indigo-200 py-2.5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-300">
+              변경
+            </button>
+            <button type="button" onclick="closePasswordChangeModal()"
+              class="w-24 rounded-lg bg-gray-200 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+              취소
+            </button>
+          </div>
+        </div>
+      </div>
       <!-- END MODAL -->
     </div>
     <!-- ===== Content Area End ===== -->

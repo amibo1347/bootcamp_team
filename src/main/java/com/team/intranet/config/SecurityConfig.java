@@ -116,7 +116,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/subAdmin/**", "/subAdmin/**").hasRole("SUB_ADMIN")
                 // 3. 누구나 접근 가능한 페이지 및 API (나중에 선언)
                 //  ※ /company-login = 회사 선택 랜딩, /*/login·/*/signup = 회사별 로그인/회원가입
-                .requestMatchers("/error", "/index", "/calendar", "/company-login", "/*/login", "/*/signup", "/member/logout", "/api/member/**", "/api/company/**", "/images/**", "/api/uploads/**", "/uploads/**").permitAll()
+                //  ※ /api/member/** 통째 permitAll 금지 — 회원가입 단계에서 실제로 비로그인이 필요한 것만 명시.
+                //     check-id : 사번/아이디 중복 검사 (회원가입 폼)
+                //     company/verify : 기업 코드 인증 (회원가입 1단계)
+                //     나머지(me/**, {id}/profileImg)는 로그인 후 호출만 존재 → authenticated 로 떨어진다.
+                .requestMatchers("/api/member/check-id", "/api/member/company/verify").permitAll()
+                .requestMatchers("/error", "/index", "/company-login", "/*/login", "/*/signup", "/member/logout", "/api/company/**").permitAll()
                 // 4. 그 외 모든 요청은 로그인 필요
                 .anyRequest().authenticated()
                 )
