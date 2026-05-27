@@ -187,8 +187,31 @@
                 계정 설정
               </a>
             </li>
+            <!--
+              시스템 로그 — Role.ADMIN(회사 대표) 만 노출. SUB_ADMIN 추가 권한 부여로도 보이지 않게 role 직접 비교.
+              ※ Security 가드는 /admin/system-log → hasRole('ADMIN'). 메뉴는 가시성만 차단.
+            -->
+            <li th:if="${session.memberSession != null
+                        and session.memberSession.role != null
+                        and session.memberSession.role.name() == 'ADMIN'}">
+              <a href="/admin/system-log"
+                class="group text-theme-sm flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300">
+                <svg class="fill-gray-500 group-hover:fill-gray-700 dark:fill-gray-400 dark:group-hover:fill-gray-300"
+                  width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 4h16v2H4V4zm0 5h16v2H4V9zm0 5h10v2H4v-2zm0 5h10v2H4v-2zm14-2h2v2h-2v-2zm0-5h2v2h-2v-2z" fill=""/>
+                </svg>
+                시스템 로그
+              </a>
+            </li>
           </ul>
-          <form th:action="@{/member/logout}" method="post">
+          <!--
+            로그아웃 폼은 인증된 회원에게만 렌더 — th:action 이 CSRF 토큰을 hidden 으로 박는 과정에서
+            세션이 없으면 새 세션을 만들려고 시도한다. 응답이 이미 committed 상태면
+            "Cannot create a session after the response has been committed" 가 발생하면서 500 으로 떨어진다.
+            (비로그인 사용자에겐 어차피 필요 없는 폼.)
+          -->
+          <form th:if="${session != null and session.memberSession != null}"
+                th:action="@{/member/logout}" method="post">
             <button type="submit"
               class="group text-theme-sm mt-3 flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300">
               <svg class="fill-gray-500 group-hover:fill-gray-700 dark:group-hover:fill-gray-300" width="24" height="24"

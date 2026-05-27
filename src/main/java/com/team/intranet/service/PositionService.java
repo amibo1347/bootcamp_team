@@ -5,6 +5,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;  // ⭐ Spring 트랜잭션
 
@@ -12,8 +13,10 @@ import com.team.intranet.dto.PositionDto;
 import com.team.intranet.entity.Company;
 import com.team.intranet.entity.Position;
 import com.team.intranet.enums.ErrorCode;
+import com.team.intranet.enums.SystemLogAction;
 import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.SubAdminPermission;
+import com.team.intranet.event.SystemLogEvent;
 import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.CompanyRepository;
 import com.team.intranet.repository.PositionRepository;
@@ -28,6 +31,7 @@ public class PositionService {
 
     private final PositionRepository positionRepository;
     private final CompanyRepository companyRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 우리 회사 직급 조회 (정렬 없음)
@@ -67,7 +71,10 @@ public class PositionService {
             role
         );
 
-        positionRepository.save(position);
+        Position saved = positionRepository.save(position);
+        publishLog(ms, SystemLogAction.CREATE, "POSITION", saved.getPositionId(),
+            saved.getPositionName() + "(level=" + saved.getPositionLevel() + ")",
+            "직급 생성 / role=" + role.name());
     }
 
     /**
@@ -89,9 +96,15 @@ public class PositionService {
             }
         }
 
+        String prev = position.getPositionName() + "(level=" + position.getPositionLevel() + ")";
+
         // ⭐ Entity의 update 메서드 사용 (setter 대신) — isSystem 이면 엔티티가 이름만 갱신
         position.update(dto.getPositionName(), dto.getPositionLevel(), newRole);
         // JPA 변경 감지로 자동 저장 (save 불필요)
+
+        String now = position.getPositionName() + "(level=" + position.getPositionLevel() + ")";
+        publishLog(ms, SystemLogAction.UPDATE, "POSITION", positionId, position.getPositionName(),
+            "직급 수정: " + prev + " → " + now);
     }
 
     /**
@@ -103,7 +116,9 @@ public class PositionService {
         if (position.isSystemDefault()) {
             throw new BusinessException(ErrorCode.SYSTEM_PROTECTED_POSITION);
         }
+        String label = position.getPositionName() + "(level=" + position.getPositionLevel() + ")";
         positionRepository.delete(position);
+        publishLog(ms, SystemLogAction.DELETE, "POSITION", positionId, label, "직급 삭제");
     }
 
     /**
@@ -133,6 +148,20 @@ public class PositionService {
         if (position.getRole() != newRole) {
             position.setRole(newRole);
         }
+
+        String permsLabel = normalized.isEmpty() ? "(권한 없음 → USER)"
+            : normalized.stream().map(Enum::name).reduce((a, b) -> a + ", " + b).orElse("");
+        publishLog(ms, SystemLogAction.UPDATE, "POSITION", positionId, position.getPositionName(),
+            "직급 권한 변경: " + permsLabel);
+    }
+
+    /** 시스템 로그 이벤트 발행 — AFTER_COMMIT 리스너가 적재. */
+    private void publishLog(MemberSession ms, SystemLogAction action, String targetType, Long targetId,
+                            String targetLabel, String detail) {
+        if (ms == null || ms.getCompanyId() == null) return;
+        eventPublisher.publishEvent(new SystemLogEvent(
+            ms.getCompanyId(), ms.getMemberId(), ms.getName(),
+            action, targetType, targetId, targetLabel, detail));
     }
 
     // ===== 헬퍼 메서드 =====

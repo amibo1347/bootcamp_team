@@ -4,6 +4,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import listPlugin from "@fullcalendar/list";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import { getHolidaysForDate, ensureHolidaysForYear } from "./calendar-holidays.js";
 
 /** @typedef {'create'|'edit'} EventModalMode */
 
@@ -205,6 +206,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderCalendarEventCellContent(arg) {
     const ev = arg.event;
     const xp = ev?.extendedProps ?? {};
+
     const visibility = String(xp?.visibility ?? "PRIVATE");
     const shareDeptIds = Array.isArray(xp?.shareDeptIds) ? xp.shareDeptIds.map(String) : [];
     const viewerIds = computeEventViewerIds(xp);
@@ -2245,6 +2247,26 @@ document.addEventListener("DOMContentLoaded", () => {
         else successCallback([]);
       }
     },
+    /**
+     * 월/주 뷰 day-cell 우상단에 공휴일/기념일 라벨 인라인 표시.
+     *  - 일정 박스(events) 가 아니라 날짜 숫자 옆에 작은 텍스트로 배치.
+     *  - 같은 날 여러 휴일이 있으면 첫 번째 것만 표시 (예: 어린이날+부처님오신날 — 추후 정책에 따라 조정).
+     */
+    dayCellDidMount: (arg) => {
+      const top = arg.el.querySelector(".fc-daygrid-day-top");
+      if (!(top instanceof HTMLElement)) return;
+      // 재렌더링 시 중복 부착 방지.
+      top.querySelector(".cal-holiday-label")?.remove();
+      const holidays = getHolidaysForDate(arg.date);
+      if (holidays.length === 0) return;
+      const entry = holidays[0];
+      const span = document.createElement("span");
+      span.className = "cal-holiday-label";
+      span.dataset.holidayKind = entry.kind;
+      span.title = entry.title;
+      span.textContent = entry.shortTitle;
+      top.appendChild(span);
+    },
     select: (info) => {
       setEventModalMode("create");
       resetEventForm();
@@ -2365,8 +2387,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
   calendarInstance.render();
   decorateCalendarToolbarIcons();
+
+  /**
+   * 휴일 prefetch — datesSet 마다 뷰 범위에 걸리는 연도들을 lazy 로드.
+   *  - ensureHolidaysForYear 가 새로 로드되면 true 반환 → render() 한 번 트리거해서 dayCellDidMount 가 재실행되고 라벨이 그려진다.
+   *  - 이미 캐시된 연도는 false → render() 안 부름 → 무한 루프 방지.
+   */
+  const prefetchHolidaysForCurrentRange = async () => {
+    const view = calendarInstance?.view;
+    if (!view) return;
+    const startYear = view.currentStart.getFullYear();
+    const endYear = new Date(view.currentEnd.getTime() - 1).getFullYear();
+    const years = new Set();
+    for (let y = startYear; y <= endYear; y += 1) years.add(y);
+    const results = await Promise.all(Array.from(years).map((y) => ensureHolidaysForYear(y)));
+    if (results.some(Boolean)) calendarInstance?.render();
+  };
+  // 최초 렌더 직후의 초기 범위에도 prefetch 적용.
+  prefetchHolidaysForCurrentRange();
   calendarInstance.on("datesSet", () => {
     decorateCalendarToolbarIcons();
+    prefetchHolidaysForCurrentRange();
   });
 
   initEventModalCalendarComboboxes();

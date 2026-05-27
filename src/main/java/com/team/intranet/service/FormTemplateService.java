@@ -1,5 +1,6 @@
 package com.team.intranet.service;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import java.util.Arrays;
 import java.util.List;
@@ -14,7 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team.intranet.dto.FormTemplateDto;
+import com.team.intranet.enums.SystemLogAction;
 import com.team.intranet.enums.VacationType;
+import com.team.intranet.event.SystemLogEvent;
 import com.team.intranet.repository.FormTemplateRepository;
 import com.team.intranet.repository.CompanyRepository;
 import com.team.intranet.session.MemberSession;
@@ -32,6 +35,7 @@ public class FormTemplateService {
     private final FormTemplateRepository formTemplateRepository;
     private final CompanyRepository companyRepository;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 신청 wizard 가 사용 — 그 회사 사용자에게 노출할 양식 목록.
     //
@@ -154,7 +158,10 @@ public class FormTemplateService {
             .fieldSchema(dto.getFieldSchema())
             .build();
 
-        return formTemplateRepository.save(form);
+        FormTemplate saved = formTemplateRepository.save(form);
+        publishLog(ms, SystemLogAction.CREATE, "FORM_TEMPLATE", saved.getFormTemplateId(),
+            saved.getName() + "(" + saved.getFormCode() + ")", "결재 양식 생성");
+        return saved;
     }
 
     @Transactional
@@ -179,6 +186,8 @@ public class FormTemplateService {
             form.setFieldSchema(dto.getFieldSchema());
         }
 
+        publishLog(ms, SystemLogAction.UPDATE, "FORM_TEMPLATE", form.getFormTemplateId(),
+            form.getName() + "(" + form.getFormCode() + ")", "결재 양식 수정");
         return form;
     }
 
@@ -194,7 +203,9 @@ public class FormTemplateService {
         FormTemplate form = formTemplateRepository.findByFormTemplateIdAndCompany(id, company)
             .orElseThrow(() -> new BusinessException(ErrorCode.FORM_TEMPLATE_NOT_FOUND));
 
+        String label = form.getName() + "(" + form.getFormCode() + ")";
         formTemplateRepository.delete(form);
+        publishLog(ms, SystemLogAction.DELETE, "FORM_TEMPLATE", id, label, "결재 양식 삭제");
     }
 
     // 시스템 디폴트를 회사 스코프로 복사 (커스터마이즈 진입점)
@@ -231,7 +242,19 @@ public class FormTemplateService {
             .fieldSchema(inheritedSchema)
             .build();
 
-        return formTemplateRepository.save(fork);
+        FormTemplate saved = formTemplateRepository.save(fork);
+        publishLog(ms, SystemLogAction.CREATE, "FORM_TEMPLATE", saved.getFormTemplateId(),
+            saved.getName() + "(" + saved.getFormCode() + ")", "결재 양식 복사(fork)");
+        return saved;
+    }
+
+    /** 시스템 로그 이벤트 발행 — AFTER_COMMIT 리스너가 적재. */
+    private void publishLog(MemberSession ms, SystemLogAction action, String targetType, Long targetId,
+                            String targetLabel, String detail) {
+        if (ms == null || ms.getCompanyId() == null) return;
+        eventPublisher.publishEvent(new SystemLogEvent(
+            ms.getCompanyId(), ms.getMemberId(), ms.getName(),
+            action, targetType, targetId, targetLabel, detail));
     }
 
     /** 시스템 디폴트 fixed 본문 모양에 대응하는 동적 schema JSON. 매칭 안 되면 null. */

@@ -57,6 +57,7 @@
     "flatpickr": "^4.6.13",
     "fullcalendar": "^6.1.15",
     "jsvectormap": "^1.6.0",
+    "korean-lunar-calendar": "^0.3.6",
     "swiper": "^11.1.14"
   }
 }

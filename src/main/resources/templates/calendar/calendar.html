@@ -191,6 +191,45 @@
       z-index: 0;
     }
 
+    /*
+      [공휴일 인라인 라벨] dayCellDidMount 에서 fc-daygrid-day-top 에 부착하는 span.
+      - day-number 옆 우측 여백에 자리 잡도록 day-top 을 flex 로 만든다.
+      - 셀 폭이 작으면 줄임표(...) 처리해 줄바꿈으로 셀이 늘어나지 않게 한다.
+      - PUBLIC(공휴일) 빨간색 / OBSERVANCE(기념일) 호박색.
+    */
+    #calendar .fc-daygrid-day-top {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      min-width: 0;
+    }
+    #calendar .fc-daygrid-day-number {
+      flex-shrink: 0;
+    }
+    #calendar .cal-holiday-label {
+      min-width: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.75rem;
+      line-height: 1rem;
+      font-weight: 500;
+      text-align: right;
+    }
+    #calendar .cal-holiday-label[data-holiday-kind="PUBLIC"] {
+      color: #dc2626; /* red-600 */
+    }
+    #calendar .cal-holiday-label[data-holiday-kind="OBSERVANCE"] {
+      color: #b45309; /* amber-700 */
+    }
+    .dark #calendar .cal-holiday-label[data-holiday-kind="PUBLIC"] {
+      color: #fca5a5; /* red-300 */
+    }
+    .dark #calendar .cal-holiday-label[data-holiday-kind="OBSERVANCE"] {
+      color: #fbbf24; /* amber-400 */
+    }
+
     #chat-stack {
       z-index: 10080;
     }

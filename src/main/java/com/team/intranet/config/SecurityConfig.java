@@ -27,8 +27,10 @@ public class SecurityConfig {
 
     private final LoginSuccessHandler loginSuccessHandler;
     private final LoginFailureHandler loginFailureHandler;
+    private final MemberLogoutSuccessHandler memberLogoutSuccessHandler;
     private final MasterLoginSuccessHandler masterLoginSuccessHandler;
     private final MasterLoginFailureHandler masterLoginFailureHandler;
+    private final CompanyAwareAuthenticationEntryPoint companyAwareAuthenticationEntryPoint;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -86,7 +88,7 @@ public class SecurityConfig {
                 .logoutUrl("/master/logout")
                 .logoutSuccessUrl("/master/login")
                 .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID")
+                .deleteCookies("TEAM_SESSIONID")
                 )
                 .authenticationProvider(masterProvider)
                 // 2차 인증(TOTP) 게이트 — 비밀번호만 통과한 요청을 콘솔에서 막는다.
@@ -148,11 +150,17 @@ public class SecurityConfig {
                 .permitAll()
                 )
                 .authenticationProvider(memberAuthenticationProvider)
+                // 💡 비인증 진입 시 회사별 로그인 페이지로 보냄 (lastCompanyDomain 쿠키 기반).
+                //    SecurityConfig 의 loginPage("/company-login") 만으로는 회사 정보를 알 수 없어
+                //    자동 로그아웃 후 회사 선택 랜딩으로 떨어지는 문제를 해결.
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(companyAwareAuthenticationEntryPoint))
                 .logout(logout -> logout
                 .logoutUrl("/member/logout") // 💡 HTML에서 호출할 로그아웃 주소
-                .logoutSuccessUrl("/company-login") // 💡 로그아웃 성공 후 이동할 페이지
+                // 💡 회원이 속한 회사의 로그인 페이지(/{companyDomain}/login) 로 보낸다. 핸들러 내부에서
+                //    인증 정보를 못 읽으면 /company-login 으로 폴백한다.
+                .logoutSuccessHandler(memberLogoutSuccessHandler)
                 .invalidateHttpSession(true) // 💡 서버 세션 완전히 삭제 (중요!)
-                .deleteCookies("JSESSIONID") // 💡 브라우저에 남은 세션 쿠키 삭제
+                .deleteCookies("TEAM_SESSIONID") // 💡 브라우저에 남은 세션 쿠키 삭제
                 .permitAll()
                 )
                 // 비활성 회사 소속 회원 자동 로그아웃 게이트
