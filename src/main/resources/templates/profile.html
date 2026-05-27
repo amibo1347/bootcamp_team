@@ -14,22 +14,6 @@
   <title>내 프로필 | 인트라넷</title>
   <link rel="stylesheet" th:href="@{/css/output.css}" />
   <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
-  <style>
-    /*
-        [개인 정보] 카드 우측 하단 비밀번호 버튼 핀 — lg(≥1024px) 화면에서만 적용.
-        ※ 비번 wrapper 를 absolute 로 흐름에서 빼서 카드 세로 길이를 좌측 grid 자연 높이로 고정.
-          ⇒ 좌측 "연락처/생년월일" 라인과 같은 세로 위치에 비번 버튼이 정렬되고 카드가 늘어나지 않는다.
-        ※ lg 미만(모바일) 에서는 자연 흐름 (수정 버튼 아래에 mt-6 로 배치) 으로 동작.
-    */
-    @media (min-width: 1024px) {
-      .profile-pwd-buttons-pin {
-        position: absolute;
-        right: 1.5rem;
-        bottom: 1.5rem;
-        margin-top: 0;
-      }
-    }
-  </style>
 </head>
 
 <body
@@ -75,10 +59,11 @@
                        data-phone=${ms.phone != null ? ms.phone : ''},
                        data-birth=${ms.birthDay != null ? #temporals.format(ms.birthDay, 'yyyy-MM-dd') : ''}"></div>
 
-          <!-- [프로필 요약] 사진(카메라 버튼으로만 수정)·이름·직급·부서 -->
+          <!-- [프로필 요약] 사진·이름·직급·부서 + 우측 비밀번호 변경 -->
           <section
             class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
-            <div class="flex w-full flex-col items-center gap-6 xl:flex-row">
+            <div class="flex w-full flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+              <div class="flex w-full flex-col items-center gap-6 xl:flex-row xl:items-center">
                 <div id="profileSummaryRoot" class="relative shrink-0 overflow-visible"
                   th:attr="data-profile-img-url=@{/api/member/{id}/profileImg(id=${ms.memberId})}">
                   <div
@@ -120,17 +105,21 @@
                   </div>
                 </div>
               </div>
+
+              <!-- [비밀번호 변경] 프로필 요약 섹션 우측 (버튼 크기·스타일은 기존과 동일) -->
+              <div class="flex w-full justify-end xl:w-auto">
+                <button type="button" onclick="openPasswordChangeModal()"
+                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs transition hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
+                  비밀번호 변경
+                </button>
+              </div>
+            </div>
           </section>
           <!-- [프로필 요약] End -->
 
           <!-- [개인 정보] -->
-          <!--
-              section 을 position:relative 로 강제 — 비번 wrapper(.profile-pwd-buttons-pin) 의
-              lg 화면용 absolute 기준 컨테이너로 사용.
-          -->
           <section
-            class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark"
-            style="position:relative;">
+            class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
 
             <!-- 상단 row : 좌측 텍스트 영역 + 우측 수정 버튼 (이전 상태 그대로 복원) -->
             <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -168,22 +157,6 @@
                 수정
               </button>
             </div>
-
-            <!--
-                비밀번호 변경/초기화 버튼들.
-                ※ lg(≥1024px) : .profile-pwd-buttons-pin 미디어쿼리로 absolute right:1.5rem bottom:1.5rem
-                  → 카드 흐름에서 빠져 카드 세로 길이가 좌측 grid 자연 높이로 고정되고,
-                    좌측 row 2(연락처/생년월일) 라인과 같은 세로 위치에 자연 정렬됨.
-                ※ lg 미만 : mt-6 로 자연 흐름 (수정 버튼 아래에 row 로 배치).
-                ※ whitespace-nowrap 으로 "비밀번호 초기화" 의 '화' 줄바꿈 방지.
-            -->
-            <div class="profile-pwd-buttons-pin mt-6 flex gap-2"
-              style="justify-content:flex-end;">
-              <button type="button" onclick="openPasswordChangeModal()"
-                class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs transition hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-                비밀번호 변경
-              </button>
-            </div>
           </section>
    <!-- [개인 정보] End -->
         </div>
@@ -210,37 +183,37 @@
       <div id="passwordChangeModal"
         class="fixed inset-0 z-[100000] flex hidden items-center justify-center bg-black/50">
         <div
-          class="mx-4 w-full rounded-2xl border border-stroke bg-white p-6 shadow-2xl dark:border-strokedark dark:bg-boxdark"
-          style="max-width: 26rem;">
-          <h3 class="mb-5 text-xl font-bold text-black dark:text-white">비밀번호 변경</h3>
+          class="mx-4 w-full rounded-2xl border border-stroke bg-white p-8 shadow-2xl dark:border-strokedark dark:bg-boxdark"
+          style="max-width: 30rem;">
+          <h3 class="mb-7 text-xl font-bold text-black dark:text-white">비밀번호 변경</h3>
 
-          <div class="w-full space-y-3">
-            <div class="flex flex-col gap-1">
+          <div class="w-full space-y-5">
+            <div class="flex flex-col gap-2">
               <label for="pwdCurrent" class="text-sm font-medium text-gray-600 dark:text-gray-300">현재 비밀번호</label>
               <input type="password" id="pwdCurrent" name="currentPassword" autocomplete="current-password"
-                class="rounded border border-stroke bg-gray py-2 px-3 text-sm text-black outline-none focus:border-primary dark:text-white" />
+                class="rounded border border-stroke bg-gray py-3 px-3.5 text-sm text-black outline-none focus:border-primary dark:text-white" />
             </div>
 
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col gap-2">
               <label for="pwdNew" class="text-sm font-medium text-gray-600 dark:text-gray-300">새 비밀번호 (8자 이상)</label>
               <input type="password" id="pwdNew" name="newPassword" autocomplete="new-password" minlength="8"
-                class="rounded border border-stroke bg-gray py-2 px-3 text-sm text-black outline-none focus:border-primary dark:text-white" />
+                class="rounded border border-stroke bg-gray py-3 px-3.5 text-sm text-black outline-none focus:border-primary dark:text-white" />
             </div>
 
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col gap-2">
               <label for="pwdConfirm" class="text-sm font-medium text-gray-600 dark:text-gray-300">새 비밀번호 확인</label>
               <input type="password" id="pwdConfirm" name="confirmPassword" autocomplete="new-password" minlength="8"
-                class="rounded border border-stroke bg-gray py-2 px-3 text-sm text-black outline-none focus:border-primary dark:text-white" />
+                class="rounded border border-stroke bg-gray py-3 px-3.5 text-sm text-black outline-none focus:border-primary dark:text-white" />
             </div>
           </div>
 
-          <div class="mt-6 flex justify-center gap-3">
+          <div class="mt-8 flex justify-center gap-3">
             <button type="button" onclick="submitPasswordChange()"
-              class="w-24 rounded-lg bg-indigo-200 py-2.5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-300">
+              class="w-24 rounded-lg bg-indigo-200 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-300">
               변경
             </button>
             <button type="button" onclick="closePasswordChangeModal()"
-              class="w-24 rounded-lg bg-gray-200 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+              class="w-24 rounded-lg bg-gray-200 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
               취소
             </button>
           </div>

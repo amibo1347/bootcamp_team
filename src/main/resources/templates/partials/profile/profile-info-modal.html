@@ -1,43 +1,44 @@
-<!-- [개인 정보 수정 모달] memberList 직원 수정 모달과 동일 톤. 부서·직급·프로필 사진 필드는 제외 -->
+<!-- [개인 정보 수정 모달] 비밀번호 변경 모달과 동일 톤·사이즈 -->
 <div id="profileEditModal"
   class="fixed inset-0 z-[100000] flex hidden items-center justify-center bg-black/50">
   <div
-    class="mx-4 w-full max-w-2xl rounded-2xl border border-stroke bg-white p-8 shadow-2xl dark:border-strokedark dark:bg-boxdark">
-    <h3 class="mb-8 text-2xl font-bold text-black dark:text-white">개인 정보 수정</h3>
+    class="mx-4 w-full rounded-2xl border border-stroke bg-white p-8 shadow-2xl dark:border-strokedark dark:bg-boxdark"
+    style="max-width: 30rem;">
+    <h3 class="mb-7 text-xl font-bold text-black dark:text-white">개인 정보 수정</h3>
 
-    <div class="w-full space-y-4">
+    <div class="w-full space-y-5">
       <div class="flex items-center gap-4">
-        <label for="profileEditName" class="w-24 text-lg font-bold text-black dark:text-white">이름</label>
+        <label for="profileEditName" class="w-20 shrink-0 text-sm font-medium text-gray-600 dark:text-gray-300">이름</label>
         <input type="text" id="profileEditName" name="name"
-          class="flex-1 rounded border border-stroke bg-gray py-2 px-4 text-black outline-none focus:border-primary dark:text-white" />
+          class="flex-1 rounded border border-stroke bg-gray py-3 px-3.5 text-sm text-black outline-none focus:border-primary dark:text-white" />
       </div>
 
       <div class="flex items-center gap-4">
-        <label for="profileEditEmail" class="w-24 font-medium text-gray-600 dark:text-gray-300">이메일</label>
+        <label for="profileEditEmail" class="w-20 shrink-0 text-sm font-medium text-gray-600 dark:text-gray-300">이메일</label>
         <input type="email" id="profileEditEmail" name="email"
-          class="flex-1 rounded border border-stroke bg-gray py-2 px-4 outline-none focus:border-primary dark:text-white" />
+          class="flex-1 rounded border border-stroke bg-gray py-3 px-3.5 text-sm outline-none focus:border-primary dark:text-white" />
       </div>
 
       <div class="flex items-center gap-4">
-        <label for="profileEditPhone" class="w-24 font-medium text-gray-600 dark:text-gray-300">연락처</label>
+        <label for="profileEditPhone" class="w-20 shrink-0 text-sm font-medium text-gray-600 dark:text-gray-300">연락처</label>
         <input type="text" id="profileEditPhone" name="phone"
-          class="flex-1 rounded border border-stroke bg-gray py-2 px-4 outline-none focus:border-primary dark:text-white" />
+          class="flex-1 rounded border border-stroke bg-gray py-3 px-3.5 text-sm outline-none focus:border-primary dark:text-white" />
       </div>
 
       <div class="flex items-center gap-4">
-        <label for="profileEditBirth" class="w-24 font-medium text-gray-600 dark:text-gray-300">생년월일</label>
+        <label for="profileEditBirth" class="w-20 shrink-0 text-sm font-medium text-gray-600 dark:text-gray-300">생년월일</label>
         <input type="text" id="profileEditBirth" name="birthDay" placeholder="yyyy-MM-dd"
-          class="flex-1 rounded border border-stroke bg-gray py-2 px-4 outline-none focus:border-primary dark:text-white" />
+          class="flex-1 rounded border border-stroke bg-gray py-3 px-3.5 text-sm outline-none focus:border-primary dark:text-white" />
       </div>
     </div>
 
-    <div class="mt-10 flex justify-center gap-4">
+    <div class="mt-8 flex justify-center gap-3">
       <button type="button" onclick="updateMyProfile()"
-        class="w-32 rounded-lg bg-indigo-200 py-3 font-semibold text-indigo-700 transition hover:bg-indigo-300">
+        class="w-24 rounded-lg bg-indigo-200 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-300">
         수정
       </button>
       <button type="button" onclick="closeProfileEditModal()"
-        class="w-32 rounded-lg bg-gray-200 py-3 font-semibold text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+        class="w-24 rounded-lg bg-gray-200 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
         취소
       </button>
     </div>
