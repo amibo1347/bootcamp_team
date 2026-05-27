@@ -63,10 +63,37 @@
     };
   }
 
-  /** @param {number} page 0-base */
-  async function fetchUnifiedTrash(page) {
+  /**
+   * 현재 검색 폼 값을 객체로 추출한다. 폼이 없으면 빈 객체.
+   * @returns {{ period: string, searchType: string, keyword: string }}
+   */
+  function readSearchState() {
+    const period = document.getElementById('postSearchPeriod')?.value || 'ALL';
+    const searchType = document.getElementById('postSearchType')?.value || 'ALL';
+    const keyword = (document.getElementById('postSearchKeyword')?.value || '').trim();
+    return { period, searchType, keyword };
+  }
+
+  /**
+   * 현재 검색 조건을 보관해 복구/삭제 직후 재조회·페이지 이동 시 동일 조건을 유지한다.
+   * @type {{ period: string, searchType: string, keyword: string }}
+   */
+  let unifiedTrashSearch = { period: 'ALL', searchType: 'ALL', keyword: '' };
+
+  /**
+   * @param {number} page 0-base
+   * @param {{ period?: string, searchType?: string, keyword?: string }} [search]
+   */
+  async function fetchUnifiedTrash(page, search = unifiedTrashSearch) {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('size', String(PAGE_SIZE));
+    if (search.period && search.period !== 'ALL') params.set('period', search.period);
+    if (search.searchType) params.set('searchType', search.searchType);
+    if (search.keyword) params.set('keyword', search.keyword);
+
     const response = await fetch(
-      `/api/subAdmin/articles/trash?page=${page}&size=${PAGE_SIZE}`,
+      `/api/subAdmin/articles/trash?${params.toString()}`,
       { method: 'GET', headers: { Accept: 'application/json' }, credentials: 'same-origin' }
     );
     if (!response.ok) throw new Error(await window.getApiErrorMessage(response, '통합 휴지통 목록을 불러오지 못했습니다.'));
@@ -328,9 +355,14 @@
     });
   }
 
-  /** @param {number} page */
-  async function loadUnifiedTrash(page) {
+  /**
+   * @param {number} page
+   * @param {{ period?: string, searchType?: string, keyword?: string }} [search]
+   *        주어지면 unifiedTrashSearch 를 갱신한 뒤 그 조건으로 조회한다.
+   */
+  async function loadUnifiedTrash(page, search) {
     hideMsg();
+    if (search) unifiedTrashSearch = search;
     const requestPage = Math.max(0, page);
     let { items, currentPage, totalPages } = await fetchUnifiedTrash(requestPage);
 
@@ -343,6 +375,23 @@
     unifiedTrashCurrentPage = currentPage;
     renderRows(items, currentPage);
     renderPagination(currentPage, totalPages, (next) => loadUnifiedTrash(next));
+  }
+
+  /**
+   * 검색 폼 submit 핸들러 등록 — 폼이 없으면 아무 일도 안 함.
+   */
+  function bindUnifiedTrashSearchForm() {
+    const form = document.getElementById('postSearchForm');
+    if (!form) return;
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      loadUnifiedTrash(0, readSearchState()).catch((error) => {
+        console.error(error);
+        showMsg(error?.message || '통합 휴지통 목록을 불러오지 못했습니다.');
+        renderRows([], 0);
+        renderPagination(0, 1, () => {});
+      });
+    });
   }
 
   function attachRowDelegation() {
@@ -401,6 +450,7 @@
     if (!document.getElementById('unifiedTrashBody')) return;
 
     attachRowDelegation();
+    bindUnifiedTrashSearchForm();
     loadUnifiedTrash(0).catch(async (error) => {
       console.error(error);
       showMsg(error?.message || '통합 휴지통 목록을 불러오지 못했습니다.');

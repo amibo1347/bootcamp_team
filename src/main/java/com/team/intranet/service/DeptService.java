@@ -2,13 +2,16 @@ package com.team.intranet.service;
 
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;  
+import org.springframework.transaction.annotation.Transactional;
 
 import com.team.intranet.dto.DeptDto;
 import com.team.intranet.entity.Company;
 import com.team.intranet.entity.Dept;
 import com.team.intranet.enums.ErrorCode;
+import com.team.intranet.enums.SystemLogAction;
+import com.team.intranet.event.SystemLogEvent;
 import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.CompanyRepository;
 import com.team.intranet.repository.DeptRepository;
@@ -27,6 +30,7 @@ public class DeptService {
 
     private final DeptRepository deptRepository;
     private final CompanyRepository companyRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 우리 회사 부서만 조회
@@ -45,9 +49,11 @@ public class DeptService {
     public void createDept(MemberSession ms, DeptDto dto) {
         Company company = findCompany(ms.getCompanyId());
         String newCode = generateNextDeptCode(ms.getCompanyId());
-        
+
         Dept dept = Dept.createDept(dto.getDeptName(), newCode, company);
-        deptRepository.save(dept);
+        Dept saved = deptRepository.save(dept);
+        publishLog(ms, SystemLogAction.CREATE, "DEPT", saved.getDeptId(),
+            saved.getDeptName() + "(" + newCode + ")", "부서 생성");
     }
 
     /**
@@ -56,10 +62,13 @@ public class DeptService {
     @Transactional
     public void editDept(MemberSession ms, Long deptId, DeptDto dto) {
         Dept dept = findDeptAndValidateOwner(ms, deptId);
-        
+        String prevName = dept.getDeptName();
+
         // ⭐ Entity의 update 메서드 호출 (setter 대신)
         dept.updateFromDto(dto);
         // 부서 코드는 자동 생성된 값 유지 (수정 불가)
+        publishLog(ms, SystemLogAction.UPDATE, "DEPT", deptId, dept.getDeptName(),
+            "부서명 변경: " + prevName + " → " + dept.getDeptName());
     }
 
     /**
@@ -71,7 +80,18 @@ public class DeptService {
         if (dept.isSystemDefault()) {
             throw new BusinessException(ErrorCode.SYSTEM_PROTECTED_DEPT);
         }
+        String label = dept.getDeptName();
         deptRepository.delete(dept);
+        publishLog(ms, SystemLogAction.DELETE, "DEPT", deptId, label, "부서 삭제");
+    }
+
+    /** 시스템 로그 이벤트 발행 — AFTER_COMMIT 리스너가 적재. */
+    private void publishLog(MemberSession ms, SystemLogAction action, String targetType, Long targetId,
+                            String targetLabel, String detail) {
+        if (ms == null || ms.getCompanyId() == null) return;
+        eventPublisher.publishEvent(new SystemLogEvent(
+            ms.getCompanyId(), ms.getMemberId(), ms.getName(),
+            action, targetType, targetId, targetLabel, detail));
     }
 
     /**

@@ -80,13 +80,21 @@
   }
 
   /**
-   * 게시판 ID와 페이지 번호를 기준으로 게시글 목록을 조회한다.
+   * 게시판 ID·페이지 번호·검색 조건으로 게시글 목록을 조회한다.
    * @param {number} boardId 게시판 ID
    * @param {number} page 페이지 번호(0-base)
+   * @param {{ period?: string, searchType?: string, keyword?: string }} [search] 검색 조건
    * @returns {Promise<{ posts: Array, currentPage: number, totalPages: number }>}
    */
-  async function fetchPosts(boardId, page) {
-    const response = await fetch(`/api/board/${boardId}/articles?page=${page}&size=${PAGE_SIZE}`, {
+  async function fetchPosts(boardId, page, search = {}) {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('size', String(PAGE_SIZE));
+    if (search.period && search.period !== 'ALL') params.set('period', search.period);
+    if (search.searchType) params.set('searchType', search.searchType);
+    if (search.keyword) params.set('keyword', search.keyword);
+
+    const response = await fetch(`/api/board/${boardId}/articles?${params.toString()}`, {
       method: 'GET',
       headers: {
         Accept: 'application/json',
@@ -339,24 +347,58 @@
   }
 
   /**
+   * 현재 검색 폼 값을 객체로 추출한다. 폼이 없으면 빈 객체 — 다른 화면(휴지통 등)에서 view.js 가 재사용돼도 안전.
+   * @returns {{ period: string, searchType: string, keyword: string }}
+   */
+  function readSearchState() {
+    const period = document.getElementById('postSearchPeriod')?.value || 'ALL';
+    const searchType = document.getElementById('postSearchType')?.value || 'ALL';
+    const keyword = (document.getElementById('postSearchKeyword')?.value || '').trim();
+    return { period, searchType, keyword };
+  }
+
+  /**
    * 현재 페이지에 맞는 게시글 목록과 페이지네이션을 갱신한다.
    * @param {number} boardId 게시판 ID
    * @param {number} page 페이지 번호(0-base)
+   * @param {{ period?: string, searchType?: string, keyword?: string }} [search] 검색 조건
    */
-  async function updateBoardPosts(boardId, page) {
-    const { posts, currentPage, totalPages } = await fetchPosts(boardId, page);
+  async function updateBoardPosts(boardId, page, search) {
+    const condition = search || readSearchState();
+    const { posts, currentPage, totalPages } = await fetchPosts(boardId, page, condition);
     const postsWithAttachment = await enrichPostsWithAttachmentFlag(posts);
     renderList(postsWithAttachment, boardId);
     renderAlbum(postsWithAttachment, boardId);
     renderCard(postsWithAttachment, boardId);
     renderPagination(currentPage, totalPages, (nextPage) => {
-      updateBoardPosts(boardId, nextPage);
+      // 페이지 이동 시에도 현재 검색 조건을 유지한다.
+      updateBoardPosts(boardId, nextPage, condition);
+    });
+  }
+
+  /**
+   * 검색 폼 submit 핸들러 등록 — 폼이 없는 페이지에서는 아무 일도 하지 않는다.
+   * @param {number} boardId 게시판 ID
+   */
+  function bindSearchForm(boardId) {
+    const form = document.getElementById('postSearchForm');
+    if (!form) return;
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      updateBoardPosts(boardId, 0, readSearchState()).catch((error) => {
+        console.error(error);
+        renderList([], boardId);
+        renderAlbum([], boardId);
+        renderCard([], boardId);
+        renderPagination(0, 1, () => {});
+      });
     });
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     const boardId = Number(document.body.dataset.boardId || 0);
     if (!boardId) return;
+    bindSearchForm(boardId);
     updateBoardPosts(boardId, 0).catch((error) => {
       console.error(error);
       renderList([], boardId);

@@ -38,13 +38,14 @@ function renderFilterOptions(filter) {
 }
 
 /**
- * 취소 가능 여부 — 대기(PENDING) · 보류(ON_HOLD) 상태만 취소할 수 있다.
+ * 취소 가능 여부 — 대기(PENDING) 상태에서만 취소할 수 있다.
+ *   보류(ON_HOLD) 는 결재자가 다시 검토할 수 있는 상태이므로 신청자 취소 대상에서 제외.
  * @param {unknown} status
  * @returns {boolean}
  */
 function canCancel(status) {
   const s = String(status || '').toUpperCase();
-  return s === 'PENDING' || s === 'ON_HOLD';
+  return s === 'PENDING';
 }
 
 /**

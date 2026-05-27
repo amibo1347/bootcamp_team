@@ -3,6 +3,7 @@ package com.team.intranet.service;
 import java.util.Collections;
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +16,7 @@ import com.team.intranet.entity.Dept;
 import com.team.intranet.entity.Member;
 import com.team.intranet.entity.Position;
 import com.team.intranet.enums.ErrorCode;
+import com.team.intranet.enums.SystemLogAction;
 import com.team.intranet.enums.board.AnonymousType;
 import com.team.intranet.enums.board.BoardType;
 import com.team.intranet.enums.board.CommentScope;
@@ -22,6 +24,7 @@ import com.team.intranet.enums.board.ReadScope;
 import com.team.intranet.enums.board.ScopeType;
 import com.team.intranet.enums.board.ViewType;
 import com.team.intranet.enums.board.WriteScope;
+import com.team.intranet.event.SystemLogEvent;
 import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.BoardAlertPrefRepository;
 import com.team.intranet.repository.BoardRepository;
@@ -46,6 +49,7 @@ public class BoardService {
     private final BoardscopeRuleRepository scopeRuleRepository;
     private final BoardAlertPrefRepository boardAlertPrefRepository;
     private final MemberRepository memberRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 시스템 디폴트 공지사항 게시판 보장.
@@ -170,6 +174,8 @@ public class BoardService {
         saveScopeRules(saved, ScopeType.WRITE, dto.getWriteDeptIds(), dto.getWritePositionIds());
         saveScopeRules(saved, ScopeType.COMMENT, dto.getCommentDeptIds(), dto.getCommentPositionIds());
 
+        publishLog(ms, SystemLogAction.CREATE, "BOARD", saved.getBoardId(), saved.getBoardName(),
+            "게시판 생성 (" + saved.getBoardType().name() + ")");
         return saved;
     }
 
@@ -196,6 +202,9 @@ public class BoardService {
         saveScopeRules(board, ScopeType.READ, dto.getReadDeptIds(), dto.getReadPositionIds());
         saveScopeRules(board, ScopeType.WRITE, dto.getWriteDeptIds(), dto.getWritePositionIds());
         saveScopeRules(board, ScopeType.COMMENT, dto.getCommentDeptIds(), dto.getCommentPositionIds());
+
+        publishLog(ms, SystemLogAction.UPDATE, "BOARD", boardId, board.getBoardName(),
+            "게시판 설정 수정");
     }
 
     /**
@@ -207,8 +216,19 @@ public class BoardService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
         validateSameCompany(board.getCompany().getCompanyId(), ms.getCompanyId());
 
+        String name = board.getBoardName();
         scopeRuleRepository.deleteByBoardBoardId(boardId);
         boardRepository.delete(board);
+        publishLog(ms, SystemLogAction.DELETE, "BOARD", boardId, name, "게시판 삭제");
+    }
+
+    /** 시스템 로그 이벤트 발행 — AFTER_COMMIT 리스너가 적재. 회사 격리 보장. */
+    private void publishLog(MemberSession ms, SystemLogAction action, String targetType, Long targetId,
+                            String targetLabel, String detail) {
+        if (ms == null || ms.getCompanyId() == null) return;
+        eventPublisher.publishEvent(new SystemLogEvent(
+            ms.getCompanyId(), ms.getMemberId(), ms.getName(),
+            action, targetType, targetId, targetLabel, detail));
     }
 
     // ===== 권한 체크 =====

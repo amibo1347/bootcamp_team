@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.ui.Model;
 import com.team.intranet.dto.BoardDto;
 import com.team.intranet.entity.Article;
@@ -47,8 +48,11 @@ public class ArticleApiController {
     public ResponseEntity<Page<ArticleDto>> listArticles(
           @PathVariable Long boardId,
           @AuthenticatedMember MemberSession ms,
+          @RequestParam(required = false) String period,
+          @RequestParam(required = false) String searchType,
+          @RequestParam(required = false) String keyword,
         @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-      return ResponseEntity.ok(articleService.findArticlesByBoard(ms, boardId, pageable));
+      return ResponseEntity.ok(articleService.findArticlesByBoard(ms, boardId, period, searchType, keyword, pageable));
   }
 
   @GetMapping("/trash")

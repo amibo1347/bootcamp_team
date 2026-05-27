@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;  // ⭐ Spring 트랜잭션
@@ -18,10 +19,12 @@ import com.team.intranet.entity.Dept;
 import com.team.intranet.entity.Member;
 import com.team.intranet.entity.Position;
 import com.team.intranet.enums.ErrorCode;
+import com.team.intranet.enums.SystemLogAction;
 import com.team.intranet.enums.member.MemberType;
 import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.Status;
 import com.team.intranet.enums.member.SubAdminPermission;
+import com.team.intranet.event.SystemLogEvent;
 import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.ArticleRepository;
 import com.team.intranet.repository.CommentRepository;
@@ -47,6 +50,7 @@ public class MemberService {
     private final ArticleRepository articleRepository;
     private final CommentRepository commentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final String RETIRED_DISPLAY_NAME = "탈퇴 회원";
 
@@ -99,6 +103,9 @@ public class MemberService {
         Position position = findPositionAndValidateOwner(ms, positionId);
 
         targetMember.accept(dept, position);
+
+        publishMemberLog(ms, SystemLogAction.APPROVE, targetMember,
+            "부서: " + dept.getDeptName() + " / 직급: " + position.getPositionName());
     }
 
     @Transactional
@@ -108,6 +115,11 @@ public class MemberService {
         if (!target.getStatus().canTransitionTo(next)){
             throw new BusinessException(ErrorCode.INVALID_STATUS);
         }
+        // 로그용으로 변경 전 정보 캡처 (REJECT/BANNED/LEAVE 단계에서 회원 row 가 사라지거나 익명화됨)
+        Status prev = target.getStatus();
+        String targetName = target.getName();
+        Long targetId = target.getMemberId();
+
         switch (next) {
             case REJECT -> {
                 // 가입 거절: 작성한 게시글/댓글이 없으므로 별도 처리 없이 row 즉시 DELETE
@@ -124,6 +136,15 @@ public class MemberService {
             case JOIN -> target.reinstate(); // ON_LEAVE -> JOIN 복직
             default -> throw new BusinessException(ErrorCode.INVALID_STATUS);
         }
+
+        SystemLogAction action = switch (next) {
+            case REJECT -> SystemLogAction.REJECT;
+            case BANNED, LEAVE -> SystemLogAction.DELETE;
+            case JOIN -> SystemLogAction.APPROVE;   // 복직
+            default -> SystemLogAction.UPDATE;       // ON_LEAVE 등
+        };
+        publishLog(ms, action, "MEMBER", targetId, targetName,
+            "상태 변경: " + prev.name() + " → " + next.name());
     }
 
     /**
@@ -142,9 +163,12 @@ public class MemberService {
             ? EnumSet.noneOf(SubAdminPermission.class)
             : EnumSet.copyOf(permissions);
 
+        String permsLabel = normalized.isEmpty() ? "(권한 없음)"
+            : normalized.stream().map(Enum::name).reduce((a, b) -> a + ", " + b).orElse("");
         for (Long memberId : memberIds) {
             Member target = findMemberAndValidateOwner(ms, memberId);
             target.replaceExtraPermissions(normalized);
+            publishMemberLog(ms, SystemLogAction.UPDATE, target, "예외 권한 변경: " + permsLabel);
         }
     }
 
@@ -166,9 +190,16 @@ public class MemberService {
         Position position = (positionId != null) ? findPositionAndValidateOwner(ms, positionId) : null;
         validateAssignablePosition(ms, position);
 
+        // 변경 요약 — 로그 detail 에 인용. dept/position 둘 다 null 아닐 수 있으니 한 문장으로.
+        String detail = "인사이동: "
+            + (dept != null ? "부서 → " + dept.getDeptName() : "")
+            + (dept != null && position != null ? " / " : "")
+            + (position != null ? "직급 → " + position.getPositionName() : "");
+
         for (Long memberId : memberIds) {
             Member target = findMemberAndValidateOwner(ms, memberId);
             target.reassign(dept, position);
+            publishMemberLog(ms, SystemLogAction.UPDATE, target, detail);
         }
     }
 
@@ -228,7 +259,38 @@ public class MemberService {
         Member target = findMemberAndValidateOwner(ms, memberId);
         String tempPassword = generateTempPassword(TEMP_PASSWORD_LENGTH);
         target.changePassword(passwordEncoder.encode(tempPassword));
+        publishMemberLog(ms, SystemLogAction.RESET, target, "비밀번호 초기화");
         return tempPassword;
+    }
+
+    // ===== 시스템 로그 헬퍼 =====
+
+    /**
+     * 회원을 대상으로 한 시스템 로그 발행 — target_label 에 "이름(부서/직급)" 스냅샷 포함.
+     */
+    private void publishMemberLog(MemberSession ms, SystemLogAction action, Member target, String detail) {
+        String dept = target.getDept() != null ? target.getDept().getDeptName() : null;
+        String pos  = target.getPosition() != null ? target.getPosition().getPositionName() : null;
+        String label = target.getName()
+            + (dept != null || pos != null
+                ? "(" + (dept != null ? dept : "") + (dept != null && pos != null ? "/" : "") + (pos != null ? pos : "") + ")"
+                : "");
+        publishLog(ms, action, "MEMBER", target.getMemberId(), label, detail);
+    }
+
+    /** 임의 대상에 대한 시스템 로그 발행 — 본 트랜잭션의 AFTER_COMMIT 후 적재. */
+    private void publishLog(MemberSession ms, SystemLogAction action, String targetType, Long targetId,
+                            String targetLabel, String detail) {
+        if (ms == null || ms.getCompanyId() == null) return;
+        eventPublisher.publishEvent(new SystemLogEvent(
+            ms.getCompanyId(),
+            ms.getMemberId(),
+            ms.getName(),
+            action,
+            targetType,
+            targetId,
+            targetLabel,
+            detail));
     }
 
     private static final int TEMP_PASSWORD_LENGTH = 8;

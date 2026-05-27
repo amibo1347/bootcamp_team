@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.io.IOException;
 import java.util.Map;
 
 @Slf4j
@@ -56,6 +57,28 @@ public class GlobalExceptionHandler {
     public void handleClientDisconnect(Exception e) {
         // 응답 자체가 안 가는 상황. body 작성 시도하면 또 예외. void 반환으로 종료.
         log.debug("[ClientDisconnect] {}: {}", e.getClass().getSimpleName(), e.getMessage());
+    }
+
+    /**
+     * SSE heartbeat 이 비동기 dispatch 경로로 던지는 IOException 도 client-disconnect 의 변형.
+     *  - 메시지 패턴(영문 "Broken pipe"/"Connection reset"/"aborted"/"closed"/"Connection refused" 등
+     *    + 한국어 "중단" — 윈도우 로컬화 메시지)으로만 좁혀 잡고, 그 외는 일반 핸들러로 흘려보낸다.
+     *  - ClientAbortException 이 IOException 의 서브클래스라 이 핸들러는 그 외 IOException 만 처리.
+     */
+    @ExceptionHandler(IOException.class)
+    public ResponseEntity<Map<String, Object>> handleIOException(IOException e) throws IOException {
+        String msg = e.getMessage() != null ? e.getMessage() : "";
+        boolean clientDisconnect = msg.contains("Broken pipe")
+                || msg.contains("Connection reset")
+                || msg.contains("aborted")
+                || msg.contains("closed")
+                || msg.contains("중단");          // 윈도우 한국어 로컬 메시지
+        if (clientDisconnect) {
+            log.debug("[ClientDisconnect-IO] {}", msg);
+            return null;
+        }
+        // 그 외 진짜 I/O 오류는 일반 처리로 위임.
+        throw e;
     }
 
     @ExceptionHandler(Exception.class)
