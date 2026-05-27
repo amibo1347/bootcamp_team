@@ -102,9 +102,9 @@
     if (trashDetailModal) return trashDetailModal;
     const root = document.createElement('div');
     root.id = 'unifiedTrashDetailModal';
-    root.className = 'hidden fixed inset-0 z-[10050] flex items-center justify-center bg-black/40 px-4';
+    root.className = 'hidden fixed inset-0 z-[10050] bg-transparent';
     root.innerHTML = `
-      <div class="relative w-full max-w-2xl rounded-xl bg-white shadow-xl dark:bg-boxdark">
+      <div class="absolute w-full max-w-2xl rounded-xl border border-gray-200 bg-white shadow-xl dark:border-strokedark dark:bg-boxdark" data-modal-panel>
         <header class="flex items-start justify-between gap-4 border-b border-gray-200 px-5 py-3 dark:border-strokedark">
           <h3 class="text-base font-semibold text-gray-900 dark:text-white" data-modal-title>제목</h3>
           <button type="button" data-modal-close
@@ -127,6 +127,56 @@
     return root;
   }
 
+  /**
+   * 제목 버튼을 기준으로 모달을 위/아래에 배치한다.
+   * @param {HTMLElement} modal 모달 루트
+   * @param {HTMLElement|null} anchorEl 클릭한 제목 버튼
+   */
+  function positionTrashDetailModal(modal, anchorEl) {
+    const panel = modal.querySelector('[data-modal-panel]');
+    const bodyEl = modal.querySelector('[data-modal-body]');
+    if (!(panel instanceof HTMLElement) || !(bodyEl instanceof HTMLElement)) return;
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const padding = 16;
+    const gap = 8;
+    const modalWidth = Math.min(560, Math.max(260, viewportWidth - padding * 2));
+
+    panel.style.width = `${modalWidth}px`;
+    panel.style.maxHeight = `${Math.max(180, viewportHeight - padding * 2)}px`;
+    panel.style.overflow = 'hidden';
+
+    if (!(anchorEl instanceof HTMLElement)) {
+      panel.style.left = `${Math.max(padding, (viewportWidth - modalWidth) / 2)}px`;
+      panel.style.top = `${Math.max(padding, (viewportHeight - panel.offsetHeight) / 2)}px`;
+      return;
+    }
+
+    const anchorRect = anchorEl.getBoundingClientRect();
+    const availableBelow = viewportHeight - anchorRect.bottom - padding - gap;
+    const availableAbove = anchorRect.top - padding - gap;
+    const shouldPlaceBelow = availableBelow >= 260 || availableBelow >= availableAbove;
+    const availableSpace = shouldPlaceBelow ? availableBelow : availableAbove;
+
+    // 선택한 방향의 남은 높이에 맞춰 본문 스크롤 영역을 줄인다.
+    const bodyMaxHeight = Math.max(80, Math.min(Math.max(80, availableSpace - 112), viewportHeight * 0.6));
+    bodyEl.style.maxHeight = `${bodyMaxHeight}px`;
+
+    const panelHeight = panel.getBoundingClientRect().height;
+    const left = Math.min(Math.max(padding, anchorRect.left), viewportWidth - modalWidth - padding);
+    const preferredTop = shouldPlaceBelow
+      ? anchorRect.bottom + gap
+      : anchorRect.top - panelHeight - gap;
+    const top = Math.min(
+      Math.max(padding, preferredTop),
+      Math.max(padding, viewportHeight - panelHeight - padding)
+    );
+
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
+  }
+
   function closeTrashDetailModal() {
     if (!trashDetailModal) return;
     trashDetailModal.classList.add('hidden');
@@ -142,8 +192,14 @@
     return res.json();
   }
 
-  /** 휴지통 본문 모달 열기. content 는 백엔드 sanitizer 가 정제한 HTML. */
-  async function openTrashArticleModal(boardId, articleId, fallbackTitle) {
+  /**
+   * 휴지통 본문 모달 열기. content 는 백엔드 sanitizer 가 정제한 HTML.
+   * @param {number} boardId
+   * @param {number} articleId
+   * @param {string} fallbackTitle
+   * @param {HTMLElement|null} anchorEl 모달 위치 기준이 되는 제목 버튼
+   */
+  async function openTrashArticleModal(boardId, articleId, fallbackTitle, anchorEl) {
     const modal = ensureTrashDetailModal();
     const titleEl = modal.querySelector('[data-modal-title]');
     const metaEl = modal.querySelector('[data-modal-meta]');
@@ -152,13 +208,16 @@
     metaEl.textContent = '';
     bodyEl.textContent = '본문을 불러오는 중...';
     modal.classList.remove('hidden');
+    positionTrashDetailModal(modal, anchorEl);
     try {
       const dto = await fetchTrashArticleDetail(boardId, articleId);
       titleEl.textContent = dto.title || '(제목 없음)';
       metaEl.textContent = `작성자: ${dto.authorName || '-'} · 작성일: ${formatDate(dto.createdAt)}`;
       bodyEl.innerHTML = dto.content || '<p class="text-gray-400">본문이 비어 있습니다.</p>';
+      positionTrashDetailModal(modal, anchorEl);
     } catch (e) {
       bodyEl.textContent = e?.message || '본문을 불러오지 못했습니다.';
+      positionTrashDetailModal(modal, anchorEl);
     }
   }
 
@@ -297,7 +356,7 @@
         const boardId = Number(previewBtn.dataset.boardId || 0);
         if (!articleId || !boardId) return;
         const titleHint = previewBtn.getAttribute('title') || '';
-        openTrashArticleModal(boardId, articleId, titleHint);
+        openTrashArticleModal(boardId, articleId, titleHint, previewBtn);
         return;
       }
 

@@ -43,7 +43,7 @@
         const trigger = document.createElement('button');
         trigger.type = 'button';
         trigger.className =
-            'w-full h-8 rounded-xl border-2 border-gray-200 bg-white px-3 text-left text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300';
+            'w-full rounded border border-stroke bg-white py-1.5 px-3 text-left text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-form-strokedark dark:bg-meta-4 dark:text-white';
         trigger.setAttribute('aria-haspopup', 'listbox');
         trigger.setAttribute('aria-expanded', 'false');
 

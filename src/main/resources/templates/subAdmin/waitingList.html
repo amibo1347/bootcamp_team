@@ -49,66 +49,85 @@
 
             <!-- ===== Main Content Start ===== -->
 
-
-            <!-- 승인 대기 목록 타이틀 -->
+            <!-- 승인 대기 목록 -->
             <main class="page-main">
                 <div class="flex items-center">
-                    <h2 class="page-heading">
-                        승인 대기 목록
-                    </h2>
+                    <h2 class="page-heading">승인 대기 목록</h2>
 
                     <span th:if="${count}"
-                        class="ml-3 px-4 py-1 text-sm font-medium text-white bg-rose-200 rounded-full">
+                        class="ml-3 rounded-full bg-rose-200 px-4 py-1 text-sm font-medium text-white">
                         <span th:text="${count}"></span>명
                     </span>
                 </div>
 
-                <div th:each="member : ${members}"
-                    class="mx-4 mb-4 flex items-center justify-between rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-boxdark">
+                <!-- 회원마다 섹션 박스 1개 (목록 컨테이너 없이 동일 크기로 나열) -->
+                <div th:if="${members != null and !#lists.isEmpty(members)}" class="flex flex-col gap-4">
+                    <section th:each="member : ${members}"
+                        class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
 
-                    <div class="flex items-center space-x-4">
+                        <div class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
 
-                        <!-- 가입 신청 직원 사진 -->
-                        <div class="h-20 w-20 shrink-0 rounded-full bg-gray-100 dark:bg-meta-4"></div>
+                            <!-- 가입 신청 직원 정보 + 직급 드롭다운 -->
+                            <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-5">
 
-                        <!-- 가입 신청 직원 이름 & 부서 -->
+                                <!-- 프로필 사진 -->
+                                <div class="shrink-0">
+                                    <img th:src="@{/api/member/{id}/profileImg(id=${member.memberId})}"
+                                        alt="프로필"
+                                        onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23cbd5e1%22&gt;&lt;path d=%22M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z%22/&gt;&lt;/svg&gt;';"
+                                        class="h-16 w-16 rounded-full border border-stroke bg-slate-100 object-cover dark:border-strokedark" />
+                                </div>
 
-                        <div class="flex min-w-[100px] flex-col">
-                            <div class="text-base font-bold text-gray-900 dark:text-white" th:text="${member.name}"></div>
-                            <div class="text-sm font-semibold text-gray-400 dark:text-gray-300">
-                                <span th:if="${member.dept}" th:text="${member.dept.deptName}"></span>
-                                <span th:unless="${member.dept}">소속 없음</span>
+                                <!-- 이름 · 부서 -->
+                                <div class="flex flex-col gap-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="text-xl font-bold text-black dark:text-white"
+                                            th:text="${member.name}">이름</span>
+                                        <span
+                                            class="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+                                            <span th:if="${member.dept}" th:text="${member.dept.deptName}"></span>
+                                            <span th:unless="${member.dept}">소속 없음</span>
+                                        </span>
+                                    </div>
+
+                                    <input type="hidden" th:id="'dept-' + ${member.memberId}"
+                                        th:value="${member.dept != null ? member.dept.deptId : ''}">
+                                </div>
+
+                                <!-- 직급 드롭다운 (이름 영역과 간격 확보) -->
+                                <div class="relative z-20 w-full sm:ml-8 sm:w-36">
+                                    <select th:id="'position-' + ${member.memberId}" name="positionId"
+                                        class="js-custom-select relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-1.5 px-3 text-sm text-black outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 dark:text-white">
+                                        <option value="">직급 선택</option>
+                                        <option th:each="pos : ${positions}" th:value="${pos.positionId}"
+                                            th:text="${pos.positionName}"></option>
+                                    </select>
+                                </div>
                             </div>
 
-                            <input type="hidden" th:id="'dept-' + ${member.memberId}"
-                                th:value="${member.dept != null ? member.dept.deptId : ''}">
+                            <!-- 승인 · 거절 버튼 (좌우 배치) -->
+                            <div class="flex flex-row items-center gap-2">
+                                <button type="button" th:attr="onclick=|approveMember(${member.memberId})|"
+                                    class="rounded-md bg-indigo-200 px-6 py-1 text-sm font-medium text-indigo-700 transition hover:bg-indigo-300">
+                                    승인
+                                </button>
+
+                                <button type="button" th:attr="onclick=|rejectMember(${member.memberId})|"
+                                    class="btn-delete-hover rounded-md bg-rose-200 px-6 py-1 text-sm font-medium text-rose-500 transition">
+                                    거절
+                                </button>
+                            </div>
                         </div>
-
-
-                        <!-- 가입 신청 직원 직급 선택 드롭다운 -->
-                        <div class="relative z-20 w-40">
-                            <select th:id="'position-' + ${member.memberId}" name="positionId"
-                                class="js-custom-select h-8 w-full rounded-xl border-2 border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-blue-400 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
-                                <option value="">직급 선택</option>
-                                <option th:each="pos : ${positions}" th:value="${pos.positionId}"
-                                    th:text="${pos.positionName}"></option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- 가입 신청 직원 승인 & 거절 버튼 -->
-                    <div class="flex items-center space-x-3">
-                        <button type="button" th:attr="onclick=|approveMember(${member.memberId})|"
-                            class="h-8 px-8 text-base font-bold text-indigo-700 bg-indigo-200 hover:bg-indigo-300 rounded-xl transition-all shadow-md active:scale-95">
-                            승인
-                        </button>
-
-                        <button type="button" th:attr="onclick=|rejectMember(${member.memberId})|"
-                            class="btn-delete-hover h-8 px-8 text-base font-bold text-rose-500 bg-rose-200 rounded-xl transition-all shadow-md active:scale-95">
-                            거절
-                        </button>
-                    </div>
+                    </section>
                 </div>
+
+                <!-- 승인 대기 직원이 없을 때 -->
+                <section th:if="${members == null or #lists.isEmpty(members)}"
+                    class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <p class="py-20 text-center text-gray-500 dark:text-gray-300">
+                        승인 대기 중인 직원이 없습니다.
+                    </p>
+                </section>
             </main>
             <!-- ===== Main Content End ===== -->
 
