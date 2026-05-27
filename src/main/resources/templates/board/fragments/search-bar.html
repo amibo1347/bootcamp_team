@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  게시판 검색 바 — 목록형/앨범형/카드형 공용.
+  포함 요소: 기간 select / 검색 대상 select / 키워드 input / 검색 버튼.
+  실제 검색 동작은 /js/board/view.js 가 form#postSearchForm 의 submit 을 가로채 처리한다.
+  레이아웃: 폭을 최대 720px 로 제한하고 가운데 정렬 — 우측 하단 채팅 위젯과 겹치지 않게 한다.
+-->
+<section th:fragment="searchBar"
+         class="mx-auto w-full max-w-3xl rounded-xl border border-stroke bg-white px-4 py-3 shadow-sm dark:border-strokedark dark:bg-boxdark">
+    <form id="postSearchForm" class="flex flex-wrap items-center justify-center gap-2"
+          onsubmit="return false">
+        <label class="sr-only" for="postSearchPeriod">기간</label>
+        <select id="postSearchPeriod" name="period"
+                class="h-11 rounded-xl border border-stroke bg-white px-3 text-sm text-gray-700 focus:border-indigo-400 focus:outline-none dark:border-strokedark dark:bg-boxdark dark:text-gray-200">
+            <option value="ALL">전체 기간</option>
+            <option value="1W">1주일</option>
+            <option value="1M">1개월</option>
+            <option value="3M">3개월</option>
+            <option value="6M">6개월</option>
+            <option value="1Y">1년</option>
+        </select>
+
+        <label class="sr-only" for="postSearchType">검색 대상</label>
+        <select id="postSearchType" name="searchType"
+                class="h-11 rounded-xl border border-stroke bg-white px-3 text-sm text-gray-700 focus:border-indigo-400 focus:outline-none dark:border-strokedark dark:bg-boxdark dark:text-gray-200">
+            <option value="ALL">제목 + 내용</option>
+            <option value="TITLE">제목만</option>
+            <option value="AUTHOR">작성자</option>
+        </select>
+
+        <label class="sr-only" for="postSearchKeyword">검색어</label>
+        <input id="postSearchKeyword" name="keyword" type="text"
+               placeholder="검색어를 입력하세요"
+               class="h-11 w-48 flex-1 rounded-xl border border-stroke bg-white px-3 text-sm text-gray-700 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none dark:border-strokedark dark:bg-boxdark dark:text-gray-200 sm:w-56 sm:max-w-xs" />
+        <button type="submit"
+                class="inline-flex h-11 items-center justify-center rounded-xl bg-indigo-400 px-5 text-sm font-medium text-white transition hover:bg-indigo-500">
+            검색
+        </button>
+    </form>
+</section>
+
+</body>
+</html>

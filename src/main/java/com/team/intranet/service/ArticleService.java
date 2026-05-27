@@ -1,5 +1,6 @@
 package com.team.intranet.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -112,11 +113,53 @@ public class ArticleService {
     }
 
     public Page<ArticleDto> findArticlesByBoard(MemberSession ms, Long boardId, Pageable pageable) {
-        Board board = boardService.getReadableBoard(ms, boardId);
+        return findArticlesByBoard(ms, boardId, null, null, null, pageable);
+    }
 
+    /**
+     * 게시글 목록 + 검색.
+     *  - period: "1W"/"1M"/"3M"/"6M"/"1Y" 또는 "ALL"/null → 기간 무제한
+     *  - searchType: "ALL"(제목+내용), "TITLE"(제목), "AUTHOR"(작성자) — null 이면 "ALL" 로 보정
+     *  - keyword: null/공백이면 키워드 조건을 건너뛴다 (기간 필터만 적용 가능)
+     */
+    public Page<ArticleDto> findArticlesByBoard(MemberSession ms, Long boardId,
+                                                 String period, String searchType, String keyword,
+                                                 Pageable pageable) {
+        boardService.getReadableBoard(ms, boardId);
+
+        LocalDateTime from = resolvePeriodStart(period);
+        String type = normalizeSearchType(searchType);
+        String kw = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
+
+        if (from == null && kw == null) {
+            return articleRepository
+                    .findByBoard_BoardIdAndIsDeletedFalse(boardId, pageable)
+                    .map(ArticleDto::from);
+        }
         return articleRepository
-                .findByBoard_BoardIdAndIsDeletedFalse(boardId, pageable)
+                .searchByBoard(boardId, from, type, kw, pageable)
                 .map(ArticleDto::from);
+    }
+
+    private LocalDateTime resolvePeriodStart(String period) {
+        if (period == null || period.isBlank() || "ALL".equalsIgnoreCase(period)) return null;
+        LocalDateTime now = LocalDateTime.now();
+        return switch (period.toUpperCase()) {
+            case "1W" -> now.minusWeeks(1);
+            case "1M" -> now.minusMonths(1);
+            case "3M" -> now.minusMonths(3);
+            case "6M" -> now.minusMonths(6);
+            case "1Y" -> now.minusYears(1);
+            default -> null;
+        };
+    }
+
+    private String normalizeSearchType(String searchType) {
+        if (searchType == null) return "ALL";
+        return switch (searchType.toUpperCase()) {
+            case "TITLE", "AUTHOR", "ALL" -> searchType.toUpperCase();
+            default -> "ALL";
+        };
     }
 
     @Transactional
@@ -176,10 +219,27 @@ public class ArticleService {
      */
     @Transactional(readOnly = true)
     public Page<ArticleUnifiedTrashDto> findDeletedArticlesForCompanyUnified(MemberSession ms, Pageable pageable) {
+        return findDeletedArticlesForCompanyUnified(ms, null, null, null, pageable);
+    }
+
+    /**
+     * 통합 휴지통 + 검색.
+     *  - period/searchType/keyword 의 의미는 게시판 검색과 동일.
+     *  - 모든 조건이 비어 있으면 기존 단순 쿼리 사용.
+     */
+    @Transactional(readOnly = true)
+    public Page<ArticleUnifiedTrashDto> findDeletedArticlesForCompanyUnified(
+            MemberSession ms, String period, String searchType, String keyword, Pageable pageable) {
         if (!ms.isAdminOrMaster() && !ms.hasPermission(SubAdminPermission.TRASH_MANAGEMENT)) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
-        Page<Article> page = articleRepository.findDeletedByCompanyId(ms.getCompanyId(), pageable);
+        LocalDateTime from = resolvePeriodStart(period);
+        String type = normalizeSearchType(searchType);
+        String kw = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
+
+        Page<Article> page = (from == null && kw == null)
+                ? articleRepository.findDeletedByCompanyId(ms.getCompanyId(), pageable)
+                : articleRepository.searchDeletedByCompanyId(ms.getCompanyId(), from, type, kw, pageable);
         return page.map(ArticleUnifiedTrashDto::from);
     }
 

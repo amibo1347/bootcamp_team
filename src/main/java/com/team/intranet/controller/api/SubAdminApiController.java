@@ -48,8 +48,12 @@ public class SubAdminApiController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<ArticleUnifiedTrashDto>> listUnifiedTrash(
             @AuthenticatedMember MemberSession ms,
+            @RequestParam(required = false) String period,
+            @RequestParam(required = false) String searchType,
+            @RequestParam(required = false) String keyword,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(articleService.findDeletedArticlesForCompanyUnified(ms, pageable));
+        return ResponseEntity.ok(
+                articleService.findDeletedArticlesForCompanyUnified(ms, period, searchType, keyword, pageable));
     }
 
     private LocalDateTime parseBirthDay(String input) {
