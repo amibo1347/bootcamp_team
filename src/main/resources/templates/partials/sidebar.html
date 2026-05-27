@@ -22,16 +22,16 @@
     <div :class="sidebarToggle ? 'justify-center' : 'justify-between'"
         class="flex items-center gap-2 pt-8 sidebar-header pb-7 px-6"> <!-- px-6 추가로 좌우 여백 고정 -->
 
-        <a th:href="@{/}">
+        <a th:href="@{/}" class="block w-full">
             <!-- 1. 사이드바가 펼쳐졌을 때 -->
-            <span class="logo" :class="sidebarToggle ? 'hidden' : 'block'">
-                <!-- 기업 로고 출력 시 크기 제한 완화 (h-12 정도로 상향) -->
-                <img th:if="${logoPath != null}" th:src="${logoPath}" alt="기업 로고" class="h-12 w-auto object-contain" />
+            <span class="logo w-full" :class="sidebarToggle ? 'hidden' : 'block'">
+                <!-- 펼침 상태에서는 로고를 사이드바 가용 너비만큼 확장 -->
+                <img th:if="${logoPath != null}" th:src="${logoPath}" alt="기업 로고" class="mx-auto max-h-24 w-full object-contain" />
 
                 <th:block th:if="${logoPath == null}">
-                    <!-- 기본 로고 크기도 class로 명시적 제어 -->
-                    <img class="dark:hidden h-12 w-auto" src="/images/logo/logo.svg" alt="Default Logo" />
-                    <img class="hidden dark:block h-12 w-auto" src="/images/logo/logo-dark.svg" alt="Default Logo" />
+                    <!-- 기본 로고도 동일한 크기 정책으로 적용 -->
+                    <img class="dark:hidden mx-auto max-h-24 w-full object-contain" src="/images/logo/logo.svg" alt="Default Logo" />
+                    <img class="hidden dark:block mx-auto max-h-24 w-full object-contain" src="/images/logo/logo-dark.svg" alt="Default Logo" />
                 </th:block>
             </span>
 
