@@ -1,5 +1,6 @@
 package com.team.intranet.controller.view;
 
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.stereotype.Controller;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.SessionAttribute;
 import com.team.intranet.entity.Dept;
 import com.team.intranet.entity.Member;
 import com.team.intranet.entity.Position;
+import com.team.intranet.enums.member.Role;
 import com.team.intranet.enums.member.Status;
 import com.team.intranet.service.DeptService;
 import com.team.intranet.service.MemberService;
@@ -45,7 +47,14 @@ public class SubAdminController {
         List<Member> waitingMembers = memberService.findWaitingMembers(companyId);
 
         List<Dept> depts = deptService.findAll(companyId);
-        List<Position> positions = positionService.findAll(companyId);
+        // 승인 시 직급 드롭다운: 대표(ADMIN / 시스템 직급) 제외 + level 오름차순 정렬.
+        //   - 대표 임명은 MASTER 의 별도 도구 — 가입 승인 단계에서 부여 X.
+        //   - level null 은 맨 뒤로.
+        List<Position> positions = positionService.findAll(companyId).stream()
+                .filter(p -> p.getRole() != Role.ADMIN && !p.isSystemDefault())
+                .sorted(Comparator.comparing(Position::getPositionLevel,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
 
         model.addAttribute("members", waitingMembers); // 승인 대기중인 회원
         model.addAttribute("depts", depts); // 부서 목록
