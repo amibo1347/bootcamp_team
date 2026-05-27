@@ -815,24 +815,24 @@ function renderRowHtml(t) {
   const actions = isSystem
     ? `
       <div class="relative">
-        <span aria-hidden="true" class="invisible block px-8 py-2.5 font-medium rounded-xl shadow-sm">복사</span>
+        <span aria-hidden="true" class="invisible block whitespace-nowrap rounded-xl px-6 py-2 text-sm font-medium shadow-sm">복사</span>
         <button type="button" data-act="fork"
-          class="absolute inset-0 px-8 py-2.5 bg-indigo-400 text-white font-medium rounded-xl hover:bg-indigo-500 transition-all active:scale-95 shadow-sm">
+          class="absolute inset-0 whitespace-nowrap rounded-xl bg-indigo-400 px-6 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-indigo-500 active:scale-[0.98]">
           복사
         </button>
       </div>`
     : `
       <div class="relative">
-        <span aria-hidden="true" class="invisible block px-8 py-2.5 font-medium rounded-xl shadow-sm">수정</span>
+        <span aria-hidden="true" class="invisible block whitespace-nowrap rounded-xl px-6 py-2 text-sm font-medium shadow-sm">수정</span>
         <button type="button" data-act="edit"
-          class="absolute inset-0 px-8 py-2.5 bg-indigo-200 text-indigo-700 font-medium rounded-xl hover:bg-indigo-300 transition-all shadow-sm">
+          class="absolute inset-0 whitespace-nowrap rounded-xl bg-indigo-200 px-6 py-2 text-sm font-medium text-indigo-700 shadow-sm transition-all hover:bg-indigo-300">
           수정
         </button>
       </div>
       <div class="relative">
-        <span aria-hidden="true" class="invisible block px-8 py-2.5 font-medium rounded-xl shadow-sm">삭제</span>
+        <span aria-hidden="true" class="invisible block whitespace-nowrap rounded-xl px-6 py-2 text-sm font-medium shadow-sm">삭제</span>
         <button type="button" data-act="delete"
-          class="btn-delete-hover absolute inset-0 px-8 py-2.5 bg-rose-200 text-rose-500 font-medium rounded-xl transition-all shadow-sm">
+          class="btn-delete-hover absolute inset-0 whitespace-nowrap rounded-xl bg-rose-200 px-6 py-2 text-sm font-medium text-rose-500 shadow-sm transition-all">
           삭제
         </button>
       </div>`;
