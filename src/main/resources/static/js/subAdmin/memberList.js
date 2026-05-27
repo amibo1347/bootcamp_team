@@ -1,9 +1,10 @@
 const customSelectMap = new Map();
 
 function closeAllCustomSelects() {
-    customSelectMap.forEach(({ menu, trigger, container }) => {
+    customSelectMap.forEach(({ menu, trigger, container, arrow }) => {
         menu.classList.add('hidden');
         trigger.setAttribute('aria-expanded', 'false');
+        arrow?.classList.remove('is-open');
         if (container) {
             container.style.zIndex = '';
         }
@@ -19,10 +20,7 @@ function syncCustomSelect(selectId) {
     triggerText.textContent = selectedOption ? selectedOption.textContent : '선택하세요';
 
     menu.querySelectorAll('button[data-value]').forEach((button) => {
-        const isSelected = button.dataset.value === select.value;
-        button.classList.toggle('bg-indigo-50', isSelected);
-        button.classList.toggle('text-indigo-700', isSelected);
-        button.classList.toggle('font-semibold', isSelected);
+        button.classList.toggle('is-selected', button.dataset.value === select.value);
     });
 }
 
@@ -35,24 +33,23 @@ function createCustomSelect(select) {
 
     const trigger = document.createElement('button');
     trigger.type = 'button';
-    trigger.className =
-        'w-full rounded border border-stroke bg-white py-2.5 px-4 text-left text-black focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-form-strokedark dark:bg-meta-4 dark:text-white';
+    trigger.className = 'form-combobox-trigger';
     trigger.setAttribute('aria-haspopup', 'listbox');
     trigger.setAttribute('aria-expanded', 'false');
 
-    const triggerInner = document.createElement('div');
-    triggerInner.className = 'flex items-center justify-between';
     const triggerText = document.createElement('span');
     triggerText.className = 'truncate';
+
     const arrow = document.createElement('span');
-    arrow.className = 'ml-2 text-gray-500';
+    arrow.className = 'form-combobox-arrow';
+    arrow.setAttribute('aria-hidden', 'true');
     arrow.textContent = '▾';
-    triggerInner.appendChild(triggerText);
-    triggerInner.appendChild(arrow);
-    trigger.appendChild(triggerInner);
+
+    trigger.appendChild(triggerText);
+    trigger.appendChild(arrow);
 
     const menu = document.createElement('div');
-    menu.className = 'absolute left-0 top-full z-[10001] mt-1 hidden max-h-64 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg';
+    menu.className = 'form-combobox-panel hidden';
     menu.setAttribute('role', 'listbox');
 
     Array.from(select.options).forEach((option) => {
@@ -60,7 +57,7 @@ function createCustomSelect(select) {
         item.type = 'button';
         item.dataset.value = option.value;
         item.disabled = option.disabled;
-        item.className = 'block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-300';
+        item.className = 'form-combobox-option';
         item.textContent = option.textContent;
         item.addEventListener('click', () => {
             select.value = option.value;
@@ -78,6 +75,7 @@ function createCustomSelect(select) {
             if (container) container.style.zIndex = '9999';
             menu.classList.remove('hidden');
             trigger.setAttribute('aria-expanded', 'true');
+            arrow.classList.add('is-open');
         }
     });
 
@@ -87,7 +85,7 @@ function createCustomSelect(select) {
     wrapper.appendChild(menu);
     select.dataset.customized = 'true';
 
-    customSelectMap.set(select.id, { select, trigger, triggerText, menu, container });
+    customSelectMap.set(select.id, { select, trigger, triggerText, menu, container, arrow });
     select.addEventListener('change', () => syncCustomSelect(select.id));
     syncCustomSelect(select.id);
 }

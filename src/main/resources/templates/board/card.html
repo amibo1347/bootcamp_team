@@ -37,19 +37,19 @@
                         <button type="button"
                             th:if="${board.boardType.name() != 'NOTICE' and board.boardType.name() != 'POLICY'}"
                             th:attr="data-board-alert-toggle=${board.boardId}"
-                            class="board-alert-toggle inline-flex h-11 w-11 items-center justify-center rounded-xl border border-stroke text-gray-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-strokedark dark:text-gray-300 dark:hover:border-indigo-500/60 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-200"
+                            class="board-alert-toggle inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-stroke text-gray-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-strokedark dark:text-gray-300 dark:hover:border-indigo-500/60 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-200"
                             title="이 게시판 알림 받기" aria-label="이 게시판 알림 받기" aria-pressed="false">
-                            <svg class="h-6 w-6 shrink-0 fill-current" viewBox="0 0 20 20" aria-hidden="true"
+                            <svg class="h-5 w-5 shrink-0 fill-current" viewBox="0 0 20 20" aria-hidden="true"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path fill-rule="evenodd" clip-rule="evenodd"
                                     d="M10.75 2.29248C10.75 1.87827 10.4143 1.54248 10 1.54248C9.58583 1.54248 9.25004 1.87827 9.25004 2.29248V2.83613C6.08266 3.20733 3.62504 5.9004 3.62504 9.16748V14.4591H3.33337C2.91916 14.4591 2.58337 14.7949 2.58337 15.2091C2.58337 15.6234 2.91916 15.9591 3.33337 15.9591H4.37504H15.625H16.6667C17.0809 15.9591 17.4167 15.6234 17.4167 15.2091C17.4167 14.7949 17.0809 14.4591 16.6667 14.4591H16.375V9.16748C16.375 5.9004 13.9174 3.20733 10.75 2.83613V2.29248ZM14.875 14.4591V9.16748C14.875 6.47509 12.6924 4.29248 10 4.29248C7.30765 4.29248 5.12504 6.47509 5.12504 9.16748V14.4591H14.875ZM8.00004 17.7085C8.00004 18.1228 8.33583 18.4585 8.75004 18.4585H11.25C11.6643 18.4585 12 18.1228 12 17.7085C12 17.2943 11.6643 16.9585 11.25 16.9585H8.75004C8.33583 16.9585 8.00004 17.2943 8.00004 17.7085Z" />
                             </svg>
                         </button>
                         <a th:href="@{/board/{id}/trash(id=${board.boardId})}"
-                            class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-stroke text-gray-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-strokedark dark:text-gray-300 dark:hover:border-indigo-500/60 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-200"
+                            class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-stroke text-gray-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-strokedark dark:text-gray-300 dark:hover:border-indigo-500/60 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-200"
                             title="게시판 휴지통" aria-label="게시판 휴지통">
                             <!-- 통합 휴지통(사이드바)·목록형과 동일 SVG(선 스트로크) -->
-                            <svg class="h-6 w-6 shrink-0" viewBox="3 3 18 18" fill="none"
+                            <svg class="h-5 w-5 shrink-0" viewBox="3 3 18 18" fill="none"
                                 xmlns="http://www.w3.org/2000/svg" aria-hidden="true" stroke="currentColor"
                                 stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path
@@ -60,7 +60,7 @@
                             </svg>
                         </a>
                         <a th:href="@{/board/{id}/articles/new(id=${board.boardId})}"
-                            class="rounded-xl bg-indigo-400 px-6 py-2.5 font-medium text-white hover:bg-indigo-500">
+                            class="whitespace-nowrap rounded-xl bg-indigo-400 px-6 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-indigo-500 active:scale-[0.98]">
                             글쓰기
                         </a>
                     </div>
