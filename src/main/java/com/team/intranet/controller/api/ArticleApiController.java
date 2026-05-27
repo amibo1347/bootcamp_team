@@ -85,6 +85,15 @@ public class ArticleApiController {
       return ResponseEntity.noContent().build();
   }
 
+  /** 휴지통 본문 조회 — 일반 detail API 는 deleted=true 글을 안 보여줌. 휴지통 모달 전용. */
+  @GetMapping("/trash/{articleId}")
+  public ResponseEntity<ArticleDto> getDeletedArticle(
+          @PathVariable Long boardId,
+          @PathVariable Long articleId,
+          @AuthenticatedMember MemberSession ms) {
+      return ResponseEntity.ok(articleService.findDeletedArticle(ms, boardId, articleId));
+  }
+
   @PostMapping("/trash/{articleId}/restore")
   public ResponseEntity<Void> restoreArticle(
           @PathVariable Long boardId,

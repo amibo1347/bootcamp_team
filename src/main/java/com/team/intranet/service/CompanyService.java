@@ -72,7 +72,7 @@ public class CompanyService {
      */
     @Transactional
     public String create(String companyName, String companyDomain, boolean usesEmployeeNo,
-                          String adminLoginId, String adminName, String adminEmail) {
+                          String adminLoginId, String adminName, String adminEmail, byte[] logo) {
         String loginId = adminLoginId.trim();
         // 도메인은 /{companyDomain}/login 로그인 URL 의 키이므로 필수 + 전역 유니크.
         String domain = normalizeDomain(companyDomain);
@@ -82,6 +82,9 @@ public class CompanyService {
         // 신규 회사에는 회원이 없으므로 대표 아이디는 회사 안에서 항상 유니크 — 별도 중복 검사 불필요.
 
         Company company = Company.create(companyName.trim(), generateUniqueCode(), domain, usesEmployeeNo);
+        if (logo != null && logo.length > 0) {
+            company.updateLogo(logo);
+        }
         companyRepository.save(company);
 
         // 시스템 디폴트 — 회원 승인 시 직급/부서가 반드시 1개는 보장되도록 보호.
@@ -89,7 +92,7 @@ public class CompanyService {
         Position adminPosition = Position.createSystemPosition("대표", company, 99, Role.ADMIN);
         positionRepository.save(adminPosition);
 
-        Dept defaultDept = Dept.createSystemDept("경영지원팀", null, company);
+        Dept defaultDept = Dept.createSystemDept("경영지원팀", "DEFAULT", company);
         deptRepository.save(defaultDept);
 
         // 대표 초기 비밀번호는 서버가 자동 생성 — 비밀번호 초기화 기능과 동일한 방식.

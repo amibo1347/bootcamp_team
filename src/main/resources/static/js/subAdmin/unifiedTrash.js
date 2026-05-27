@@ -93,6 +93,75 @@
     if (!res.ok) throw new Error(await window.getApiErrorMessage(res, '영구 삭제에 실패했습니다.'));
   }
 
+  // ===== 휴지통 본문 미리보기 모달 =====
+
+  /** 한 번만 만들고 재사용하는 모달 DOM 캐시. */
+  let trashDetailModal = null;
+
+  function ensureTrashDetailModal() {
+    if (trashDetailModal) return trashDetailModal;
+    const root = document.createElement('div');
+    root.id = 'unifiedTrashDetailModal';
+    root.className = 'hidden fixed inset-0 z-[10050] flex items-center justify-center bg-black/40 px-4';
+    root.innerHTML = `
+      <div class="relative w-full max-w-2xl rounded-xl bg-white shadow-xl dark:bg-boxdark">
+        <header class="flex items-start justify-between gap-4 border-b border-gray-200 px-5 py-3 dark:border-strokedark">
+          <h3 class="text-base font-semibold text-gray-900 dark:text-white" data-modal-title>제목</h3>
+          <button type="button" data-modal-close
+            class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/10"
+            aria-label="닫기">✕</button>
+        </header>
+        <div class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400" data-modal-meta></div>
+        <div class="max-h-[60vh] overflow-y-auto px-5 py-4 text-sm leading-relaxed text-gray-800 dark:text-gray-100"
+             data-modal-body>본문을 불러오는 중...</div>
+      </div>
+    `;
+    document.body.appendChild(root);
+    root.addEventListener('click', (e) => {
+      if (e.target === root || e.target.closest('[data-modal-close]')) closeTrashDetailModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !root.classList.contains('hidden')) closeTrashDetailModal();
+    });
+    trashDetailModal = root;
+    return root;
+  }
+
+  function closeTrashDetailModal() {
+    if (!trashDetailModal) return;
+    trashDetailModal.classList.add('hidden');
+  }
+
+  async function fetchTrashArticleDetail(boardId, articleId) {
+    const res = await fetch(`/api/board/${boardId}/articles/trash/${articleId}`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin',
+    });
+    if (!res.ok) throw new Error(await window.getApiErrorMessage(res, '본문을 불러오지 못했습니다.'));
+    return res.json();
+  }
+
+  /** 휴지통 본문 모달 열기. content 는 백엔드 sanitizer 가 정제한 HTML. */
+  async function openTrashArticleModal(boardId, articleId, fallbackTitle) {
+    const modal = ensureTrashDetailModal();
+    const titleEl = modal.querySelector('[data-modal-title]');
+    const metaEl = modal.querySelector('[data-modal-meta]');
+    const bodyEl = modal.querySelector('[data-modal-body]');
+    titleEl.textContent = fallbackTitle || '본문 불러오는 중...';
+    metaEl.textContent = '';
+    bodyEl.textContent = '본문을 불러오는 중...';
+    modal.classList.remove('hidden');
+    try {
+      const dto = await fetchTrashArticleDetail(boardId, articleId);
+      titleEl.textContent = dto.title || '(제목 없음)';
+      metaEl.textContent = `작성자: ${dto.authorName || '-'} · 작성일: ${formatDate(dto.createdAt)}`;
+      bodyEl.innerHTML = dto.content || '<p class="text-gray-400">본문이 비어 있습니다.</p>';
+    } catch (e) {
+      bodyEl.textContent = e?.message || '본문을 불러오지 못했습니다.';
+    }
+  }
+
   function showMsg(message) {
     const el = document.getElementById('unifiedTrashMessage');
     if (!el) return;
@@ -136,7 +205,9 @@
               <span class="line-clamp-2" title="${boardLabel}">${boardLabel}</span>
             </td>
             <td class="px-5 py-3">
-              <span class="line-clamp-2" title="${title}">${title}</span>
+              <button type="button" data-action="preview" data-board-id="${boardId}" data-article-id="${articleId}"
+                class="line-clamp-2 text-left text-gray-700 underline-offset-2 hover:text-indigo-600 hover:underline dark:text-gray-200 dark:hover:text-indigo-300"
+                title="${title}">${title}</button>
             </td>
             <td class="whitespace-nowrap px-5 py-3">${author}</td>
             <td class="whitespace-nowrap px-5 py-3">${created}</td>
@@ -220,6 +291,16 @@
     if (!body) return;
 
     body.addEventListener('click', async (event) => {
+      const previewBtn = event.target.closest('button[data-action="preview"]');
+      if (previewBtn) {
+        const articleId = Number(previewBtn.dataset.articleId || 0);
+        const boardId = Number(previewBtn.dataset.boardId || 0);
+        if (!articleId || !boardId) return;
+        const titleHint = previewBtn.getAttribute('title') || '';
+        openTrashArticleModal(boardId, articleId, titleHint);
+        return;
+      }
+
       const restoreBtn = event.target.closest('button[data-action="restore"]');
       const permanentBtn = event.target.closest('button[data-action="permanent"]');
       const target = restoreBtn || permanentBtn;

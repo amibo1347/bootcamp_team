@@ -164,10 +164,31 @@ public class MemberService {
 
         Dept dept = (deptId != null) ? findDeptAndValidateOwner(ms, deptId) : null;
         Position position = (positionId != null) ? findPositionAndValidateOwner(ms, positionId) : null;
+        validateAssignablePosition(ms, position);
 
         for (Long memberId : memberIds) {
             Member target = findMemberAndValidateOwner(ms, memberId);
             target.reassign(dept, position);
+        }
+    }
+
+    /**
+     * 인사이동 대상 신규 직급 검증 — 일반 인사이동에서 못 부여할 직급을 차단.
+     *  - 대표(role=ADMIN 또는 isSystem 직급) 로의 이동은 모두에게 금지. 대표 위임은 MASTER 의 별도 도구.
+     *  - ADMIN/MASTER 가 아닌 사용자는 본인보다 "높은" 직급으로의 이동만 금지 (위계 보호).
+     *    동등 직급은 허용 — 예: 부장이 사원을 부장으로 승진시키는 건 가능.
+     *  - position 이 null(부서만 변경) 인 경우엔 검증 건너뜀.
+     */
+    private void validateAssignablePosition(MemberSession ms, Position position) {
+        if (position == null) return;
+        if (position.getRole() == Role.ADMIN || position.isSystemDefault()) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+        if (ms.isAdminOrMaster()) return;
+        Integer myLevel = ms.getPositionLevel();
+        Integer targetLevel = position.getPositionLevel();
+        if (myLevel != null && targetLevel != null && targetLevel > myLevel) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
     }
 
