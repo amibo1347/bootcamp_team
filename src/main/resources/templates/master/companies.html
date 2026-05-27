@@ -46,12 +46,13 @@
               <th>회사 코드</th>
               <th>도메인</th>
               <th>상태</th>
+              <th style="text-align: center;">사번제</th>
               <th style="text-align: right;">관리</th>
             </tr>
           </thead>
           <tbody>
             <tr th:if="${companies == null or companies.isEmpty()}">
-              <td colspan="5" class="master-empty">등록된 회사가 없습니다.</td>
+              <td colspan="6" class="master-empty">등록된 회사가 없습니다.</td>
             </tr>
             <tr th:each="company : ${companies}">
               <td th:text="${company.companyName}">회사명</td>
@@ -61,6 +62,15 @@
               <td>
                 <span th:if="${company.isActiveCompany()}" class="master-tag master-tag--on">활성</span>
                 <span th:unless="${company.isActiveCompany()}" class="master-tag master-tag--off">비활성</span>
+              </td>
+              <!--
+                사번제 여부 표시 (변경은 [수정] 화면에서). disabled 로 표시 전용.
+                ※ Company.usesEmployeeNo 는 Boolean(NULL 가능) — null-safe 한 usesEmployeeNo() 메서드로 호출.
+              -->
+              <td style="text-align: center;">
+                <input type="checkbox" disabled th:checked="${company.usesEmployeeNo()}"
+                       th:title="${company.usesEmployeeNo()} ? '사번제 회사' : '아이디 사용 회사'"
+                       style="cursor: not-allowed;" />
               </td>
               <td style="text-align: right; white-space: nowrap;">
                 <a th:href="@{/master/companies/{id}(id=${company.companyId})}"
