@@ -32,6 +32,11 @@ public class AiChatMessageDto {
     /** 액션 제안 메타데이터 (raw JSON). type 으로 분기 ("calendar" / "leave" 등). */
     private JsonNode proposal;
     private Boolean proposalApplied;
+    /**
+     * 세션 제목이 이 응답으로 갱신됐다면 새 제목 — 프론트가 사이드바/헤더를 즉시 갱신.
+     * 갱신이 없는 일반 응답에선 null.
+     */
+    private String sessionTitle;
 
     public static AiChatMessageDto from(AiChatMessage m) {
         AiChatMessageDto dto = new AiChatMessageDto();

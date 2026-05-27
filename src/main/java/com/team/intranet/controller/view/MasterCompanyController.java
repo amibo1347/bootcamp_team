@@ -41,7 +41,7 @@ public class MasterCompanyController {
         return "master/companies";
     }
 
-    /** 회사 생성 (초기 ADMIN 동시 생성). */
+    /** 회사 생성 (초기 ADMIN 동시 생성). 로고는 선택 — 업로드 안 하면 회사만 생성. */
     @PostMapping
     public String create(@SessionAttribute(name = "masterSession", required = false) MasterSession master,
                          @RequestParam(name = "companyName", required = false) String companyName,
@@ -50,14 +50,24 @@ public class MasterCompanyController {
                          @RequestParam(name = "adminLoginId", required = false) String adminLoginId,
                          @RequestParam(name = "adminName", required = false) String adminName,
                          @RequestParam(name = "adminEmail", required = false) String adminEmail,
-                         Model model, RedirectAttributes redirectAttributes) {
+                         @RequestParam(name = "logoFile", required = false) MultipartFile logoFile,
+                         Model model, RedirectAttributes redirectAttributes) throws IOException {
         if (master == null) return "redirect:/master/login";
 
         String error = validateCreate(companyName, adminLoginId, adminName);
+        byte[] logoBytes = null;
+        if (error == null && logoFile != null && !logoFile.isEmpty()) {
+            String contentType = logoFile.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                error = "로고는 이미지 파일만 업로드할 수 있습니다.";
+            } else {
+                logoBytes = logoFile.getBytes();
+            }
+        }
         if (error == null) {
             try {
                 String tempPassword = companyService.create(companyName, companyDomain, usesEmployeeNo,
-                        adminLoginId, adminName, adminEmail);
+                        adminLoginId, adminName, adminEmail, logoBytes);
                 redirectAttributes.addFlashAttribute("successMessage",
                         "회사가 생성되었습니다: " + companyName.trim()
                         + " — 대표 계정 아이디: " + adminLoginId.trim()

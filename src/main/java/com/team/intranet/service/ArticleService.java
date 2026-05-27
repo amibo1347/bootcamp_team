@@ -135,6 +135,28 @@ public class ArticleService {
         return ArticleDto.from(article);
     }
 
+    /**
+     * 휴지통(삭제됨) 단건 본문 조회.
+     *  - 일반 detail API 는 isDeleted=false 만 보므로, 휴지통 화면에서 본문을 보려면 이 메서드를 사용.
+     *  - 접근 권한: 본인 작성 글 / TRASH_MANAGEMENT 권한자 / ADMIN·MASTER. (findDeletedArticles 와 정합)
+     *  - 조회수 증가는 하지 않음 — 휴지통은 관리 화면.
+     */
+    @Transactional(readOnly = true)
+    public ArticleDto findDeletedArticle(MemberSession ms, Long boardId, Long articleId) {
+        boardService.getReadableBoard(ms, boardId);
+        Article article = articleRepository
+                .findByArticleIdAndBoard_BoardIdAndIsDeletedTrue(articleId, boardId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ARTICLE_NOT_FOUND));
+
+        boolean canSee = ms.isAdminOrMaster()
+                || ms.hasPermission(SubAdminPermission.TRASH_MANAGEMENT)
+                || article.isAuthor(ms.getMemberId());
+        if (!canSee) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+        return ArticleDto.from(article);
+    }
+
     @Transactional(readOnly = true)
     public Page<ArticleDto> findDeletedArticles(MemberSession ms, Long boardId, Pageable pageable) {
         boardService.getReadableBoard(ms, boardId);

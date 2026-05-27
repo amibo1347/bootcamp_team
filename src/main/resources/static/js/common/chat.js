@@ -1450,6 +1450,13 @@
           }
           const dto = await res.json();
           appendMessage(aiMsgToChatBubble(dto, me));
+          // 첫 메시지일 때 서버가 AI 요약 제목을 함께 내려준다 — 헤더 + 사이드바 즉시 동기화.
+          if (dto && dto.sessionTitle) {
+            if (titleEl) titleEl.textContent = dto.sessionTitle;
+            activePeerName = dto.sessionTitle;
+            // AI 목록(사이드바) 캐시 갱신. 헤더 탭이 AI 가 아니어도 다음 진입 시 최신 제목 보이게.
+            loadAiList();
+          }
         } else {
           const form = new FormData();
           if (hasText) form.append('text', text);

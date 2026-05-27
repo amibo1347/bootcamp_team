@@ -210,10 +210,8 @@ public class AiChatService {
         AiChatMessage userMsg = messageRepository.save(
             AiChatMessage.user(session, userContent.trim()));
 
-        // 2. 첫 사용자 메시지면 title 자동 갱신
-        if ("새 대화".equals(session.getTitle())) {
-            session.setTitle(truncate(userContent.trim(), TITLE_MAX_LEN));
-        }
+        // 2. 첫 사용자 메시지 여부 기록 — 실제 제목 갱신은 ASSISTANT 응답 받은 후 (AI 가 ChatGPT 스타일로 요약).
+        boolean isFirstUserMessage = "새 대화".equals(session.getTitle());
 
         // 3. LLM 호출용 메시지 리스트 준비 (시스템 + 최근 N개)
         List<LlmMessage> llmMessages = buildLlmMessages(ms, session, me, userContent);
@@ -259,7 +257,65 @@ public class AiChatService {
         // 6. 세션 갱신 시각 touch
         session.touch();
 
-        return AiChatMessageDto.from(assistantMsg);
+        // 7. 첫 사용자 메시지였으면 AI 가 한 줄 제목으로 요약해 세션 제목 자동 설정.
+        //    별도 LLM 호출이라 실패할 수 있으므로 그땐 첫 메시지 앞부분으로 폴백.
+        AiChatMessageDto dto = AiChatMessageDto.from(assistantMsg);
+        if (isFirstUserMessage) {
+            String summarized = summarizeTitle(userContent, content);
+            String newTitle = (summarized != null && !summarized.isBlank())
+                ? summarized
+                : truncate(userContent.trim(), TITLE_MAX_LEN);
+            session.setTitle(newTitle);
+            dto.setSessionTitle(newTitle);
+        }
+        return dto;
+    }
+
+    /**
+     * 첫 USER 메시지를 AI 가 짧은 한 줄 제목으로 요약 (ChatGPT 스타일).
+     * 본 대화와 분리된 별도 LLM 호출 — 실패하면 null 반환 → 호출자가 폴백 처리.
+     *  - 사용자가 입력한 메시지(+ 직후 AI 응답)를 컨텍스트로 줘서 의도 파악 정확도를 높인다.
+     *  - 모델이 종종 "제목:" 접두어 / 따옴표 / 마침표 / 이모지를 붙이므로 후처리로 정리.
+     */
+    private String summarizeTitle(String userContent, String assistantContent) {
+        String systemPrompt = """
+            당신은 채팅방 제목 생성기입니다. 다음 입력을 한국어 한 줄 제목으로 압축하세요.
+
+            규칙:
+            - 18자 이내, 명사구 1줄. 마침표/따옴표/이모지/접두어("제목:" 등) 절대 금지.
+            - 사용자 의도/주제만 요약 (예: "홍길동님과 점심 약속", "휴가 신청 문의", "팀 회식비 정산").
+            - 출력은 오직 제목 한 줄. 다른 설명 금지.
+            """;
+        String userMsg = "사용자 메시지: " + userContent
+            + (assistantContent != null && !assistantContent.isBlank()
+                ? "\n\n참고용 AI 응답: " + assistantContent
+                : "");
+        try {
+            List<LlmMessage> msgs = List.of(
+                LlmMessage.system(systemPrompt),
+                LlmMessage.user(userMsg)
+            );
+            LlmResponse resp = llmClientFactory.generate(msgs);
+            String t = resp != null ? resp.content() : null;
+            if (t == null) return null;
+            t = t.replaceAll("[\\r\\n]+", " ")
+                 .replaceAll("[\"'`]", "")
+                 .replaceAll("\\s+", " ")
+                 .trim();
+            // 흔한 접두어 제거
+            if (t.startsWith("제목:")) t = t.substring(3).trim();
+            else if (t.startsWith("제목 :")) t = t.substring(4).trim();
+            // 끝 구두점 정리
+            while (!t.isEmpty()
+                && (t.endsWith(".") || t.endsWith("。") || t.endsWith("…") || t.endsWith("!") || t.endsWith("?"))) {
+                t = t.substring(0, t.length() - 1).trim();
+            }
+            if (t.isBlank()) return null;
+            if (t.length() > TITLE_MAX_LEN) t = t.substring(0, TITLE_MAX_LEN);
+            return t;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // ─── 액션 제안 확정 (일정 등록/수정/삭제) ───────────────────────

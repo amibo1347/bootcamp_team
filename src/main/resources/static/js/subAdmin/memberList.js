@@ -96,6 +96,37 @@ function initCustomSelects() {
     document.querySelectorAll('.js-custom-select').forEach((select) => createCustomSelect(select));
 }
 
+/**
+ * 인사이동 직급 dropdown 에서 부여 불가능한 직급을 제거.
+ *  - 대표(role=ADMIN 또는 시스템 직급) 옵션은 모두에게 제거 — 회사 대표 임명은 MASTER 도구에서.
+ *  - ADMIN/MASTER 가 아닌 사용자는 본인보다 "높은" 직급 옵션만 제거 (위계 보호).
+ *    동등 직급은 허용 — 부장이 사원을 부장으로 승진시키는 정상 인사이동을 막지 않도록.
+ *  - native select 의 option 자체를 제거해서 커스텀 콤보 빌드 이전에 정리 (createCustomSelect 가 option 을 복사하므로 순서가 중요).
+ */
+function pruneReassignablePositions() {
+    const select = document.querySelector('#reassignPositionSelect');
+    if (!select) return;
+    const body = document.body;
+    const isAdminOrMaster = body.dataset.isAdminOrMaster === 'true';
+    const myLevelRaw = body.dataset.myPositionLevel;
+    const myLevel = myLevelRaw === '' || myLevelRaw === undefined ? null : Number(myLevelRaw);
+    Array.from(select.options).forEach((opt) => {
+        if (!opt.value) return; // 안내용 "직급 선택" 은 유지
+        const role = opt.dataset.role || '';
+        const system = opt.dataset.system === 'true';
+        if (role === 'ADMIN' || system) {
+            opt.remove();
+            return;
+        }
+        if (!isAdminOrMaster && myLevel != null && !Number.isNaN(myLevel)) {
+            const targetLevel = Number(opt.dataset.level);
+            if (!Number.isNaN(targetLevel) && targetLevel > myLevel) {
+                opt.remove();
+            }
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const editModal = document.querySelector('#editModal');
     if (editModal && editModal.parentElement !== document.body) {
@@ -108,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(resignModal);
     }
 
+    pruneReassignablePositions();
     initCustomSelects();
     document.addEventListener('click', () => closeAllCustomSelects());
 
