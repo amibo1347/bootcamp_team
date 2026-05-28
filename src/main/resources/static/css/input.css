@@ -17,6 +17,18 @@ layer(base);
    별도 빌드 없이 바로 적용되도록 safelist 처럼 미리 포함시킨다. */
 @source inline("bg-emerald-200 text-emerald-700 hover:bg-emerald-300");
 
+/* ADMIN 시스템 로그 페이지의 액션 배지·자연어 강조 색상.
+   system-log.js 가 actionCode 에 따라 동적으로 클래스명을 조합하므로,
+   PurgeCSS 가 누락하지 않도록 safelist 로 명시. */
+@source inline("bg-emerald-100 bg-blue-100 bg-rose-100 bg-teal-100 bg-orange-100 bg-amber-100 bg-indigo-100 bg-slate-100 bg-gray-100");
+@source inline("text-emerald-700 text-blue-700 text-rose-700 text-teal-700 text-orange-700 text-amber-700 text-indigo-700 text-slate-700 text-gray-700");
+@source inline("text-emerald-600 text-blue-600 text-rose-600 text-teal-600 text-orange-600 text-amber-600 text-indigo-600");
+@source inline("ring-1 ring-inset ring-emerald-200 ring-blue-200 ring-rose-200 ring-teal-200 ring-orange-200 ring-amber-200 ring-indigo-200 ring-slate-200 ring-gray-200");
+@source inline("dark:bg-emerald-900/40 dark:bg-blue-900/40 dark:bg-rose-900/40 dark:bg-teal-900/40 dark:bg-orange-900/40 dark:bg-amber-900/40 dark:bg-indigo-900/40 dark:bg-slate-700 dark:bg-gray-700");
+@source inline("dark:text-emerald-200 dark:text-blue-200 dark:text-rose-200 dark:text-teal-200 dark:text-orange-200 dark:text-amber-200 dark:text-indigo-200 dark:text-slate-200 dark:text-gray-200");
+@source inline("dark:text-emerald-300 dark:text-blue-300 dark:text-rose-300 dark:text-teal-300 dark:text-orange-300 dark:text-amber-300 dark:text-indigo-300");
+@source inline("dark:ring-emerald-500/30 dark:ring-blue-500/30 dark:ring-rose-500/30 dark:ring-teal-500/30 dark:ring-orange-500/30 dark:ring-amber-500/30 dark:ring-indigo-500/30 dark:ring-slate-500/30 dark:ring-gray-500/30");
+
 @theme {
   --font-*: initial;
   --font-outfit: Outfit, sans-serif;
