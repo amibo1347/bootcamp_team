@@ -272,13 +272,13 @@
             <td class="whitespace-nowrap px-5 py-3">${formatDate(post.createdAt)}</td>
             <td class="whitespace-nowrap px-5 py-3">
               <div class="flex flex-wrap gap-2">
-                <!-- 복구: DESIGN_RULES 4-2 Secondary -->
+                <!-- 복구·영구 삭제: unifiedTrash 와 동일 톤 (다크 전용 rose/indigo 오버라이드 없음) -->
                 <button type="button" data-action="restore" data-article-id="${articleId}"
-                  class="rounded-lg bg-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-300">
+                  class="rounded-lg bg-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-700 shadow-sm transition-all hover:bg-indigo-300">
                   복구
                 </button>
                 <button type="button" data-action="permanent" data-article-id="${articleId}"
-                  class="btn-delete-hover rounded-lg bg-rose-200 px-3 py-1.5 text-xs font-medium text-rose-500 transition dark:bg-rose-600/35 dark:text-rose-100">
+                  class="btn-delete-hover rounded-lg bg-rose-200 px-3 py-1.5 text-xs font-medium text-rose-500 shadow-sm transition-all">
                   영구 삭제
                 </button>
               </div>

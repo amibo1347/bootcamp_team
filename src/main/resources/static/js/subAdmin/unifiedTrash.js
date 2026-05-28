@@ -3,7 +3,154 @@
   /** 복구/삭제 후 동일 페이지 재조회용 */
   let unifiedTrashCurrentPage = 0;
 
-  // getPostHeaders / formatDate / escapeHtml 은 /js/common/utils.js 의 window 전역.
+  /** DESIGN_RULES 5-2 — 검색 바 native select → 커스텀 콤보박스 */
+  const customSelectMap = new Map();
+
+  /**
+   * 열려 있는 커스텀 드롭다운을 모두 닫고 z-index를 복구한다.
+   */
+  function closeAllCustomSelects() {
+    customSelectMap.forEach(({ menu, trigger, container, arrow }) => {
+      menu.classList.add('hidden');
+      trigger.setAttribute('aria-expanded', 'false');
+      arrow?.classList.remove('is-open');
+      if (container) container.style.zIndex = '';
+    });
+  }
+
+  /**
+   * 숨긴 select 값과 트리거 라벨·선택 항목 하이라이트를 맞춘다.
+   * @param {string} selectId
+   */
+  function syncCustomSelect(selectId) {
+    const ui = customSelectMap.get(selectId);
+    if (!ui) return;
+    const { select, triggerText, menu } = ui;
+    const selectedOption = select.options[select.selectedIndex];
+    triggerText.textContent = selectedOption ? selectedOption.textContent : '선택하세요';
+    menu.querySelectorAll('button[data-value]').forEach((button) => {
+      button.classList.toggle('is-selected', button.dataset.value === select.value);
+    });
+  }
+
+  /**
+   * 단일 select를 form-combobox UI로 교체한다. 실제 값은 숨긴 select에 유지한다.
+   * @param {HTMLSelectElement} select
+   */
+  function createCustomSelect(select) {
+    if (!select || select.dataset.customized === 'true') return;
+
+    const container = select.parentElement;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'relative';
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'form-combobox-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    const triggerText = document.createElement('span');
+    triggerText.className = 'truncate';
+
+    const arrow = document.createElement('span');
+    arrow.className = 'form-combobox-arrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.textContent = '▾';
+
+    trigger.appendChild(triggerText);
+    trigger.appendChild(arrow);
+
+    const menu = document.createElement('div');
+    menu.className = 'form-combobox-panel hidden';
+    menu.setAttribute('role', 'listbox');
+
+    Array.from(select.options).forEach((option) => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.dataset.value = option.value;
+      item.disabled = option.disabled;
+      item.className = 'form-combobox-option';
+      item.textContent = option.textContent;
+      item.addEventListener('click', () => {
+        select.value = option.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        closeAllCustomSelects();
+      });
+      menu.appendChild(item);
+    });
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = !menu.classList.contains('hidden');
+      closeAllCustomSelects();
+      if (!isOpen) {
+        if (container) container.style.zIndex = '9999';
+        menu.classList.remove('hidden');
+        trigger.setAttribute('aria-expanded', 'true');
+        arrow.classList.add('is-open');
+      }
+    });
+
+    select.classList.add('hidden');
+    select.insertAdjacentElement('afterend', wrapper);
+    wrapper.appendChild(trigger);
+    wrapper.appendChild(menu);
+    select.dataset.customized = 'true';
+
+    customSelectMap.set(select.id, { select, trigger, triggerText, menu, container, arrow });
+    select.addEventListener('change', () => syncCustomSelect(select.id));
+    syncCustomSelect(select.id);
+  }
+
+  /**
+   * 검색 폼 내 .js-custom-select 에 커스텀 UI를 적용한다.
+   */
+  function initCustomSelects() {
+    document.querySelectorAll('#postSearchForm .js-custom-select').forEach((select) => {
+      if (select instanceof HTMLSelectElement) createCustomSelect(select);
+    });
+    document.addEventListener('click', () => closeAllCustomSelects());
+  }
+
+  /**
+   * CSRF 메타 또는 빈 문자열.
+   */
+  const csrfToken = document.querySelector('meta[name="_csrf"]')?.content || '';
+  const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || 'X-CSRF-TOKEN';
+
+  /**
+   * POST용 헤더
+   */
+  function getPostHeaders() {
+    return {
+      [csrfHeader]: csrfToken,
+      Accept: 'application/json, text/plain, */*',
+    };
+  }
+
+  /** @param {string|number|Date} value */
+  function formatDate(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const h = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${d} ${h}:${min}`;
+  }
+
+  /** @param {string} value */
+  function escapeHtml(value) {
+    return String(value || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
 
   /**
    * @param {unknown} payload
@@ -262,13 +409,13 @@
             <td class="whitespace-nowrap px-5 py-3">${created}</td>
             <td class="whitespace-nowrap px-5 py-3">
               <div class="flex flex-wrap gap-2">
-                <!-- 복구: DESIGN_RULES 4-2 Secondary · 영구 삭제: 4-3 Danger -->
+                <!-- 복구: managingDept 수정 버튼 톤 · 영구 삭제: managingDept 삭제 버튼 톤 -->
                 <button type="button" data-action="restore" data-board-id="${boardId}" data-article-id="${articleId}"
-                  class="rounded-lg bg-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-300">
+                  class="rounded-lg bg-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-700 shadow-sm transition-all hover:bg-indigo-300">
                   복구
                 </button>
                 <button type="button" data-action="permanent" data-board-id="${boardId}" data-article-id="${articleId}"
-                  class="btn-delete-hover rounded-lg bg-rose-200 px-3 py-1.5 text-xs font-medium text-rose-500 transition dark:bg-rose-600/35 dark:text-rose-100">
+                  class="btn-delete-hover rounded-lg bg-rose-200 px-3 py-1.5 text-xs font-medium text-rose-500 shadow-sm transition-all">
                   영구 삭제
                 </button>
               </div>
@@ -413,6 +560,7 @@
     if (!document.getElementById('unifiedTrashBody')) return;
 
     attachRowDelegation();
+    initCustomSelects();
     bindUnifiedTrashSearchForm();
     loadUnifiedTrash(0).catch(async (error) => {
       console.error(error);
