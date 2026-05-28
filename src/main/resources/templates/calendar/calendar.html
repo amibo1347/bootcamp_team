@@ -212,6 +212,53 @@
     }
 
     /*
+      다크 모드 구분선 보강:
+      - 월(dayGrid): 날짜 셀 경계선이 배경에 묻히지 않도록 선 색을 한 톤 밝게 조정.
+      - 주/일(timeGrid): 시간 가로선·세로선 모두 같은 톤으로 맞춰 시간 구분이 보이게 처리.
+    */
+    .dark #calendar {
+      --fc-border-color: rgb(100 116 139);
+    }
+
+    .dark #calendar .fc-theme-standard th,
+    .dark #calendar .fc-theme-standard td,
+    .dark #calendar .fc-theme-standard .fc-scrollgrid,
+    .dark #calendar .fc-scrollgrid td,
+    .dark #calendar .fc-scrollgrid th {
+      border-color: rgb(100 116 139) !important;
+    }
+
+    .dark #calendar .fc-timegrid-slot,
+    .dark #calendar .fc-timegrid-slot-lane {
+      border-top: 1px solid rgb(100 116 139) !important;
+    }
+
+    .dark #calendar .fc-timegrid-axis,
+    .dark #calendar .fc-timegrid-col {
+      border-color: rgb(100 116 139) !important;
+    }
+
+    /*
+      월 뷰 오늘 날짜(파란 박스) 높이 미세 조정:
+      - 숫자 기준으로 위·아래 패딩을 줄여 세로 길이가 길어 보이지 않게 만든다.
+    */
+    #calendar .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+      min-height: 1.5rem !important;
+      /* 박스 높이는 유지하고, 배지 자체를 일반 날짜 기준선에 맞춰 아래로 정렬 */
+      margin-top: 0.375rem !important;
+      padding-top: 0.25rem !important;
+      padding-bottom: 0.25rem !important;
+    }
+
+    /*
+      월 뷰 일정 시작 높이 정렬:
+      - 오늘이 아닌 날짜 셀의 헤더 하단 간격을 줄여 첫 일정이 너무 아래에서 시작하지 않게 보정한다.
+    */
+    #calendar .fc-daygrid-day:not(.fc-day-today) .fc-daygrid-day-top {
+      margin-bottom: -0.6875rem !important;
+    }
+
+    /*
       [채팅 × 월 뷰] 우하단 FAB·패널과 FullCalendar 그리드 겹침 방지
       - #calendar 스택은 본문 안(z-index 0)으로 두고, 채팅(#chat-stack)은 항상 위(10080).
       - FC 팝오버는 z-index 9999 수준이라 채팅(10080)보다 낮음.
