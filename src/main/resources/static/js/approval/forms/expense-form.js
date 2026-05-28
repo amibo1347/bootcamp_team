@@ -4,6 +4,8 @@
  * - 필드 HTML 은 mountExpenseFormFields() 가 한 번 inject (form-registry 가 호출).
  */
 
+import { getValue, attachShowPickerOnClick } from './form-utils.js';
+
 const SECTION_HTML = `
   <div id="approval-expense-fields" data-approval-form-section="EXPENSE"
        class="hidden space-y-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
@@ -48,37 +50,6 @@ export function mountExpenseFormFields(root = document) {
   if (dateInput instanceof HTMLInputElement) {
     attachShowPickerOnClick(dateInput);
   }
-}
-
-/**
- * input row 전체 클릭 시 네이티브 date picker 를 호출.
- * showPicker 미지원 브라우저(또는 user-gesture 외부)에서는 조용히 패스.
- * @param {HTMLInputElement} input
- */
-function attachShowPickerOnClick(input) {
-  if (input.dataset.showPickerBound === '1') return;
-  input.dataset.showPickerBound = '1';
-  const openPicker = () => {
-    if (typeof input.showPicker === 'function') {
-      try { input.showPicker(); } catch (_ignored) { /* user gesture 밖 호출 등 */ }
-    }
-  };
-  input.addEventListener('click', openPicker);
-  input.addEventListener('focus', openPicker);
-}
-
-/**
- * 입력값 안전 추출.
- * @param {Document|HTMLElement} root
- * @param {string} selector
- * @returns {string}
- */
-function getValue(root, selector) {
-  const el = root.querySelector(selector);
-  if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement)) {
-    return '';
-  }
-  return el.value.trim();
 }
 
 /**

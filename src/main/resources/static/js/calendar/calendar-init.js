@@ -8,7 +8,7 @@ import { getHolidaysForDate, ensureHolidaysForYear } from "./calendar-holidays.j
 
 /** @typedef {'create'|'edit'} EventModalMode */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const calendarEl = document.querySelector("#calendar");
   if (!calendarEl) return;
 
@@ -2384,6 +2384,17 @@ document.addEventListener("DOMContentLoaded", () => {
       },
     },
   });
+
+  // 첫 render() 직전에 현재 연도 공휴일 캐시를 채워둔다.
+  //  - dayCellDidMount 콜백이 호출되는 시점에 캐시가 비어 있으면 라벨이 부착되지 않고,
+  //    그 후 events() 비동기 fetch · prefetch · eventsSet 사이의 타이밍에 따라
+  //    첫 진입 시 라벨이 늦게 보이거나 일관성이 깨지는 문제가 있었다.
+  //  - fetch 실패는 ensureHolidaysForYear 내부에서 lunar fallback 으로 처리되므로 await 안전.
+  try {
+    await ensureHolidaysForYear(new Date().getFullYear());
+  } catch {
+    // fetch 실패는 fallback 으로 흡수 — render 자체를 막지 않는다.
+  }
 
   calendarInstance.render();
   decorateCalendarToolbarIcons();

@@ -95,9 +95,10 @@
           ? `${Math.ceil(Number(att.size) / 1024)} KB`
           : '-';
 
+        // 파일명은 사용자 입력이므로 XSS 회피 — escapeHtml 은 /js/common/utils.js 의 window 전역.
         return `
           <li class="flex items-center justify-between gap-3">
-            <span class="min-w-0 truncate">${att.filename} (${sizeText})</span>
+            <span class="min-w-0 truncate">${escapeHtml(att.filename || '')} (${sizeText})</span>
             <button
               type="button"
               data-attachment-index="${index}"

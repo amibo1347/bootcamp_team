@@ -52,8 +52,8 @@
         -->
         <nav
             x-data="{
-                selected: $persist(''),
-                page: $persist(''),
+                selected: '',
+                page: '',
                 syncActiveFromPath() {
                     // 현재 URL과 persist된 탭 상태를 맞춤 (레이아웃 body의 page와 별개 스코프 보정)
                     const path = window.location.pathname || '';

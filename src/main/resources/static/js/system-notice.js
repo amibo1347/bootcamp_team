@@ -5,7 +5,7 @@
  */
 (() => {
   const BANNER_ID = 'system-notice-banner';
-  const POLL_MS = 20000; // 20초 주기
+  const POLL_MS = 5000; // 5초 주기 — MASTER 가 공지 등록/삭제 시 일반 사용자 화면에 ~5초 안에 반영.
 
   /** 폴링 응답으로 배너 DOM 을 다시 그린다. */
   const render = (data) => {
@@ -34,4 +34,9 @@
   // defer 스크립트라 DOM 은 이미 준비됨. 즉시 1회 동기화 후 주기 폴링.
   poll();
   setInterval(poll, POLL_MS);
+
+  // 탭 활성화 시 즉시 한 번 더 폴링 — 다른 탭에서 작업하다 돌아왔을 때 즉시 갱신.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') poll();
+  });
 })();

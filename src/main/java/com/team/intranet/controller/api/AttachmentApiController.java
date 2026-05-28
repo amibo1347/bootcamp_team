@@ -2,9 +2,7 @@ package com.team.intranet.controller.api;
 
 import org.springframework.web.bind.annotation.RestController;
 
-import java.net.URLEncoder;
-  import java.nio.charset.StandardCharsets;
-  import java.time.LocalDateTime;
+import java.time.LocalDateTime;
   import java.util.List;
   import java.util.Map;
 
@@ -16,6 +14,7 @@ import java.net.URLEncoder;
   import com.team.intranet.repository.*;
   import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
+  import com.team.intranet.util.AttachmentHttpSupport;
   import com.team.intranet.util.FileValidator;
 
   import lombok.RequiredArgsConstructor;
@@ -53,10 +52,10 @@ import com.team.intranet.session.MemberSession;
                   .build();
           ArticleAttachment saved = attachmentRepository.save(att);
 
-          return ResponseEntity.ok(Map.of(
-                  "id", saved.getAttachmentId(),
-                  "filename", saved.getOriginalFilename(),
-                  "size", saved.getFileSize()
+          return ResponseEntity.ok(AttachmentHttpSupport.uploadResponseBody(
+                  saved.getAttachmentId(),
+                  saved.getOriginalFilename(),
+                  saved.getFileSize()
           ));
       }
 
@@ -72,18 +71,13 @@ import com.team.intranet.session.MemberSession;
 
           if (att.getArticle() != null && att.getArticle().isDeleted()) {
           return ResponseEntity.notFound().build();
-         }       
+         }
 
-          // 한글 파일명 인코딩 (RFC 5987)
-          String encodedName = URLEncoder.encode(att.getOriginalFilename(), StandardCharsets.UTF_8)
-                  .replace("+", "%20");
-
-          return ResponseEntity.ok()
-                  .header(HttpHeaders.CONTENT_TYPE,
-                          att.getContentType() == null ? "application/octet-stream" : att.getContentType())
-                  .header(HttpHeaders.CONTENT_DISPOSITION,
-                          "attachment; filename*=UTF-8''" + encodedName)
-                  .body(att.getData());
+          return AttachmentHttpSupport.downloadResponse(
+                  att.getData(),
+                  att.getOriginalFilename(),
+                  att.getContentType()
+          );
       }
 
       // 글 상세 페이지에서 호출 — 해당 글의 첨부파일 목록(메타만)

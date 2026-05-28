@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -436,22 +438,22 @@ public class ApprovalService {
         Long memberId = ms.getMemberId();
         int p = (page == null || page < 1) ? 1 : page;
 
-        List<Approval> all;
+        // DB 레벨 페이징 — schema_snapshot(CLOB) EAGER 컬럼을 한 페이지 분량만 fetch.
+        // (이전 메모리 페이징: 모든 row + 모든 CLOB 전송 → 결재 누적 시 3~5초 지연)
+        PageRequest pageable = PageRequest.of(p - 1, DEFAULT_PAGE_SIZE);
+        Page<Approval> pageResult;
         if (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) {
-            all = approvalRepository.findByDrafter_MemberIdOrderByDraftedAtDesc(memberId);
+            pageResult = approvalRepository.findByDrafter_MemberIdOrderByDraftedAtDesc(memberId, pageable);
         } else {
             ApprovalStatus parsed = parseStatus(status);
-            all = (parsed == null)
-                ? List.of()
-                : approvalRepository.findByDrafter_MemberIdAndStatusOrderByDraftedAtDesc(memberId, parsed);
+            pageResult = (parsed == null)
+                ? Page.empty(pageable)
+                : approvalRepository.findByDrafter_MemberIdAndStatusOrderByDraftedAtDesc(memberId, parsed, pageable);
         }
 
-        long total = all.size();
-        int from = Math.min((p - 1) * DEFAULT_PAGE_SIZE, all.size());
-        int to = Math.min(from + DEFAULT_PAGE_SIZE, all.size());
-        List<Approval> slice = all.subList(from, to);
-        List<ApprovalRow> items = toRowsWithLines(slice);
-        int totalPages = (int) Math.max(1, Math.ceil((double) total / DEFAULT_PAGE_SIZE));
+        List<ApprovalRow> items = toRowsWithLines(pageResult.getContent());
+        long total = pageResult.getTotalElements();
+        int totalPages = Math.max(1, pageResult.getTotalPages());
         return new ApprovalPageResponse(items, p, DEFAULT_PAGE_SIZE, total, totalPages);
     }
 
