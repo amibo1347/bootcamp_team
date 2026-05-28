@@ -19,7 +19,6 @@
             <h1 class="master-title">
               <span th:text="${master != null ? master.name : '운영자'}">운영자</span>님, 환영합니다.
             </h1>
-            <p class="master-sub" th:text="${master != null ? master.loginId : ''}">loginId</p>
           </div>
           <div style="display: flex; gap: 0.5rem;">
             <a th:href="@{/master/admins}" class="master-btn master-btn--inline">MASTER 계정</a>
