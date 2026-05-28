@@ -17,11 +17,12 @@
   function actionBadgeClass(code) {
     switch (code) {
       case 'CREATE':  return 'bg-emerald-100 text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-200 dark:ring-emerald-500/30';
-      case 'UPDATE':  return 'bg-blue-100 text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:ring-blue-500/30';
+      case 'UPDATE':  return 'bg-indigo-100 text-indigo-700 ring-1 ring-inset ring-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-200 dark:ring-indigo-500/30';
       case 'DELETE':  return 'bg-rose-100 text-rose-700 ring-1 ring-inset ring-rose-200 dark:bg-rose-900/40 dark:text-rose-200 dark:ring-rose-500/30';
       case 'APPROVE': return 'bg-teal-100 text-teal-700 ring-1 ring-inset ring-teal-200 dark:bg-teal-900/40 dark:text-teal-200 dark:ring-teal-500/30';
       case 'REJECT':  return 'bg-orange-100 text-orange-700 ring-1 ring-inset ring-orange-200 dark:bg-orange-900/40 dark:text-orange-200 dark:ring-orange-500/30';
       case 'RESET':   return 'bg-amber-100 text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:ring-amber-500/30';
+      case 'RESTORE': return 'bg-amber-100 text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:ring-amber-500/30';
       case 'LOGIN':   return 'bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:ring-slate-500/30';
       default:        return 'bg-gray-100 text-gray-700 ring-1 ring-inset ring-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-500/30';
     }
@@ -54,6 +55,7 @@
       case 'APPROVE': return 'text-teal-600 dark:text-teal-300';
       case 'REJECT':  return 'text-amber-600 dark:text-amber-300';
       case 'RESET':   return 'text-amber-600 dark:text-amber-300';
+      case 'RESTORE': return 'text-amber-600 dark:text-amber-300';
       default:        return 'text-gray-700 dark:text-gray-200';
     }
   }
@@ -93,9 +95,13 @@
    *   └──────────────────────────────────────────────────────┘
    */
   function rawRowHtml(row) {
-    const actionLabel = row.actionLabel || row.actionCode || '-';
-    const badgeCls = actionBadgeClass(row.actionCode);
-    const actionColor = actionTextColor(row.actionCode);
+    // 휴지통 복구는 DB CHECK 제약(SystemLogAction enum) 때문에 UPDATE 로 적재되지만,
+    // detail 이 "휴지통 복구"로 시작하면 화면에는 별도 액션 "복구"로 표시한다.
+    const isRestore = row.actionCode === 'UPDATE' && /^휴지통 복구/.test(row.detail || '');
+    const effectiveCode = isRestore ? 'RESTORE' : row.actionCode;
+    const actionLabel = isRestore ? '복구' : (row.actionLabel || row.actionCode || '-');
+    const badgeCls = actionBadgeClass(effectiveCode);
+    const actionColor = actionTextColor(effectiveCode);
     const actor = escapeHtml(row.actorName || '(알 수 없음)');
     const targetLabel = row.targetLabel || '-';
     const targetTypeLab = targetTypeLabel(row.targetType);
