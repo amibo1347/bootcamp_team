@@ -574,7 +574,16 @@ function cellHtml(r, mode) {
     if (!r) return '<div class="h-full"></div>';
     const cls = STATUS_BG[r.status] || 'bg-gray-100 text-gray-600';
     const label = r.statusLabel || r.status || '';
+    // 휴직은 하루 단위 상태 — 출퇴근 시간/실근무 정보 없음. 배지만 표시.
+    const isOnLeave = r.status === 'ON_LEAVE';
     if (mode === 'week') {
+        if (isOnLeave) {
+            return `
+                <div class="flex h-full flex-col gap-0.5">
+                    <span class="inline-flex w-fit items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${cls}">${escapeHtml(label)}</span>
+                </div>
+            `;
+        }
         const inT = r.clockInTime ? r.clockInTime.slice(0, 5) : '--:--';
         const outT = r.clockOutTime ? r.clockOutTime.slice(0, 5) : '--:--';
         const actual = r.actualWorkMin != null ? minToHm(r.actualWorkMin) : '';
@@ -587,8 +596,10 @@ function cellHtml(r, mode) {
             </div>
         `;
     }
-    // month 모드: 색만 작게 + 툴팁
-    const title = `${r.workDate} ${r.clockInTime ?? '--'} ~ ${r.clockOutTime ?? '--'} (${label})`;
+    // month 모드: 색만 작게 + 툴팁 (휴직은 시간 표시 생략)
+    const title = isOnLeave
+        ? `${r.workDate} (${label})`
+        : `${r.workDate} ${r.clockInTime ?? '--'} ~ ${r.clockOutTime ?? '--'} (${label})`;
     return `<div class="flex h-full items-center justify-center" title="${escapeAttr(title)}">
         <span class="inline-block h-5 w-full rounded ${cls}"></span>
     </div>`;

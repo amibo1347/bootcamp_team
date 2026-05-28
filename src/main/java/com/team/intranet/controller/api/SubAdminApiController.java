@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.SessionAttribute;
@@ -124,6 +125,41 @@ public class SubAdminApiController {
 
         return "redirect:/admin/memberList";
     }
+
+    /**
+     * 휴직 등록 — 사유 + 기간(시작일·복귀예정일) 입력 모달용.
+     *  - 기존 /status/{id}/ON_LEAVE 는 기간 없이 휴직만 마킹하던 단순 경로.
+     *  - 이 엔드포인트는 사유/기간을 함께 받아 leaveReason / leaveStartDate / leaveExpectedReturnDate 채움.
+     */
+    @PostMapping("/leave/{id}")
+    @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
+    public ResponseEntity<Void> putOnLeave(
+            @PathVariable("id") Long memberId,
+            @RequestBody LeaveRequestBody body,
+            @AuthenticatedMember MemberSession ms) {
+        memberService.putOnLeaveWithPeriod(ms, memberId,
+            body.reason(), body.startDate(), body.expectedReturnDate());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 휴직 복귀 예정일 수정 (연장 또는 단축).
+     *  - 호출 후 leaveExtended=true 가 되어 UI 에 '연장' 배지 표시.
+     */
+    @PostMapping("/leave/{id}/extend")
+    @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
+    public ResponseEntity<Void> extendLeave(
+            @PathVariable("id") Long memberId,
+            @RequestBody LeaveExtendRequestBody body,
+            @AuthenticatedMember MemberSession ms) {
+        memberService.updateLeaveReturnDate(ms, memberId, body.expectedReturnDate());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** 휴직 등록 요청 본문. */
+    public record LeaveRequestBody(String reason, LocalDate startDate, LocalDate expectedReturnDate) {}
+    /** 휴직 복귀일 수정 요청 본문. */
+    public record LeaveExtendRequestBody(LocalDate expectedReturnDate) {}
 
     /**
      * 직원 비밀번호 초기화 (수정 모달 → "보안" 섹션 → [비밀번호 초기화]).

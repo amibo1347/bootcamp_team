@@ -352,36 +352,202 @@ window.confirmResign = async (type) => {
 };
 
 /**
- * 직원 휴직 처리 (JOIN → ON_LEAVE).
- * 백엔드: POST /api/subAdmin/status/{memberId}/ON_LEAVE (SubAdminApiController.changeStatus)
+ * 휴직 모달 열기 — 사유 + 시작일 + 복귀예정일을 입력 받기 위해 dialog 를 띄운다.
+ * (기존 즉시 휴직 처리는 모달 제출 시 submitLeaveModal() 에서 새 API 호출로 대체.)
  * @param {number|string} memberId 대상 회원 PK
+ * @param {string} memberName 표시용 이름
  */
-window.leaveMember = async (memberId) => {
-    if (!confirm("이 직원을 휴직 처리하시겠습니까?")) return;
+window.openLeaveModal = (memberId, memberName) => {
+    const modal = document.getElementById('leaveModal');
+    if (!modal) return;
+    document.getElementById('leaveTargetId').value = String(memberId);
+    document.getElementById('leaveTargetName').textContent = memberName || '-';
+    document.getElementById('leaveReasonInput').value = '';
+    // 기본값: 오늘 / 한 달 뒤
+    const today = new Date();
+    const monthLater = new Date(today.getTime());
+    monthLater.setMonth(monthLater.getMonth() + 1);
+    document.getElementById('leaveStartInput').value = toIsoDate(today);
+    document.getElementById('leaveReturnInput').value = toIsoDate(monthLater);
+    openModalElement(modal);
+};
+
+/** 휴직 모달 닫기. */
+window.closeLeaveModal = () => {
+    closeModalElement(document.getElementById('leaveModal'));
+};
+
+/**
+ * 휴직 모달 제출 — POST /api/subAdmin/leave/{memberId}.
+ *  - 사유는 빈 문자열 허용(백엔드가 trim 후 보관).
+ *  - 시작일/복귀일은 둘 다 필수, 복귀일 >= 시작일.
+ */
+window.submitLeaveModal = async () => {
+    const memberId = document.getElementById('leaveTargetId').value;
+    const reason = document.getElementById('leaveReasonInput').value;
+    const startDate = document.getElementById('leaveStartInput').value;
+    const expectedReturnDate = document.getElementById('leaveReturnInput').value;
+
+    if (!memberId) return;
+    if (!startDate || !expectedReturnDate) {
+        alert('휴직 시작일과 복귀 예정일을 모두 입력하세요.');
+        return;
+    }
+    if (expectedReturnDate < startDate) {
+        alert('복귀 예정일은 휴직 시작일 이후여야 합니다.');
+        return;
+    }
 
     const token = document.querySelector('meta[name="_csrf"]')?.content;
     const header = document.querySelector('meta[name="_csrf_header"]')?.content;
 
     try {
-        const response = await fetch(`/api/subAdmin/status/${memberId}/ON_LEAVE`, {
+        const response = await fetch(`/api/subAdmin/leave/${memberId}`, {
             method: 'POST',
             headers: {
-                [header]: token
-            }
+                'Content-Type': 'application/json',
+                [header]: token,
+            },
+            body: JSON.stringify({ reason, startDate, expectedReturnDate }),
         });
 
         if (response.ok) {
-            alert("휴직 처리되었습니다.");
+            closeModalElement(document.getElementById('leaveModal'));
+            alert('휴직 처리되었습니다.');
             loadMemberList();
         } else {
-            const errorText = await response.text();
-            alert(`처리 실패: ${errorText || '알 수 없는 오류가 발생했습니다.'}`);
+            const msg = await window.getApiErrorMessage(response, '휴직 처리에 실패했습니다.');
+            alert(msg);
         }
     } catch (error) {
-        console.error("Error during leave:", error);
-        alert("서버와 통신 중 오류가 발생했습니다.");
+        console.error('Error during leave:', error);
+        alert('서버와 통신 중 오류가 발생했습니다.');
     }
 };
+
+/**
+ * 복귀 처리 통합 모달 열기 — [즉시 복귀] 또는 [복귀일 변경] 두 액션 모두 제공.
+ * @param {number|string} memberId
+ * @param {string} memberName
+ * @param {string} currentReturnDate yyyy-MM-dd
+ * @param {string} startDate yyyy-MM-dd — 복귀일 변경 input 의 min 으로 사용
+ */
+window.openRestoreModal = (memberId, memberName, currentReturnDate, startDate) => {
+    const modal = document.getElementById('restoreModal');
+    if (!modal) return;
+    document.getElementById('restoreTargetId').value = String(memberId);
+    document.getElementById('restoreTargetName').textContent = memberName || '-';
+    document.getElementById('restoreStartDate').value = startDate || '';
+    const input = document.getElementById('restoreReturnInput');
+    input.value = currentReturnDate || '';
+    if (startDate) input.min = startDate;
+    openModalElement(modal);
+};
+
+/** 복귀 모달 닫기. */
+window.closeRestoreModal = () => {
+    closeModalElement(document.getElementById('restoreModal'));
+};
+
+/** 즉시 복귀 — 기존 restoreMember(memberId) 와 동일 흐름. 확인 후 JOIN 으로 변경. */
+window.submitImmediateRestore = async () => {
+    const memberId = document.getElementById('restoreTargetId').value;
+    if (!memberId) return;
+    if (!confirm('이 직원을 즉시 복귀(활성) 처리하시겠습니까?')) return;
+
+    const token = document.querySelector('meta[name="_csrf"]')?.content;
+    const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+    try {
+        const response = await fetch(`/api/subAdmin/status/${memberId}/JOIN`, {
+            method: 'POST',
+            headers: { [header]: token },
+        });
+        if (response.ok) {
+            closeModalElement(document.getElementById('restoreModal'));
+            alert('복귀 처리되었습니다.');
+            loadMemberList();
+        } else {
+            const msg = await window.getApiErrorMessage(response, '복귀 처리에 실패했습니다.');
+            alert(msg);
+        }
+    } catch (error) {
+        console.error('Error during immediate restore:', error);
+        alert('서버와 통신 중 오류가 발생했습니다.');
+    }
+};
+
+/**
+ * 복귀일 변경 제출 — POST /api/subAdmin/leave/{memberId}/extend.
+ * leaveExtended=true 로 마킹되어 카드에 '연장' 배지가 표시된다.
+ */
+window.submitExtendReturnDate = async () => {
+    const memberId = document.getElementById('restoreTargetId').value;
+    const expectedReturnDate = document.getElementById('restoreReturnInput').value;
+    const startDate = document.getElementById('restoreStartDate').value;
+
+    if (!memberId) return;
+    if (!expectedReturnDate) {
+        alert('새 복귀 예정일을 선택하세요.');
+        return;
+    }
+    if (startDate && expectedReturnDate < startDate) {
+        alert('복귀 예정일은 휴직 시작일 이후여야 합니다.');
+        return;
+    }
+
+    const token = document.querySelector('meta[name="_csrf"]')?.content;
+    const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+    try {
+        const response = await fetch(`/api/subAdmin/leave/${memberId}/extend`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                [header]: token,
+            },
+            body: JSON.stringify({ expectedReturnDate }),
+        });
+
+        if (response.ok) {
+            closeModalElement(document.getElementById('restoreModal'));
+            alert('복귀 예정일이 변경되었습니다.');
+            loadMemberList();
+        } else {
+            const msg = await window.getApiErrorMessage(response, '복귀일 변경에 실패했습니다.');
+            alert(msg);
+        }
+    } catch (error) {
+        console.error('Error during extendLeave:', error);
+        alert('서버와 통신 중 오류가 발생했습니다.');
+    }
+};
+
+/** Date → 'yyyy-MM-dd' */
+function toIsoDate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+/** 공용 모달 열기: hidden 제거 + 배경 클릭 닫기. */
+function openModalElement(modal) {
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.querySelectorAll('.modal-close-btn').forEach((el) => {
+        if (!el.dataset.bound) {
+            el.addEventListener('click', () => closeModalElement(modal));
+            el.dataset.bound = '1';
+        }
+    });
+}
+
+/** 공용 모달 닫기. */
+function closeModalElement(modal) {
+    if (!modal) return;
+    modal.classList.add('hidden');
+}
 
 /**
  * 직원 복귀 처리 (ON_LEAVE → JOIN).

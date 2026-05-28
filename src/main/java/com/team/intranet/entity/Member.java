@@ -125,6 +125,27 @@ public class Member {
     @Enumerated(EnumType.STRING)
     private Set<SubAdminPermission> extraPermissions = EnumSet.noneOf(SubAdminPermission.class);
 
+    /* ── 휴직 정보 (status = ON_LEAVE 일 때만 의미) ───────────────────────
+     *  - leaveReason: 사유 (자유 텍스트 200자)
+     *  - leaveStartDate: 휴직 시작일 (포함)
+     *  - leaveExpectedReturnDate: 복귀 예정일 (이 날부터 복귀, 즉 이 날 -1 까지 휴직으로 표시)
+     *  - leaveExtended: 복귀일을 한 번이라도 수정(연장)한 적이 있는지 — UI '연장' 배지용
+     *  복귀(reinstate) 시 4개 모두 null/false 로 초기화.
+     */
+    @Column(name = "leave_reason", length = 200)
+    private String leaveReason;
+
+    @Column(name = "leave_start_date")
+    private LocalDate leaveStartDate;
+
+    @Column(name = "leave_expected_return_date")
+    private LocalDate leaveExpectedReturnDate;
+
+    // Oracle: NUMBER(1) DEFAULT 0 NOT NULL — ddl-auto=update 가 기존 row 가 있는 테이블에
+    // NOT NULL 컬럼을 추가할 때 default 가 없으면 ALTER 실패. default 0 으로 안전 추가.
+    @Column(name = "leave_extended", nullable = false, columnDefinition = "NUMBER(1) DEFAULT 0 NOT NULL")
+    private boolean leaveExtended;
+
     /** 회원별 예외 권한 일괄 교체. 빈 집합으로 호출하면 모든 예외 권한 해제. */
     public void replaceExtraPermissions(Set<SubAdminPermission> newPermissions) {
         if (this.extraPermissions == null) {
@@ -248,10 +269,38 @@ public class Member {
         this.statusChangedAt = LocalDateTime.now();
     }
 
+    /**
+     * 사유 + 기간이 있는 휴직 등록.
+     *  - leaveExtended 는 false 로 초기화 (이전 휴직 기록과 무관).
+     *  - 호출 측에서 startDate/expectedReturnDate null 가드 + 순서 검증을 한다.
+     */
+    public void putOnLeave(String reason, LocalDate startDate, LocalDate expectedReturnDate) {
+        this.status = Status.ON_LEAVE;
+        this.statusChangedAt = LocalDateTime.now();
+        this.leaveReason = reason;
+        this.leaveStartDate = startDate;
+        this.leaveExpectedReturnDate = expectedReturnDate;
+        this.leaveExtended = false;
+    }
+
+    /**
+     * 휴직 복귀일 수정(연장 또는 단축). status 는 ON_LEAVE 유지.
+     *  - 한 번이라도 호출되면 leaveExtended=true.
+     */
+    public void updateLeaveReturnDate(LocalDate newReturnDate) {
+        this.leaveExpectedReturnDate = newReturnDate;
+        this.leaveExtended = true;
+    }
+
     // 휴직 -> 재직 복귀 (dept/position 은 휴직 시점 그대로 유지)
     public void reinstate(){
         this.status = Status.JOIN;
         this.statusChangedAt = LocalDateTime.now();
+        // 휴직 정보 초기화 — 다음 휴직 시점에 다시 채워짐.
+        this.leaveReason = null;
+        this.leaveStartDate = null;
+        this.leaveExpectedReturnDate = null;
+        this.leaveExtended = false;
     }
 
     // LEAVE/BANNED 전이 직후 호출. 이름/전화/이메일은 보존(퇴사 후 문의 대응),
