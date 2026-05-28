@@ -155,3 +155,72 @@ a.master-btn-outline.master-btn--block {
 .master-tag--on { background: #f0fdf4; color: #166534; }
 .master-tag--off { background: #fef2f2; color: #991b1b; }
 .master-tag--muted { background: #f1f5f9; color: #64748b; }
+
+/* ================================================================
+ * MASTER 사용량 대시보드 전용
+ * ================================================================ */
+
+/* 사용량 대시보드는 표가 넓어야 해서 컨테이너 폭 확장 — login 카드 폭에 묶이지 않게 한다. */
+.master-container--wide { max-width: 1180px; }
+
+/* --- KPI 카드 그리드 (상단) --- */
+.master-kpi-grid {
+  margin-top: 1.25rem;
+  display: grid; gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.master-kpi {
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 0.85rem; padding: 0.85rem 1rem;
+}
+.master-kpi-label {
+  margin: 0; font-size: 0.72rem; font-weight: 600;
+  color: #64748b; letter-spacing: 0.04em;
+}
+.master-kpi-value {
+  margin: 0.3rem 0 0; font-size: 1.4rem; font-weight: 700;
+  color: #0f172a; line-height: 1.2;
+}
+.master-kpi-sub {
+  margin: 0.2rem 0 0; font-size: 0.74rem; color: #94a3b8;
+}
+
+/* --- 검색·내보내기 툴바 --- */
+.master-toolbar {
+  margin-top: 1.5rem;
+  display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+}
+.master-toolbar .field-input {
+  height: 2.4rem; flex: 1 1 220px; max-width: 320px; font-size: 0.85rem;
+}
+.master-toolbar-spacer { flex: 1 1 auto; }
+
+/* --- 표: 사용량 전용 보강 --- */
+.master-table--usage th { cursor: pointer; user-select: none; white-space: nowrap; }
+.master-table--usage th[data-sort-dir="asc"]::after  { content: " ▲"; color: #0f172a; }
+.master-table--usage th[data-sort-dir="desc"]::after { content: " ▼"; color: #0f172a; }
+.master-table--usage td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.master-table--usage tr.master-table-total td {
+  font-weight: 700; background: #f8fafc; border-top: 2px solid #e2e8f0;
+}
+.master-table--usage tr.is-hidden { display: none; }
+.master-table--usage td.muted { color: #94a3b8; }
+
+/* --- 차트 캔버스 박스 --- */
+.master-chart-box {
+  margin-top: 1.75rem; padding: 1rem 1.1rem 0.6rem;
+  background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.85rem;
+}
+.master-chart-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+.master-chart-title { margin: 0; font-size: 0.92rem; font-weight: 700; color: #0f172a; }
+.master-chart-sub { margin: 0; font-size: 0.75rem; color: #94a3b8; }
+/* Chart.js responsive 모드 — 부모 wrap 의 고정 height 가 캔버스 무한 확장을 막는다.
+   position: relative 는 차트가 wrap 을 기준으로 fill 하게 하는 표준 패턴. */
+.master-chart-canvas-wrap { position: relative; width: 100%; height: 220px; }
+.master-chart-canvas-wrap > canvas { width: 100% !important; height: 100% !important; display: block; }
+
+/* --- 생성 시각 / 안내 --- */
+.master-meta { margin-top: 1rem; font-size: 0.74rem; color: #94a3b8; }

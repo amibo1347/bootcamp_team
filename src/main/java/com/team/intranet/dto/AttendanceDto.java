@@ -1,9 +1,12 @@
 package com.team.intranet.dto;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import com.team.intranet.entity.Attendance;
+import com.team.intranet.entity.Member;
+import com.team.intranet.enums.attendance.AttendanceStatus;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -63,5 +66,24 @@ public class AttendanceDto {
 
     private static String formatDatetime(LocalDateTime t) {
         return t == null ? null : t.format(DATETIME);
+    }
+
+    /**
+     * 휴직 가상 row — DB에 attendance row 없이 ON_LEAVE 상태만 의미적으로 표시.
+     * 하루 단위 (시간 정보 없음).
+     */
+    public static AttendanceDto onLeavePlaceholder(Member member, LocalDate date) {
+        AttendanceDto dto = new AttendanceDto();
+        dto.attendanceId = null; // DB row 없음 — 프론트에서 수정/취소 못 함
+        if (member != null) {
+            dto.memberId = member.getMemberId();
+            dto.memberName = member.getName();
+            dto.deptName = member.getDept() != null ? member.getDept().getDeptName() : null;
+            dto.positionName = member.getPosition() != null ? member.getPosition().getPositionName() : null;
+        }
+        dto.workDate = date != null ? date.format(DATE) : null;
+        dto.status = AttendanceStatus.ON_LEAVE.name();
+        dto.statusLabel = AttendanceStatus.ON_LEAVE.getLabel();
+        return dto;
     }
 }

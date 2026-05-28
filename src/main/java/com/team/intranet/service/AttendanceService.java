@@ -121,6 +121,10 @@ public class AttendanceService {
 
         Member member = memberRepository.findById(ms.getMemberId())
             .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+        // 휴직 기간 중에는 출근 시도 차단 — 인입 즉시 거부.
+        if (isOnLeaveOnDate(member, today)) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
         AttendancePolicy policy = getOrCreatePolicy(ms.getCompanyId());
 
         AttendanceStatus status = isLate(now, policy) ? AttendanceStatus.LATE : AttendanceStatus.NORMAL;
@@ -134,6 +138,13 @@ public class AttendanceService {
     public AttendanceDto clockOut(MemberSession ms) {
         LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
+
+        // 휴직 회원은 그날 attendance row 자체가 없겠지만, 방어적 차단.
+        Member self = memberRepository.findById(ms.getMemberId())
+            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+        if (isOnLeaveOnDate(self, today)) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
 
         Attendance attendance = attendanceRepository
             .findByMember_MemberIdAndWorkDate(ms.getMemberId(), today)
@@ -181,14 +192,25 @@ public class AttendanceService {
 
     @Transactional(readOnly = true)
     public Optional<AttendanceDto> findToday(Long memberId) {
-        return attendanceRepository.findByMember_MemberIdAndWorkDate(memberId, LocalDate.now())
-            .map(AttendanceDto::fromEntity);
+        Optional<Attendance> existing = attendanceRepository
+            .findByMember_MemberIdAndWorkDate(memberId, LocalDate.now());
+        if (existing.isPresent()) return existing.map(AttendanceDto::fromEntity);
+        // 휴직 기간이라면 오늘자 가상 ON_LEAVE row 제공 (배지 표시용).
+        Member m = memberRepository.findById(memberId).orElse(null);
+        if (m != null && isOnLeaveOnDate(m, LocalDate.now())) {
+            return Optional.of(AttendanceDto.onLeavePlaceholder(m, LocalDate.now()));
+        }
+        return Optional.empty();
     }
 
     @Transactional(readOnly = true)
     public List<AttendanceDto> findMyMonth(Long memberId, YearMonth ym) {
-        return attendanceRepository.findMonthlyByMember(memberId, ym.atDay(1), ym.atEndOfMonth())
+        LocalDate from = ym.atDay(1);
+        LocalDate to = ym.atEndOfMonth();
+        List<AttendanceDto> real = attendanceRepository.findMonthlyByMember(memberId, from, to)
             .stream().map(AttendanceDto::fromEntity).toList();
+        Member m = memberRepository.findById(memberId).orElse(null);
+        return mergeWithLeaveDays(real, m == null ? List.of(m) : List.of(m), from, to);
     }
 
     @Transactional(readOnly = true)
@@ -196,8 +218,12 @@ public class AttendanceService {
         if (!ms.hasPermission(SubAdminPermission.ATTENDANCE_MANAGEMENT)) {
             throw new BusinessException(ErrorCode.NO_AUTHORITY);
         }
-        return attendanceRepository.findMonthlyByCompany(ms.getCompanyId(), ym.atDay(1), ym.atEndOfMonth())
+        LocalDate from = ym.atDay(1);
+        LocalDate to = ym.atEndOfMonth();
+        List<AttendanceDto> real = attendanceRepository.findMonthlyByCompany(ms.getCompanyId(), from, to)
             .stream().map(AttendanceDto::fromEntity).toList();
+        List<Member> companyMembers = memberRepository.findByCompanyCompanyId(ms.getCompanyId());
+        return mergeWithLeaveDays(real, companyMembers, from, to);
     }
 
     @Transactional(readOnly = true)
@@ -205,8 +231,10 @@ public class AttendanceService {
         if (!ms.hasPermission(SubAdminPermission.ATTENDANCE_MANAGEMENT)) {
             throw new BusinessException(ErrorCode.NO_AUTHORITY);
         }
-        return attendanceRepository.findDailyByCompany(ms.getCompanyId(), date)
+        List<AttendanceDto> real = attendanceRepository.findDailyByCompany(ms.getCompanyId(), date)
             .stream().map(AttendanceDto::fromEntity).toList();
+        List<Member> companyMembers = memberRepository.findByCompanyCompanyId(ms.getCompanyId());
+        return mergeWithLeaveDays(real, companyMembers, date, date);
     }
 
     /** 임의 from~to 범위 조회 — 주/월 보기 공통 사용. */
@@ -215,8 +243,55 @@ public class AttendanceService {
         if (!ms.hasPermission(SubAdminPermission.ATTENDANCE_MANAGEMENT)) {
             throw new BusinessException(ErrorCode.NO_AUTHORITY);
         }
-        return attendanceRepository.findMonthlyByCompany(ms.getCompanyId(), from, to)
+        List<AttendanceDto> real = attendanceRepository.findMonthlyByCompany(ms.getCompanyId(), from, to)
             .stream().map(AttendanceDto::fromEntity).toList();
+        List<Member> companyMembers = memberRepository.findByCompanyCompanyId(ms.getCompanyId());
+        return mergeWithLeaveDays(real, companyMembers, from, to);
+    }
+
+    /**
+     * 실제 attendance row + 휴직 기간 가상 row 합성.
+     *  - 같은 (memberId, date) 의 실제 row 가 있으면 가상 row 는 생략 (출근/퇴근 우선).
+     *  - 휴직 기간: leaveStartDate ≤ date < leaveExpectedReturnDate.
+     *  - 결과 정렬은 호출자가 신경 X — 프론트에서 정렬한다.
+     */
+    private List<AttendanceDto> mergeWithLeaveDays(List<AttendanceDto> real,
+                                                   List<Member> members,
+                                                   LocalDate from, LocalDate to) {
+        if (members == null || members.isEmpty()) return real;
+        // (memberId, workDate) 가 실제 row 에 이미 있는지 빠르게 조회.
+        java.util.Set<String> realKeys = new java.util.HashSet<>();
+        for (AttendanceDto d : real) {
+            if (d.getMemberId() != null && d.getWorkDate() != null) {
+                realKeys.add(d.getMemberId() + "@" + d.getWorkDate());
+            }
+        }
+        List<AttendanceDto> merged = new java.util.ArrayList<>(real);
+        for (Member m : members) {
+            if (m == null || m.getLeaveStartDate() == null || m.getLeaveExpectedReturnDate() == null) {
+                continue;
+            }
+            LocalDate s = m.getLeaveStartDate().isBefore(from) ? from : m.getLeaveStartDate();
+            // 복귀 예정일은 복귀 시작일이므로 그 전날까지가 휴직.
+            LocalDate e = m.getLeaveExpectedReturnDate().minusDays(1);
+            if (e.isAfter(to)) e = to;
+            for (LocalDate d = s; !d.isAfter(e); d = d.plusDays(1)) {
+                String key = m.getMemberId() + "@" + d;
+                if (realKeys.contains(key)) continue;
+                merged.add(AttendanceDto.onLeavePlaceholder(m, d));
+            }
+        }
+        return merged;
+    }
+
+    /** 회원이 주어진 날짜에 휴직 중인지 여부 — leaveStart ≤ date < leaveExpectedReturn. */
+    private boolean isOnLeaveOnDate(Member m, LocalDate date) {
+        if (m == null) return false;
+        if (m.getStatus() != com.team.intranet.enums.member.Status.ON_LEAVE) return false;
+        LocalDate start = m.getLeaveStartDate();
+        LocalDate end = m.getLeaveExpectedReturnDate();
+        if (start == null || end == null) return false;
+        return !date.isBefore(start) && date.isBefore(end);
     }
 
     // ─── 내부 ─────────────────────────────────────────────────────────

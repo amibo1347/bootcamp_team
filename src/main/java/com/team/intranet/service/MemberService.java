@@ -1,5 +1,6 @@
 package com.team.intranet.service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -145,6 +146,59 @@ public class MemberService {
         };
         publishLog(ms, action, "MEMBER", targetId, targetName,
             "상태 변경: " + prev.name() + " → " + next.name());
+    }
+
+    /**
+     * 휴직 등록 (모달의 사유 + 기간 입력 기반).
+     *  - 현재 JOIN 상태에서만 진입 가능 (canTransitionTo 검증).
+     *  - 기간 검증: 두 날짜 모두 필수, expectedReturnDate >= startDate.
+     *  - 회사 격리는 findMemberAndValidateOwner 가 보장.
+     */
+    @Transactional
+    public void putOnLeaveWithPeriod(MemberSession ms, Long memberId,
+                                     String reason, LocalDate startDate, LocalDate expectedReturnDate) {
+        if (startDate == null || expectedReturnDate == null) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
+        if (expectedReturnDate.isBefore(startDate)) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
+        Member target = findMemberAndValidateOwner(ms, memberId);
+        if (!target.getStatus().canTransitionTo(Status.ON_LEAVE)) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
+        String trimmedReason = reason == null ? "" : reason.trim();
+
+        Status prev = target.getStatus();
+        target.putOnLeave(trimmedReason, startDate, expectedReturnDate);
+
+        publishLog(ms, SystemLogAction.UPDATE, "MEMBER", target.getMemberId(), target.getName(),
+            "휴직 등록: " + prev.name() + " → ON_LEAVE, 기간 " + startDate + " ~ " + expectedReturnDate
+            + (trimmedReason.isBlank() ? "" : ", 사유 " + trimmedReason));
+    }
+
+    /**
+     * 휴직 복귀 예정일 수정 (연장 또는 단축). leaveExtended 가 true 로 마킹된다.
+     *  - 대상 회원은 현재 ON_LEAVE 상태여야 한다.
+     *  - newReturnDate >= leaveStartDate.
+     */
+    @Transactional
+    public void updateLeaveReturnDate(MemberSession ms, Long memberId, LocalDate newReturnDate) {
+        if (newReturnDate == null) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
+        Member target = findMemberAndValidateOwner(ms, memberId);
+        if (target.getStatus() != Status.ON_LEAVE) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
+        if (target.getLeaveStartDate() != null && newReturnDate.isBefore(target.getLeaveStartDate())) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS);
+        }
+        LocalDate oldReturnDate = target.getLeaveExpectedReturnDate();
+        target.updateLeaveReturnDate(newReturnDate);
+
+        publishLog(ms, SystemLogAction.UPDATE, "MEMBER", target.getMemberId(), target.getName(),
+            "휴직 복귀일 변경: " + oldReturnDate + " → " + newReturnDate);
     }
 
     /**

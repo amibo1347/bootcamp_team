@@ -16,4 +16,17 @@ public interface AttachmentRepository extends JpaRepository<ArticleAttachment, L
      @Modifying
      @Query("DELETE FROM ArticleAttachment a WHERE a.article.articleId IN :ids")
      void deleteByArticleIdIn(@Param("ids") Collection<Long> ids);
+
+     /** 회사별 첨부 누적 바이트 합. MASTER 사용량 대시보드(스토리지 카드). */
+     @Query("SELECT COALESCE(SUM(a.fileSize), 0) FROM ArticleAttachment a WHERE a.company.companyId = :companyId")
+     long sumFileSizeByCompanyId(@Param("companyId") Long companyId);
+
+     /** 전체 첨부 누적 바이트 합. KPI 카드(스토리지). */
+     @Query("SELECT COALESCE(SUM(a.fileSize), 0) FROM ArticleAttachment a")
+     long sumAllFileSize();
+
+     /** 회사별 게시판 첨부 바이트 합 일괄. [companyId, sumBytes]. */
+     @Query("SELECT a.company.companyId, COALESCE(SUM(a.fileSize), 0) FROM ArticleAttachment a " +
+            "WHERE a.company.companyId IS NOT NULL GROUP BY a.company.companyId")
+     List<Object[]> sumFileSizePerCompany();
 }
