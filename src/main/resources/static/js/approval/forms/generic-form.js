@@ -4,6 +4,8 @@
  * - 필드 HTML 은 mountGenericFormFields() 가 한 번 inject (form-registry 가 호출).
  */
 
+import { getValue } from './form-utils.js';
+
 const SECTION_HTML = `
   <div id="approval-generic-fields" data-approval-form-section="GENERIC"
        class="hidden space-y-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
@@ -25,20 +27,6 @@ export function mountGenericFormFields(root = document) {
   const slot = root.querySelector('#approval-dynamic-form-slot');
   if (!slot) return;
   slot.insertAdjacentHTML('beforeend', SECTION_HTML);
-}
-
-/**
- * 문자열 입력값 안전 추출.
- * @param {Document|HTMLElement} root
- * @param {string} selector
- * @returns {string}
- */
-function getValue(root, selector) {
-  const el = root.querySelector(selector);
-  if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement)) {
-    return '';
-  }
-  return el.value.trim();
 }
 
 /**

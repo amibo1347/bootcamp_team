@@ -1,4 +1,5 @@
 import { mountApprovalCombobox } from '../common/approval-combobox.js';
+import { getValue, attachShowPickerOnClick } from './form-utils.js';
 
 /**
  * 휴가 신청 양식 유틸
@@ -77,38 +78,6 @@ export function mountVacationFormInputs(root = document) {
   // (브라우저 기본은 아이콘 클릭만 picker 를 연다)
   attachShowPickerOnClick(start);
   attachShowPickerOnClick(end);
-}
-
-/**
- * input row 전체 클릭 시 네이티브 date picker 를 호출.
- * showPicker 미지원 브라우저(또는 user-gesture 외부)에서는 조용히 패스.
- * @param {HTMLInputElement} input
- */
-function attachShowPickerOnClick(input) {
-  if (input.dataset.showPickerBound === '1') return;
-  input.dataset.showPickerBound = '1';
-  const openPicker = () => {
-    if (typeof input.showPicker === 'function') {
-      try { input.showPicker(); } catch (_ignored) { /* user gesture 밖 호출 등 */ }
-    }
-  };
-  input.addEventListener('click', openPicker);
-  // 키보드 포커스로 들어왔을 때도 한 번 보여준다.
-  input.addEventListener('focus', openPicker);
-}
-
-/**
- * 문자열 입력값을 안전하게 가져온다.
- * @param {Document|HTMLElement} root
- * @param {string} selector
- * @returns {string}
- */
-function getValue(root, selector) {
-  const el = root.querySelector(selector);
-  if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement)) {
-    return '';
-  }
-  return el.value.trim();
 }
 
 /**
