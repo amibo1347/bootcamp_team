@@ -10,7 +10,7 @@
 
 <body class="master-page">
   <div class="master-shell">
-    <div class="master-container">
+    <div class="master-container master-container--wide">
       <div class="master-panel">
 
         <a th:href="@{/master}" class="master-link">← 콘솔로 돌아가기</a>
@@ -18,46 +18,148 @@
         <div style="margin-top: 0.75rem;">
           <span class="master-badge">MASTER</span>
           <h1 class="master-title">회사 사용량</h1>
-          <p class="master-sub">회사별 회원·게시글·결재 사용 현황입니다.</p>
+          <p class="master-sub">전사 KPI · 회사별 회원/게시글/결재/스토리지 사용 현황 · 최근 30일 추이.</p>
         </div>
 
-        <table class="master-table">
+        <!-- ────────────────────── KPI 카드 ────────────────────── -->
+        <div class="master-kpi-grid">
+          <div class="master-kpi">
+            <p class="master-kpi-label">전체 회사</p>
+            <p class="master-kpi-value" th:text="${summary.totalCompanies}">0</p>
+            <p class="master-kpi-sub">
+              활성 <span th:text="${summary.activeCompanies}">0</span>
+              · 비활성 <span th:text="${summary.inactiveCompanies}">0</span>
+            </p>
+          </div>
+          <div class="master-kpi">
+            <p class="master-kpi-label">전체 회원</p>
+            <p class="master-kpi-value" th:text="${summary.totalMembers}">0</p>
+            <p class="master-kpi-sub">
+              이번 달 신규 <span th:text="${summary.newMembersThisMonth}">0</span>
+            </p>
+          </div>
+          <div class="master-kpi">
+            <p class="master-kpi-label">전체 게시글</p>
+            <p class="master-kpi-value" th:text="${summary.totalArticles}">0</p>
+            <p class="master-kpi-sub">삭제 제외</p>
+          </div>
+          <div class="master-kpi">
+            <p class="master-kpi-label">전체 결재</p>
+            <p class="master-kpi-value" th:text="${summary.totalApprovals}">0</p>
+            <p class="master-kpi-sub">상태 무관 누적</p>
+          </div>
+          <div class="master-kpi">
+            <p class="master-kpi-label">총 스토리지</p>
+            <p class="master-kpi-value" data-bytes th:attr="data-bytes=${summary.totalStorageBytes}">0</p>
+            <p class="master-kpi-sub">게시판 + 결재 첨부 합계</p>
+          </div>
+        </div>
+
+        <!-- ────────────────────── 시계열 차트 ────────────────────── -->
+        <div class="master-chart-box">
+          <div class="master-chart-head">
+            <div>
+              <p class="master-chart-title">최근 <span th:text="${trendDays}">30</span>일 추이</p>
+              <p class="master-chart-sub">일별 신규 회원 · 신규 게시글</p>
+            </div>
+          </div>
+          <!-- Chart.js 는 responsive + maintainAspectRatio:false 사용 시 부모 컨테이너의
+               고정 height 가 반드시 필요. canvas 에 직접 height 를 주면 매 리사이즈마다
+               캔버스가 늘어나는 무한 확장 버그가 발생한다. wrap div 에 height 부여. -->
+          <div class="master-chart-canvas-wrap">
+            <canvas id="master-usage-trend"></canvas>
+          </div>
+        </div>
+
+        <!-- 시계열 데이터를 안전한 JSON 으로 노출 — Thymeleaf util.json 미사용 환경에서도 동작하도록 직접 직렬화 -->
+        <script th:inline="javascript">
+          window.__masterTrend = /*[[${trend}]]*/ [];
+        </script>
+
+        <!-- ────────────────────── 검색·CSV 툴바 ────────────────────── -->
+        <div class="master-toolbar">
+          <input id="master-usage-search" class="field-input" type="search"
+                 placeholder="회사명 검색…" aria-label="회사명 검색" />
+          <span class="master-toolbar-spacer"></span>
+          <a id="master-usage-csv" class="master-btn-outline" th:href="@{/master/usage/export.csv}">CSV 내보내기</a>
+        </div>
+
+        <!-- ────────────────────── 회사 사용량 표 ────────────────────── -->
+        <table class="master-table master-table--usage" id="master-usage-table">
           <thead>
             <tr>
-              <th>회사명</th>
-              <th>상태</th>
-              <th style="text-align: right;">회원 수</th>
-              <th style="text-align: right;">게시글 수</th>
-              <th style="text-align: right;">결재 수</th>
+              <th data-sort-key="name"           data-sort-type="text">회사명</th>
+              <th data-sort-key="active"         data-sort-type="bool">상태</th>
+              <th data-sort-key="members"        data-sort-type="num"  style="text-align:right;">회원 수</th>
+              <th data-sort-key="newMembers"     data-sort-type="num"  style="text-align:right;">이번달 신규</th>
+              <th data-sort-key="articles"       data-sort-type="num"  style="text-align:right;">게시글 수</th>
+              <th data-sort-key="approvals"      data-sort-type="num"  style="text-align:right;">결재 수</th>
+              <th data-sort-key="storage"        data-sort-type="num"  style="text-align:right;">스토리지</th>
+              <th data-sort-key="lastActivity"   data-sort-type="date">마지막 활동</th>
             </tr>
           </thead>
           <tbody>
             <tr th:if="${rows == null or rows.isEmpty()}">
-              <td colspan="5" class="master-empty">등록된 회사가 없습니다.</td>
+              <td colspan="8" class="master-empty">등록된 회사가 없습니다.</td>
             </tr>
-            <tr th:each="row : ${rows}">
+            <tr th:each="row : ${rows}"
+                th:data-name="${#strings.toLowerCase(row.companyName)}"
+                th:data-active="${row.active ? '1' : '0'}"
+                th:data-members="${row.memberCount}"
+                th:data-new-members="${row.newMembersThisMonth}"
+                th:data-articles="${row.articleCount}"
+                th:data-approvals="${row.approvalCount}"
+                th:data-storage="${row.storageBytes}"
+                th:data-last-activity="${row.lastActivityAt != null
+                                          ? #temporals.format(row.lastActivityAt, 'yyyy-MM-dd''T''HH:mm:ss')
+                                          : ''}">
               <td>
                 <a th:href="@{/master/companies/{id}(id=${row.companyId})}" class="master-link"
                    th:text="${row.companyName}">회사명</a>
               </td>
               <td>
-                <span th:if="${row.active}" class="master-tag master-tag--on">활성</span>
+                <span th:if="${row.active}"    class="master-tag master-tag--on">활성</span>
                 <span th:unless="${row.active}" class="master-tag master-tag--off">비활성</span>
               </td>
-              <td style="text-align: right;" th:text="${row.memberCount}">0</td>
-              <td style="text-align: right;" th:text="${row.articleCount}">0</td>
-              <td style="text-align: right;" th:text="${row.approvalCount}">0</td>
+              <td class="num" th:text="${row.memberCount}">0</td>
+              <td class="num" th:text="${row.newMembersThisMonth}">0</td>
+              <td class="num" th:text="${row.articleCount}">0</td>
+              <td class="num" th:text="${row.approvalCount}">0</td>
+              <td class="num" data-bytes th:attr="data-bytes=${row.storageBytes}"
+                  th:text="${row.storageBytes}">0</td>
+              <td th:if="${row.lastActivityAt != null}"
+                  th:text="${#temporals.format(row.lastActivityAt, 'yyyy-MM-dd HH:mm')}">-</td>
+              <td th:if="${row.lastActivityAt == null}" class="muted">활동 기록 없음</td>
             </tr>
           </tbody>
+          <tfoot th:if="${rows != null and !rows.isEmpty()}">
+            <tr class="master-table-total" id="master-usage-total-row">
+              <td>합계</td>
+              <td></td>
+              <td class="num" id="total-members">0</td>
+              <td class="num" id="total-new-members">0</td>
+              <td class="num" id="total-articles">0</td>
+              <td class="num" id="total-approvals">0</td>
+              <td class="num" id="total-storage" data-bytes="0">0</td>
+              <td></td>
+            </tr>
+          </tfoot>
         </table>
 
-        <p class="master-sub" style="margin-top: 1rem;">
-          ※ 스토리지(첨부 파일 누적 용량) 집계는 추후 추가 예정입니다.
+        <p class="master-meta">
+          기준 시각: <span th:text="${#temporals.format(generatedAt, 'yyyy-MM-dd HH:mm:ss')}">-</span>
+          · 스토리지는 게시판/결재 첨부 합계입니다 (이미지·채팅 첨부는 추후 합산).
+          · 마지막 활동은 관리자 시스템 로그 기준입니다.
         </p>
 
       </div>
     </div>
   </div>
+
+  <!-- Chart.js — webpack 번들이 chart.js 를 포함 (package.json), 다만 master 페이지는 output.css 와
+       master.css 만 로드하므로 차트 라이브러리는 CDN 으로 로딩. 같은 v4 메이저. -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
+  <script th:src="@{/js/master-usage.js}" defer></script>
 </body>
 
 </html>

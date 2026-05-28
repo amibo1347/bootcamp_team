@@ -168,4 +168,19 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     @Query("SELECT COUNT(a) FROM Article a WHERE a.board.company.companyId = :companyId AND a.isDeleted = false")
     long countByCompanyId(@Param("companyId") Long companyId);
 
+    /** 회사별 게시글 수 일괄 (삭제 제외) — N+1 회피. [companyId, count]. */
+    @Query("SELECT a.board.company.companyId, COUNT(a) FROM Article a WHERE a.isDeleted = false GROUP BY a.board.company.companyId")
+    List<Object[]> countArticlesPerCompany();
+
+    /** 전체 게시글 수 (삭제 제외) — KPI. */
+    @Query("SELECT COUNT(a) FROM Article a WHERE a.isDeleted = false")
+    long countAllArticles();
+
+    /**
+     * since 이후 작성된 게시글들의 createdAt 목록 (삭제 글 제외) — 시계열 차트용.
+     *  - 일별 그룹은 호출 측이 Java 에서 처리.
+     */
+    @Query("SELECT a.createdAt FROM Article a WHERE a.createdAt >= :since AND a.isDeleted = false")
+    List<LocalDateTime> findCreatedAtSinceNotDeleted(@Param("since") LocalDateTime since);
+
 }

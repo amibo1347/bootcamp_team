@@ -51,4 +51,12 @@ public interface ApprovalRepository extends JpaRepository<Approval, Long>{
     /** 회사별 결재 수 (기안자 기준) — MASTER 사용량 대시보드. */
     @Query("SELECT COUNT(a) FROM Approval a WHERE a.drafter.company.companyId = :companyId")
     long countByCompanyId(@Param("companyId") Long companyId);
+
+    /** 회사별 결재 수 일괄 (기안자 기준) — N+1 회피. [companyId, count]. */
+    @Query("SELECT a.drafter.company.companyId, COUNT(a) FROM Approval a GROUP BY a.drafter.company.companyId")
+    List<Object[]> countApprovalsPerCompany();
+
+    /** 전체 결재 수 — KPI. */
+    @Query("SELECT COUNT(a) FROM Approval a")
+    long countAllApprovals();
 }

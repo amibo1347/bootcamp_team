@@ -39,4 +39,13 @@ public interface SystemLogRepository extends JpaRepository<SystemLog, Long> {
     /** 회사 목록 — 요약 대상 회사를 빠르게 알기 위한 distinct(스케줄러용). */
     @Query("SELECT DISTINCT l.company.companyId FROM SystemLog l WHERE l.createdAt < :cutoff")
     List<Long> findCompanyIdsWithLogsBefore(@Param("cutoff") LocalDateTime cutoff);
+
+    /**
+     * 회사별 가장 최근 SystemLog 시각 (=마지막 관리자 활동 시점).
+     *  - MASTER 사용량 대시보드의 "마지막 활동" 컬럼.
+     *  - 한 회사에 로그가 한 건도 없으면 row 자체가 안 나오므로 호출 측에서 null 처리.
+     *  - Object[] 결과: [0]=companyId(Long), [1]=lastAt(LocalDateTime)
+     */
+    @Query("SELECT l.company.companyId, MAX(l.createdAt) FROM SystemLog l GROUP BY l.company.companyId")
+    List<Object[]> findLastActivityPerCompany();
 }

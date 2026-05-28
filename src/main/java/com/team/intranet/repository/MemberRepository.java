@@ -27,6 +27,35 @@ public interface MemberRepository extends JpaRepository<Member, Long>{
     /** 회사별 회원 수 (MASTER 사용량 대시보드). */
     long countByCompany_CompanyId(Long companyId);
 
+    /** 회사별 회원 수 일괄 — N+1 회피. [companyId, count]. */
+    @Query("SELECT m.company.companyId, COUNT(m) FROM Member m GROUP BY m.company.companyId")
+    List<Object[]> countMembersPerCompany();
+
+    /**
+     * 회사별 기간 내 신규 가입 회원 수 일괄.
+     *  - createdAt >= since 인 회원만 카운트.
+     *  - MASTER 사용량 대시보드의 "이번 달 신규" 컬럼 및 KPI.
+     */
+    @Query("SELECT m.company.companyId, COUNT(m) FROM Member m WHERE m.createdAt >= :since GROUP BY m.company.companyId")
+    List<Object[]> countMembersPerCompanySince(@Param("since") LocalDateTime since);
+
+    /** 전체 회원 수 — KPI 카드. */
+    @Query("SELECT COUNT(m) FROM Member m")
+    long countAllMembers();
+
+    /** 전체 신규 회원 수 (since 이후) — KPI 카드. */
+    @Query("SELECT COUNT(m) FROM Member m WHERE m.createdAt >= :since")
+    long countAllMembersSince(@Param("since") LocalDateTime since);
+
+    /**
+     * since 이후 가입한 회원들의 createdAt 목록 — 시계열 차트용.
+     *  - 일별 그룹은 호출 측(service)이 Java 스트림으로 처리한다.
+     *    JPQL 의 EXTRACT/native TRUNC 분기 없이 가장 안전한 경로.
+     *  - KPI 대시보드 규모(30일치)에서는 수천 row 이하라 전송량 부담 미미.
+     */
+    @Query("SELECT m.createdAt FROM Member m WHERE m.createdAt >= :since")
+    List<LocalDateTime> findCreatedAtSince(@Param("since") LocalDateTime since);
+
     /** 회사의 특정 권한 회원 — 대표(ADMIN) 조회용. memberId 오름차순(= 회사 생성 시 만든 원 대표가 먼저). */
     List<Member> findByCompany_CompanyIdAndRoleOrderByMemberIdAsc(Long companyId, Role role);
 
