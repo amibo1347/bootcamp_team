@@ -166,10 +166,11 @@
           ? `${Math.ceil(Number(file.size) / 1024)} KB`
           : '-';
 
+        // 파일명은 서버 응답이지만 사용자가 업로드한 원본이므로 XSS 회피 — escapeHtml 은 /js/common/utils.js window 전역.
         return `
           <li class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2 dark:border-strokedark">
             <a href="${file.downloadUrl}" class="min-w-0 flex-1 truncate text-indigo-600 hover:underline dark:text-indigo-300">
-              ${file.filename || '첨부파일'}
+              ${escapeHtml(file.filename || '첨부파일')}
             </a>
             <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400">${sizeText}</span>
             <button
@@ -204,7 +205,7 @@
 
         return `
           <li class="flex items-center justify-between gap-3">
-            <span class="min-w-0 truncate">${att.filename} (${sizeText})</span>
+            <span class="min-w-0 truncate">${escapeHtml(att.filename || '')} (${sizeText})</span>
             <button
               type="button"
               data-remove-new-attachment-index="${index}"
