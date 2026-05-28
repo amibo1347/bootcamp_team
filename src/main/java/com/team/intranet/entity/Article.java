@@ -21,9 +21,19 @@ import jakarta.persistence.FetchType;
 
 import com.team.intranet.dto.ArticleDto;
 
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+/**
+ * 게시글 엔티티.
+ *
+ * @DynamicUpdate 가 필요한 이유:
+ *  - Hibernate 6 + Oracle CLOB 조합에서 @Lob 필드(content) 가 dirty checking 시
+ *    값이 null 로 평가되는 케이스가 있다. (휴지통 이동 같이 다른 필드만 변경 후 commit 할 때 발생)
+ *  - 정적 UPDATE 쿼리는 모든 컬럼을 SET 하므로 content=null 이 NOT NULL 제약을 위반(ORA-01407 / Hibernate PropertyValueException).
+ *  - @DynamicUpdate 로 실제 변경된 필드만 SET 절에 포함시키면 content 가 update SQL 에서 빠져 문제 회피.
+ */
 @Entity
 @Table(name = "tbl_article")
 @Getter
@@ -31,7 +41,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-// 게시글 엔티티 
+@DynamicUpdate
 public class Article {
 
     // 변수
@@ -44,8 +54,16 @@ public class Article {
     @Column(name = "title")
     private String title;
 
+    /**
+     * 본문(CLOB).
+     *  - DB 컬럼은 NOT NULL 유지(스키마 안전망).
+     *  - JPA 어노테이션의 nullable=false 는 제거 — Hibernate 6 + Oracle CLOB 조합에서
+     *    flush 전 Nullability check 가 fetch 된 content 값을 null 로 잘못 평가하는
+     *    false-positive 가 발생해서, 다른 필드(예: isDeleted) 만 바꾼 commit 이 실패한다.
+     *    (실제로 NULL 이 들어가는 코드 경로는 없으며, NOT NULL 보장은 DB constraint 에 위임.)
+     */
     @Lob
-    @Column(name = "CONTENT", columnDefinition = "CLOB", nullable = false)
+    @Column(name = "CONTENT", columnDefinition = "CLOB")
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)

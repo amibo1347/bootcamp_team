@@ -1,11 +1,8 @@
 package com.team.intranet.controller.api;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +22,7 @@ import com.team.intranet.repository.CompanyRepository;
 import com.team.intranet.repository.MemberRepository;
 import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
+import com.team.intranet.util.AttachmentHttpSupport;
 import com.team.intranet.util.FileValidator;
 
 import lombok.RequiredArgsConstructor;
@@ -68,10 +66,10 @@ public class ApprovalAttachmentApiController {
                 .build();
         ApprovalAttachment saved = approvalAttachmentRepository.save(att);
 
-        return ResponseEntity.ok(Map.of(
-                "id", saved.getAttachmentId(),
-                "filename", saved.getOriginalFilename(),
-                "size", saved.getFileSize()
+        return ResponseEntity.ok(AttachmentHttpSupport.uploadResponseBody(
+                saved.getAttachmentId(),
+                saved.getOriginalFilename(),
+                saved.getFileSize()
         ));
     }
 
@@ -89,16 +87,11 @@ public class ApprovalAttachmentApiController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        // 한글 파일명 인코딩 (RFC 5987)
-        String encodedName = URLEncoder.encode(att.getOriginalFilename(), StandardCharsets.UTF_8)
-                .replace("+", "%20");
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_TYPE,
-                        att.getContentType() == null ? "application/octet-stream" : att.getContentType())
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename*=UTF-8''" + encodedName)
-                .body(att.getData());
+        return AttachmentHttpSupport.downloadResponse(
+                att.getData(),
+                att.getOriginalFilename(),
+                att.getContentType()
+        );
     }
 
     /**
