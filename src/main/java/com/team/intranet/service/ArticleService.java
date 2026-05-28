@@ -16,11 +16,13 @@ import com.team.intranet.entity.ArticleAttachment;
 import com.team.intranet.entity.Board;
 import com.team.intranet.entity.Member;
 import com.team.intranet.enums.ErrorCode;
+import com.team.intranet.enums.SystemLogAction;
 import com.team.intranet.enums.board.AnonymousType;
 import com.team.intranet.enums.board.BoardType;
 import com.team.intranet.enums.member.Status;
 import com.team.intranet.enums.member.SubAdminPermission;
 import com.team.intranet.event.ArticleCreatedEvent;
+import com.team.intranet.event.SystemLogEvent;
 import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.ArticleRepository;
 import com.team.intranet.repository.AttachmentRepository;
@@ -293,11 +295,16 @@ public class ArticleService {
         }
 
         // 3. 권한: 작성자 본인 OR TRASH_MANAGEMENT 보유자(ADMIN/MASTER 는 자동 통과).
-        if (!article.isAuthor(ms.getMemberId()) && !ms.hasPermission(SubAdminPermission.TRASH_MANAGEMENT)) {
+        boolean usedTrashPermission = !article.isAuthor(ms.getMemberId());
+        if (usedTrashPermission && !ms.hasPermission(SubAdminPermission.TRASH_MANAGEMENT)) {
             throw new BusinessException(ErrorCode.NO_AUTHORITY);
         }
 
         article.restore();
+
+        publishLog(ms, SystemLogAction.UPDATE, "ARTICLE", articleId,
+            article.getTitle(),
+            "휴지통 복구" + (usedTrashPermission ? " (통합 휴지통 권한 사용)" : ""));
     }
 
     @Transactional
@@ -313,9 +320,12 @@ public class ArticleService {
         }
 
         // 3. 권한: 작성자 본인 OR TRASH_MANAGEMENT 보유자(ADMIN/MASTER 는 자동 통과).
-        if (!article.isAuthor(ms.getMemberId()) && !ms.hasPermission(SubAdminPermission.TRASH_MANAGEMENT)) {
+        boolean usedTrashPermission = !article.isAuthor(ms.getMemberId());
+        if (usedTrashPermission && !ms.hasPermission(SubAdminPermission.TRASH_MANAGEMENT)) {
             throw new BusinessException(ErrorCode.NO_AUTHORITY);
         }
+
+        String title = article.getTitle();
 
         // 4. 첨부파일 먼저 제거 (FK 제약 회피)
         List<ArticleAttachment> attachments = attachmentRepository.findByArticle_ArticleId(articleId);
@@ -325,6 +335,18 @@ public class ArticleService {
 
         // 5. 게시글 영구 삭제
         articleRepository.delete(article);
+
+        publishLog(ms, SystemLogAction.DELETE, "ARTICLE", articleId, title,
+            "휴지통 영구 삭제" + (usedTrashPermission ? " (통합 휴지통 권한 사용)" : ""));
+    }
+
+    /** 시스템 로그 이벤트 발행 — AFTER_COMMIT 리스너가 적재. */
+    private void publishLog(MemberSession ms, SystemLogAction action, String targetType, Long targetId,
+                            String targetLabel, String detail) {
+        if (ms == null || ms.getCompanyId() == null) return;
+        eventPublisher.publishEvent(new SystemLogEvent(
+            ms.getCompanyId(), ms.getMemberId(), ms.getName(),
+            action, targetType, targetId, targetLabel, detail));
     }
 
     @Transactional

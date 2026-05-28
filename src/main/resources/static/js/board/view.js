@@ -1,36 +1,7 @@
 (() => {
   const PAGE_SIZE = 10;
 
-  /**
-   * 날짜 문자열을 YYYY-MM-DD HH:mm 형식으로 반환한다.
-   * @param {string|number|Date} value 날짜 원본 값
-   * @returns {string}
-   */
-  function formatDate(value) {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
-  }
-
-  /**
-   * 사용자 입력 텍스트를 안전한 HTML 문자열로 이스케이프한다.
-   * @param {string} value 원본 문자열
-   * @returns {string}
-   */
-  function escapeHtml(value) {
-    return String(value || '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
+  // formatDate / escapeHtml 은 /js/common/utils.js 에서 window 전역으로 제공.
 
   /**
    * 본문 미리보기에서 마크다운 이미지/img 태그/마크다운 링크 마크업을 제거한다.

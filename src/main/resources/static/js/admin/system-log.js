@@ -8,47 +8,51 @@
   let currentMode = 'raw';
   let currentPage = 0;
 
-  function escapeHtml(s) {
-    return String(s || '')
-      .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
-  }
+  // escapeHtml 은 /js/common/utils.js 의 window 전역.
 
-  /** 액션 코드 → 색상 클래스 (배지). */
+  /**
+   * 액션 코드 → 색상 클래스 (배지).
+   * 옅은 배경에서도 외곽이 보이도록 ring-1 ring-inset 으로 라이트 모드 윤곽선 통일.
+   */
   function actionBadgeClass(code) {
     switch (code) {
-      case 'CREATE':  return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200';
-      case 'UPDATE':  return 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200';
-      case 'DELETE':  return 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200';
-      case 'APPROVE': return 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-200';
-      case 'REJECT':  return 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200';
-      case 'RESET':   return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200';
-      case 'LOGIN':   return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200';
-      default:        return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200';
+      case 'CREATE':  return 'bg-emerald-100 text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-200 dark:ring-emerald-500/30';
+      case 'UPDATE':  return 'bg-blue-100 text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:ring-blue-500/30';
+      case 'DELETE':  return 'bg-rose-100 text-rose-700 ring-1 ring-inset ring-rose-200 dark:bg-rose-900/40 dark:text-rose-200 dark:ring-rose-500/30';
+      case 'APPROVE': return 'bg-teal-100 text-teal-700 ring-1 ring-inset ring-teal-200 dark:bg-teal-900/40 dark:text-teal-200 dark:ring-teal-500/30';
+      case 'REJECT':  return 'bg-orange-100 text-orange-700 ring-1 ring-inset ring-orange-200 dark:bg-orange-900/40 dark:text-orange-200 dark:ring-orange-500/30';
+      case 'RESET':   return 'bg-amber-100 text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:ring-amber-500/30';
+      case 'LOGIN':   return 'bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:ring-slate-500/30';
+      default:        return 'bg-gray-100 text-gray-700 ring-1 ring-inset ring-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-500/30';
     }
   }
 
   /** target_type 코드 → 한국어 라벨. */
   function targetTypeLabel(code) {
     switch (code) {
-      case 'MEMBER':        return '회원';
-      case 'BOARD':         return '게시판';
-      case 'ARTICLE':       return '게시글';
-      case 'FORM_TEMPLATE': return '결재 양식';
-      case 'DEPT':          return '부서';
-      case 'POSITION':      return '직급';
+      case 'MEMBER':            return '회원';
+      case 'BOARD':             return '게시판';
+      case 'ARTICLE':           return '게시글';
+      case 'FORM_TEMPLATE':     return '결재 양식';
+      case 'DEPT':              return '부서';
+      case 'POSITION':          return '직급';
+      case 'ATTENDANCE_POLICY': return '근태 정책';
       default: return code || '-';
     }
   }
 
-  /** 액션 코드 → 텍스트 색상 클래스 (자연어 문장 내 강조용). */
+  /**
+   * 액션 코드 → 텍스트 색상 클래스 (자연어 문장 내 강조용).
+   * ※ 모두 output.css 에 이미 컴파일된 컬러 유틸만 사용 (Tailwind purge 누락 회피).
+   *   blue/orange 600 은 빌드 누락이라 indigo/amber 로 매핑.
+   */
   function actionTextColor(code) {
     switch (code) {
       case 'CREATE':  return 'text-emerald-600 dark:text-emerald-300';
-      case 'UPDATE':  return 'text-blue-600 dark:text-blue-300';
+      case 'UPDATE':  return 'text-indigo-600 dark:text-indigo-300';
       case 'DELETE':  return 'text-rose-600 dark:text-rose-300';
       case 'APPROVE': return 'text-teal-600 dark:text-teal-300';
-      case 'REJECT':  return 'text-orange-600 dark:text-orange-300';
+      case 'REJECT':  return 'text-amber-600 dark:text-amber-300';
       case 'RESET':   return 'text-amber-600 dark:text-amber-300';
       default:        return 'text-gray-700 dark:text-gray-200';
     }

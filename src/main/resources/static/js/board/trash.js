@@ -2,50 +2,8 @@
   const PAGE_SIZE = 10;
   /** 마지막으로 로드된 휴지통 페이지(0-base), 복구/삭제 후 동일 페이지 재조회에 사용 */
   let trashCurrentPage = 0;
-  const csrfToken = document.querySelector('meta[name="_csrf"]')?.content || '';
-  const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || 'X-CSRF-TOKEN';
 
-  /**
-   * POST 요청에 사용할 CSRF 헤더를 포함한 객체를 반환한다.
-   * @returns {Record<string, string>}
-   */
-  function getPostHeaders() {
-    return {
-      [csrfHeader]: csrfToken,
-      Accept: 'application/json, text/plain, */*',
-    };
-  }
-
-  /**
-   * 날짜 값을 YYYY-MM-DD HH:mm 형식으로 변환한다.
-   * @param {string|number|Date} value 원본
-   * @returns {string}
-   */
-  function formatDate(value) {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return String(value);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
-  }
-
-  /**
-   * HTML 이스케이프(표시용 텍스트)
-   * @param {string} value
-   * @returns {string}
-   */
-  function escapeHtml(value) {
-    return String(value || '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
+  // getPostHeaders / formatDate / escapeHtml 은 /js/common/utils.js 의 window 전역.
 
   /**
    * Spring Data Page JSON을 프론트에서 쓰기 좋은 형태로 정규화한다.

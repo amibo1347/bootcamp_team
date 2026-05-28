@@ -3,44 +3,7 @@
   /** 복구/삭제 후 동일 페이지 재조회용 */
   let unifiedTrashCurrentPage = 0;
 
-  /**
-   * CSRF 메타 또는 빈 문자열.
-   */
-  const csrfToken = document.querySelector('meta[name="_csrf"]')?.content || '';
-  const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || 'X-CSRF-TOKEN';
-
-  /**
-   * POST용 헤더
-   */
-  function getPostHeaders() {
-    return {
-      [csrfHeader]: csrfToken,
-      Accept: 'application/json, text/plain, */*',
-    };
-  }
-
-  /** @param {string|number|Date} value */
-  function formatDate(value) {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return String(value);
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    const h = String(date.getHours()).padStart(2, '0');
-    const min = String(date.getMinutes()).padStart(2, '0');
-    return `${y}-${m}-${d} ${h}:${min}`;
-  }
-
-  /** @param {string} value */
-  function escapeHtml(value) {
-    return String(value || '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
+  // getPostHeaders / formatDate / escapeHtml 은 /js/common/utils.js 의 window 전역.
 
   /**
    * @param {unknown} payload

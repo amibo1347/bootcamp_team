@@ -3,10 +3,12 @@ package com.team.intranet.service;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,8 +19,10 @@ import com.team.intranet.entity.AttendancePolicy;
 import com.team.intranet.entity.Company;
 import com.team.intranet.entity.Member;
 import com.team.intranet.enums.ErrorCode;
+import com.team.intranet.enums.SystemLogAction;
 import com.team.intranet.enums.attendance.AttendanceStatus;
 import com.team.intranet.enums.member.SubAdminPermission;
+import com.team.intranet.event.SystemLogEvent;
 import com.team.intranet.exception.BusinessException;
 import com.team.intranet.repository.AttendancePolicyRepository;
 import com.team.intranet.repository.AttendanceRepository;
@@ -44,6 +48,7 @@ public class AttendanceService {
     private final AttendancePolicyRepository policyRepository;
     private final MemberRepository memberRepository;
     private final CompanyRepository companyRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ─── 정책 ────────────────────────────────────────────────────────
 
@@ -69,8 +74,35 @@ public class AttendanceService {
             throw new BusinessException(ErrorCode.NO_AUTHORITY);
         }
         AttendancePolicy policy = getOrCreatePolicy(ms.getCompanyId());
+
+        // 변경 전 값 보관 (in-place update 직전).
+        LocalTime oldStart = policy.getWorkStart();
+        LocalTime oldEnd = policy.getWorkEnd();
+        int oldBreak = policy.getBreakMinutes();
+        int oldLate = policy.getLateThresholdMin();
+
         policy.update(dto.parseStart(), dto.parseEnd(), dto.getBreakMinutes(), dto.getLateThresholdMin());
+
+        String detail = String.format(
+            "근태 정책 수정: 출근 %s→%s, 퇴근 %s→%s, 휴게 %d→%d분, 지각 %d→%d분",
+            oldStart, policy.getWorkStart(),
+            oldEnd, policy.getWorkEnd(),
+            oldBreak, policy.getBreakMinutes(),
+            oldLate, policy.getLateThresholdMin());
+        publishLog(ms, SystemLogAction.UPDATE, "ATTENDANCE_POLICY",
+            policy.getCompany() != null ? policy.getCompany().getCompanyId() : null,
+            "근태 정책", detail);
+
         return AttendancePolicyDto.fromEntity(policy);
+    }
+
+    /** 시스템 로그 이벤트 발행 — AFTER_COMMIT 리스너가 적재. */
+    private void publishLog(MemberSession ms, SystemLogAction action, String targetType, Long targetId,
+                            String targetLabel, String detail) {
+        if (ms == null || ms.getCompanyId() == null) return;
+        eventPublisher.publishEvent(new SystemLogEvent(
+            ms.getCompanyId(), ms.getMemberId(), ms.getName(),
+            action, targetType, targetId, targetLabel, detail));
     }
 
     // ─── 본인 출퇴근 ────────────────────────────────────────────────────

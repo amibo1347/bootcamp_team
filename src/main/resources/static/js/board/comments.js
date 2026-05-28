@@ -4,55 +4,7 @@
   /** 댓글 정렬: 'asc' = 등록순(기본), 'desc' = 최신순 */
   let currentCommentSort = 'asc';
 
-  const csrfToken = document.querySelector('meta[name="_csrf"]')?.content || '';
-  const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || 'X-CSRF-TOKEN';
-
-  /**
-   * Accept·CSRF 및 선택적 JSON 본문용 헤더를 만든다.
-   * @param {boolean} jsonBody Content-Type: application/json 포함 여부
-   * @returns {Record<string, string>}
-   */
-  function buildHeaders(jsonBody = false) {
-    const headers = {
-      Accept: 'application/json',
-      [csrfHeader]: csrfToken,
-    };
-    if (jsonBody) {
-      headers['Content-Type'] = 'application/json';
-    }
-    return headers;
-  }
-
-  /**
-   * 사용자 입력 텍스트를 안전한 HTML 문자열로 이스케이프한다.
-   * @param {string} value 원본 문자열
-   * @returns {string}
-   */
-  function escapeHtml(value) {
-    return String(value || '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
-
-  /**
-   * 날짜 값을 YYYY-MM-DD HH:mm 형식으로 변환한다.
-   * @param {string|number|Date} value 원본 날짜 값
-   * @returns {string}
-   */
-  function formatDate(value) {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return String(value);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
-  }
+  // buildHeaders / escapeHtml / formatDate 는 /js/common/utils.js 의 window 전역.
 
   /**
    * API 응답에서 댓글 ID를 추출한다(commentId 또는 id).
