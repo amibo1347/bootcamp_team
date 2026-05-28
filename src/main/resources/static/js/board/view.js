@@ -1,6 +1,116 @@
 (() => {
   const PAGE_SIZE = 10;
 
+  /** DESIGN_RULES 5-2 — 검색 바 native select → 커스텀 콤보박스 */
+  const customSelectMap = new Map();
+
+  /**
+   * 열려 있는 커스텀 드롭다운을 모두 닫고 z-index를 복구한다.
+   */
+  function closeAllCustomSelects() {
+    customSelectMap.forEach(({ menu, trigger, container, arrow }) => {
+      menu.classList.add('hidden');
+      trigger.setAttribute('aria-expanded', 'false');
+      arrow?.classList.remove('is-open');
+      if (container) container.style.zIndex = '';
+    });
+  }
+
+  /**
+   * 숨긴 select 값과 트리거 라벨·선택 항목 하이라이트를 맞춘다.
+   * @param {string} selectId
+   */
+  function syncCustomSelect(selectId) {
+    const ui = customSelectMap.get(selectId);
+    if (!ui) return;
+    const { select, triggerText, menu } = ui;
+    const selectedOption = select.options[select.selectedIndex];
+    triggerText.textContent = selectedOption ? selectedOption.textContent : '선택하세요';
+    menu.querySelectorAll('button[data-value]').forEach((button) => {
+      button.classList.toggle('is-selected', button.dataset.value === select.value);
+    });
+  }
+
+  /**
+   * 단일 select를 form-combobox UI로 교체한다. 실제 값은 숨긴 select에 유지한다.
+   * @param {HTMLSelectElement} select
+   */
+  function createCustomSelect(select) {
+    if (!select || select.dataset.customized === 'true') return;
+
+    const container = select.parentElement;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'relative';
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'form-combobox-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    const triggerText = document.createElement('span');
+    triggerText.className = 'truncate';
+
+    const arrow = document.createElement('span');
+    arrow.className = 'form-combobox-arrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.textContent = '▾';
+
+    trigger.appendChild(triggerText);
+    trigger.appendChild(arrow);
+
+    const menu = document.createElement('div');
+    menu.className = 'form-combobox-panel hidden';
+    menu.setAttribute('role', 'listbox');
+
+    Array.from(select.options).forEach((option) => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.dataset.value = option.value;
+      item.disabled = option.disabled;
+      item.className = 'form-combobox-option';
+      item.textContent = option.textContent;
+      item.addEventListener('click', () => {
+        select.value = option.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        closeAllCustomSelects();
+      });
+      menu.appendChild(item);
+    });
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = !menu.classList.contains('hidden');
+      closeAllCustomSelects();
+      if (!isOpen) {
+        if (container) container.style.zIndex = '9999';
+        menu.classList.remove('hidden');
+        trigger.setAttribute('aria-expanded', 'true');
+        arrow.classList.add('is-open');
+      }
+    });
+
+    select.classList.add('hidden');
+    select.insertAdjacentElement('afterend', wrapper);
+    wrapper.appendChild(trigger);
+    wrapper.appendChild(menu);
+    select.dataset.customized = 'true';
+
+    customSelectMap.set(select.id, { select, trigger, triggerText, menu, container, arrow });
+    select.addEventListener('change', () => syncCustomSelect(select.id));
+    syncCustomSelect(select.id);
+  }
+
+  /**
+   * 검색 폼 내 .js-custom-select 에 커스텀 UI를 적용한다.
+   */
+  function initCustomSelects() {
+    document.querySelectorAll('#postSearchForm .js-custom-select').forEach((select) => {
+      if (select instanceof HTMLSelectElement) createCustomSelect(select);
+    });
+    document.addEventListener('click', () => closeAllCustomSelects());
+  }
+
   /**
    * 날짜 문자열을 YYYY-MM-DD HH:mm 형식으로 반환한다.
    * @param {string|number|Date} value 날짜 원본 값
@@ -398,6 +508,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     const boardId = Number(document.body.dataset.boardId || 0);
     if (!boardId) return;
+    initCustomSelects();
     bindSearchForm(boardId);
     updateBoardPosts(boardId, 0).catch((error) => {
       console.error(error);
