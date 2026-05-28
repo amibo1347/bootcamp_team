@@ -16,6 +16,13 @@ public interface CalendarRepository extends JpaRepository<Calendar, Long>{
     List<Calendar> findByMember(Member member);
     List<Calendar> findByMemberAndStartAtBetween(Member member, LocalDateTime startAt, LocalDateTime endAt);
 
+    /**
+     * AI 비서 컨텍스트용 — 시간 오름차순 정렬.
+     *  - 정렬이 보장돼야 LLM 이 "지난주 X 회의", "다음 미팅" 같은 시간 표현을 일관되게 매칭한다.
+     */
+    List<Calendar> findByMemberAndStartAtBetweenOrderByStartAtAsc(
+            Member member, LocalDateTime startAt, LocalDateTime endAt);
+
     @Query("""
     SELECT DISTINCT c FROM Calendar c
     WHERE c.member = :me
