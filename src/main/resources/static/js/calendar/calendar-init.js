@@ -2390,8 +2390,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /**
    * 휴일 prefetch — datesSet 마다 뷰 범위에 걸리는 연도들을 lazy 로드.
-   *  - ensureHolidaysForYear 가 새로 로드되면 true 반환 → render() 한 번 트리거해서 dayCellDidMount 가 재실행되고 라벨이 그려진다.
-   *  - 이미 캐시된 연도는 false → render() 안 부름 → 무한 루프 방지.
+   *  - 새 데이터를 받았으면(true) DOM 을 직접 순회해 라벨을 attach.
+   *  ※ 원래는 calendarInstance.render() 한 번으로 dayCellDidMount 가 재실행되리라 기대했지만,
+   *    FullCalendar v6 의 render() 는 기존 day-cell 을 unmount/remount 하지 않아서 mount 콜백이
+   *    다시 호출되지 않는다. 그래서 첫 진입 시 라벨이 안 보이고 다른 달로 이동해야 보이던 문제 발생.
+   *    → 캐시가 채워진 직후 visible cell 들을 직접 순회해 라벨을 강제 부착.
    */
   const prefetchHolidaysForCurrentRange = async () => {
     const view = calendarInstance?.view;
@@ -2401,13 +2404,46 @@ document.addEventListener("DOMContentLoaded", () => {
     const years = new Set();
     for (let y = startYear; y <= endYear; y += 1) years.add(y);
     const results = await Promise.all(Array.from(years).map((y) => ensureHolidaysForYear(y)));
-    if (results.some(Boolean)) calendarInstance?.render();
+    if (results.some(Boolean)) applyHolidayLabelsToVisibleCells();
   };
+
+  /**
+   * 현재 보이는 day-cell 전체에 공휴일/기념일 라벨을 강제 부착.
+   *  - dayCellDidMount 로직과 동일한 결과 형태(.cal-holiday-label). 기존 라벨은 제거 후 재부착.
+   *  - 캐시(yearCache) 가 채워진 상태에서 호출되어야 의미 있음.
+   */
+  function applyHolidayLabelsToVisibleCells() {
+    if (!calendarEl) return;
+    calendarEl.querySelectorAll(".fc-daygrid-day[data-date]").forEach((cell) => {
+      const top = cell.querySelector(".fc-daygrid-day-top");
+      if (!(top instanceof HTMLElement)) return;
+      top.querySelector(".cal-holiday-label")?.remove();
+      const ds = cell.getAttribute("data-date");
+      if (!ds) return;
+      const date = new Date(`${ds}T00:00:00`);
+      if (Number.isNaN(date.getTime())) return;
+      const holidays = getHolidaysForDate(date);
+      if (holidays.length === 0) return;
+      const entry = holidays[0];
+      const span = document.createElement("span");
+      span.className = "cal-holiday-label";
+      span.dataset.holidayKind = entry.kind;
+      span.textContent = entry.shortTitle;
+      top.appendChild(span);
+    });
+  }
+
   // 최초 렌더 직후의 초기 범위에도 prefetch 적용.
   prefetchHolidaysForCurrentRange();
   calendarInstance.on("datesSet", () => {
     decorateCalendarToolbarIcons();
     prefetchHolidaysForCurrentRange();
+  });
+  // events() 가 비동기로 resolve 되면 FullCalendar(Preact) 가 day-cell 을 재렌더하면서
+  // 우리가 외부에서 appendChild 한 .cal-holiday-label 을 vDOM 에 없는 자식으로 보고 제거함.
+  // → 이벤트 데이터가 적용된 직후 한 번 더 라벨을 재부착해 첫 진입 시 라벨 사라짐 문제 보강.
+  calendarInstance.on("eventsSet", () => {
+    applyHolidayLabelsToVisibleCells();
   });
 
   initEventModalCalendarComboboxes();

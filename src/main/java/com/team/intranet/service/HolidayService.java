@@ -1,5 +1,6 @@
 package com.team.intranet.service;
 
+import java.net.URI;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,17 +55,22 @@ public class HolidayService {
         if (base == null || base.isBlank()) return Collections.emptyList();
 
         // numOfRows 를 충분히 크게 — 한 해 공휴일+국경일 합쳐 ~20건 수준이라 100 이면 안전.
-        // UriComponentsBuilder 가 자동 URL 인코딩하므로 serviceKey 는 디코딩(원본)값을 그대로 사용.
-        String url = UriComponentsBuilder.fromHttpUrl(base + "/getRestDeInfo")
+        // serviceKey 의 '+', '=', '/' 같은 특수문자가 인코딩되지 않으면 공공데이터포털이 401 을 던진다.
+        //  - build(false) 는 "이미 인코딩됨이 아님" 표시일 뿐 자동 인코딩을 하지 않는다.
+        //    → 명시적으로 .encode() 를 호출해 queryParam 값들을 URL-encode.
+        //  - String 으로 RestTemplate 에 넘기면 한 번 더 인코딩 시도해 이중 인코딩 위험.
+        //    → URI 객체로 변환해 그대로 전달.
+        URI uri = UriComponentsBuilder.fromHttpUrl(base + "/getRestDeInfo")
                 .queryParam("serviceKey", serviceKey())
                 .queryParam("solYear", year)
                 .queryParam("numOfRows", 100)
                 .queryParam("_type", "json")
-                .build(false) // 이미 인코딩된 형태로 두지 않고 우리가 넘긴 원본을 인코딩하도록 false
-                .toUriString();
+                .encode()
+                .build()
+                .toUri();
 
         try {
-            ResponseEntity<Map> resp = restTemplate.getForEntity(url, Map.class);
+            ResponseEntity<Map> resp = restTemplate.getForEntity(uri, Map.class);
             if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
                 log.warn("[holiday-api] year={} status={} body=null", year, resp.getStatusCode());
                 return Collections.emptyList();
