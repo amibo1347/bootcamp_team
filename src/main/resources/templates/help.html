@@ -1,0 +1,562 @@
+<!-- ======================================================== -->
+<!-- [도움말 페이지] : 서비스 사용법 안내                        -->
+<!--  - 사이드바/헤더 공통 레이아웃, 본문은 page-main 영역          -->
+<!--  - 처음 쓰는 사용자의 시선으로 모든 기능의 사용법을 안내        -->
+<!--  - 회원 권한(session.memberSession)에 따라 항목을 차등 표시      -->
+<!--  - 각 기능은 단계 설명 + 화면 스크린샷(/images/help/*)과 함께 노출 -->
+<!-- ======================================================== -->
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>도움말 | 인트라넷</title>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+    <!--
+      도움말 전용 스코프 스타일.
+      ※ output.css 는 정적 prebuilt 라 새 유틸리티 클래스가 빌드에 없을 수 있어,
+        도움말 고유 레이아웃은 여기 일반 CSS로 둔다. 다크모드는 body.dark 기준.
+    -->
+    <style>
+      .help-wrap { max-width: 980px; margin: 0 auto; }
+
+      /* 인트로 */
+      .help-intro {
+        border: 1px solid #e5e7eb; border-radius: 16px;
+        background: linear-gradient(135deg, #eef2ff 0%, #ffffff 60%);
+        padding: 28px; margin-bottom: 28px;
+      }
+      .dark .help-intro { border-color: #1f2937; background: linear-gradient(135deg, #1e293b 0%, #111827 60%); }
+      .help-intro h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0 0 8px; }
+      .dark .help-intro h1 { color: #f3f4f6; }
+      .help-intro p { font-size: 14px; line-height: 1.7; color: #4b5563; margin: 0; }
+      .dark .help-intro p { color: #cbd5e1; }
+      .help-note {
+        margin-top: 16px; display: flex; gap: 8px; align-items: flex-start;
+        font-size: 13px; color: #4338ca; background: #e0e7ff;
+        border-radius: 10px; padding: 10px 12px;
+      }
+      .dark .help-note { color: #c7d2fe; background: rgba(67,56,202,.18); }
+
+      /* 빠른 이동(목차) */
+      .help-toc { margin-bottom: 32px; }
+      .help-toc-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #9ca3af; margin: 0 0 12px; }
+      .help-toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+      .help-toc-grid a {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 13px; color: #374151; text-decoration: none;
+        border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px;
+        background: #fff; transition: background .15s, border-color .15s;
+      }
+      .help-toc-grid a:hover { background: #f9fafb; border-color: #c7d2fe; }
+      .dark .help-toc-grid a { color: #d1d5db; background: #161e2e; border-color: #1f2937; }
+      .dark .help-toc-grid a:hover { background: #1f2937; }
+
+      /* 섹션 */
+      .help-section { margin-bottom: 40px; scroll-margin-top: 90px; }
+      .help-section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+      .help-section-head h2 { font-size: 18px; font-weight: 700; color: #111827; margin: 0; }
+      .dark .help-section-head h2 { color: #f3f4f6; }
+      .help-section-badge {
+        font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+        background: #fef3c7; color: #92400e;
+      }
+      .dark .help-section-badge { background: rgba(146,64,14,.25); color: #fcd34d; }
+      .help-section-desc { font-size: 13px; color: #6b7280; margin: 0 0 16px; }
+      .dark .help-section-desc { color: #9ca3af; }
+
+      /* 카드 */
+      .help-card { border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; padding: 20px; margin-bottom: 16px; scroll-margin-top: 90px; }
+      .dark .help-card { border-color: #1f2937; background: #161e2e; }
+      .help-card-title { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 6px; }
+      .dark .help-card-title { color: #f3f4f6; }
+      .help-card-no {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 24px; height: 24px; border-radius: 8px; flex: 0 0 auto;
+        background: #4f46e5; color: #fff; font-size: 12px; font-weight: 700;
+      }
+      .help-lead { font-size: 13.5px; line-height: 1.7; color: #4b5563; margin: 0 0 14px; }
+      .dark .help-lead { color: #cbd5e1; }
+
+      /* 단계 */
+      .help-steps { list-style: none; margin: 0 0 16px; padding: 0; counter-reset: step; }
+      .help-steps li {
+        position: relative; padding: 6px 0 6px 30px; font-size: 13.5px; line-height: 1.6; color: #374151;
+        counter-increment: step;
+      }
+      .dark .help-steps li { color: #d1d5db; }
+      .help-steps li::before {
+        content: counter(step); position: absolute; left: 0; top: 6px;
+        width: 20px; height: 20px; border-radius: 50%;
+        background: #eef2ff; color: #4f46e5; font-size: 11px; font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .dark .help-steps li::before { background: rgba(79,70,229,.2); color: #a5b4fc; }
+      .help-card b, .help-lead b { color: #4f46e5; }
+      .dark .help-card b, .dark .help-lead b { color: #a5b4fc; }
+
+      /* 팁 */
+      .help-tip {
+        display: flex; gap: 8px; align-items: flex-start;
+        font-size: 12.5px; line-height: 1.6; color: #047857;
+        background: #ecfdf5; border-radius: 10px; padding: 10px 12px;
+      }
+      .dark .help-tip { color: #6ee7b7; background: rgba(4,120,87,.15); }
+
+      /* 스크린샷 */
+      .help-shot { margin: 0 0 16px; }
+      .help-shot img { width: 100%; border-radius: 12px; border: 1px solid #e5e7eb; display: block; }
+      .dark .help-shot img { border-color: #1f2937; }
+      .help-shot-ph {
+        display: none; flex-direction: column; align-items: center; justify-content: center;
+        gap: 8px; width: 100%; aspect-ratio: 16 / 8; border-radius: 12px;
+        border: 1px dashed #cbd5e1; background:
+          repeating-linear-gradient(45deg, #f8fafc, #f8fafc 12px, #f1f5f9 12px, #f1f5f9 24px);
+        color: #94a3b8; text-align: center; padding: 16px;
+      }
+      .dark .help-shot-ph {
+        border-color: #334155; color: #64748b;
+        background: repeating-linear-gradient(45deg, #0f172a, #0f172a 12px, #111c30 12px, #111c30 24px);
+      }
+      .help-shot-ph-title { font-size: 13px; font-weight: 600; }
+      .help-shot-ph code { font-size: 11px; background: rgba(100,116,139,.15); padding: 2px 8px; border-radius: 6px; }
+      .help-shot figcaption { margin-top: 8px; font-size: 12px; color: #9ca3af; text-align: center; }
+    </style>
+  </head>
+  <body
+    x-data="{ page: 'help', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-init="
+         darkMode = JSON.parse(localStorage.getItem('darkMode'));
+         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}"
+  >
+    <!-- ===== Preloader Start ===== -->
+    <div th:replace="~{partials/preloader}"></div>
+    <!-- ===== Preloader End ===== -->
+
+    <!-- ===== Page Wrapper Start ===== -->
+    <div class="flex h-screen overflow-hidden">
+      <!-- ===== Sidebar Start ===== -->
+      <div th:replace="~{partials/sidebar}"></div>
+      <!-- ===== Sidebar End ===== -->
+
+      <!-- ===== Content Area Start ===== -->
+      <div class="page-content">
+        <div th:replace="~{partials/overlay}"></div>
+        <div th:replace="~{partials/header}"></div>
+        <!-- ===== Main Content Start ===== -->
+        <main class="page-main">
+          <!--
+            권한 변수 — 사이드바(partials/sidebar)와 동일한 기준으로 계산해
+            화면에 실제로 접근 가능한 기능만 도움말에 노출한다.
+          -->
+          <div class="help-wrap"
+               th:with="ms=${session.memberSession},
+                        isAdminRole=${ms != null and ms.role != null and ms.role.name() == 'ADMIN'},
+                        isCompanyAdmin=${ms != null and ms.isCompanyAdmin()},
+                        isAdminOrMaster=${ms != null and ms.isAdminOrMaster()},
+                        canWaiting=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).WAITING_APPROVAL)},
+                        canMember=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).MEMBER_MANAGEMENT)},
+                        canDept=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).DEPT_MANAGEMENT)},
+                        canPosition=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).POSITION_MANAGEMENT)},
+                        canBoard=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).BOARD_MANAGEMENT)},
+                        canApprovalTemplate=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).APPROVAL_TEMPLATE_MANAGEMENT)},
+                        canTrashAll=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).TRASH_MANAGEMENT)},
+                        canAttendance=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).ATTENDANCE_MANAGEMENT)},
+                        trashVisible=${ms != null and (ms.isAdminOrMaster() or canTrashAll)},
+                        adminSectionVisible=${isCompanyAdmin or canDept or canPosition or canWaiting or canMember or canAttendance or trashVisible or isAdminRole}">
+
+            <!-- ===== 인트로 ===== -->
+            <div class="help-intro">
+              <h1>👋 처음 오셨나요? 도움말에 오신 걸 환영합니다</h1>
+              <p>
+                이 페이지는 사내 인트라넷을 <b>처음 사용하는 분</b>을 위해 만들어졌습니다.
+                출퇴근 체크부터 전자결재, 일정 확인, 게시판까지 — 화면 그림과 함께
+                하나씩 차근차근 알려드릴게요. 모르는 기능이 있으면 아래 목차에서 골라 바로 이동하세요.
+              </p>
+              <div class="help-note">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex:0 0 auto;margin-top:1px">
+                  <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 6h.01M11 11h1v5h1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>
+                  아래 안내는 <b>회원님 권한에 맞춰</b> 표시됩니다.
+                  관리자 기능(부서·직급·근태 관리 등)은 권한이 있는 분에게만 보입니다.
+                </span>
+              </div>
+            </div>
+
+            <!-- ===== 빠른 이동(목차) ===== -->
+            <nav class="help-toc">
+              <p class="help-toc-title">빠른 이동</p>
+              <div class="help-toc-grid">
+                <a href="#sec-start">🚀 시작하기</a>
+                <a href="#sec-approval">📝 전자결재</a>
+                <a href="#sec-schedule">📅 일정·근무</a>
+                <a href="#sec-board">💬 게시판</a>
+                <a th:if="${adminSectionVisible}" href="#sec-admin">🛠️ 관리 기능</a>
+              </div>
+            </nav>
+
+            <!-- ============================================================ -->
+            <!-- 섹션 1. 시작하기 (모든 사용자)                                 -->
+            <!-- ============================================================ -->
+            <section id="sec-start" class="help-section">
+              <div class="help-section-head"><h2>🚀 시작하기 — 기본 사용법</h2></div>
+              <p class="help-section-desc">로그인하면 가장 먼저 만나는 화면들입니다. 모든 회원이 사용할 수 있어요.</p>
+
+              <!-- 대시보드 + 출퇴근 -->
+              <article id="help-dashboard" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">1</span> 첫 화면(대시보드)과 출퇴근 체크</h3>
+                <p class="help-lead">
+                  로그인하면 보이는 첫 화면이 <b>대시보드</b>입니다. 맨 위 <b>「출퇴근 기록」 카드</b>에
+                  현재 시각이 실시간으로 흐르고, 큰 <b>[출근]</b> 버튼이 있어요. 하루를 시작할 때
+                  여기서 출근을 찍고, 아래 <b>근무 진행률</b>과 회사 공지를 함께 확인합니다.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('dashboard.png', '대시보드 「출퇴근 기록」 카드 — 실시간 시각·출근 버튼·근무 진행률')}"></th:block>
+                <ol class="help-steps">
+                  <li>출근하면 <b>「출퇴근 기록」</b> 카드의 파란 <b>[출근]</b> 버튼을 누릅니다.</li>
+                  <li>출근을 찍으면 아래 <b>「출근」</b> 칸에 시각이 기록되고 버튼이 <b>[퇴근]</b>으로 바뀝니다.</li>
+                  <li>퇴근할 때 <b>[퇴근]</b>을 한 번 더 눌러 마칩니다. <b>근무 진행</b> 막대로 진행률도 보여요.</li>
+                  <li>실수로 눌렀다면 <b>[퇴근 취소]</b>로 되돌릴 수 있어요.</li>
+                </ol>
+                <p class="help-tip">
+                  <span>💡</span>
+                  <span>왼쪽 위 회사 로고를 누르면 언제든 이 대시보드로 돌아올 수 있어요.</span>
+                </p>
+              </article>
+
+              <!-- 알림 -->
+              <article id="help-noti" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">2</span> 알림 확인하기</h3>
+                <p class="help-lead">
+                  결재가 올라오거나 내 글에 댓글이 달리면 화면 <b>오른쪽 위 종(🔔) 아이콘</b>에 표시가 떠요.
+                  종 아이콘은 <b>다크모드 달 아이콘과 내 이름 사이</b>에 있습니다. 눌러서 무슨 일이 있었는지 바로 확인하세요.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('notifications.png', '헤더 오른쪽 — 다크모드 달 아이콘 옆 종 아이콘')}"></th:block>
+                <ol class="help-steps">
+                  <li>오른쪽 위 <b>🔔 종 아이콘</b>을 누릅니다.</li>
+                  <li>최근 알림 목록이 펼쳐집니다.</li>
+                  <li>알림을 누르면 관련 페이지로 바로 이동합니다.</li>
+                  <li>더 보고 싶으면 <b>[알림 더 보기]</b>를 누릅니다.</li>
+                </ol>
+              </article>
+
+              <!-- AI 비서 -->
+              <article id="help-ai" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">3</span> AI 비서에게 물어보기</h3>
+                <p class="help-lead">
+                  사용법이 헷갈리거나 궁금한 게 있으면 <b>오른쪽 아래 동그란 말풍선 버튼</b>을 누르세요.
+                  패널 위쪽에 <b>「채팅」</b>과 <b>「AI 비서」</b> 탭이 있고, AI 비서에게 24시간 편하게 물어볼 수 있어요.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('ai-chat.png', 'AI 비서 패널 — 「채팅 / AI 비서」 탭과 새 대화(+) 버튼')}"></th:block>
+                <ol class="help-steps">
+                  <li>오른쪽 아래 <b>말풍선 버튼</b>을 누르면 패널이 열립니다.</li>
+                  <li>위쪽 <b>「AI 비서」</b> 탭을 고른 뒤, 오른쪽 아래 <b>[+] 버튼</b>으로 새 대화를 시작합니다.</li>
+                  <li>궁금한 내용을 자유롭게 입력하고, 이어서 더 질문할 수도 있어요.</li>
+                </ol>
+              </article>
+
+              <!-- 계정 설정 -->
+              <article id="help-profile" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">4</span> 내 정보 / 계정 설정</h3>
+                <p class="help-lead">
+                  오른쪽 위 <b>내 이름</b>을 누르면 메뉴가 열립니다. 여기 <b>[계정 설정]</b>에서
+                  프로필 사진과 내 정보를 관리할 수 있어요. (지금 보고 있는 <b>도움말</b>도 이 메뉴에 있습니다.)
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('profile.png', '내 이름 메뉴(계정 설정·도움말·로그아웃)와 「내 프로필」 화면')}"></th:block>
+                <ol class="help-steps">
+                  <li>오른쪽 위 <b>내 이름/프로필 사진</b>을 누르면 메뉴가 열립니다. (계정 설정 · 도움말 · 로그아웃)</li>
+                  <li><b>[계정 설정]</b>을 누르면 <b>「내 프로필」</b> 화면으로 이동합니다.</li>
+                  <li>프로필 사진의 <b>카메라 아이콘</b>으로 사진을 바꿀 수 있어요.</li>
+                  <li><b>「개인 정보」</b>의 <b>[수정]</b> 버튼으로 이름·연락처 등을 고쳐 저장합니다.</li>
+                </ol>
+              </article>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- 섹션 2. 전자결재                                              -->
+            <!-- ============================================================ -->
+            <section id="sec-approval" class="help-section">
+              <div class="help-section-head"><h2>📝 전자결재</h2></div>
+              <p class="help-section-desc">휴가·지출 등 결재가 필요한 일을 온라인으로 올리고 처리하는 곳입니다.</p>
+
+              <article id="help-approval" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">1</span> 결재 올리기 · 처리하기</h3>
+                <p class="help-lead">
+                  왼쪽 메뉴 <b>전자결재</b>에 들어가면 위쪽에 <b>「기안 · 내 결재함 · 대기함 · 완료함」</b> 탭이 있어요.
+                  <b>기안</b> 탭에서 <b>양식 → 결재자 → 작성</b> 3단계로 새 문서를 만들어 올리고,
+                  내가 결재할 문서는 <b>대기함</b>에서 처리합니다.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('approval.png', '전자결재 기안 — 양식 선택과 「결재선 설정」 단계')}"></th:block>
+                <ol class="help-steps">
+                  <li>왼쪽 메뉴 <b>전자결재</b> → 위쪽 <b>「기안」</b> 탭을 누릅니다.</li>
+                  <li><b>1. 양식</b>에서 휴가 신청·일반 기안·지출 결의서 중 하나를 고릅니다.</li>
+                  <li><b>2. 결재자</b>에서 <b>「결재선 설정」</b>에 이름을 검색해 <b>[추가]</b>로 결재자를 순서대로 지정합니다. (마지막이 최종 결재자)</li>
+                  <li><b>3. 작성</b>에서 내용을 채우고 <b>[다음]</b>으로 진행해 상신합니다.</li>
+                  <li>내가 결재할 차례인 문서는 <b>「대기함」</b> 탭에서 승인/반려하고, <b>「완료함」</b>에서 끝난 문서를 봅니다.</li>
+                </ol>
+                <p class="help-tip">
+                  <span>💡</span>
+                  <span>내가 올린 문서의 진행 상황은 <b>「내 결재함」</b> 탭에서 확인할 수 있어요.</span>
+                </p>
+              </article>
+
+              <!-- 양식 관리 (권한) -->
+              <article th:if="${canApprovalTemplate}" id="help-approval-tpl" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">2</span> 결재 양식 관리
+                  <span class="help-section-badge" style="margin-left:auto">권한 필요</span></h3>
+                <p class="help-lead">
+                  회사에서 쓰는 결재 <b>양식(서식)</b>을 만들고 다듬는 기능입니다. 왼쪽 <b>전자결재 &gt; 양식 관리</b>에서 들어가요.
+                  <b>휴가/지출/일반</b> 같은 시스템 기본 양식은 바로 못 고치고, <b>[복사]</b>로 우리 회사 사본을 만든 뒤 수정합니다.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('approval-template.png', '결재 양식 관리 — 양식 목록의 [복사]와 「새 양식 만들기」 패널')}"></th:block>
+                <ol class="help-steps">
+                  <li>왼쪽 <b>전자결재 &gt; 양식 관리</b>로 이동합니다.</li>
+                  <li>기본 양식을 바꾸려면 <b>「양식 목록」</b>에서 해당 양식의 <b>[복사]</b>를 눌러 사본을 만듭니다.</li>
+                  <li>완전히 새로 만들려면 오른쪽 위 <b>[새 양식 만들기]</b>를 누릅니다.</li>
+                  <li><b>양식 코드 · 양식명 · 설명</b>을 입력하고, <b>「필드 등록·배치」</b>에서 입력 항목을 추가한 뒤 <b>[저장]</b>합니다.</li>
+                </ol>
+              </article>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- 섹션 3. 일정·근무                                             -->
+            <!-- ============================================================ -->
+            <section id="sec-schedule" class="help-section">
+              <div class="help-section-head"><h2>📅 일정 · 근무</h2></div>
+              <p class="help-section-desc">회사 일정과 내 근무 기록을 확인하는 곳입니다.</p>
+
+              <article id="help-calendar" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">1</span> 일정(캘린더) 보기</h3>
+                <p class="help-lead">
+                  왼쪽 메뉴 <b>일정 조회</b>에서 회사 공휴일(빨강·주황 글씨)과 동료들의 일정을 달력으로 볼 수 있어요.
+                  오른쪽 위 <b>월 / 주 / 일</b> 버튼으로 보기 방식을 바꿀 수 있습니다.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('calendar.png', '캘린더 — 추가(+)·태그 버튼, 월/주/일 보기, 공휴일 표시')}"></th:block>
+                <ol class="help-steps">
+                  <li>왼쪽 메뉴 <b>일정 기록 &gt; 일정 조회</b>를 누릅니다.</li>
+                  <li>위쪽 <b>◀ ● ▶</b> 버튼으로 지난달/오늘/다음 달을 이동합니다.</li>
+                  <li>파란 <b>[+] 버튼</b>으로 새 일정을 추가하고, 그 옆 <b>태그 버튼</b>으로 일정 분류를 관리합니다.</li>
+                  <li>달력의 일정 칸을 눌러 상세 내용을 확인합니다.</li>
+                </ol>
+              </article>
+
+              <article id="help-my-attendance" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">2</span> 내 근무표 보기</h3>
+                <p class="help-lead">
+                  내가 언제 출근·퇴근했는지 한 달치를 달력으로 모아 보는 <b>내 근무표</b>입니다.
+                  위쪽에 <b>회사 정책(출근·퇴근·휴게 시간)</b>이 보이고, 오른쪽에 <b>총 실근무·총 초과·지각 횟수</b>가 요약돼요.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('my-attendance.png', '내 근무표 — 월별 통계(총 실근무·초과·지각)와 날짜별 출퇴근 기록')}"></th:block>
+                <ol class="help-steps">
+                  <li>왼쪽 메뉴 <b>일정 기록 &gt; 내 근무표</b>를 누릅니다.</li>
+                  <li>위쪽 <b>◀ 2026년 00월 ▶</b>로 달을 이동합니다.</li>
+                  <li>각 날짜 칸에서 출퇴근 시각·실근무 시간과 <b>지각/정상</b> 표시를 확인합니다.</li>
+                  <li>맨 위 요약에서 <b>총 실근무·총 초과·지각 횟수</b>를 한눈에 봅니다.</li>
+                </ol>
+              </article>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- 섹션 4. 게시판                                                -->
+            <!-- ============================================================ -->
+            <section id="sec-board" class="help-section">
+              <div class="help-section-head"><h2>💬 게시판</h2></div>
+              <p class="help-section-desc">공지·자유·Q&amp;A 등 사내 소통 공간입니다.</p>
+
+              <article id="help-board" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">1</span> 글 읽고 쓰기 · 댓글 달기</h3>
+                <p class="help-lead">
+                  왼쪽 메뉴 <b>게시판</b>에서 게시판을 고르면 <b>번호·제목·작성자·작성일·조회수</b>로 된 글 목록이 보여요.
+                  제목 옆 <b>📎</b>는 첨부파일, <b>[숫자]</b>는 댓글 수입니다. 오른쪽 위 <b>[글쓰기]</b>로 새 글을 씁니다.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('board.png', '게시판 글 목록과 「게시글 작성」 창(제목·본문 에디터·첨부파일)')}"></th:block>
+                <ol class="help-steps">
+                  <li>왼쪽 <b>게시판</b>에서 원하는 게시판을 펼쳐 선택합니다.</li>
+                  <li>목록에서 글 제목을 눌러 내용을 봅니다.</li>
+                  <li>오른쪽 위 <b>[글쓰기]</b>를 누르면 <b>「게시글 작성」</b>이 열립니다. 제목과 본문(서식 편집)을 채우고 필요하면 <b>[파일 선택]</b>으로 첨부합니다.</li>
+                  <li><b>[게시글 등록]</b>으로 올리고, 글 아래 <b>댓글</b>로 의견을 남깁니다.</li>
+                </ol>
+              </article>
+
+              <!-- 게시판 관리 (권한) -->
+              <article th:if="${canBoard}" id="help-board-manage" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">2</span> 게시판 관리
+                  <span class="help-section-badge" style="margin-left:auto">권한 필요</span></h3>
+                <p class="help-lead">
+                  게시판 자체를 <b>새로 만들고 관리</b>하는 기능입니다. 왼쪽 <b>관리 &gt; 게시판 관리</b>에서 들어가요.
+                  게시판마다 <b>타입·뷰 타입·읽기/쓰기/댓글 권한·익명·활성·AI</b> 옵션을 정할 수 있습니다.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('board-manage.png', '게시판 관리 — 「게시판 생성」 폼과 게시판 목록(수정·삭제·게시판 보기)')}"></th:block>
+                <ol class="help-steps">
+                  <li>왼쪽 <b>관리 &gt; 게시판 관리</b>로 이동합니다.</li>
+                  <li><b>「게시판 생성」</b>에서 <b>게시판명</b>을 쓰고 <b>게시판 타입</b>(공지사항·자유게시판 등)과 <b>뷰 타입</b>(목록·앨범)을 고릅니다.</li>
+                  <li><b>「권한 설정」</b>으로 읽기·쓰기·댓글 범위를, <b>「기타 설정」</b>으로 익명·활성화·AI 옵션을 정합니다.</li>
+                  <li><b>[게시판 생성]</b>을 누릅니다. 기존 게시판은 <b>「게시판 목록」</b>에서 <b>[수정]·[삭제]·[게시판 보기]</b>로 관리합니다.</li>
+                </ol>
+              </article>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- 섹션 5. 관리 기능 (권한 보유자만)                              -->
+            <!-- ============================================================ -->
+            <section th:if="${adminSectionVisible}" id="sec-admin" class="help-section">
+              <div class="help-section-head">
+                <h2>🛠️ 관리 기능</h2>
+                <span class="help-section-badge">권한 필요</span>
+              </div>
+              <p class="help-section-desc">
+                아래 항목은 <b>회원님이 가진 권한에 해당하는 것만</b> 표시됩니다.
+                보이지 않는 항목은 해당 권한이 없는 것이니 안심하세요.
+              </p>
+
+              <!-- 권한 관리 (회사 대표) -->
+              <article th:if="${isCompanyAdmin}" id="help-permission" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">A</span> 권한 관리 <span class="help-section-badge" style="margin-left:auto">회사 대표</span></h3>
+                <p class="help-lead">
+                  직원에게 <b>관리 권한</b>을 나눠 주는 기능입니다. 위쪽 <b>「직급별 권한 부여」</b>·<b>「회원별 권한 부여」</b> 탭에서
+                  <b>승인 대기·조직도 구성·부서 관리·직급 관리·게시판 관리·전자결재 양식 관리·통합 휴지통·근태 관리</b>를 체크로 켜고 끕니다.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('permission.png', '권한 관리 — 직급별/회원별 탭과 권한 체크박스')}"></th:block>
+                <ol class="help-steps">
+                  <li>왼쪽 <b>관리 &gt; 권한 관리</b>로 이동합니다.</li>
+                  <li>직급 단위로 줄지(<b>직급별</b>) 사람 단위로 줄지(<b>회원별</b>) 탭을 고릅니다.</li>
+                  <li>부여할 기능의 <b>체크박스</b>를 켭니다.</li>
+                  <li>해당 줄의 <b>[저장]</b>을 누르면 그 직급/직원에게 메뉴가 보이게 됩니다.</li>
+                </ol>
+              </article>
+
+              <!-- 부서 관리 -->
+              <article th:if="${canDept}" id="help-dept" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">B</span> 부서 관리</h3>
+                <p class="help-lead">회사의 <b>부서를 만들고, 이름을 바꾸고, 정리</b>하는 기능입니다. (예: 인사팀·개발팀·디자인팀)</p>
+                <th:block th:replace="~{partials/help-shot :: shot('dept.png', '부서 관리 — 「부서 추가 생성」과 기존 부서 목록(수정·삭제)')}"></th:block>
+                <ol class="help-steps">
+                  <li>왼쪽 <b>관리 &gt; 조직 관리 &gt; 부서 관리</b>로 이동합니다.</li>
+                  <li><b>「부서 추가 생성」</b>에 <b>부서명</b>을 입력하고 <b>[생성]</b>을 누릅니다.</li>
+                  <li><b>「기존 부서 목록」</b>에서 <b>[수정]·[삭제]</b>로 부서를 정리합니다. (소속 직원이 있는 부서는 삭제가 막혀 있어요.)</li>
+                </ol>
+              </article>
+
+              <!-- 직급 관리 -->
+              <article th:if="${canPosition}" id="help-position" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">C</span> 직급 관리</h3>
+                <p class="help-lead">
+                  사원·대리·부장처럼 <b>직급을 만들고 순서를 정리</b>하는 기능입니다.
+                  <b>레벨 숫자가 클수록 상위 직급</b>이에요. (예: 사원 1, 대리 2, 부장 4, 대표 99)
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('position.png', '직급 관리 — 「직급 추가 생성」(직급명·레벨)과 기존 직급 목록')}"></th:block>
+                <ol class="help-steps">
+                  <li>왼쪽 <b>관리 &gt; 조직 관리 &gt; 직급 관리</b>로 이동합니다.</li>
+                  <li><b>「직급 추가 생성」</b>에 <b>직급명</b>과 <b>레벨</b> 숫자를 입력하고 <b>[생성]</b>을 누릅니다.</li>
+                  <li><b>「기존 직급 목록」</b>에서 <b>[수정]·[삭제]</b>로 직급을 정리합니다.</li>
+                </ol>
+              </article>
+
+              <!-- 승인 대기 -->
+              <article th:if="${canWaiting}" id="help-waiting" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">D</span> 가입 승인 (승인 대기 목록)</h3>
+                <p class="help-lead">
+                  새로 회원가입을 신청한 사람을 <b>승인하거나 거절</b>하는 기능입니다.
+                  승인해야 정식 회원으로 활동할 수 있어요.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('waiting.png', '승인 대기 목록 — 「직급 선택」 후 승인/거절')}"></th:block>
+                <ol class="help-steps">
+                  <li>왼쪽 <b>관리 &gt; 직원 관리 &gt; 승인 대기 목록</b>으로 이동합니다. (제목 옆에 대기 인원이 표시돼요.)</li>
+                  <li>신청자의 이름·부서를 확인합니다.</li>
+                  <li><b>「직급 선택」</b>에서 부여할 직급을 먼저 고릅니다.</li>
+                  <li><b>[승인]</b>을 누르면 정식 회원이 되고, 아니면 <b>[거절]</b>합니다.</li>
+                </ol>
+              </article>
+
+              <!-- 조직도 구성 · 인사 이동 (사용자가 든 예시) -->
+              <article th:if="${canMember}" id="help-member" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">E</span> 조직도 구성 · 인사 이동</h3>
+                <p class="help-lead">
+                  직원 목록을 보면서 <b>부서·직급을 바꾸는 인사 이동</b>을 처리하는 기능입니다.
+                  위쪽 <b>부서별·직위별·이름</b>으로 직원을 찾고, <b>「부서 소속 / 휴직 / 퇴사」</b> 탭으로 상태별로 볼 수 있어요.
+                  인사 이동은 <b>「인사이동」 버튼</b>으로 진행합니다.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('member-org.png', '조직도 구성 — 「인사이동」 버튼과 직원 카드(수정·휴직·퇴사)')}"></th:block>
+                <ol class="help-steps">
+                  <li>왼쪽 <b>관리 &gt; 직원 관리 &gt; 조직도 구성</b>으로 이동합니다.</li>
+                  <li>필요하면 위쪽 <b>부서별 조회·직위별 조회·이름 검색</b>으로 직원을 찾습니다.</li>
+                  <li>목록 위 <b>[인사이동]</b> 버튼을 눌러 직원의 <b>부서·직급</b>을 새로 지정하고 저장합니다.</li>
+                  <li>각 직원 카드의 <b>[수정]·[휴직]·[퇴사]</b> 버튼으로 개별 상태도 바꿀 수 있어요.</li>
+                </ol>
+                <p class="help-tip">
+                  <span>💡</span>
+                  <span>인사 이동은 조직 전체에 영향을 주니, 저장 전에 부서·직급을 한 번 더 확인하세요.</span>
+                </p>
+              </article>
+
+              <!-- 근태 관리 -->
+              <article th:if="${canAttendance}" id="help-attendance" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">F</span> 근태 관리</h3>
+                <p class="help-lead">
+                  직원들의 <b>출퇴근 기록</b>을 모아 보고, 회사의 <b>근태 정책</b>(출근·퇴근·휴게 시간, 지각 기준)을 정하는 기능입니다.
+                  위쪽 <b>「회사 근태 정책」</b>에서 기준을 바꾸면 <b>새 출퇴근부터</b> 반영돼요.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('attendance-admin.png', '근태 관리 — 「회사 근태 정책」 설정과 직원별 출퇴근 타임라인')}"></th:block>
+                <ol class="help-steps">
+                  <li>왼쪽 <b>관리 &gt; 직원 관리 &gt; 근태 관리</b>로 이동합니다.</li>
+                  <li><b>「회사 근태 정책」</b>에서 출근·퇴근·휴게 시간과 지각 기준(분)을 정하고 <b>[정책 저장]</b>을 누릅니다.</li>
+                  <li>아래에서 <b>날짜·일/주/월·부서·이름</b>으로 범위를 좁혀 직원별 출퇴근 기록을 조회합니다.</li>
+                </ol>
+              </article>
+
+              <!-- 통합 휴지통 -->
+              <article th:if="${trashVisible}" id="help-trash" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">G</span> 통합 휴지통</h3>
+                <p class="help-lead">
+                  여러 게시판에 흩어진 <b>삭제된 글</b>을 한곳에 모아 보는 곳입니다. 어느 게시판의 글인지(게시판·제목·작성자·작성일)
+                  한눈에 보고, 실수로 지운 것을 <b>되살리거나</b> 완전히 <b>지울</b> 수 있어요.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('trash.png', '통합 휴지통 — 삭제된 글 목록과 [복구]·[영구 삭제]')}"></th:block>
+                <ol class="help-steps">
+                  <li>왼쪽 <b>휴지통 &gt; 통합 휴지통</b>으로 이동합니다.</li>
+                  <li>필요하면 아래 <b>기간·제목+내용·검색어</b>로 삭제된 글을 찾습니다.</li>
+                  <li><b>관리</b> 칸의 <b>[복구]</b>로 되살리거나 <b>[영구 삭제]</b>로 완전히 지웁니다.</li>
+                </ol>
+              </article>
+
+              <!-- 시스템 로그 (회사 대표) -->
+              <article th:if="${isAdminRole}" id="help-system-log" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">H</span> 시스템 로그 <span class="help-section-badge" style="margin-left:auto">회사 대표</span></h3>
+                <p class="help-lead">
+                  회원 관리·게시판·결재 양식 같은 <b>관리 행위 이력</b>을 회사 단위로 모아 보는 기능입니다.
+                  오른쪽 위 <b>내 이름 메뉴</b> 안에 있어요. 누가(홍길동 님이) · 누구를 · 어떻게(승인/수정) 했는지 한 줄씩 보여줍니다.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('system-log.png', '시스템 로그 — 최근/일별/월별/분기 요약 탭과 활동 기록')}"></th:block>
+                <ol class="help-steps">
+                  <li>오른쪽 위 <b>내 이름</b>을 누르고 메뉴에서 <b>시스템 로그</b>를 선택합니다.</li>
+                  <li><b>「최근(보관 기간 내)」</b> 탭에서 최신 활동 기록을 봅니다.</li>
+                  <li>오래된 기록은 <b>「일별·월별·분기 요약」</b> 탭에서 AI가 요약해 둔 내용을 확인합니다.</li>
+                </ol>
+              </article>
+            </section>
+
+            <!-- 마무리 -->
+            <div class="help-intro" style="margin-top:8px">
+              <p>
+                여기까지 읽으셨다면 이제 기본 사용은 충분해요. 더 궁금한 점은
+                오른쪽 아래 <b>AI 비서</b>에게 언제든 물어보세요. 즐거운 사용 되세요! 🎉
+              </p>
+            </div>
+
+          </div>
+          <!-- /.help-wrap -->
+        </main>
+        <!-- ===== Main Content End ===== -->
+      </div>
+      <!-- ===== Content Area End ===== -->
+    </div>
+    <!-- ===== Page Wrapper End ===== -->
+    <script type="module" src="/js/index.js"></script>
+  </body>
+</html>

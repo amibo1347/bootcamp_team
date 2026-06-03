@@ -1,0 +1,20 @@
+<!--
+  [도움말 스크린샷 figure fragment]
+  - file: /images/help/ 아래 이미지 파일명
+  - cap : 캡션(접근성 alt 겸용)
+  - 이미지가 아직 없으면 onerror 로 "스크린샷 준비 중" 자리표시자를 보여준다.
+  ※ 별도 partial 로 둬야 help.html 전체 렌더 시 orphan figure 가 찍히지 않는다.
+-->
+<figure th:fragment="shot(file, cap)" class="help-shot" xmlns:th="http://www.thymeleaf.org">
+  <img th:src="@{'/images/help/' + ${file}}" th:alt="${cap}" loading="lazy"
+       onerror="this.style.display='none';this.parentElement.querySelector('.help-shot-ph').style.display='flex';" />
+  <div class="help-shot-ph">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+      <path d="M4 8a2 2 0 012-2h1l1-1.5h6L16 6h2a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V8z" stroke="currentColor" stroke-width="1.4"/>
+      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.4"/>
+    </svg>
+    <span class="help-shot-ph-title" th:text="${cap}">스크린샷</span>
+    <code th:text="${'/images/help/' + file}">/images/help/...</code>
+  </div>
+  <figcaption th:text="${cap}">캡션</figcaption>
+</figure>

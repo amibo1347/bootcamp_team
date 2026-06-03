@@ -89,4 +89,11 @@ public class MainController {
     public String settings() {
         return "settings";
     }
+
+    // 도움말 — 모든 로그인 사용자 접근(SecurityConfig 의 anyRequest().authenticated() 적용).
+    //  권한별 기능 안내 노출 여부는 템플릿(help.html)에서 session.memberSession 권한으로 분기한다.
+    @GetMapping("/help")
+    public String help() {
+        return "help";
+    }
 }
