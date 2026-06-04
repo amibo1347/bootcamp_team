@@ -20,8 +20,8 @@ public interface CalendarShareDeptRepository extends JpaRepository<CalendarShare
     /** 일정 리스트의 dept 공유를 한 방에 — getCalendars() 의 N+1 회피용. */
     List<CalendarShareDept> findAllByCalendarIn(Collection<Calendar> calendars);
 
-    /** {@link CalendarShareMemberRepository#deleteAllByCalendar} 와 동일 패턴 — 즉시 flush. */
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    /** {@link CalendarShareMemberRepository#deleteAllByCalendar} 와 동일 패턴 — 즉시 flush (clear 안 함). */
+    @Modifying(flushAutomatically = true)
     @Query("DELETE FROM CalendarShareDept s WHERE s.calendar = :calendar")
     void deleteAllByCalendar(@Param("calendar") Calendar calendar);
 
