@@ -292,7 +292,8 @@
                   <b>기안</b> 탭에서 <b>양식 → 결재자 → 작성</b> 3단계로 새 문서를 만들어 올리고,
                   내가 결재할 문서는 <b>대기함</b>에서 처리합니다.
                 </p>
-                <th:block th:replace="~{partials/help-shot :: shot('approval.png', '전자결재 기안 — 양식 선택과 「결재선 설정」 단계')}"></th:block>
+                <th:block th:replace="~{partials/help-shot :: shot('approval.png', '전자결재 기안 1단계 — 신청할 양식 선택')}"></th:block>
+                <th:block th:replace="~{partials/help-shot :: shot('approval-line.png', '전자결재 기안 2단계 — 「결재선 설정」 모달')}"></th:block>
                 <ol class="help-steps">
                   <li>왼쪽 메뉴 <b>전자결재</b> → 위쪽 <b>「기안」</b> 탭을 누릅니다.</li>
                   <li><b>1. 양식</b>에서 휴가 신청·일반 기안·지출 결의서 중 하나를 고릅니다.</li>
@@ -314,7 +315,8 @@
                   회사에서 쓰는 결재 <b>양식(서식)</b>을 만들고 다듬는 기능입니다. 왼쪽 <b>전자결재 &gt; 양식 관리</b>에서 들어가요.
                   <b>휴가/지출/일반</b> 같은 시스템 기본 양식은 바로 못 고치고, <b>[복사]</b>로 우리 회사 사본을 만든 뒤 수정합니다.
                 </p>
-                <th:block th:replace="~{partials/help-shot :: shot('approval-template.png', '결재 양식 관리 — 양식 목록의 [복사]와 「새 양식 만들기」 패널')}"></th:block>
+                <th:block th:replace="~{partials/help-shot :: shot('approval-template.png', '결재 양식 관리 — 양식 목록과 시스템 디폴트 [복사]')}"></th:block>
+                <th:block th:replace="~{partials/help-shot :: shot('approval-template-create.png', '결재 양식 관리 — 「새 양식 만들기」 화면')}"></th:block>
                 <ol class="help-steps">
                   <li>왼쪽 <b>전자결재 &gt; 양식 관리</b>로 이동합니다.</li>
                   <li>기본 양식을 바꾸려면 <b>「양식 목록」</b>에서 해당 양식의 <b>[복사]</b>를 눌러 사본을 만듭니다.</li>
@@ -375,7 +377,8 @@
                   왼쪽 메뉴 <b>게시판</b>에서 게시판을 고르면 <b>번호·제목·작성자·작성일·조회수</b>로 된 글 목록이 보여요.
                   제목 옆 <b>📎</b>는 첨부파일, <b>[숫자]</b>는 댓글 수입니다. 오른쪽 위 <b>[글쓰기]</b>로 새 글을 씁니다.
                 </p>
-                <th:block th:replace="~{partials/help-shot :: shot('board.png', '게시판 글 목록과 「게시글 작성」 창(제목·본문 에디터·첨부파일)')}"></th:block>
+                <th:block th:replace="~{partials/help-shot :: shot('board.png', '게시판 글 목록 — 제목·작성자·검색')}"></th:block>
+                <th:block th:replace="~{partials/help-shot :: shot('board-write.png', '「게시글 작성」 — 제목·본문 에디터·첨부파일')}"></th:block>
                 <ol class="help-steps">
                   <li>왼쪽 <b>게시판</b>에서 원하는 게시판을 펼쳐 선택합니다.</li>
                   <li>목록에서 글 제목을 눌러 내용을 봅니다.</li>
@@ -530,11 +533,12 @@
                 <h3 class="help-card-title"><span class="help-card-no">H</span> 시스템 로그 <span class="help-section-badge" style="margin-left:auto">회사 대표</span></h3>
                 <p class="help-lead">
                   회원 관리·게시판·결재 양식 같은 <b>관리 행위 이력</b>을 회사 단위로 모아 보는 기능입니다.
-                  오른쪽 위 <b>내 이름 메뉴</b> 안에 있어요. 누가(홍길동 님이) · 누구를 · 어떻게(승인/수정) 했는지 한 줄씩 보여줍니다.
+                  오른쪽 위 <b>내 이름 메뉴</b>에서 <b>계정 설정</b> 아래 · <b>도움말</b> 위에 있습니다.
+                  누가(홍길동 님이) · 누구를 · 어떻게(승인/수정) 했는지 한 줄씩 보여줍니다.
                 </p>
                 <th:block th:replace="~{partials/help-shot :: shot('system-log.png', '시스템 로그 — 최근/일별/월별/분기 요약 탭과 활동 기록')}"></th:block>
                 <ol class="help-steps">
-                  <li>오른쪽 위 <b>내 이름</b>을 누르고 메뉴에서 <b>시스템 로그</b>를 선택합니다.</li>
+                  <li>오른쪽 위 <b>내 이름</b>을 누르고 메뉴에서 <b>계정 설정</b> 아래 · <b>도움말</b> 위의 <b>시스템 로그</b>를 선택합니다.</li>
                   <li><b>「최근(보관 기간 내)」</b> 탭에서 최신 활동 기록을 봅니다.</li>
                   <li>오래된 기록은 <b>「일별·월별·분기 요약」</b> 탭에서 AI가 요약해 둔 내용을 확인합니다.</li>
                 </ol>
