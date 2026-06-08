@@ -6,3 +6,4 @@ public enum Role {
     MASTER,          // 마스터 관리자
     SUB_ADMIN        // 서브 관리자
 }
+    
