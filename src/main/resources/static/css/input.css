@@ -411,6 +411,33 @@ layer(base);
     scrollbar-gutter: stable;
   }
 
+  /*
+    홈 대시보드 하단 2열 — Tailwind arbitrary grid 가 빌드 누락될 수 있어 명시적 정의.
+    모바일: 1열(오늘 → 공지 → 주간) / md 이상: 왼쪽(오늘+공지) | 오른쪽(주간)
+  */
+  .home-dashboard-bottom {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .home-dashboard-bottom {
+      grid-template-columns: 18rem minmax(0, 1fr);
+      align-items: start;
+      gap: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .home-dashboard-bottom {
+      grid-template-columns: 20rem minmax(0, 1fr);
+      gap: 1.75rem;
+    }
+  }
+
   /* DESIGN_RULES 5-2 — 폼 라벨·네이티브 select (managingBoard 기준) */
   .form-field-label {
     @apply mb-1 block text-sm text-gray-600 dark:text-gray-300;

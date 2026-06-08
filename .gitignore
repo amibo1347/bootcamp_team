@@ -52,4 +52,4 @@ src/main/resources/application.properties
 .cursorrules
 
 # Cursor settings and internal files
-team/.cursor/
+.cursor/

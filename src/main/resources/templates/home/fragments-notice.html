@@ -8,7 +8,7 @@
     -->
     <section
       th:fragment="noticeCard"
-      class="flex h-full min-h-0 flex-col rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+      class="flex shrink-0 flex-col rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
     >
       <header
         class="flex shrink-0 items-center justify-between border-b border-gray-100 px-3.5 py-2.5 dark:border-gray-700"
@@ -27,7 +27,7 @@
         >로그인 필요</span>
       </header>
       <ul
-        class="page-scroll-body custom-scrollbar space-y-1.5 px-3 py-2.5 text-sm"
+        class="space-y-1 px-3 py-2.5 text-sm"
         id="home-notice-list"
         aria-label="공지사항 목록"
       >
@@ -41,12 +41,13 @@
           최신 3건 — 제목 클릭 시 글 상세(/board/{boardId}/articles/{articleId})로 이동.
           createdAt 은 LocalDateTime.toString() 형식("2026-05-18T..") — null 가드 + 앞 5~10 (MM-dd) 만 노출.
         -->
+        <!-- 좁은 열에 맞춘 한 줄 리스트: 제목 + 날짜 -->
         <li th:each="n : ${latestNotices}">
           <a th:href="@{|/board/${noticeBoardId}/articles/${n.articleId}|}"
-             class="block rounded-xl border border-transparent px-2 py-2.5 hover:border-gray-200 hover:bg-gray-50 dark:hover:border-gray-600 dark:hover:bg-gray-900/50">
-            <span class="line-clamp-2 font-medium text-gray-900 dark:text-white"
+             class="flex items-start justify-between gap-2 rounded-lg border border-transparent px-2 py-2 hover:border-gray-200 hover:bg-gray-50 dark:hover:border-gray-600 dark:hover:bg-gray-900/50">
+            <span class="min-w-0 flex-1 truncate font-medium text-gray-900 dark:text-white"
                   th:text="${n.title}">공지 제목</span>
-            <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400"
+            <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400"
                   th:text="${n.createdAt != null and #strings.length(n.createdAt) >= 10 ? #strings.substring(n.createdAt, 5, 10) : ''}">05-12</span>
           </a>
         </li>

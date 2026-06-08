@@ -327,6 +327,56 @@ async function fetchVisibleCalendars() {
   }
 }
 
+/**
+ * CalendarDto 의 startAt/endAt 등을 Date 로 변환.
+ * - ISO 문자열("2026-06-08T10:30:00") 또는 Jackson 배열([2026,6,8,10,30]) 모두 처리.
+ * @param {unknown} v
+ * @returns {Date | null}
+ */
+function calendarEventTimeToDate(v) {
+  if (v == null) return null;
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v;
+  if (typeof v === 'string') {
+    const iso = v.includes('T') ? v : v.replace(' ', 'T');
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (Array.isArray(v) && v.length >= 3) {
+    const y = Number(v[0]);
+    const mo = Number(v[1]);
+    const d = Number(v[2]);
+    const h = v.length > 3 ? Number(v[3]) : 0;
+    const mi = v.length > 4 ? Number(v[4]) : 0;
+    const s = v.length > 5 ? Number(v[5]) : 0;
+    if ([y, mo, d, h, mi, s].some((n) => Number.isNaN(n))) return null;
+    return new Date(y, mo - 1, d, h, mi, s);
+  }
+  return null;
+}
+
+/** 종일 일정 여부 — Jackson 키 allDay / isAllDay 양쪽 확인 */
+function isAllDayEv(ev) {
+  return Boolean(ev && (ev.allDay != null ? ev.allDay : ev.isAllDay));
+}
+
+/**
+ * 오늘 위젯용 — 아직 끝나지 않은 일정인지.
+ * - 종일: 당일 내내 표시
+ * - endAt 있음: 종료 시각이 현재보다 이후
+ * - endAt 없음: 시작 시각이 현재보다 이후(시점 일정)
+ * @param {object} ev
+ * @param {Date} now
+ * @returns {boolean}
+ */
+function isEventStillActive(ev, now) {
+  if (isAllDayEv(ev)) return true;
+  const end = calendarEventTimeToDate(ev.endAt);
+  if (end) return end.getTime() > now.getTime();
+  const start = calendarEventTimeToDate(ev.startAt);
+  if (!start) return false;
+  return start.getTime() > now.getTime();
+}
+
 /** 가벼운 HTML escape (innerHTML 주입용) */
 function escapeHtmlMini(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -352,8 +402,9 @@ function isRepeatEv(ev) {
 
 /** target 일자(0시 기준)에 해당 일정이 발생하는지. 단일/반복 모두 처리. */
 function occursOnDate(ev, target) {
-  if (!ev || !ev.startAt) return false;
-  const start = new Date(ev.startAt);
+  if (!ev || ev.startAt == null) return false;
+  const start = calendarEventTimeToDate(ev.startAt);
+  if (!start) return false;
   const targetDay0 = new Date(target);
   targetDay0.setHours(0, 0, 0, 0);
 
@@ -371,12 +422,13 @@ function occursOnDate(ev, target) {
 
   // 반복 종료일 지나면 발생 안 함
   if (ev.repeatEndAt) {
-    const repeatEnd = new Date(ev.repeatEndAt);
+    const repeatEnd = calendarEventTimeToDate(ev.repeatEndAt);
+    if (!repeatEnd) return false;
     repeatEnd.setHours(23, 59, 59, 999);
     if (targetDay0.getTime() > repeatEnd.getTime()) return false;
   }
 
-  switch (ev.repeatType) {
+  switch (String(ev.repeatType || '').toUpperCase()) {
     case 'DAILY':
       return true;
     case 'WEEKLY': {
@@ -404,12 +456,14 @@ function occursOnDate(ev, target) {
 
 /** target 일자에 발생하는 인스턴스 1개 생성 — startAt/endAt 의 시각은 보존, 날짜는 target 로 옮김. */
 function instanceForDate(ev, target) {
-  const start = new Date(ev.startAt);
+  const start = calendarEventTimeToDate(ev.startAt);
+  if (!start) return ev;
   const targetStart = new Date(target);
   targetStart.setHours(start.getHours(), start.getMinutes(), start.getSeconds(), 0);
   let targetEndIso = null;
-  if (ev.endAt) {
-    const dur = new Date(ev.endAt).getTime() - start.getTime();
+  const end = calendarEventTimeToDate(ev.endAt);
+  if (end) {
+    const dur = end.getTime() - start.getTime();
     if (isFinite(dur) && dur >= 0) {
       targetEndIso = new Date(targetStart.getTime() + dur).toISOString();
     }
@@ -425,29 +479,29 @@ function expandEventsForDate(events, target) {
   return (events || [])
     .filter((ev) => occursOnDate(ev, target))
     .map((ev) => instanceForDate(ev, target))
-    .sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
+    .sort((a, b) => {
+      const ta = calendarEventTimeToDate(a.startAt)?.getTime() ?? 0;
+      const tb = calendarEventTimeToDate(b.startAt)?.getTime() ?? 0;
+      return ta - tb;
+    });
 }
 
 /**
- * 오늘 일정 위젯 — 지금 시각 이후의 일정만 가까운 순 최대 3건.
- * - 반복 일정(매일/매주/매월/매년)도 오늘 인스턴스로 확장해서 포함.
- * - 카테고리 이름/색 + 일정 장소 표시.
- * - 1분 주기로 재계산해서 끝난 일정은 자동 사라지고 다음이 올라옴.
+ * 오늘 일정 위젯 — 오늘 일정 최대 3건(가까운 순).
+ * - 우선 아직 끝나지 않은 일정(종일 일정 포함)을 표시.
+ * - 남은 일정이 없으면 오늘 전체 일정 중 최대 3건을 폴백(주간 위젯과 동일 데이터).
+ * - 1분 주기로 재계산.
  */
 function renderTodayScheduleFromEvents(container, events) {
   const render = () => {
     const now = new Date();
-    // 오늘 발생하는 모든 인스턴스(단일 + 반복) 중 아직 끝나지 않은 것
-    const list = expandEventsForDate(events, now)
-      .filter((ev) => {
-        const start = new Date(ev.startAt);
-        const refEnd = ev.endAt ? new Date(ev.endAt) : start;
-        return refEnd.getTime() > now.getTime();
-      })
-      .slice(0, 3);
+    const allToday = expandEventsForDate(events, now);
+    let list = allToday.filter((ev) => isEventStillActive(ev, now));
+    if (list.length === 0) list = allToday;
+    list = list.slice(0, 3);
 
     if (list.length === 0) {
-      container.innerHTML = '<div class="px-2 py-3 text-center text-xs text-gray-400">오늘 남은 일정이 없습니다.</div>';
+      container.innerHTML = '<div class="px-2 py-3 text-center text-xs text-gray-400">오늘 등록된 일정이 없습니다.</div>';
       return;
     }
 
@@ -462,8 +516,10 @@ function renderTodayScheduleFromEvents(container, events) {
  * 반복 일정이면 시간 옆에 보라색 배지(반복 아이콘 + "매주 월·수·금" 같은 라벨) 표시.
  */
 function scheduleCardHtml(item) {
-  const t = new Date(item.startAt);
-  const timeLabel = pad2(t.getHours()) + ':' + pad2(t.getMinutes());
+  const t = calendarEventTimeToDate(item.startAt);
+  const timeLabel = isAllDayEv(item)
+    ? '종일'
+    : (t ? pad2(t.getHours()) + ':' + pad2(t.getMinutes()) : '--:--');
   const repeatBadge = buildRepeatBadgeHtml(item);
   const meta = buildScheduleMetaHtml(item);
   return ''
@@ -627,7 +683,7 @@ function getMonToFri(base) {
 /**
  * 주간 일정 (월~금) + 내일 일정 풋터.
  *  - 각 일자에 대해 반복 일정 확장(expandEventsForDate)으로 인스턴스 채움.
- *  - 셀마다 최대 2건 + 초과 시 +N (카드 크기 안에 맞춤).
+ *  - 셀마다 해당 일자의 일정을 전부 표시(많을 경우 셀 내부 스크롤).
  *  - 풋터: 내일 일정 표시. 2건 이상이면 ←/→ 페이지네이션.
  */
 function renderWeekCalendarFromEvents(container, rangeLabel, footerEl, events) {
@@ -649,9 +705,7 @@ function renderWeekCalendarFromEvents(container, rangeLabel, footerEl, events) {
       const list = byDayInstances[idx];
       const isToday = todayYmd === formatDateYmd(date);
       const ring = isToday ? 'ring-2 ring-brand-400 dark:ring-brand-500' : '';
-      const shown = list.slice(0, 2);
-      const more = list.length > 2 ? '<li class="truncate text-[10px] text-gray-400">+' + (list.length - 2) + '</li>' : '';
-      const items = shown
+      const items = list
         .map((t) => '<li class="truncate rounded-lg bg-white/90 px-1.5 py-1 text-[11px] font-medium text-gray-800 shadow-sm dark:bg-gray-900 dark:text-gray-100" title="' + escapeHtmlMini(t.title || '') + '">' + escapeHtmlMini(t.title || '') + '</li>')
         .join('');
       return ''
@@ -660,7 +714,7 @@ function renderWeekCalendarFromEvents(container, rangeLabel, footerEl, events) {
         + '<div class="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">' + dayNames[idx] + '</div>'
         + '<div class="text-sm font-bold text-gray-900 dark:text-white">' + date.getDate() + '</div>'
         + '</div>'
-        + '<ul class="min-h-0 flex-1 space-y-1 overflow-hidden">' + (items || '<li class="text-[10px] text-gray-400">일정 없음</li>') + more + '</ul>'
+        + '<ul class="custom-scrollbar min-h-0 flex-1 space-y-1 overflow-y-auto">' + (items || '<li class="text-[10px] text-gray-400">일정 없음</li>') + '</ul>'
         + '</div>';
     })
     .join('');
@@ -690,8 +744,10 @@ function renderTomorrowFooter(footerEl, list) {
   const total = list.length;
   const draw = () => {
     const item = list[idx];
-    const start = new Date(item.startAt);
-    const timeLabel = pad2(start.getHours()) + ':' + pad2(start.getMinutes());
+    const start = calendarEventTimeToDate(item.startAt);
+    const timeLabel = isAllDayEv(item)
+      ? '종일'
+      : (start ? pad2(start.getHours()) + ':' + pad2(start.getMinutes()) : '--:--');
     const meta = buildScheduleMetaHtml(item);
     const repeatBadge = buildRepeatBadgeHtml(item);
     const pagerHtml = total > 1
@@ -780,6 +836,32 @@ function renderWeekCalendar(container, rangeLabel) {
 }
 
 /**
+ * lg 이상에서 주간 일정 열 높이를 왼쪽(오늘+공지) 스택 전체 높이에 맞춥니다.
+ * 오늘 일정이 비동기로 렌더되어도 ResizeObserver 로 좌측 높이 변화를 추적합니다.
+ */
+function syncHomeWeekColumnHeight() {
+  const leftStack = document.getElementById('home-left-stack');
+  const weekWrap = document.getElementById('home-week-wrap');
+  const mq = window.matchMedia('(min-width: 768px)');
+
+  if (!leftStack || !weekWrap) return;
+
+  const apply = () => {
+    if (mq.matches) {
+      weekWrap.style.height = `${leftStack.offsetHeight}px`;
+    } else {
+      weekWrap.style.height = '';
+    }
+  };
+
+  apply();
+  const ro = new ResizeObserver(apply);
+  ro.observe(leftStack);
+  mq.addEventListener('change', apply);
+  window.addEventListener('resize', apply);
+}
+
+/**
  * DOM 준비 후 홈 대시보드 위젯(시계·출퇴근·일정) 초기화
  */
 function initHomeDashboard() {
@@ -847,6 +929,7 @@ function initHomeDashboard() {
   }
   // 공지사항은 MainController 가 model 로 SSR 함 (fragments-notice.html). 클라이언트 mock 불필요.
 
+  syncHomeWeekColumnHeight();
 }
 
 if (document.readyState === 'loading') {

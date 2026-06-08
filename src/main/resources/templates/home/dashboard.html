@@ -3,56 +3,38 @@
 
 <body>
   <!--
-      [홈 대시보드] 2×2 그리드 조립
-      - 상단: 출퇴근 | 공지 / 하단: 오늘 일정 | 주간
-      - gap은 넉넉하되 한 단계씩 조밀하게, 그리드 행은 minmax(0,1fr)로 동일 비율·No-Scroll(min-h-0)
+      [홈 대시보드] 히어로 + 2열
+      - 상단(전체 폭): 출퇴근 히어로(유저 정보 통합)
+      - 하단(.home-dashboard-bottom): 왼쪽(오늘+공지 스택) | 오른쪽(주간, 좌측 높이 동기화)
     -->
   <!--
     [Windows OS 디스플레이 스케일 보정]
     Windows 의 텍스트/앱 스케일이 보통 125%/150% 라서 같은 1080p 모니터라도
-    Mac 보다 브라우저 viewport 가 작게 잡혀 4 카드가 안 들어옴.
+    Mac 보다 브라우저 viewport 가 작게 잡혀 카드가 안 들어옴.
     dashboard 만 0.9 배로 시각 축소 → "사용자 100% = Mac 100%" 비율 확보.
-    채팅 패널/사이드바/헤더 등 다른 영역은 영향 받지 않음 (이 div 안쪽만).
   -->
-  <div th:fragment="mainDashboard" class="flex w-full min-w-0 min-h-0 max-lg:h-auto flex-col lg:h-full" id="home-dashboard-root"
+  <div th:fragment="mainDashboard" class="mx-auto flex w-full min-w-0 max-w-[min(100%,52rem)] flex-col sm:max-w-[min(100%,58rem)] lg:max-w-[min(100%,68rem)] xl:max-w-[min(100%,76rem)] max-lg:h-auto" id="home-dashboard-root"
        style="zoom: 0.9;">
-    <!-- 카드 블록: max-w로 가로 살짝 축소·화면 중앙 정렬 (No-Scroll 체인 유지) -->
-    <div
-      class="mx-auto flex w-full min-w-0 min-h-0 max-w-[min(100%,46rem)] max-lg:flex-none flex-col sm:max-w-[min(100%,50rem)] lg:max-w-[min(100%,56rem)] lg:flex-1 xl:max-w-[min(100%,60rem)]">
-      <div
-        class="grid min-h-0 w-full min-w-0 grid-cols-1 gap-3 max-lg:auto-rows-auto max-lg:grid-rows-[repeat(4,auto)] max-lg:flex-none sm:gap-4 lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:flex-1 lg:gap-4 xl:gap-5">
-        <!-- 좌상단 열: 유저 스트립(고정 높이) + 출퇴근 카드(flex-1·min-h-0으로 그리드 셀에 맞춤) -->
-        <div class="flex min-h-0 min-w-0 max-lg:h-auto flex-col gap-1.5 lg:h-full">
-          <div th:if="${session != null and session.memberSession != null}"
-            class="flex min-h-[3rem] shrink-0 flex-col justify-center rounded-lg border border-gray-200 bg-gray-50/90 px-3 py-3 dark:border-gray-600 dark:bg-gray-900/40">
-            <!-- [유저 요약] 한 줄: 이름(강조) → 직급 → 부서 / flex-row + items-baseline -->
-            <p class="flex w-full min-w-0 flex-row flex-nowrap items-baseline justify-start gap-x-1.5">
-              <span
-                class="shrink-0 text-xl font-bold leading-snug text-gray-900 dark:text-white sm:text-2xl"
-                th:text="${session.memberSession.name}"
-                >이름</span>
-              <span
-                class="shrink-0 text-xs font-normal leading-snug text-gray-500 dark:text-gray-400 sm:text-sm"
-                th:if="${session.memberSession.positionName != null}"
-                th:text="${session.memberSession.positionName}">직급</span>
-              <span
-                class="min-w-0 truncate text-xs font-normal leading-snug text-gray-500 dark:text-gray-400 sm:text-sm"
-                th:if="${session.memberSession.deptName != null}" th:text="${session.memberSession.deptName}">부서</span>
-              <!-- 사번: 사번제 회사만 표시. ml-auto 로 오른쪽 끝에 고정 → 사번 길이와 무관하게 우측 정렬 유지 -->
-              <span
-                class="ml-auto shrink-0 pl-2 text-xs font-semibold leading-snug text-gray-500 dark:text-gray-400 sm:text-sm"
-                th:if="${session.memberSession.usesEmployeeNo}"
-                th:text="${session.memberSession.loginId}">00000</span>
-            </p>
+    <!-- 카드 블록 — mx-auto + max-w 로 콘텐츠 영역 가로 중앙 정렬 -->
+    <div class="flex w-full min-w-0 flex-col gap-4 sm:gap-5 lg:gap-6 xl:gap-7">
+        <!-- [히어로] 출퇴근 — 전체 폭 -->
+        <div class="shrink-0 w-full min-w-0">
+          <div th:replace="~{home/fragments-attendance :: attendanceCard}"></div>
+        </div>
+
+        <!-- [하단 2열] CSS 클래스 home-dashboard-bottom — input.css 에 정의 -->
+        <div id="home-bottom-row" class="home-dashboard-bottom">
+          <!-- 왼쪽: 오늘의 일정 → 공지사항 -->
+          <div id="home-left-stack" class="flex flex-col gap-4 sm:gap-5">
+            <div th:replace="~{home/fragments-today :: todayCard}"></div>
+            <div th:replace="~{home/fragments-notice :: noticeCard}"></div>
           </div>
-          <div class="flex min-h-0 min-w-0 flex-1 flex-col max-lg:flex-none">
-            <div th:replace="~{home/fragments-attendance :: attendanceCard}"></div>
+
+          <!-- 오른쪽: 주간 일정 — index-home.js 가 좌측 스택 높이와 동기화 -->
+          <div id="home-week-wrap" class="flex min-h-0 min-w-0 flex-col overflow-hidden">
+            <div th:replace="~{home/fragments-week :: weekCard}"></div>
           </div>
         </div>
-        <div th:replace="~{home/fragments-notice :: noticeCard}"></div>
-        <div th:replace="~{home/fragments-today :: todayCard}"></div>
-        <div th:replace="~{home/fragments-week :: weekCard}"></div>
-      </div>
     </div>
 
     <!-- 채팅 패널은 partials/sidebar.html 끝에서 자동 include 되므로 여기서 별도 호출하지 않는다. -->
