@@ -69,6 +69,18 @@
         <h1 th:if="${companyName != null}" th:text="${companyName}"
             style="font-size: 1.25rem; font-weight: 700; color: #374151; margin: 0;">회사명</h1>
       </div>
+      <!-- 동시 로그인으로 기존 세션이 종료된 경우 안내 (다른 곳에서 같은 계정 로그인) -->
+      <div th:if="${param.expired != null}"
+     class="flex items-center p-4 mb-6 text-sm border-2 rounded-2xl shadow-sm text-amber-900 border-amber-200 bg-amber-50"
+     role="alert">
+    <svg class="flex-shrink-0 w-5 h-5 mr-3 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+    </svg>
+    <div>
+        <span class="font-black">세션 종료 안내</span>
+        <p class="font-medium">다른 곳에서 동일한 계정으로 로그인되어 현재 기기의 세션이 종료되었습니다. 다시 로그인해 주세요.</p>
+    </div>
+</div>
       <!-------------------- 바꿨음 -->
       <div th:if="${errorMessage != null}"
      class="flex items-center p-4 mb-6 text-sm border-2 rounded-2xl shadow-sm duration-300 transition-colors"

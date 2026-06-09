@@ -78,8 +78,13 @@ public class MemberAuthenticationProvider implements AuthenticationProvider {
         String roleName = member.getRole() != null ? member.getRole().name() : "USER";
         List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + roleName));
 
+        // principal 은 전역 유일키(memberId)로 동일성을 판단하는 MemberPrincipal 로 둔다.
+        //  - 동시 세션 제어(maximumSessions)가 "같은 사용자"를 회사 경계까지 정확히 구분하기 위함.
+        //  - getName() 은 loginId 를 반환하므로 authentication.getName() 을 쓰던 기존 코드와 호환된다.
+        MemberPrincipal principal =
+                new MemberPrincipal(member.getMemberId(), companyId, member.getLoginId());
         UsernamePasswordAuthenticationToken result =
-                new UsernamePasswordAuthenticationToken(member.getLoginId(), null, authorities);
+                new UsernamePasswordAuthenticationToken(principal, null, authorities);
         // companyId 를 담은 details 를 그대로 넘겨 LoginSuccessHandler 가 회원을 다시 특정할 수 있게 한다.
         result.setDetails(authentication.getDetails());
         return result;
