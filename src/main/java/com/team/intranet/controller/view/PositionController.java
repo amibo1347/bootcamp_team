@@ -1,6 +1,6 @@
 package com.team.intranet.controller.view;
 
-import com.team.intranet.entity.Position;
+import com.team.intranet.dto.PositionDto;
 import com.team.intranet.service.PositionService;
 import com.team.intranet.session.MemberSession;
 import lombok.RequiredArgsConstructor;
@@ -23,10 +23,14 @@ public class PositionController {
     @GetMapping("/list")
     public String positionList(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
                                Model model) {
-        if (ms == null) return "redirect:/member/login";
+        if (ms == null) return "redirect:/company-login";
 
-        List<Position> positions = positionService.findAll(ms.getCompanyId());
+        List<PositionDto> positions = positionService.findAllLevelDesc(ms.getCompanyId())
+            .stream().map(PositionDto::fromEntity)
+            .toList();
+        model.addAttribute("companyId", ms.getCompanyId());
+        model.addAttribute("memberRole", ms.getRole());
         model.addAttribute("positions", positions);
-        return "master/managingPosition";
+        return "admin/managingPosition";
     }
 }

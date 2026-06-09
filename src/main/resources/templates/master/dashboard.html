@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" th:href="@{/css/master.css}" />
+  <title>MASTER 콘솔</title>
+</head>
+
+<body class="master-page">
+  <div class="master-shell">
+    <div class="master-container">
+      <div class="master-panel">
+
+        <div class="master-panel-head">
+          <div>
+            <span class="master-badge">MASTER</span>
+            <h1 class="master-title">
+              <span th:text="${master != null ? master.name : '운영자'}">운영자</span>님, 환영합니다.
+            </h1>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <a th:href="@{/master/admins}" class="master-btn master-btn--inline">MASTER 계정</a>
+            <a th:href="@{/master/account}" class="master-btn-outline">내 계정</a>
+            <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+            <form method="post" th:action="@{/master/logout}">
+              <button type="submit" class="master-btn master-btn--inline">로그아웃</button>
+            </form>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.6rem;">
+          <a th:href="@{/master/companies}" class="master-btn">회사 관리</a>
+          <a th:href="@{/master/usage}" class="master-btn">회사 사용량</a>
+          <a th:href="@{/master/notices}" class="master-btn">시스템 공지 / 점검 안내</a>
+          <a th:href="@{/master/ai-config}" class="master-btn">AI 설정</a>
+          <a th:href="@{/master/maintenance}" class="master-btn">시스템 점검 모드</a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

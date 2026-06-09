@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+  <!--
+      [홈 대시보드] 히어로 + 2열
+      - 상단(전체 폭): 출퇴근 히어로(유저 정보 통합)
+      - 하단(.home-dashboard-bottom): 왼쪽(오늘+공지 스택) | 오른쪽(주간, 좌측 높이 동기화)
+    -->
+  <!--
+    [Windows OS 디스플레이 스케일 보정]
+    Windows 의 텍스트/앱 스케일이 보통 125%/150% 라서 같은 1080p 모니터라도
+    Mac 보다 브라우저 viewport 가 작게 잡혀 카드가 안 들어옴.
+    dashboard 만 0.9 배로 시각 축소 → "사용자 100% = Mac 100%" 비율 확보.
+  -->
+  <div th:fragment="mainDashboard" class="mx-auto flex w-full min-w-0 max-w-[min(100%,52rem)] flex-col sm:max-w-[min(100%,58rem)] lg:max-w-[min(100%,68rem)] xl:max-w-[min(100%,76rem)] max-lg:h-auto" id="home-dashboard-root"
+       style="zoom: 0.9;">
+    <!-- 카드 블록 — mx-auto + max-w 로 콘텐츠 영역 가로 중앙 정렬 -->
+    <div class="flex w-full min-w-0 flex-col gap-4 sm:gap-5 lg:gap-6 xl:gap-7">
+        <!-- [히어로] 출퇴근 — 전체 폭 -->
+        <div class="shrink-0 w-full min-w-0">
+          <div th:replace="~{home/fragments-attendance :: attendanceCard}"></div>
+        </div>
+
+        <!-- [하단 2열] CSS 클래스 home-dashboard-bottom — input.css 에 정의 -->
+        <div id="home-bottom-row" class="home-dashboard-bottom">
+          <!-- 왼쪽: 오늘의 일정 → 공지사항 -->
+          <div id="home-left-stack" class="flex flex-col gap-4 sm:gap-5">
+            <div th:replace="~{home/fragments-today :: todayCard}"></div>
+            <div th:replace="~{home/fragments-notice :: noticeCard}"></div>
+          </div>
+
+          <!-- 오른쪽: 주간 일정 — index-home.js 가 좌측 스택 높이와 동기화 -->
+          <div id="home-week-wrap" class="flex min-h-0 min-w-0 flex-col overflow-hidden">
+            <div th:replace="~{home/fragments-week :: weekCard}"></div>
+          </div>
+        </div>
+    </div>
+
+    <!-- 채팅 패널은 partials/sidebar.html 끝에서 자동 include 되므로 여기서 별도 호출하지 않는다. -->
+  </div>
+</body>
+
+</html>

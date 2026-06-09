@@ -1,0 +1,38 @@
+<!-- ================================================================ -->
+<!-- [관리자] 완료함 -->
+<!-- ================================================================ -->
+<div xmlns:th="http://www.thymeleaf.org" th:fragment="completedInbox" class="approval-inbox-table-root space-y-4">
+  <div class="relative z-20 w-44">
+      <select id="approval-completed-filter" class="sr-only pointer-events-none" tabindex="-1" aria-hidden="true" aria-label="상태 필터">
+        <option value="ALL">전체</option>
+        <option value="IN_PROGRESS">진행중</option>
+        <option value="APPROVED">승인</option>
+        <option value="REJECTED">반려</option>
+        <option value="ON_HOLD">보류</option>
+      </select>
+  </div>
+
+  <div class="approval-inbox-table-wrap rounded-xl border border-gray-200 dark:border-gray-800">
+    <table class="approval-inbox-table min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+      <colgroup th:replace="~{approval/common/inbox-table-colgroup :: completedInboxColgroup}"></colgroup>
+      <thead class="bg-gray-50 dark:bg-white/[0.03]">
+        <tr>
+          <th scope="col" data-col="id">문서번호</th>
+          <th scope="col" data-col="title">제목</th>
+          <th scope="col" data-col="drafter">신청자</th>
+          <th scope="col" data-col="status">상태</th>
+          <th scope="col" data-col="approver">결재자</th>
+          <th scope="col" data-col="comment">사유</th>
+          <th scope="col" data-col="date">처리일</th>
+        </tr>
+      </thead>
+      <tbody id="approval-completed-body" class="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-white/[0.02]"></tbody>
+    </table>
+  </div>
+
+  <div id="approval-completed-empty" class="hidden">
+    <div class="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 py-12 text-center dark:border-gray-700 dark:bg-white/[0.03]" role="status">
+      <p class="text-sm text-gray-500 dark:text-gray-400">완료된 문서가 없습니다.</p>
+    </div>
+  </div>
+</div>

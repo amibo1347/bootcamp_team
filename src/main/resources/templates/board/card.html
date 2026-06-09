@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title th:text="${board.boardName} + ' - 카드형'">게시판 카드형</title>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+</head>
+
+<body
+    th:attr="data-board-id=${board.boardId}"
+    x-data="{ page: 'board', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
+    x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{ 'dark bg-gray-900': darkMode === true }">
+
+    <div th:replace="~{partials/preloader}"></div>
+
+    <div class="flex h-screen overflow-hidden">
+        <div th:replace="~{partials/sidebar}"></div>
+
+        <div class="page-content">
+            <div th:replace="~{partials/overlay}"></div>
+            <div th:replace="~{partials/header}"></div>
+
+            <main class="page-main">
+                <section class="flex flex-wrap items-center justify-between gap-3">
+                    <h2 class="page-heading" th:text="${board.boardName}">게시판</h2>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!--
+                          게시판 알림 토글 — 헤더 종 아이콘 동일 SVG. 색은 input.css 의 .board-alert-toggle 가 통제.
+                          NOTICE / 사내 정책(POLICY) 게시판은 항상 ON 강제 + 토글 불가이므로 버튼 자체를 숨긴다.
+                        -->
+                        <button type="button"
+                            th:if="${board.boardType.name() != 'NOTICE' and board.boardType.name() != 'POLICY'}"
+                            th:attr="data-board-alert-toggle=${board.boardId}"
+                            class="board-alert-toggle inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-stroke text-gray-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-strokedark dark:text-gray-300 dark:hover:border-indigo-500/60 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-200"
+                            title="이 게시판 알림 받기" aria-label="이 게시판 알림 받기" aria-pressed="false">
+                            <svg class="h-5 w-5 shrink-0 fill-current" viewBox="0 0 20 20" aria-hidden="true"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" clip-rule="evenodd"
+                                    d="M10.75 2.29248C10.75 1.87827 10.4143 1.54248 10 1.54248C9.58583 1.54248 9.25004 1.87827 9.25004 2.29248V2.83613C6.08266 3.20733 3.62504 5.9004 3.62504 9.16748V14.4591H3.33337C2.91916 14.4591 2.58337 14.7949 2.58337 15.2091C2.58337 15.6234 2.91916 15.9591 3.33337 15.9591H4.37504H15.625H16.6667C17.0809 15.9591 17.4167 15.6234 17.4167 15.2091C17.4167 14.7949 17.0809 14.4591 16.6667 14.4591H16.375V9.16748C16.375 5.9004 13.9174 3.20733 10.75 2.83613V2.29248ZM14.875 14.4591V9.16748C14.875 6.47509 12.6924 4.29248 10 4.29248C7.30765 4.29248 5.12504 6.47509 5.12504 9.16748V14.4591H14.875ZM8.00004 17.7085C8.00004 18.1228 8.33583 18.4585 8.75004 18.4585H11.25C11.6643 18.4585 12 18.1228 12 17.7085C12 17.2943 11.6643 16.9585 11.25 16.9585H8.75004C8.33583 16.9585 8.00004 17.2943 8.00004 17.7085Z" />
+                            </svg>
+                        </button>
+                        <a th:href="@{/board/{id}/trash(id=${board.boardId})}"
+                            class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-stroke text-gray-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-strokedark dark:text-gray-300 dark:hover:border-indigo-500/60 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-200"
+                            title="게시판 휴지통" aria-label="게시판 휴지통">
+                            <!-- 통합 휴지통(사이드바)·목록형과 동일 SVG(선 스트로크) -->
+                            <svg class="h-5 w-5 shrink-0" viewBox="3 3 18 18" fill="none"
+                                xmlns="http://www.w3.org/2000/svg" aria-hidden="true" stroke="currentColor"
+                                stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M8 8.5h8v8.35a1.15 1.15 0 0 1-1.15 1.15h-5.7a1.15 1.15 0 0 1-1.15-1.15v-8.35z" />
+                                <path d="M9.35 10.25v6.5M12 10.25v6.5M14.65 10.25v6.5" />
+                                <path d="M7 7.65h10" />
+                                <path d="M11 5.1h2v2.55H11z" />
+                            </svg>
+                        </a>
+                        <a th:href="@{/board/{id}/articles/new(id=${board.boardId})}"
+                            class="whitespace-nowrap rounded-xl bg-indigo-400 px-6 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-indigo-500 active:scale-[0.98]">
+                            글쓰기
+                        </a>
+                    </div>
+                </section>
+
+                <section id="postCardGrid" class="grid grid-cols-1 gap-4 lg:grid-cols-2"></section>
+
+                <section id="postCardEmpty"
+                    class="rounded-xl border border-dashed border-gray-300 px-5 py-16 text-center text-gray-500 dark:border-strokedark dark:text-gray-300">
+                    등록된 게시글이 없습니다.
+                </section>
+
+                <section id="postPagination" class="pt-1"></section>
+
+                <section th:replace="~{board/fragments/search-bar :: searchBar}"></section>
+            </main>
+        </div>
+    </div>
+
+    <script type="module" src="/js/index.js"></script>
+    <script src="/js/common/utils.js"></script>
+    <script src="/js/board/view.js"></script>
+    <script src="/js/board/board-alert-toggle.js"></script>
+</body>
+
+</html>

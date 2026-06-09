@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" th:href="@{/css/master.css}" />
+  <title>회사 관리</title>
+</head>
+
+<body class="master-page">
+  <div class="master-shell">
+    <div class="master-container">
+      <div class="master-panel">
+
+        <a th:href="@{/master}" class="master-link">← 콘솔로 돌아가기</a>
+
+        <div style="margin-top: 0.75rem;">
+          <span class="master-badge">MASTER</span>
+          <h1 class="master-title">회사 관리</h1>
+          <p class="master-sub">회사 생성 시 대표(ADMIN) 계정이 함께 만들어집니다.</p>
+        </div>
+
+        <div th:if="${errorMessage != null}" class="alert-box alert-error"
+             style="margin-top: 1.25rem;" role="alert">
+          <span th:text="${errorMessage}">오류 메시지</span>
+        </div>
+        <div th:if="${successMessage != null}" class="alert-box alert-success"
+             style="margin-top: 1.25rem;" role="status">
+          <span th:text="${successMessage}">완료 메시지</span>
+        </div>
+
+        <!-- 검색 + 회사 추가 -->
+        <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 1.25rem;">
+          <form method="get" th:action="@{/master/companies}"
+                style="display: flex; gap: 0.5rem; flex: 1;">
+            <input type="text" name="q" class="field-input" th:value="${q}"
+                   placeholder="회사명 검색" style="flex: 1;" />
+            <button type="submit" class="master-btn-outline">검색</button>
+          </form>
+          <label for="company-add-toggle" class="master-btn master-btn--inline"
+                 style="cursor: pointer; white-space: nowrap;">+ 회사 추가</label>
+        </div>
+
+        <!-- 회사 목록 -->
+        <table class="master-table">
+          <thead>
+            <tr>
+              <th>회사명</th>
+              <th>회사 코드</th>
+              <th>도메인</th>
+              <th>상태</th>
+              <th style="text-align: center;">사번제</th>
+              <th style="text-align: right;">관리</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:if="${companies == null or companies.isEmpty()}">
+              <td colspan="6" class="master-empty">등록된 회사가 없습니다.</td>
+            </tr>
+            <tr th:each="company : ${companies}">
+              <td th:text="${company.companyName}">회사명</td>
+              <td style="font-family: monospace;" th:text="${company.companyCode}">CODE</td>
+              <td th:text="${company.companyDomain != null and !company.companyDomain.isBlank()
+                            ? company.companyDomain : '-'}">-</td>
+              <td>
+                <span th:if="${company.isActiveCompany()}" class="master-tag master-tag--on">활성</span>
+                <span th:unless="${company.isActiveCompany()}" class="master-tag master-tag--off">비활성</span>
+              </td>
+              <!--
+                사번제 여부 표시 (변경은 [수정] 화면에서). disabled 로 표시 전용.
+                ※ Company.usesEmployeeNo 는 Boolean(NULL 가능) — null-safe 한 usesEmployeeNo() 메서드로 호출.
+              -->
+              <td style="text-align: center;">
+                <input type="checkbox" disabled th:checked="${company.usesEmployeeNo()}"
+                       th:title="${company.usesEmployeeNo()} ? '사번제 회사' : '아이디 사용 회사'"
+                       style="cursor: not-allowed;" />
+              </td>
+              <td style="text-align: right; white-space: nowrap;">
+                <a th:href="@{/master/companies/{id}(id=${company.companyId})}"
+                   class="master-btn-outline">수정</a>
+                <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+                <form method="post" style="display: inline;"
+                      th:action="@{/master/companies/{id}/toggle(id=${company.companyId})}">
+                  <button type="submit"
+                          th:class="${company.isActiveCompany()} ? 'master-btn-outline' : 'master-btn master-btn--inline'"
+                          th:text="${company.isActiveCompany()} ? '비활성화' : '활성화'">토글</button>
+                </form>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- ===== 회사 추가 모달 ===== -->
+        <!-- 체크박스 토글: 위 [+ 회사 추가] label 로 열고, 헤더 X·배경 클릭으로 닫는다. -->
+        <!-- 검증 실패(errorMessage)로 입력값이 되돌아온 경우 모달을 자동으로 다시 연다. -->
+        <input type="checkbox" id="company-add-toggle" class="modal-toggle"
+               th:checked="${errorMessage != null}" />
+        <div class="master-modal">
+          <label for="company-add-toggle" class="master-modal-backdrop" aria-hidden="true"></label>
+          <div class="master-modal-card">
+            <div class="master-modal-head">
+              <h2 class="master-modal-title">새 회사 추가</h2>
+              <label for="company-add-toggle" class="master-modal-close" aria-label="닫기">&times;</label>
+            </div>
+
+            <!-- 멀티파트 폼은 CSRF 토큰을 본문에서 읽지 못하므로 쿼리 파라미터로 전달 (수정 페이지 로고 업로드와 동일 패턴) -->
+            <form method="post" enctype="multipart/form-data"
+                  th:action="@{/master/companies(_csrf=${_csrf.token})}">
+              <p class="master-sub" style="margin-bottom: 0.75rem; font-weight: 600; color: #334155;">회사 정보</p>
+              <div class="field-group">
+                <label for="companyName" class="field-label">회사명</label>
+                <input type="text" id="companyName" name="companyName" class="field-input"
+                       th:value="${formCompanyName}" required />
+              </div>
+              <div class="field-group">
+                <label for="companyDomain" class="field-label">도메인 (필수)</label>
+                <input type="text" id="companyDomain" name="companyDomain" class="field-input"
+                       th:value="${formCompanyDomain}" placeholder="예: acme" required />
+                <p class="master-sub" style="margin-top: 0.35rem;">
+                  회사별 로그인 주소(/{도메인}/login)로 사용됩니다. 영문/숫자/.-_ 2~40자.
+                </p>
+              </div>
+              <div class="field-group">
+                <label class="field-label" style="display: flex; align-items: center; gap: 0.5rem;">
+                  <input type="checkbox" name="usesEmployeeNo" th:checked="${formUsesEmployeeNo}" />
+                  <span>사번 사용 회사</span>
+                </label>
+                <p class="master-sub" style="margin-top: 0.35rem;">
+                  체크하면 직원이 회원가입·로그인 시 '아이디' 대신 '사번'을 입력합니다.
+                </p>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label">회사 로고 (선택)</label>
+                <!-- 파일 선택 영역을 드롭존 형태로 명확히 표시 -->
+                <label for="logoFile" class="master-filedrop">
+                  <span class="master-filedrop-icon">🖼️</span>
+                  <span class="master-filedrop-main">클릭하여 로고 이미지 선택</span>
+                  <span class="master-filedrop-sub" id="logoFileName">PNG / JPG 등 이미지 파일</span>
+                  <input type="file" id="logoFile" name="logoFile" accept="image/*"
+                         onchange="previewCompanyLogo(event)" />
+                </label>
+                <!-- 선택한 로고 미리보기 — 파일 선택 전엔 숨김. -->
+                <img id="logoPreview" alt="로고 미리보기"
+                     style="display: none; margin-top: 0.6rem; max-width: 180px; max-height: 90px;
+                            border: 1px solid #e2e8f0; border-radius: 0.6rem; background: #f8fafc; padding: 0.5rem;" />
+              </div>
+
+              <p class="master-sub" style="margin: 1.25rem 0 0.75rem; font-weight: 600; color: #334155;">
+                대표(ADMIN) 계정
+              </p>
+              <div class="field-group">
+                <label for="adminLoginId" class="field-label">대표 아이디</label>
+                <input type="text" id="adminLoginId" name="adminLoginId" class="field-input"
+                       th:value="${formAdminLoginId}" autocomplete="off" required />
+              </div>
+              <div class="field-group">
+                <label for="adminName" class="field-label">대표 이름</label>
+                <input type="text" id="adminName" name="adminName" class="field-input"
+                       th:value="${formAdminName}" required />
+              </div>
+              <div class="field-group">
+                <label for="adminEmail" class="field-label">대표 이메일 (선택)</label>
+                <input type="email" id="adminEmail" name="adminEmail" class="field-input"
+                       th:value="${formAdminEmail}" />
+              </div>
+              <p class="master-sub" style="margin-bottom: 0;">
+                대표 초기 비밀번호는 회사 생성 시 자동 발급되며, 생성 후 안내 메시지에 표시됩니다.
+              </p>
+              <button type="submit" class="master-btn" style="margin-top: 1.5rem;">회사 생성</button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 회사 생성 폼: 로고 파일 선택 시 즉시 미리보기. 파일 취소 시 미리보기 숨김.
+    function previewCompanyLogo(event) {
+      const input = event.target;
+      const preview = document.getElementById('logoPreview');
+      if (!preview) return;
+      const nameLabel = document.getElementById('logoFileName');
+      const file = input.files && input.files[0];
+      if (!file) {
+        preview.style.display = 'none';
+        preview.removeAttribute('src');
+        if (nameLabel) nameLabel.textContent = 'PNG / JPG 등 이미지 파일';
+        return;
+      }
+      if (nameLabel) nameLabel.textContent = file.name;
+      const url = URL.createObjectURL(file);
+      preview.src = url;
+      preview.style.display = 'block';
+      // 메모리 누수 방지 — 이미지 로드 후 objectURL 해제.
+      preview.onload = () => URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+
+</html>

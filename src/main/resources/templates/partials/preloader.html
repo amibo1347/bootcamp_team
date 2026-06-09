@@ -1,7 +1,8 @@
 <!-- [프리로더] : 페이지 로드 완료 전 500ms 동안 스피너를 전체화면으로 표시 (Alpine.js x-show 제어) -->
+<!-- [주의] index.js(모듈)가 늦게 실행되면 DOMContentLoaded는 이미 지난 뒤일 수 있음. 그때만 DOMContentLoaded에 의존하면 loaded가 영원히 true라 z-999999 레이어가 클릭을 전부 막음 → readyState 분기 필요 -->
 <div
   x-show="loaded"
-  x-init="window.addEventListener('DOMContentLoaded', () => { setTimeout(() => loaded = false, 500) })"
+  x-init="(() => { const hide = () => setTimeout(() => loaded = false, 500); if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', hide); else hide(); })()"
   class="fixed left-0 top-0 z-999999 flex h-screen w-screen items-center justify-center bg-white dark:bg-black"
 >
   <div

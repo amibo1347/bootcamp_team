@@ -10,9 +10,16 @@
     <title>
       테마형 인트라넷
     </title>
-  <link rel="stylesheet" href="/css/output.css" />
+  <link rel="stylesheet" th:href="@{/css/output.css}" />
+  <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
   </head>
+  <!--
+    [레이아웃]
+    - max-lg(모바일·태블릿): 문서 전체 세로 스크롤 허용(h-auto + overflow-y-auto)
+    - lg~(데스크톱): 기존 No-Scroll(h-dvh + overflow-hidden), 가로는 min-w-0·w-full로 플렉스 축소
+  -->
   <body
+    class="min-h-0 max-lg:min-h-dvh max-lg:overflow-y-auto max-lg:bg-gray-50 max-lg:dark:bg-gray-900 lg:h-dvh lg:overflow-hidden"
     x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
     x-init="
          darkMode = JSON.parse(localStorage.getItem('darkMode'));
@@ -24,15 +31,14 @@
     <!-- ===== Preloader End ===== -->
 
     <!-- ===== Page Wrapper Start ===== -->
-    <div class="flex h-screen overflow-hidden">
+    <!-- [Page Wrapper] 모바일: 높이·overflow 자연스럽게 / 데스크톱: 뷰포트 고정 + 클립 -->
+    <div class="flex min-h-0 w-full min-w-0 max-lg:h-auto max-lg:min-h-0 max-lg:overflow-visible lg:h-dvh lg:overflow-hidden">
   <!-- ===== 사이드바 ===== -->
   <div th:replace="~{partials/sidebar}"></div>
   <!-- ===== Sidebar End ===== -->
 
-      <!-- ===== Content Area Start ===== -->
-      <div
-        class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto"
-      >
+      <!-- [Content Area] 데스크톱: min-h-0으로 자식 flex 수축 / 모바일: 본문 높이만큼 확장·바깥 스크롤 -->
+      <div class="relative flex w-full min-w-0 max-lg:h-auto max-lg:min-h-0 max-lg:flex-none max-lg:overflow-visible lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden flex-col">
   <!-- Small Device Overlay Start -->
   <div th:replace="~{partials/overlay}"></div>
   <!-- Small Device Overlay End -->
@@ -41,14 +47,10 @@
   <div th:replace="~{partials/header}"></div>
   <!-- ===== Header End ===== -->
 
-        <!-- ===== Main Content Start ===== -->
-        <main>
-          <div class="relative overflow-hidden p-5 rounded-md shadow-sm bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700">
-            <h3 class="text-lg font-semibold mb-4">메인 콘텐츠 영역</h3>
-            <p>이곳에 페이지별 주요 콘텐츠가 들어갑니다.</p>
-            <div class="mt-6">
-              <a href="#" class="text-blue-500 hover:underline">더 알아보기</a>
-            </div>
+        <!-- [메인] 모바일: flex-1 미사용으로 콘텐츠 높이만큼만 차지 / 데스크톱: flex-1 + min-h-0 유지 -->
+        <main class="flex w-full min-w-0 max-w-full max-lg:flex-none max-lg:overflow-visible bg-gray-50/80 dark:bg-gray-900/40 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden flex-col">
+          <div class="flex w-full min-w-0 max-w-full max-lg:flex-none max-lg:overflow-visible lg:min-h-0 lg:flex-1 lg:flex-col lg:items-center lg:justify-center px-6 pb-6 pt-10 sm:px-8 sm:pb-8 sm:pt-12 lg:px-10 lg:pb-8 lg:pt-14 xl:px-14 xl:pb-10 xl:pt-16 flex-col items-center">
+            <div th:replace="~{home/dashboard :: mainDashboard}"></div>
           </div>
         </main>
         <!-- ===== Main Content End ===== -->
@@ -56,6 +58,7 @@
       <!-- ===== Content Area End ===== -->
     </div>
     <!-- ===== Page Wrapper End ===== -->
-    <script type="module" src="/js/index.js"></script>
+    <script type="module" th:src="@{/js/index.js}"></script>
+    <script type="module" th:src="@{/js/index-home.js}"></script>
   </body>
 </html>

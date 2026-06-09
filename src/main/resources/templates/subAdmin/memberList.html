@@ -11,16 +11,24 @@
     <title>
         Member List
     </title>
-    <link rel="stylesheet" href="/css/output.css" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+    <style>
+        /* 삭제(퇴사) 버튼 호버 색상 고정 */
+        .btn-delete-hover:hover {
+            background-color: #fda4af;
+        }
+    </style>
 </head>
 
 <body
     x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
     x-init="
-         darkMode = JSON.parse(localStorage.getItem('darkMode'));
-         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
-    :class="{'dark bg-gray-900': darkMode === true}">
+            darkMode = JSON.parse(localStorage.getItem('darkMode'));
+            $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}"
+    th:attr="data-my-position-level=${session.memberSession != null and session.memberSession.positionLevel != null ? session.memberSession.positionLevel : ''},
+             data-is-admin-or-master=${session.memberSession != null and session.memberSession.adminOrMaster}">
     <!-- ===== 로딩 화면 ===== -->
     <div th:replace="~{partials/preloader}"></div>
     <!-- ===== Preloader End ===== -->
@@ -32,7 +40,7 @@
         <!-- ===== Sidebar End ===== -->
 
         <!-- ===== Content Area Start ===== -->
-        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+        <div class="page-content">
             <!-- Small Device Overlay Start -->
             <div th:replace="~{partials/overlay}"></div>
             <!-- Small Device Overlay End -->
@@ -43,109 +51,836 @@
 
             <!-- ===== Main Content Start ===== -->
 
-            <main>
-                <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
-                    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <h2 class="text-lg font-black text-black dark:text-white">직원 목록</h2>
-                    </div>
+            <main class="page-main">
+                <h2 class="page-heading">조직도 구성</h2>
 
-                    <div
-                        class="mb-6 rounded-xl border border-stroke bg-white px-5 py-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
-                        <form action="/member/list" method="get" class="flex flex-wrap items-center justify-end gap-3">
+                <div
+                    class="mb-6 rounded-xl border border-stroke bg-white px-5 py-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <form action="/admin/memberList" method="get" id="filterForm"
+                        onsubmit="event.preventDefault(); loadMemberList();"
+                        class="flex flex-col sm:flex-row items-end justify-between gap-6">
 
-                            <!-- 부서 선택 드롭다운 수정 필요!!!! -->
-                            <!-- 모델로 태워야 함!!!!!! -->
-                            <div class="relative z-20 bg-transparent dark:bg-form-input w-full sm:w-45">
-                                <select
-                                    class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark">
-                                    <option value="">부서 선택</option>
-                                    <option value="hr" selected>인사팀</option>
-                                    <option value="dev">개발팀</option>
+                        <input type="hidden" name="sort" id="sortInput" th:value="${currentSort}">
+                        <!--
+                            상태 필터 (활성/휴직/퇴사) - 탭 클릭으로 값이 바뀐다.
+                            ※ 백엔드는 다중 상태 조회를 위해 selectedStatus(단일) / selectedStatuses(다중) 둘 다 노출한다.
+                            ※ 퇴사 탭(LEAVE + BANNED)으로 진입한 경우 selectedStatus 는 null 이 되므로,
+                              selectedStatuses 의 첫 번째 enum 을 기준으로 'LEAVE' 로 fallback 시켜야 새로고침/검색 시에도 탭이 유지된다.
+                              loadMemberList() 가 'LEAVE' 를 감지하면 다시 LEAVE + BANNED 두 값을 함께 보낸다.
+                        -->
+                        <input type="hidden" name="status" id="statusInput"
+                            th:value="${
+                                selectedStatuses != null and not #lists.isEmpty(selectedStatuses)
+                                    ? ((selectedStatuses[0].name() == 'LEAVE' or selectedStatuses[0].name() == 'BANNED')
+                                        ? 'LEAVE'
+                                        : selectedStatuses[0].name())
+                                    : (selectedStatus != null ? selectedStatus.name() : 'JOIN')
+                            }">
+
+                        <!--
+                            부서/직위 드롭다운 컨테이너.
+                            ※ 검색 영역과 동일하게 flex:1 로 form 의 절반을 차지하도록 inline style 로 강제.
+                              (sm:flex-1 클래스만으로는 일부 환경에서 의도대로 안 펴지는 케이스가 있었음.)
+                            ※ paddingRight: 1.5rem 으로 세로선과 간격 확보. (검색 영역과 동일한 시각적 간격)
+                        -->
+                        <div class="flex items-end gap-6 w-full sm:flex-1 sm:pr-6"
+                            style="flex: 1 1 0%; min-width: 0; padding-right: 1.5rem;">
+                            <div class="relative z-20" style="flex: 1 1 0%; min-width: 0;">
+                                <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">부서별 조회</label>
+                                <select name="deptId" id="deptSelect" onchange="onDeptSelectChange(this)"
+                                    class="js-custom-select relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white">
+                                    <option value="">전체 부서</option>
+                                    <option value="__NEW_DEPT__">신규 부서</option>
+                                    <option th:each="dept : ${depts}" th:value="${dept.deptId}"
+                                        th:text="${dept.deptName}" th:selected="${dept.deptId == selectedDeptId}">
+                                    </option>
                                 </select>
                             </div>
-                            <!-- 부서 선택 드롭다운 수정 필요!!!!! -->
+                            <div class="relative z-20" style="flex: 1 1 0%; min-width: 0;">
+                                <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">직위별 조회</label>
+                                <select name="positionId" id="positionSelect" onchange="onPositionSelectChange(this)"
+                                    class="js-custom-select relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white">
+                                    <option value="">전체 직급</option>
+                                    <option value="__NEW_POSITION__">신규 직급</option>
+                                    <option th:each="pos : ${positions}" th:value="${pos.positionId}"
+                                        th:text="${pos.positionName}"
+                                        th:selected="${pos.positionId == selectedPositionId}"
+                                        th:attr="data-level=${pos.positionLevel}"></option>
+                                </select>
+                            </div>
+                        </div>
 
+                        <div class="hidden sm:block h-10 w-[1px] bg-gray-200 dark:bg-strokedark"></div>
 
-                            <!-- 직원 이름 검색 수정 필요!!!!!! -->
-                            <!-- 실제로 검색 가능하게 연결 필요!!!!! -->
-                            <div class="w-full sm:w-64">
-                                <input type="text" placeholder="직원 이름 검색"
+                        <div class="flex items-end gap-3 w-full sm:flex-1" style="flex: 1 1 0%; min-width: 0;">
+                            <div class="w-full"> <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">직원 이름
+                                    검색</label>
+                                <input type="text" id="searchKeyword" name="keyword" th:value="${keyword}" placeholder="이름을 입력하세요"
                                     class="w-full rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white" />
                             </div>
+
                             <button type="submit"
-                                class="flex justify-center rounded bg-primary py-2 px-6 font-medium text-white hover:bg-opacity-90">
+                                class="flex h-[42px] shrink-0 items-center justify-center rounded-xl bg-indigo-400 py-2 px-6 font-medium text-white hover:bg-indigo-500">
                                 검색
                             </button>
-                        </form>
-                    </div>
-                    <!-- 직원 검색 수정 필요!!!!!! -->
-
-                    <div
-                        class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
-                        <h3 class="mb-6 text-xl font-semibold text-black dark:text-white">인사팀</h3>
+                        </div>
+                    </form>
+                </div>
 
 
-                        <!-- 부서 소속 직원 목록 모델 태워야 함!!!!! -->
-                        <!-- 부서 소속 직원 정보(사진, 이름, 직급, 이메일, 연락처, 생년월일, 입사일) 필요!!!!!! -->
-                        <div class="flex flex-col gap-4">
-                            <div th:each="emp : ${employeeList}"
-                                class="flex flex-wrap items-center justify-between rounded-2xl border border-stroke p-4 transition-hover hover:shadow-md dark:border-strokedark">
-                                <div class="flex items-center gap-5">
-                                    <div
-                                        class="h-20 w-20 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
-                                        <img th:if="${emp.profileImg}" th:src="${emp.profileImg}" alt="profile">
-                                        <svg th:unless="${emp.profileImg}" class="h-12 w-12 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
-                                            <path
-                                                d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
-                                        </svg>
-                                    </div>
-
-                                    <div class="flex flex-col">
-                                        <div class="flex items-end gap-2 mb-1">
-                                            <span class="text-xl font-bold text-black dark:text-white" th:text="${emp.name}"></span>
-                                            <span class="text-sm font-medium text-gray-500" th:text="${emp.position}"></span>
-                                        </div>
-                                        <span class="text-sm text-gray-600" th:text="${emp.email}"></span>
-                                        <span class="text-sm text-gray-600" th:text="${emp.phone}"></span>
-                                    </div>
-                                </div>
-
-                                <div
-                                    class="hidden lg:flex items-center gap-8 border-l border-stroke px-8 dark:border-strokedark">
-                                    <div class="flex flex-col gap-1">
-                                        <p class="text-sm"><span class="text-gray-500 mr-2">생년월일</span> <span th:text="${emp.birthDate}"></span></p>
-                                        <p class="text-sm"><span class="text-gray-500 mr-2">입사일</span> <span th:text="${emp.hireDate}"></span></p>
-                                    </div>
-                                </div>
-
-
-                                <!-- 직원 정보 수정 / 직원 삭제 버튼 -->
-                                <!-- 수정 / 삭제 로직 구현 제대로 안 됨!!!! -->
-                                <div class="flex flex-col gap-2">
-                                    <button
-                                        class="rounded-md bg-blue-100 px-6 py-1 text-sm font-medium text-blue-600 hover:bg-blue-200 transition">수정</button>
-                                    <button th:attr="onclick=|deleteMember('${emp.id}')|"
-                                        class="rounded-md bg-red-100 px-6 py-1 text-sm font-medium text-red-600 hover:bg-red-200 transition">삭제</button>
-                                </div>
+                <!--
+                    인사이동 패널: 부서/직급 선택 + [등록] 버튼.
+                    ※ 인사이동 토글 OFF 일 때는 hidden. (memberList.js 의 toggleReassignMode() 가 토글)
+                    ※ 부서 select / 직급 select 모두 "신규 부서" / "신규 직급" 옵션은 제외 (검색 필터와 동일한 데이터에서 제외).
+                    ※ 부서 또는 직급 중 한 쪽만 선택해도 그 한 쪽만 일괄 변경된다 (백엔드 reassignMembers 가 null 을 허용).
+                -->
+                <div id="reassignPanel"
+                    class="hidden mb-2 rounded-xl border border-stroke bg-white px-5 py-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                        <div class="flex flex-1 items-end gap-6">
+                            <div class="relative z-20 w-1/2">
+                                <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">부서 선택</label>
+                                <select id="reassignDeptSelect"
+                                    class="js-custom-select relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white">
+                                    <option value="">부서 선택</option>
+                                    <option th:each="dept : ${depts}" th:value="${dept.deptId}" th:text="${dept.deptName}"></option>
+                                </select>
                             </div>
-
-
-                            <!-- 직원이 존재하지 않을 시 -->
-                            <div th:if="${employeeList == null or #lists.isEmpty(employeeList)}" class="py-20 text-center text-gray-500">등록된 직원이 없습니다.</div>
+                            <div class="relative z-20 w-1/2">
+                                <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">직급 선택</label>
+                                <!--
+                                    data-role/data-system 은 JS 가 인사이동 옵션을 필터링할 때 사용 —
+                                    대표(ADMIN 또는 시스템 직급) 는 항상 제외, 본인 직급 level 이상도 제외.
+                                -->
+                                <select id="reassignPositionSelect"
+                                    class="js-custom-select relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white">
+                                    <option value="">직급 선택</option>
+                                    <option th:each="pos : ${positions}" th:value="${pos.positionId}"
+                                        th:text="${pos.positionName}"
+                                        th:attr="data-level=${pos.positionLevel},
+                                                 data-role=${pos.role != null ? pos.role.name() : ''},
+                                                 data-system=${pos.systemDefault}"></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <span id="reassignSelectedCount" class="text-sm text-gray-500 dark:text-gray-300">선택 0명</span>
+                            <button type="button" onclick="submitReassign()"
+                                class="flex h-[42px] shrink-0 items-center justify-center rounded-xl bg-indigo-400 py-2 px-6 text-sm font-medium text-white transition hover:bg-indigo-500">
+                                등록
+                            </button>
                         </div>
                     </div>
                 </div>
-            </main>
 
-            <!-- ===== Main Content End ===== -->
+                <div id="memberListContainer" class="flex flex-col gap-4">
+                    <!--
+                        fragment 컨테이너
+                        ※ 휴직/퇴사 탭은 직원 수가 적어 페이지가 짧음 → 세로 스크롤바가 사라짐 → 콘텐츠 영역이 스크롤바 폭(약 15px)만큼 좌우로 늘어남.
+                          JOIN 탭(직원 많음 = 스크롤바 있음)과 폭을 동일하게 유지하기 위해, JOIN 이 아닐 때만 min-h-screen 으로 페이지를 강제로 길게 만들어
+                          항상 스크롤바가 표시되도록 한다.
+                    -->
+                    <div th:fragment="memberListFragment"
+                        th:classappend="${selectedStatusKey != 'JOIN' ? 'min-h-screen' : ''}"
+                        class="rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark">
 
+                        <!-- 카드 헤더: 좌측 상태별 탭 + 우측 정렬 -->
+                        <!--
+                            현재 탭 키 결정 (selectedStatusKey).
+                            ※ 백엔드는 다중 상태 조회를 위해 selectedStatus(단일) 와 selectedStatuses(다중) 둘 다 노출한다.
+                              - 단일 선택 시: selectedStatus.name() → 'JOIN' / 'ON_LEAVE' / 'LEAVE'
+                              - 다중 선택 시(현재는 퇴사 탭에서 LEAVE + BANNED 두 개 전송): selectedStatuses 의 첫 번째를 본다.
+                                LEAVE 또는 BANNED 가 첫 번째이면 '퇴사 직원 목록' 탭으로 간주하여 'LEAVE' 로 통일한다.
+                              - 그 외(아무것도 안 들어옴, 초기 진입): 기본값 'JOIN'.
+                        -->
+                        <th:block th:with="selectedStatusKey=${
+                            selectedStatuses != null and not #lists.isEmpty(selectedStatuses)
+                                ? ((selectedStatuses[0].name() == 'LEAVE' or selectedStatuses[0].name() == 'BANNED')
+                                    ? 'LEAVE'
+                                    : selectedStatuses[0].name())
+                                : (selectedStatus != null ? selectedStatus.name() : 'JOIN')
+                        }">
+                        <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <!-- 상태별 탭 (활성: JOIN / 휴직: ON_LEAVE / 퇴사: LEAVE) -->
+                            <div class="flex items-center gap-3">
+                                <!--
+                                    [인사이동 모드 전용] 전체선택 체크박스.
+                                    ※ 기본은 hidden. js-reassign-* 클래스는 memberList.js 의 toggleReassignMode() 가 hidden 클래스를 토글한다.
+                                    ※ 활성 직원 탭(JOIN)에서만 의미가 있으므로 JOIN 탭일 때만 렌더링.
+                                -->
+                                <th:block th:if="${selectedStatusKey == 'JOIN'}">
+                                    <input type="checkbox" id="reassignSelectAll" onclick="onReassignSelectAll(this)"
+                                        class="js-reassign-toggle js-reassign-select-all hidden h-5 w-5 cursor-pointer accent-indigo-500" />
+                                </th:block>
 
+                                <!--
+                                    [부서 소속 직원 목록] 탭
+                                    ※ 부서별 조회 드롭다운에서 특정 부서를 고르면 "{부서명} 소속 직원 목록" 으로 동적으로 바뀐다.
+                                      depts 리스트를 순회해 selectedDeptId 와 일치하는 dept 의 이름만 출력 (0개 또는 1개만 매칭).
+                                    ※ 전체 부서일 때는 기본 문구 "부서 소속 직원 목록" 으로 보여준다.
+                                -->
+                                <a href="javascript:void(0)" data-status="JOIN"
+                                    onclick="selectStatusTab('JOIN')"
+                                    th:classappend="${selectedStatusKey == 'JOIN' ? 'text-primary font-bold border-b-2 border-primary' : 'text-gray-400 dark:text-gray-300'}"
+                                    class="js-status-tab text-lg font-semibold transition-all hover:text-primary">
+                                    <th:block th:if="${selectedDeptId == null}">부서 소속 직원 목록</th:block>
+                                    <th:block th:if="${selectedDeptId != null}">
+                                        <th:block th:each="d : ${depts}"
+                                            th:if="${d.deptId == selectedDeptId}"
+                                            th:text="|${d.deptName} 소속 직원 목록|"></th:block>
+                                    </th:block>
+                                </a>
 
-            <!-- ===== Content Area End ===== -->
+                                <span class="text-gray-300 dark:text-gray-300">|</span>
+
+                                <a href="javascript:void(0)" data-status="ON_LEAVE"
+                                    onclick="selectStatusTab('ON_LEAVE')"
+                                    th:classappend="${selectedStatusKey == 'ON_LEAVE' ? 'text-primary font-bold border-b-2 border-primary' : 'text-gray-400 dark:text-gray-300'}"
+                                    class="js-status-tab text-lg font-semibold transition-all hover:text-primary">
+                                    휴직 직원 목록
+                                </a>
+
+                                <span class="text-gray-300 dark:text-gray-300">|</span>
+
+                                <a href="javascript:void(0)" data-status="LEAVE"
+                                    onclick="selectStatusTab('LEAVE')"
+                                    th:classappend="${selectedStatusKey == 'LEAVE' ? 'text-primary font-bold border-b-2 border-primary' : 'text-gray-400 dark:text-gray-300'}"
+                                    class="js-status-tab text-lg font-semibold transition-all hover:text-primary">
+                                    퇴사 직원 목록
+                                </a>
+
+                                <!--
+                                    인사이동 토글 버튼.
+                                    ※ JOIN 탭에서만 의미가 있으므로 JOIN 탭에서만 렌더링.
+                                    ※ ml-4 로 [퇴사 직원 목록] 텍스트와 시각적 간격 확보.
+                                -->
+                                <th:block th:if="${selectedStatusKey == 'JOIN'}">
+                                    <button type="button" id="reassignToggleBtn" onclick="toggleReassignMode()"
+                                        class="ml-4 flex h-[34px] shrink-0 items-center justify-center rounded-md bg-indigo-400 px-4 text-sm font-medium text-white transition hover:bg-indigo-500">
+                                        인사이동
+                                    </button>
+                                </th:block>
+                            </div>
+
+                            <!-- 정렬 (높은순/낮은순) -->
+                            <div class="flex items-center gap-3">
+                                <div class="flex gap-2">
+
+                                    <a href="javascript:void(0)" onclick="submitWithSort('desc')"
+                                        th:classappend="${currentSort == 'desc' ? 'text-primary font-bold border-b-2 border-primary' : 'text-gray-400 dark:text-gray-300'}"
+                                        class="text-sm transition-all hover:text-primary">
+                                        높은순
+                                    </a>
+
+                                    <span class="text-sm text-gray-300 dark:text-gray-300">|</span>
+
+                                    <a href="javascript:void(0)" onclick="submitWithSort('asc')"
+                                        th:classappend="${currentSort == 'asc' ? 'text-primary font-bold border-b-2 border-primary' : 'text-gray-400 dark:text-gray-300'}"
+                                        class="text-sm transition-all hover:text-primary">
+                                        낮은순
+                                    </a>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <div th:if="${members != null and !#lists.isEmpty(members)}" class="space-y-4">
+                            <!-- canManage: 백엔드 MemberService.validateLevelHierarchy 와 같은 정책. 상위 직급 회원은 액션 비활성. -->
+                            <div th:each="emp : ${members}"
+                                th:with="canManage=${session.memberSession.canManageMember(emp.memberId, emp.position != null ? emp.position.positionLevel : null)}"
+                                class="rounded-2xl border border-stroke p-5 transition-hover hover:shadow-md dark:border-strokedark bg-white dark:bg-boxdark">
+
+                                <div class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+
+                                    <div class="flex items-center gap-5">
+
+                                        <!--
+                                            [인사이동 모드 전용] 개별 회원 체크박스.
+                                            ※ 기본 hidden. JOIN 탭에서만 인사이동 의미가 있으므로 JOIN 탭에서만 렌더링.
+                                        -->
+                                        <th:block th:if="${selectedStatusKey == 'JOIN'}">
+                                            <!-- 상위 직급 회원은 인사이동 대상에서도 제외 -->
+                                            <input type="checkbox" th:value="${emp.memberId}"
+                                                th:disabled="${!canManage}"
+                                                th:title="${!canManage} ? '본인과 동등하거나 상위 직급 회원은 인사이동 대상이 될 수 없습니다' : ''"
+                                                th:classappend="${!canManage} ? ' cursor-not-allowed opacity-40' : ''"
+                                                onclick="onReassignMemberCheck(this)"
+                                                class="js-reassign-toggle js-reassign-member-check hidden h-5 w-5 cursor-pointer accent-indigo-500" />
+                                        </th:block>
+
+                                        <!--
+                                            프로필 사진
+                                            ※ LEAVE/BANNED 상태는 anonymizePii() 로 profileImg 가 null 이 된다.
+                                              이미지 응답이 빈 바디로 와도 깨지지 않도록 onerror 폴백 SVG 로 대체한다.
+                                        -->
+                                        <div class="flex items-center gap-4">
+                                            <div class="shrink-0">
+                                                <img th:src="@{/api/member/{id}/profileImg(id=${emp.memberId})}"
+                                                    alt="프로필"
+                                                    onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23cbd5e1%22&gt;&lt;path d=%22M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z%22/&gt;&lt;/svg&gt;';"
+                                                    class="h-16 w-16 rounded-full object-cover border border-stroke dark:border-strokedark bg-slate-100" />
+                                            </div>
+                                        </div>
+
+                                        <div class="flex flex-col gap-1">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <span class="text-xl font-bold text-black dark:text-white"
+                                                    th:text="${emp.name}">이름</span>
+                                                <!-- 부서/직급: JOIN/ON_LEAVE 탭에서만 -->
+                                                <th:block th:if="${selectedStatusKey != 'LEAVE'}">
+                                                    <span
+                                                        class="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
+                                                        th:text="${emp.dept != null ? emp.dept.deptName : '미지정'}">부서</span>
+                                                    <span class="text-sm font-medium text-gray-500 dark:text-gray-300"
+                                                        th:text="${emp.position != null ? emp.position.positionName : '직급 미지정'}">직급</span>
+                                                    <!--
+                                                        직급/로그인ID 사이 구분점 (●).
+                                                        ※ Tailwind output.css 에 w-1 / h-1 / bg-gray-400 유틸리티가 빌드 누락되어
+                                                          inline style 로 크기·색상만 강제. 좌우 간격은 부모의 gap-2(8px) 만 사용
+                                                          (span 자체 margin / 로그인ID 의 ml-2 둘 다 빼야 균등 간격이 됨).
+                                                    -->
+                                                    <span
+                                                        style="display:inline-block;width:4px;height:4px;background:#9ca3af;border-radius:9999px;vertical-align:middle;"></span>
+                                                    <span class="text-gray-400 text-sm font-normal"
+                                                        th:text="${emp.loginId}">로그인 아이디</span>
+                                                </th:block>
+                                            </div>
+
+                                            <!--
+                                                연락처/이메일은 모든 탭에서 노출.
+                                                ※ anonymizePii() 도 이름/전화/이메일은 의도적으로 보존한다 (퇴사 후 문의 대응 목적).
+                                            -->
+                                            <span class="text-sm text-gray-600 dark:text-gray-300"
+                                                th:text="${emp.email != null ? emp.email : '-'}">이메일</span>
+                                            <span class="text-sm text-gray-600 dark:text-gray-300"
+                                                th:text="${emp.phone != null ? emp.phone : '-'}">연락처</span>
+
+                                            <!-- 생년월일/입사일: 퇴사 탭에서는 익명화로 null 이므로 숨김 -->
+                                            <th:block th:if="${selectedStatusKey != 'LEAVE'}">
+                                                <div class="mt-1 flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-300">
+                                                    <span>생년월일:
+                                                        <span
+                                                            th:text="${emp.birthDay != null ? #temporals.format(emp.birthDay, 'yyyy-MM-dd') : '-'}">-</span>
+                                                    </span>
+                                                    <span>입사일:
+                                                        <span
+                                                            th:text="${emp.acceptedAt != null ? #temporals.format(emp.acceptedAt, 'yyyy-MM-dd') : '-'}">-</span>
+                                                    </span>
+                                                </div>
+                                            </th:block>
+
+                                            <!-- 휴직 정보는 카드 우측 박스로 이동했음 — 좌측 컬럼은 기본 프로필 정보만 유지. -->
+                                        </div>
+                                    </div>
+
+                                    <!--
+                                        [휴직 직원 탭] 휴직 정보 박스 — 카드 우측 빈 공간에 배치.
+                                        ※ 휴직 배지(헤더) + 기간/사유. '연장' 표시는 헤더 배지에 함께.
+                                        ※ 색상은 ON_LEAVE 배지(violet) 톤과 통일.
+                                    -->
+                                    <div th:if="${selectedStatusKey == 'ON_LEAVE'}"
+                                        class="rounded-xl border border-violet-200 px-4 py-3 text-sm dark:border-violet-500/30">
+                                        <div class="mb-1 flex items-center gap-2">
+                                            <span class="rounded-full bg-violet-200 px-2 py-0.5 text-xs font-semibold text-violet-700 dark:bg-violet-500/25 dark:text-violet-200">
+                                                휴직
+                                            </span>
+                                            <span th:if="${emp.leaveExtended}"
+                                                class="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-500/25 dark:text-amber-200">
+                                                연장
+                                            </span>
+                                        </div>
+                                        <div th:if="${emp.leaveStartDate != null and emp.leaveExpectedReturnDate != null}"
+                                            class="text-gray-700 dark:text-gray-200">
+                                            기간: <span class="font-medium"
+                                                th:text="${#temporals.format(emp.leaveStartDate, 'yyyy-MM-dd') + ' ~ ' + #temporals.format(emp.leaveExpectedReturnDate, 'yyyy-MM-dd')}">-</span>
+                                        </div>
+                                        <div th:if="${emp.leaveReason != null and !#strings.isEmpty(emp.leaveReason)}"
+                                            class="text-gray-700 dark:text-gray-200">
+                                            사유: <span th:text="${emp.leaveReason}">-</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- 행별 액션 버튼: selectedStatusKey(= selectedStatus.name()) 에 따라 분기 -->
+                                    <div class="flex flex-col gap-2">
+
+                                        <!-- [활성 직원 탭] 수정 / 휴직 / 퇴사 — 상위 직급 회원은 모두 비활성 -->
+                                        <th:block th:if="${selectedStatusKey == 'JOIN'}">
+                                            <!-- 수정 버튼 (Secondary, indigo-200) -->
+                                            <button type="button"
+                                                th:disabled="${!canManage}"
+                                                th:title="${!canManage} ? '본인과 동등하거나 상위 직급 회원의 정보는 수정할 수 없습니다' : ''"
+                                                th:classappend="${!canManage} ? ' cursor-not-allowed opacity-50' : ' hover:bg-indigo-300'"
+                                                class="rounded-md bg-indigo-200 px-6 py-1 text-sm font-medium text-indigo-700 transition js-edit-member-btn"
+                                                th:attr="data-member-id=${emp.memberId},
+                                                             data-member-name=${emp.name},
+                                                             data-dept-id=${emp.dept != null ? emp.dept.deptId : ''},
+                                                             data-dept-name=${emp.dept != null ? emp.dept.deptName : '미지정'},
+                                                             data-position-id=${emp.position != null ? emp.position.positionId : ''},
+                                                             data-position-name=${emp.position != null ? emp.position.positionName : '미지정'},
+                                                             data-email=${emp.email != null ? emp.email : ''},
+                                                             data-phone=${emp.phone != null ? emp.phone : ''},
+                                                             data-birth=${emp.birthDay != null ? #temporals.format(emp.birthDay, 'yyyy-MM-dd') : ''},
+                                                             data-profile-img=@{/api/member/{id}/profileImg(id=${emp.memberId})}">
+                                                수정
+                                            </button>
+                                            <!-- 휴직 버튼 — 클릭 시 모달(사유+기간) 오픈 -->
+                                            <button type="button"
+                                                th:disabled="${!canManage}"
+                                                th:title="${!canManage} ? '본인과 동등하거나 상위 직급 회원의 상태는 변경할 수 없습니다' : ''"
+                                                th:classappend="${!canManage} ? ' cursor-not-allowed opacity-50' : ' hover:bg-violet-300'"
+                                                th:attr="onclick=${canManage} ? |openLeaveModal(${emp.memberId},'${emp.name}')| : null"
+                                                class="rounded-md bg-violet-200 px-6 py-1 text-sm font-medium text-violet-700 transition">
+                                                휴직
+                                            </button>
+                                            <!--
+                                                퇴사 버튼 (Danger, rose-200)
+                                                ※ 클릭 시 사유 선택 모달을 띄워 자진퇴사(LEAVE) / 해고(BANNED) 를 고른다.
+                                                  - data-member-name 은 모달 헤더에 "OOO 님을 퇴사 처리합니다" 처럼 보여주기 위한 보조 정보.
+                                            -->
+                                            <button type="button"
+                                                th:disabled="${!canManage}"
+                                                th:title="${!canManage} ? '본인과 동등하거나 상위 직급 회원은 퇴사 처리할 수 없습니다' : ''"
+                                                th:classappend="${!canManage} ? ' cursor-not-allowed opacity-50' : ' btn-delete-hover'"
+                                                class="rounded-md bg-rose-200 px-6 py-1 text-sm font-medium text-rose-500 transition js-resign-btn"
+                                                th:attr="data-member-id=${emp.memberId},
+                                                             data-member-name=${emp.name}">
+                                                퇴사
+                                            </button>
+                                        </th:block>
+
+                                        <!-- [휴직 직원 탭] 복귀(모달) / 퇴사 — 상위 직급 회원은 모두 비활성 -->
+                                        <th:block th:if="${selectedStatusKey == 'ON_LEAVE'}">
+                                            <!-- 복귀 버튼 — 모달에서 [즉시 복귀] 또는 [복귀일 변경] 선택 가능 -->
+                                            <button type="button"
+                                                th:disabled="${!canManage}"
+                                                th:title="${!canManage} ? '본인과 동등하거나 상위 직급 회원의 상태는 변경할 수 없습니다' : ''"
+                                                th:classappend="${!canManage} ? ' cursor-not-allowed opacity-50' : ' hover:bg-emerald-300'"
+                                                th:attr="onclick=${canManage} ? |openRestoreModal(${emp.memberId},'${emp.name}','${emp.leaveExpectedReturnDate != null ? #temporals.format(emp.leaveExpectedReturnDate, 'yyyy-MM-dd') : ''}','${emp.leaveStartDate != null ? #temporals.format(emp.leaveStartDate, 'yyyy-MM-dd') : ''}')| : null"
+                                                class="rounded-md bg-emerald-200 px-6 py-1 text-sm font-medium text-emerald-700 transition">
+                                                복귀
+                                            </button>
+                                            <!-- 퇴사 버튼 (Danger, rose-200) - 자진퇴사/해고 선택 모달 오픈 -->
+                                            <button type="button"
+                                                th:disabled="${!canManage}"
+                                                th:title="${!canManage} ? '본인과 동등하거나 상위 직급 회원은 퇴사 처리할 수 없습니다' : ''"
+                                                th:classappend="${!canManage} ? ' cursor-not-allowed opacity-50' : ' btn-delete-hover'"
+                                                class="rounded-md bg-rose-200 px-6 py-1 text-sm font-medium text-rose-500 transition js-resign-btn"
+                                                th:attr="data-member-id=${emp.memberId},
+                                                             data-member-name=${emp.name}">
+                                                퇴사
+                                            </button>
+                                        </th:block>
+
+                                        <!--
+                                            [퇴사 직원 탭] 액션 없음 (열람 전용)
+                                            ※ 백엔드에서 LEAVE 탭 요청 시 상태 IN (LEAVE, BANNED) 로 묶어 내려준다는 전제.
+                                            ※ emp.status 가 enum 이므로 .name() 으로 풀어서 비교.
+                                        -->
+                                        <!--
+                                            [퇴사 직원 탭] 사유 뱃지
+                                            ※ 빌드된 output.css 에 text-rose-700 / text-amber-700 유틸리티가 누락되어 있어
+                                              inline style 로 정확한 색상값(#be123c, #b45309)을 강제 적용.
+                                              Tailwind watcher 재빌드 후에는 클래스 방식으로 정리 가능.
+                                            ※ 색상 의미: 자진퇴사(amber - 중립/주의), 해고(rose - 강한 경고)
+                                        -->
+                                        <th:block th:if="${selectedStatusKey == 'LEAVE'}">
+                                            <!-- 자진퇴사 뱃지 (amber-700 = #b45309) -->
+                                            <span th:if="${emp.status != null and emp.status.name() == 'LEAVE'}"
+                                                style="color: #b45309;"
+                                                class="inline-flex items-center justify-center rounded-full bg-amber-100 px-4 py-1.5 text-sm font-semibold dark:bg-amber-500/15">
+                                                자진퇴사
+                                            </span>
+                                            <!-- 해고 뱃지 (rose-700 = #be123c) -->
+                                            <span th:if="${emp.status != null and emp.status.name() == 'BANNED'}"
+                                                style="color: #be123c;"
+                                                class="inline-flex items-center justify-center rounded-full bg-rose-100 px-4 py-1.5 text-sm font-semibold dark:bg-rose-500/15">
+                                                해고
+                                            </span>
+                                        </th:block>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!--
+                            직원이 존재하지 않을 때 안내.
+                            ※ AJAX 로 fragment 만 갱신될 때도 같이 그려져야 하므로 반드시 fragment 내부에 둔다.
+                        -->
+                        <div th:if="${members == null or #lists.isEmpty(members)}"
+                            class="py-20 text-center text-gray-500 dark:text-gray-300">
+                            <th:block th:if="${selectedStatusKey == 'ON_LEAVE'}">현재 휴직 중인 직원이 없습니다.</th:block>
+                            <th:block th:if="${selectedStatusKey == 'LEAVE'}">퇴사 처리된 직원이 없습니다.</th:block>
+                            <th:block th:if="${selectedStatusKey == 'JOIN'}">등록된 직원이 없습니다.</th:block>
+                        </div>
+
+                        </th:block><!-- /th:with selectedStatusKey -->
+                    </div>
+                </div>
         </div>
-        <!-- ===== Page Wrapper End ===== -->
-        <script type="module" src="/js/index.js"></script>
-        <script src="/js/admin/memberList.js"></script>
+    </div>
+    </div>
+    </div>
+    </main>
+
+
+    <!-- 직원 정보 수정 카드 모달 -->
+    <div id="editModal"
+        class="fixed inset-0 z-[100000] flex hidden items-center justify-center overflow-y-auto p-4 sm:p-6">
+        <!-- 배경 딤: 바깥 영역 클릭 시 닫기 (calendar 모달과 동일) -->
+        <div class="modal-close-btn fixed inset-0 z-0 bg-black/50" aria-hidden="true"></div>
+        <div
+            class="relative z-10 w-full max-w-2xl rounded-2xl border border-stroke bg-white p-8 shadow-2xl dark:border-strokedark dark:bg-boxdark mx-4">
+            <h3 class="mb-8 text-2xl font-bold text-black dark:text-white">직원 정보 수정</h3>
+
+            <div class="flex flex-col md:flex-row gap-10 items-start">
+                <div class="relative mx-auto md:mx-0">
+                    <div
+                        class="h-40 w-40 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-stroke">
+
+                        <!-- 직원 이미지 수정 -->
+                        <img id="modalProfileImg" src="" alt="Profile" class="h-full w-full object-cover hidden">
+                        <svg id="modalDefaultSvg" class="h-24 w-24 text-slate-300" fill="currentColor"
+                            viewBox="0 0 24 24">
+                            <path
+                                d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </div>
+
+                    <input type="file" id="profileImgInput" class="hidden" accept="image/*">
+
+                    <button type="button" onclick="document.querySelector('#profileImgInput').click()"
+                        class="absolute bottom-2 right-2 rounded-full bg-white p-2 shadow-md border border-stroke hover:bg-gray-50 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" name="profileImg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="flex-1 w-full space-y-4">
+                    <input type="hidden" id="editEmpId">
+
+                    <div class="flex items-center gap-4">
+                        <label class="w-24 text-lg font-bold text-black dark:text-white">이름</label>
+                        <input type="text" id="editName" name="name"
+                            class="flex-1 rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary outline-none dark:border-strokedark dark:bg-meta-4 dark:text-gray-200">
+                    </div>
+
+                    <!--
+                        부서/직급은 단건 수정 모달에서는 읽기 전용으로 노출한다.
+                        ※ 부서/직급 변경은 [인사이동] 일괄 변경 플로우로만 수행하기로 결정.
+                        ※ 백엔드 updateMember API 가 deptId/positionId 를 required 로 받으므로
+                          기존 값을 그대로 다시 보내기 위해 hidden input 으로 보존한다.
+                        ※ 표시는 input(readOnly) 대신 회원 행과 동일한 배지/텍스트 패턴 — 한눈에 "수정 불가"임이 보이도록.
+                    -->
+                    <div class="flex items-center gap-4">
+                        <label class="w-24 font-medium text-gray-600 dark:text-gray-300">부서</label>
+                        <input type="hidden" id="editDept" name="deptId">
+                        <span id="editDeptDisplay"
+                            class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">부서명</span>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <label class="w-24 font-medium text-gray-600 dark:text-gray-300">직급</label>
+                        <input type="hidden" id="editPosition" name="positionId">
+                        <span id="editPositionDisplay"
+                            class="text-sm font-medium text-gray-700 dark:text-gray-200">직급명</span>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <label class="w-24 font-medium text-gray-600 dark:text-gray-300">이메일</label>
+                        <input type="email" id="editEmail" name="email"
+                            class="flex-1 rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary outline-none dark:border-strokedark dark:bg-meta-4 dark:text-gray-200">
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <label class="w-24 font-medium text-gray-600 dark:text-gray-300">연락처</label>
+                        <input type="text" id="editPhone" name="phone"
+                            class="flex-1 rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary outline-none dark:border-strokedark dark:bg-meta-4 dark:text-gray-200">
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <label class="w-24 font-medium text-gray-600 dark:text-gray-300">생년월일</label>
+                        <input type="text" id="editBirth" name="birth"
+                            class="flex-1 rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary outline-none dark:border-strokedark dark:bg-meta-4 dark:text-gray-200">
+                    </div>
+                </div>
+            </div>
+
+            <!--
+                직원 비밀번호 초기화 — 정보 입력 필드 아래에 가볍게 우측 정렬된 단일 버튼.
+                ※ 안내 문구·구분선은 제거. 클릭 시 confirm → POST /api/subAdmin/{id}/reset-password.
+            -->
+            <div class="mt-4 flex justify-end">
+                <button type="button" onclick="resetMemberPassword()"
+                    class="whitespace-nowrap rounded-md border border-stroke bg-white py-1.5 px-3 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-strokedark dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]">
+                    비밀번호 초기화
+                </button>
+            </div>
+
+            <div class="mt-10 flex justify-center gap-4">
+                <button onclick="updateMember()"
+                    class="w-32 rounded-lg bg-indigo-200 py-3 font-semibold text-indigo-700 hover:bg-indigo-300 transition">수정</button>
+                <button onclick="closeEditModal()"
+                    class="w-32 rounded-lg bg-gray-200 py-3 font-semibold text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!--
+        [임시 비밀번호 결과 모달]
+        ※ 비밀번호 초기화 성공 시 발급된 임시 비번을 1회 노출. 모달 닫기 후에는 다시 볼 수 없음.
+        ※ 복사 버튼 클릭 시 클립보드에 복사. 닫기로 종료.
+        ※ MASTER 회사 대표 비번 초기화 결과 노출 톤과 동일 (임시 비번 + 안내문).
+    -->
+    <div id="tempPasswordModal"
+        class="fixed inset-0 z-[100001] flex hidden items-center justify-center overflow-y-auto p-4 sm:p-6">
+        <div class="modal-close-btn fixed inset-0 z-0 bg-black/50" aria-hidden="true"></div>
+        <div class="relative z-10 w-full rounded-2xl border border-stroke bg-white p-6 shadow-2xl dark:border-strokedark dark:bg-boxdark mx-4"
+            style="max-width: 26rem;">
+            <h3 class="mb-2 text-lg font-bold text-black dark:text-white">임시 비밀번호 발급 완료</h3>
+            <p class="mb-4 text-xs text-gray-500 dark:text-gray-300">
+                아래 임시 비밀번호를 복사하여 직원에게 직접 전달하세요.<br />
+                이 모달을 닫으면 다시 확인할 수 없습니다.
+            </p>
+
+            <div class="mb-5 flex items-center gap-2 rounded-lg border border-stroke bg-gray py-3 px-4 dark:border-strokedark dark:bg-meta-4">
+                <code id="tempPasswordValue"
+                    class="flex-1 select-all font-mono text-base font-semibold tracking-widest text-black dark:text-white">--------</code>
+                <button type="button" onclick="copyTempPassword()"
+                    class="shrink-0 rounded-md bg-indigo-200 py-1.5 px-3 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-300">
+                    복사
+                </button>
+            </div>
+
+            <div class="flex justify-end">
+                <button type="button" onclick="closeTempPasswordModal()"
+                    class="w-24 rounded-lg bg-gray-200 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!--
+        퇴사 사유 선택 모달
+        ※ 활성/휴직 탭에서 [퇴사] 버튼을 누르면 열린다.
+        ※ 자진퇴사 → POST /api/subAdmin/status/{id}/LEAVE
+        ※ 해고     → POST /api/subAdmin/status/{id}/BANNED
+        ※ 두 전이 모두 Status.ALLOWED 에 이미 정의되어 있다 (JOIN→{BANNED,LEAVE,ON_LEAVE}, ON_LEAVE→{JOIN,BANNED,LEAVE}).
+    -->
+    <div id="resignTypeModal"
+        class="fixed inset-0 z-[100000] flex hidden items-center justify-center overflow-y-auto p-4 sm:p-6">
+        <!-- 배경 딤: 바깥 영역 클릭 시 닫기 (calendar 모달과 동일) -->
+        <div class="modal-close-btn fixed inset-0 z-0 bg-black/50" aria-hidden="true"></div>
+        <!--
+            ※ Tailwind 의 max-w-* 유틸리티가 빌드된 output.css 에서 적용되지 않는 케이스가 확인되어
+              inline style="max-width: 22rem;" 로 강제 (약 352px ≒ 1024px 화면의 1/3).
+              p-5 로 내부 패딩 축소.
+        -->
+        <div
+            style="max-width: 22rem;"
+            class="relative z-10 w-full rounded-2xl border border-stroke bg-white p-5 shadow-2xl dark:border-strokedark dark:bg-boxdark mx-4">
+            <h3 class="mb-2 text-lg font-bold text-black dark:text-white">퇴사 처리</h3>
+            <p class="mb-1 text-sm text-gray-600 dark:text-gray-300">
+                <span id="resignTargetName" class="font-semibold text-black dark:text-white">-</span> 님의 퇴사 사유 선택
+            </p>
+            <p class="mb-4 text-xs text-rose-500">처리 후에는 되돌릴 수 없습니다.</p>
+
+            <!-- 대상 회원 ID 보관 (js 에서 사용) -->
+            <input type="hidden" id="resignTargetId">
+
+            <div class="flex flex-col gap-2">
+                <!--
+                    퇴사 사유 버튼
+                    ※ 뱃지와 동일하게 색상 의미 맞춤 → 자진퇴사(amber - 주의), 해고(rose - 강한 경고)
+                    ※ text-amber-700 / text-rose-700 도 output.css 빌드 누락 케이스가 있어 inline style 로 색상 강제.
+                -->
+                <!-- 자진퇴사: LEAVE (amber-700 = #b45309) -->
+                <button type="button" onclick="confirmResign('LEAVE')"
+                    style="color: #b45309;"
+                    class="w-full rounded-lg bg-amber-100 py-2.5 text-sm font-semibold transition hover:bg-amber-200">
+                    자진퇴사 (LEAVE)
+                </button>
+                <!-- 해고: BANNED (Danger) -->
+                <button type="button" onclick="confirmResign('BANNED')"
+                    class="w-full rounded-lg bg-rose-200 py-2.5 text-sm font-semibold text-rose-500 transition hover:bg-rose-300">
+                    해고 (BANNED)
+                </button>
+                <!-- 취소 -->
+                <button type="button" onclick="closeResignModal()"
+                    class="mt-1 w-full rounded-lg bg-gray-200 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+                    취소
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!--
+        휴직 처리 모달 (사유 + 기간 입력).
+        ※ 활성 탭의 [휴직] 버튼이 openLeaveModal(memberId, name) 으로 연다.
+        ※ 제출 → POST /api/subAdmin/leave/{memberId} (JSON body: reason, startDate, expectedReturnDate)
+    -->
+    <div id="leaveModal"
+        class="fixed inset-0 z-[100000] flex hidden items-center justify-center overflow-y-auto p-4 sm:p-6">
+        <div class="modal-close-btn fixed inset-0 z-0 bg-black/50" aria-hidden="true"></div>
+        <div style="max-width: 28rem;"
+            class="relative z-10 w-full rounded-2xl border border-stroke bg-white p-5 shadow-2xl dark:border-strokedark dark:bg-boxdark mx-4">
+            <h3 class="mb-2 text-lg font-bold text-black dark:text-white">휴직 처리</h3>
+            <p class="mb-4 text-sm text-gray-600 dark:text-gray-300">
+                <span id="leaveTargetName" class="font-semibold text-black dark:text-white">-</span> 님 휴직 정보 입력
+            </p>
+
+            <input type="hidden" id="leaveTargetId">
+
+            <div class="flex flex-col gap-3">
+                <div>
+                    <label for="leaveReasonInput" class="mb-1 block text-xs text-gray-600 dark:text-gray-400">휴직 사유</label>
+                    <textarea id="leaveReasonInput" rows="3" maxlength="200" placeholder="휴직 사유를 입력하세요 (최대 200자)"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"></textarea>
+                </div>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                        <label for="leaveStartInput" class="mb-1 block text-xs text-gray-600 dark:text-gray-400">휴직 시작일</label>
+                        <input id="leaveStartInput" type="date"
+                            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+                    </div>
+                    <div>
+                        <label for="leaveReturnInput" class="mb-1 block text-xs text-gray-600 dark:text-gray-400">복귀 예정일</label>
+                        <input id="leaveReturnInput" type="date"
+                            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+                    </div>
+                </div>
+
+                <div class="mt-2 flex gap-2">
+                    <button type="button" onclick="submitLeaveModal()"
+                        class="flex-1 rounded-lg bg-violet-200 py-2.5 text-sm font-semibold text-violet-700 transition hover:bg-violet-300">
+                        휴직 처리
+                    </button>
+                    <button type="button" onclick="closeLeaveModal()"
+                        class="flex-1 rounded-lg bg-gray-200 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+                        취소
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--
+        복귀 처리 통합 모달.
+        ※ 휴직 탭의 [복귀] 버튼이 openRestoreModal(memberId, name, currentReturnDate, startDate) 으로 연다.
+        ※ 두 가지 액션 제공:
+          1) [즉시 복귀] → POST /api/subAdmin/status/{id}/JOIN  (그날 바로 JOIN 으로 복귀)
+          2) [복귀일 변경] → POST /api/subAdmin/leave/{id}/extend  (leaveExtended=true 마킹, 카드에 '연장' 배지)
+    -->
+    <div id="restoreModal"
+        class="fixed inset-0 z-[100000] flex hidden items-center justify-center overflow-y-auto p-4 sm:p-6">
+        <div class="modal-close-btn fixed inset-0 z-0 bg-black/50" aria-hidden="true"></div>
+        <div style="max-width: 26rem;"
+            class="relative z-10 w-full rounded-2xl border border-stroke bg-white p-5 shadow-2xl dark:border-strokedark dark:bg-boxdark mx-4">
+            <h3 class="mb-2 text-lg font-bold text-black dark:text-white">복귀 처리</h3>
+            <p class="mb-4 text-sm text-gray-600 dark:text-gray-300">
+                <span id="restoreTargetName" class="font-semibold text-black dark:text-white">-</span> 님을 즉시 복귀시키거나 복귀 예정일을 변경할 수 있습니다.
+            </p>
+
+            <input type="hidden" id="restoreTargetId">
+            <input type="hidden" id="restoreStartDate">
+
+            <div class="flex flex-col gap-3">
+                <!-- 1) 즉시 복귀 -->
+                <button type="button" onclick="submitImmediateRestore()"
+                    class="w-full rounded-lg bg-emerald-200 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-300">
+                    즉시 복귀
+                </button>
+
+                <!-- 구분선 -->
+                <div class="my-1 flex items-center gap-2">
+                    <span class="h-px flex-1 bg-gray-200 dark:bg-strokedark"></span>
+                    <span class="text-xs text-gray-400">또는</span>
+                    <span class="h-px flex-1 bg-gray-200 dark:bg-strokedark"></span>
+                </div>
+
+                <!-- 2) 복귀일 변경 -->
+                <div>
+                    <label for="restoreReturnInput" class="mb-1 block text-xs text-gray-600 dark:text-gray-400">새 복귀 예정일</label>
+                    <input id="restoreReturnInput" type="date"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+                </div>
+                <!--
+                    Tailwind output.css 에 bg-amber-200 hover:bg-amber-300 유틸이 빌드 누락된 환경 대비
+                    inline style 로 배경/hover 강제. (색상값: #fde68a / #fcd34d)
+                -->
+                <button type="button" onclick="submitExtendReturnDate()"
+                    style="background-color: #fde68a;"
+                    onmouseover="this.style.backgroundColor='#fcd34d';"
+                    onmouseout="this.style.backgroundColor='#fde68a';"
+                    class="w-full rounded-lg py-2.5 text-sm font-semibold text-amber-700 transition">
+                    복귀일 변경
+                </button>
+
+                <button type="button" onclick="closeRestoreModal()"
+                    class="mt-1 w-full rounded-lg bg-gray-200 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+                    취소
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Main Content End ===== -->
+
+
+
+    <!-- ===== Content Area End ===== -->
+    </div>
+    <!-- ===== Page Wrapper End ===== -->
+    <script type="module" src="/js/index.js"></script>
+    <script>
+        // 부서별 / 직위별 드롭다운 핸들러 — '신규 부서' / '신규 직급' 선택 시 해당 관리 페이지로 이동
+        function onDeptSelectChange(sel) {
+            if (sel.value === '__NEW_DEPT__') {
+                sel.value = '';
+                window.location.href = '/admin/dept/list';
+                return;
+            }
+            loadMemberList();
+        }
+        function onPositionSelectChange(sel) {
+            if (sel.value === '__NEW_POSITION__') {
+                sel.value = '';
+                window.location.href = '/admin/position/list';
+                return;
+            }
+            loadMemberList();
+        }
+        // 직급 옵션을 positionLevel 내림차순으로 정렬 ('전체' / '신규 직급'은 상단 고정).
+        // 인사이동 패널의 직급 select 도 같은 규칙으로 정렬한다.
+        (function sortPositionOptions() {
+            ['positionSelect', 'reassignPositionSelect'].forEach((id) => {
+                const sel = document.getElementById(id);
+                if (!sel) return;
+                const fixed = [];
+                const dynamic = [];
+                for (const opt of Array.from(sel.options)) {
+                    if (opt.value === '' || opt.value === '__NEW_POSITION__') {
+                        fixed.push(opt);
+                    } else {
+                        dynamic.push(opt);
+                    }
+                }
+                dynamic.sort((a, b) =>
+                    (parseInt(b.dataset.level || '0', 10)) - (parseInt(a.dataset.level || '0', 10))
+                );
+                sel.innerHTML = '';
+                fixed.forEach(o => sel.appendChild(o));
+                dynamic.forEach(o => sel.appendChild(o));
+            });
+        })();
+    </script>
+    <script src="/js/subAdmin/memberList.js"></script>
 </body>
 
 </html>

@@ -2,11 +2,15 @@ package com.team.intranet.controller.api;
 
 import com.team.intranet.dto.PositionDto;
 import com.team.intranet.service.PositionService;
+import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+import org.springframework.ui.Model;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @Controller
 @RequestMapping("/api/admin/position")
@@ -17,44 +21,50 @@ public class PositionApiController {
 
     // 직급 생성 처리
     @PostMapping("/create")
-    public String createPosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
-                                 @ModelAttribute PositionDto positionDto,
-                                 RedirectAttributes redirectAttributes) {
-        try {
-            positionService.createPosition(ms, positionDto);
-            redirectAttributes.addFlashAttribute("message", "직급이 성공적으로 생성되었습니다.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "직급 생성 실패: " + e.getMessage());
-        }
-        return "redirect:/admin/position/list";
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
+    public String createPosition(@AuthenticatedMember MemberSession ms,
+            @RequestBody PositionDto dto, Model model) {
+
+        positionService.createPosition(ms, dto);
+
+        List<PositionDto> positionList = positionService.findAllLevelDesc(ms.getCompanyId())
+                .stream().map(PositionDto::fromEntity)
+                .toList();
+        model.addAttribute("positions", positionList);
+        return "admin/managingPosition :: positionListContainer";
     }
 
     // 직급 수정 처리
     @PostMapping("/update/{positionId}")
-    public String updatePosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
-                                 @PathVariable Long positionId,
-                                 @ModelAttribute PositionDto positionDto,
-                                 RedirectAttributes redirectAttributes) {
-        try {
-            positionService.updatePosition(ms, positionDto, positionId);
-            redirectAttributes.addFlashAttribute("message", "직급 정보가 수정되었습니다.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "직급 수정 실패: " + e.getMessage());
-        }
-        return "redirect:/admin/position/list";
-    }
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
+    public String updatePosition(@AuthenticatedMember MemberSession ms,
+            @PathVariable Long positionId,
+            @RequestBody PositionDto positionDto, Model model) {
 
-    // 직급 삭제 처리
-    @PostMapping("/delete/{positionId}")
-    public String deletePosition(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
-                                 @PathVariable Long positionId,
-                                 RedirectAttributes redirectAttributes) {
-        try {
-            positionService.deletePosition(ms, positionId);
-            redirectAttributes.addFlashAttribute("message", "직급이 삭제되었습니다.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "직급 삭제 실패: " + e.getMessage());
+
+
+        positionService.updatePosition(ms, positionDto, positionId);
+        
+        List<PositionDto> positionList = positionService.findAllLevelDesc(ms.getCompanyId())
+            .stream().map(PositionDto::fromEntity)
+             .toList();
+
+        model.addAttribute("positions", positionList);
+        return "admin/managingPosition :: positionListContainer";
+        
         }
-        return "redirect:/admin/position/list";
+
+    @PostMapping("/delete/{positionId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUB_ADMIN')")
+        public String deletePosition(@AuthenticatedMember MemberSession ms,
+            @PathVariable Long positionId, Model model) {
+
+        positionService.deletePosition(ms, positionId);
+
+        List<PositionDto> positionList = positionService.findAllLevelDesc(ms.getCompanyId())
+            .stream().map(PositionDto::fromEntity)
+            .toList();
+        model.addAttribute("positions", positionList);
+        return "admin/managingPosition :: positionListContainer";
+        }
     }
-}

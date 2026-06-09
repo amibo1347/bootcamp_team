@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" th:href="@{/css/master.css}" />
+  <title>MASTER · 시스템 점검</title>
+</head>
+
+<body class="master-page">
+  <div class="master-shell">
+    <div class="master-container" style="max-width: 640px;">
+      <div class="master-panel">
+
+        <a th:href="@{/master}" class="master-link">← 콘솔로 돌아가기</a>
+
+        <div style="margin-top: 0.75rem;">
+          <span class="master-badge">MASTER</span>
+          <h1 class="master-title">시스템 점검 모드</h1>
+        </div>
+
+        <div th:if="${errorMessage}" class="alert-box alert-error" style="margin-top: 1rem;" role="alert">
+          <span th:text="${errorMessage}">에러</span>
+        </div>
+
+        <!-- 현재 상태 ─────────────────────────────────────────────── -->
+        <div th:classappend="${active} ? 'alert-error' : 'alert-success'"
+             class="alert-box" style="margin-top: 1.25rem;" role="status">
+          <strong>현재 상태:</strong>
+          <span th:if="${active}">🔴 점검 중</span>
+          <span th:unless="${active}">🟢 정상 운영 중</span>
+          <span th:if="${maintenance.reason != null and !maintenance.reason.isBlank()}"
+                th:text="| · ${maintenance.reason}|"> · 사유</span>
+        </div>
+
+        <hr class="master-divider" />
+
+        <!-- 수동/예약 모드 토글 (라디오) — 예약이 잡혀 있으면 예약 탭을 기본 선택. -->
+        <input type="radio" name="maint-mode" id="maint-mode-manual" class="maint-mode-radio"
+               th:checked="${startsAtInput == null or #strings.isEmpty(startsAtInput)}" />
+        <input type="radio" name="maint-mode" id="maint-mode-schedule" class="maint-mode-radio"
+               th:checked="${startsAtInput != null and !#strings.isEmpty(startsAtInput)}" />
+
+        <div class="maint-tabs">
+          <label for="maint-mode-manual" class="maint-tab">수동</label>
+          <label for="maint-mode-schedule" class="maint-tab">예약</label>
+        </div>
+
+        <!-- ===== 수동 모드 ===== -->
+        <div class="maint-section maint-section--manual">
+          <h2 class="master-section-title">수동 토글 (즉시 적용)</h2>
+
+          <!--
+              수동 토글 : ON / OFF 두 폼을 분리.
+              ※ enabled 값을 hidden 으로 박아 보내고, 사유는 같은 폼의 input 으로 받는다.
+          -->
+          <form method="post" th:action="@{/master/maintenance/toggle}" style="margin-bottom: 0.75rem;">
+            <input type="hidden" name="enabled" value="true" />
+            <div class="field-group">
+              <label for="reasonOn" class="field-label">점검 사유 (사용자에게 표시됨)</label>
+              <input type="text" id="reasonOn" name="reason" class="field-input"
+                     th:value="${maintenance.reason != null ? maintenance.reason : ''}"
+                     placeholder="예: 서버 정기 점검 (15분 소요)" />
+            </div>
+            <button type="submit" class="master-btn" style="width: 100%;">
+              🔴 지금 점검 시작
+            </button>
+          </form>
+
+          <form method="post" th:action="@{/master/maintenance/toggle}">
+            <input type="hidden" name="enabled" value="false" />
+            <input type="hidden" name="reason" th:value="${maintenance.reason != null ? maintenance.reason : ''}" />
+            <button type="submit" class="master-btn-outline master-btn--block">
+              🟢 점검 종료 (수동 OFF)
+            </button>
+          </form>
+        </div>
+
+        <!-- ===== 예약 모드 ===== -->
+        <div class="maint-section maint-section--schedule">
+          <h2 class="master-section-title">예약 (시간 자동 ON/OFF)</h2>
+
+          <form method="post" th:action="@{/master/maintenance/schedule}">
+            <div class="field-group">
+              <label for="startsAt" class="field-label">시작 시각</label>
+              <input type="datetime-local" id="startsAt" name="startsAt" class="field-input"
+                     th:value="${startsAtInput}" />
+            </div>
+            <div class="field-group">
+              <label for="endsAt" class="field-label">종료 시각 (비우면 무기한)</label>
+              <input type="datetime-local" id="endsAt" name="endsAt" class="field-input"
+                     th:value="${endsAtInput}" />
+            </div>
+            <div class="field-group" style="margin-bottom: 0;">
+              <label for="reasonSchedule" class="field-label">점검 사유</label>
+              <input type="text" id="reasonSchedule" name="reason" class="field-input"
+                     th:value="${maintenance.reason != null ? maintenance.reason : ''}"
+                     placeholder="예: 야간 서버 작업" />
+            </div>
+            <button type="submit" class="master-btn" style="margin-top: 1rem; width: 100%;">
+              예약 저장
+            </button>
+          </form>
+
+          <form method="post" th:action="@{/master/maintenance/clear-schedule}" style="margin-top: 0.6rem;">
+            <button type="submit" class="master-btn-outline master-btn--block">예약 해제</button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

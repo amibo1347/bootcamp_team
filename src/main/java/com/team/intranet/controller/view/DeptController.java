@@ -23,10 +23,13 @@ public class DeptController {
     @GetMapping("/list")
     public String deptList(@SessionAttribute(name = "memberSession", required = false) MemberSession ms,
                            Model model) {
-        if (ms == null) return "redirect:/member/login";
+        if (ms == null || ms.getCompanyId() == null) {
+            return "redirect:/company-login";
+        }
 
         List<Dept> depts = deptService.findAll(ms.getCompanyId());
         model.addAttribute("departments", depts);
-        return "master/managingDept";
+        model.addAttribute("companyId", ms.getCompanyId());
+        return "admin/managingDept";
     }
 }

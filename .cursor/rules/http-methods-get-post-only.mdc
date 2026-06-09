@@ -1,0 +1,27 @@
+---
+description: HTTP는 GET과 POST만 사용 (PUT/PATCH/DELETE 등 금지)
+alwaysApply: true
+---
+
+# HTTP 메서드 제한
+
+이 프로젝트에서는 **HTTP 메서드로 `GET`과 `POST`만** 사용한다.
+
+## 에이전트가 지켜야 할 것
+
+- **금지:** `PUT`, `PATCH`, `DELETE` 등으로 리소스를 수정·삭제·갱신하는 예시 코드를 제안하지 않는다.
+- **허용:** 데이터 조회는 `GET`, 생성·수정·삭제 등 상태 변경은 모두 **`POST`**로 처리한다(예: `/api/items/delete`, `/api/items/save`처럼 URL·폼으로 의미를 구분).
+- **프론트:** `fetch()`·폼 제출·Thymeleaf `th:action` 등에서 **`method: 'GET'` 또는 `'POST'`**만 사용한다.
+- **백엔드 협업 안내 시:** 컨트롤러를 `@PutMapping` / `@DeleteMapping`으로 바꾸라고 제안하지 않고, **`@GetMapping` / `@PostMapping`**과 POST 전용 엔드포인트 설계를 요구사항으로 정리한다.
+
+## 예시
+
+```javascript
+// ❌ 금지
+fetch('/api/categories/1', { method: 'DELETE' });
+fetch('/api/categories/1', { method: 'PUT', body: ... });
+
+// ✅ 허용
+fetch('/api/categories/delete', { method: 'POST', body: ... });
+fetch('/api/categories/save', { method: 'POST', body: ... });
+```

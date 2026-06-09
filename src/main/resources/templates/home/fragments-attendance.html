@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <body>
+    <!--
+      [히어로 카드] 출퇴근 — 유저 정보·시계·버튼·진행바·기록 시각을 가로로 압축 배치
+      hasTodayCheckIn: 오늘 출근 O / 퇴근 X 일 때만 true (그래야 "퇴근" 버튼 노출)
+      data-policy-work-start / end : 회사 정책 시각 "HH:mm" — JS 진행바가 100% 기준으로 사용
+      data-policy-standard-min     : 정책 기준 총 근무 분 — 초과 산정 기준
+      data-today-clock-in-at       : 오늘 출근 시각 ISO (없으면 빈 문자열)
+      data-today-clock-out-at      : 오늘 퇴근 시각 ISO (없으면 빈 문자열)
+    -->
+    <section
+      th:fragment="attendanceCard"
+      id="home-attendance-card"
+      class="flex w-full min-w-0 shrink-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+      th:data-home-server-check-in="${hasTodayCheckIn}"
+      th:data-policy-work-start="${attendancePolicy != null ? attendancePolicy.workStart : '09:00'}"
+      th:data-policy-work-end="${attendancePolicy != null ? attendancePolicy.workEnd : '18:00'}"
+      th:data-policy-standard-min="${attendancePolicy != null ? attendancePolicy.standardWorkMin : 480}"
+      th:data-today-clock-in-at="${todayAttendance != null and todayAttendance.clockInAt != null ? todayAttendance.clockInAt : ''}"
+      th:data-today-clock-out-at="${todayAttendance != null and todayAttendance.clockOutAt != null ? todayAttendance.clockOutAt : ''}"
+    >
+      <!-- [헤더] 유저 요약 + 출퇴근 제목/배지 + 날짜·사번 -->
+      <header
+        class="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-gray-100 px-3.5 py-2.5 dark:border-gray-700 sm:px-4"
+      >
+        <!-- 유저 정보: 이름(강조) → 직급 → 부서 -->
+        <p
+          th:if="${session != null and session.memberSession != null}"
+          class="flex min-w-0 flex-row flex-nowrap items-baseline gap-x-1.5"
+        >
+          <span
+            class="shrink-0 text-base font-bold leading-snug text-gray-900 dark:text-white sm:text-lg"
+            th:text="${session.memberSession.name}"
+            >이름</span>
+          <span
+            class="shrink-0 text-xs font-normal leading-snug text-gray-500 dark:text-gray-400"
+            th:if="${session.memberSession.positionName != null}"
+            th:text="${session.memberSession.positionName}">직급</span>
+          <span
+            class="min-w-0 truncate text-xs font-normal leading-snug text-gray-500 dark:text-gray-400"
+            th:if="${session.memberSession.deptName != null}"
+            th:text="${session.memberSession.deptName}">부서</span>
+        </p>
+
+        <div class="flex min-w-0 flex-wrap items-center gap-2 sm:ml-auto">
+          <div class="flex items-center gap-2 min-w-0">
+            <h2 class="text-sm font-semibold text-gray-800 dark:text-white">
+              출퇴근 기록
+            </h2>
+            <!-- 오늘 근태 상태 배지 — JS 가 status 에 맞춰 텍스트/색 갱신 -->
+            <span
+              id="home-attendance-status-badge"
+              class="hidden inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+              th:data-initial-status="${todayAttendance != null ? todayAttendance.status : ''}"
+              th:data-initial-label="${todayAttendance != null ? todayAttendance.statusLabel : ''}"
+            ></span>
+          </div>
+          <span
+            id="home-dashboard-date"
+            class="text-xs text-gray-500 dark:text-gray-400"
+          ></span>
+          <span
+            class="shrink-0 text-xs font-semibold text-gray-500 dark:text-gray-400"
+            th:if="${session != null and session.memberSession != null and session.memberSession.usesEmployeeNo}"
+            th:text="${session.memberSession.loginId}">00000</span>
+        </div>
+      </header>
+
+      <!-- [본문] lg: 시계·버튼 | 진행바 | 출퇴근 기록 — 가로 3열 -->
+      <div class="flex flex-col gap-2.5 px-3.5 py-2.5 sm:px-4 sm:py-3 lg:flex-row lg:items-center lg:gap-4">
+        <!-- 시계 + 액션 버튼 -->
+        <div class="flex shrink-0 items-center gap-2 sm:gap-2.5 lg:w-[14rem] xl:w-[15rem]">
+          <div
+            id="home-dashboard-time"
+            class="min-w-0 flex-1 rounded-lg bg-gray-50 px-2 py-1.5 text-center text-base font-mono font-semibold tracking-tight text-gray-900 shadow-inner dark:bg-gray-900/60 dark:text-white sm:py-2 sm:text-lg"
+            aria-live="polite"
+          >
+            --:--:--
+          </div>
+          <div class="flex w-[5.5rem] shrink-0 items-stretch sm:w-[6rem]">
+            <!-- 미출근: 출근 — Primary(4-1) -->
+            <button
+              type="button"
+              id="home-btn-checkin"
+              th:hidden="${hasTodayCheckIn == true or hasTodayCheckOut == true}"
+              class="w-full rounded-lg bg-indigo-400 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            >
+              출근
+            </button>
+            <!-- 출근 후: 퇴근 — Danger(4-3) -->
+            <button
+              type="button"
+              id="home-btn-checkout"
+              th:hidden="${hasTodayCheckIn != true}"
+              class="w-full rounded-lg bg-rose-200 px-3 py-2 text-sm font-medium text-rose-500 shadow-sm hover:bg-rose-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            >
+              퇴근
+            </button>
+            <!-- 퇴근 완료 후: 퇴근 취소 — Neutral A(4-4) -->
+            <button
+              type="button"
+              id="home-btn-checkout-cancel"
+              th:hidden="${hasTodayCheckOut != true}"
+              class="w-full rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+            >
+              퇴근 취소
+            </button>
+          </div>
+        </div>
+
+        <!-- 근무 진행 바 — 가운데 영역 flex-1 -->
+        <div class="min-w-0 flex-1" aria-label="근무 시간 진행">
+          <div class="mb-1 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <span>근무 진행</span>
+            <span id="home-work-progress-label">0%</span>
+          </div>
+          <div
+            id="home-work-progress-track"
+            class="relative h-2 w-full overflow-hidden rounded-full bg-gradient-to-r from-brand-100 via-brand-50 to-brand-100 shadow-inner ring-1 ring-brand-200/60 dark:from-brand-950/80 dark:via-brand-900/50 dark:to-brand-950/80 dark:ring-brand-800/50"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            aria-label="근무 시간 진행률"
+          >
+            <div
+              id="home-work-progress-fill"
+              class="absolute left-0 top-0 h-full max-w-full rounded-full bg-brand-600 shadow-sm transition-[width] duration-500 ease-out dark:bg-brand-500"
+              style="width: 0%"
+            ></div>
+            <div
+              id="home-work-progress-overtime"
+              class="absolute right-0 top-0 h-full max-w-full rounded-full bg-rose-600 shadow-md transition-[width] duration-500 ease-out dark:bg-rose-500"
+              style="width: 0%"
+            ></div>
+          </div>
+        </div>
+
+        <!-- 출퇴근 기록 — 컴팩트 인라인 -->
+        <dl
+          class="flex shrink-0 items-center gap-2 text-xs text-gray-600 dark:text-gray-300 sm:gap-3 lg:w-[11rem] xl:w-[12rem]"
+        >
+          <div class="min-w-0 flex-1 rounded-lg border border-gray-100 px-2 py-1.5 dark:border-gray-600">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">출근</dt>
+            <dd id="home-checkin-display" class="mt-0.5 truncate font-mono text-sm text-gray-900 dark:text-white">—</dd>
+          </div>
+          <div class="min-w-0 flex-1 rounded-lg border border-gray-100 px-2 py-1.5 dark:border-gray-600">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">퇴근</dt>
+            <dd id="home-checkout-display" class="mt-0.5 truncate font-mono text-sm text-gray-900 dark:text-white">—</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+  </body>
+</html>

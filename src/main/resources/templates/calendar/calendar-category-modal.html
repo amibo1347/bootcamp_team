@@ -1,0 +1,126 @@
+<!-- [카테고리 관리 모달] 목록 · 추가 · 수정 섹션 분리 -->
+<!-- 연동: CategoryApiController — GET /api/categories, POST /api/categories/new, POST /api/categories/{id}/edit, POST /api/categories/{id}/delete (전송은 calendar-init.js 가 form-urlencoded 로 처리) -->
+<div class="fixed inset-0 z-[100000] flex hidden items-center justify-center overflow-y-auto p-4 sm:p-6"
+  id="categoryModal" role="dialog" aria-modal="true" aria-labelledby="categoryModalTitle">
+  <div id="category-modal-backdrop"
+    class="modal-close-btn fixed inset-0 z-0 bg-gray-900/40 backdrop-blur-sm dark:bg-gray-950/60"></div>
+
+  <div
+    class="relative z-10 flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-stroke bg-white shadow-2xl ring-1 ring-black/5 dark:border-strokedark dark:bg-boxdark dark:ring-white/10"
+    style="max-height: min(92vh, 880px)">
+    <header
+      class="flex shrink-0 items-start border-b border-gray-100 px-5 py-4 sm:px-6 sm:py-5 dark:border-gray-800">
+      <div class="min-w-0">
+        <h2 id="categoryModalTitle" class="text-lg font-semibold text-gray-900 dark:text-white sm:text-xl">
+          카테고리 관리
+        </h2>
+        <p class="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+          일정 막대 색으로 쓸 그룹을 만들고, 이름과 색을 지정합니다.
+        </p>
+      </div>
+    </header>
+
+    <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 custom-scrollbar">
+      <p id="category-form-error"
+        class="mb-5 hidden rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/50 dark:text-rose-200"
+        role="alert"></p>
+
+      <!-- [1] 목록 -->
+      <section class="space-y-4" aria-labelledby="category-sec-list">
+        <h3 id="category-sec-list"
+          class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+          내 카테고리
+        </h3>
+        <ul id="category-list"
+          class="space-y-2 rounded-xl border border-gray-200/80 bg-gray-50/90 p-3 dark:border-gray-700 dark:bg-gray-900/40">
+          <li class="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+            목록을 불러오는 중…
+          </li>
+        </ul>
+      </section>
+
+      <!-- [2] 추가 -->
+      <section class="mt-8 border-t border-gray-100 pt-8 dark:border-gray-800" aria-labelledby="category-sec-add">
+        <h3 id="category-sec-add"
+          class="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+          카테고리 추가
+        </h3>
+        <form id="categoryAddForm" class="space-y-4 rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-gray-900/30">
+          <div>
+            <label for="category-add-name" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              이름 <span class="text-rose-500">*</span>
+            </label>
+            <input type="text" id="category-add-name" name="name" maxlength="100" placeholder="예: 회의, 휴가"
+              class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white dark:placeholder:text-gray-500" />
+          </div>
+          <div class="space-y-3">
+            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              색상 <span class="text-rose-500">*</span>
+            </p>
+            <div id="category-add-color-presets"
+              class="flex flex-nowrap items-center justify-center gap-5 overflow-x-auto px-1 py-1 sm:gap-6">
+              <div class="relative shrink-0"><input type="radio" name="categoryAddColor" value="#A8D8FF" id="preset-add-c1" class="peer sr-only" checked /><label for="preset-add-c1" style="background-color:#A8D8FF" class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-gray-400/40 shadow-sm outline-none ring-offset-2 transition hover:brightness-[1.04] peer-checked:ring-2 peer-checked:ring-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 dark:border-gray-500/45 dark:ring-offset-gray-900 sm:h-11 sm:w-11" title="파랑"><span class="sr-only">파랑</span></label></div>
+              <div class="relative shrink-0"><input type="radio" name="categoryAddColor" value="#FFB4B4" id="preset-add-c2" class="peer sr-only" /><label for="preset-add-c2" style="background-color:#FFB4B4" class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-gray-400/40 shadow-sm outline-none ring-offset-2 transition hover:brightness-[1.04] peer-checked:ring-2 peer-checked:ring-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 dark:border-gray-500/45 dark:ring-offset-gray-900 sm:h-11 sm:w-11" title="빨강"><span class="sr-only">빨강</span></label></div>
+              <div class="relative shrink-0"><input type="radio" name="categoryAddColor" value="#FFF59B" id="preset-add-c3" class="peer sr-only" /><label for="preset-add-c3" style="background-color:#FFF59B" class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-gray-400/40 shadow-sm outline-none ring-offset-2 transition hover:brightness-[1.04] peer-checked:ring-2 peer-checked:ring-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 dark:border-gray-500/45 dark:ring-offset-gray-900 sm:h-11 sm:w-11" title="노랑"><span class="sr-only">노랑</span></label></div>
+              <div class="relative shrink-0"><input type="radio" name="categoryAddColor" value="#FFD4A3" id="preset-add-c4" class="peer sr-only" /><label for="preset-add-c4" style="background-color:#FFD4A3" class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-gray-400/40 shadow-sm outline-none ring-offset-2 transition hover:brightness-[1.04] peer-checked:ring-2 peer-checked:ring-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 dark:border-gray-500/45 dark:ring-offset-gray-900 sm:h-11 sm:w-11" title="주황"><span class="sr-only">주황</span></label></div>
+              <div class="relative shrink-0"><input type="radio" name="categoryAddColor" value="#B8F2C9" id="preset-add-c5" class="peer sr-only" /><label for="preset-add-c5" style="background-color:#B8F2C9" class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-gray-400/40 shadow-sm outline-none ring-offset-2 transition hover:brightness-[1.04] peer-checked:ring-2 peer-checked:ring-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 dark:border-gray-500/45 dark:ring-offset-gray-900 sm:h-11 sm:w-11" title="초록"><span class="sr-only">초록</span></label></div>
+              <div class="relative shrink-0"><input type="radio" name="categoryAddColor" value="#D5DCE3" id="preset-add-c6" class="peer sr-only" /><label for="preset-add-c6" style="background-color:#D5DCE3" class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-gray-400/40 shadow-sm outline-none ring-offset-2 transition hover:brightness-[1.04] peer-checked:ring-2 peer-checked:ring-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 dark:border-gray-500/45 dark:ring-offset-gray-900 sm:h-11 sm:w-11" title="회색"><span class="sr-only">회색</span></label></div>
+            </div>
+          </div>
+          <div class="flex justify-end pt-1">
+            <button type="submit" id="btn-category-add"
+              class="rounded-xl bg-indigo-400 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              등록
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- [3] 수정 -->
+      <section class="mt-8 border-t border-gray-100 pt-8 dark:border-gray-800" aria-labelledby="category-sec-edit">
+        <h3 id="category-sec-edit"
+          class="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+          카테고리 수정
+        </h3>
+        <form id="categoryEditForm" class="space-y-4 rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-gray-900/30">
+          <input type="hidden" id="category-edit-id" name="categoryId" value="" />
+          <div>
+            <label for="category-edit-name" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              이름 <span class="text-rose-500">*</span>
+            </label>
+            <input type="text" id="category-edit-name" name="name" maxlength="100" placeholder=""
+              class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-gray-600 dark:bg-gray-800/60 dark:text-white dark:placeholder:text-gray-500" />
+          </div>
+          <div class="space-y-3">
+            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              색상 <span class="text-rose-500">*</span>
+            </p>
+            <div id="category-edit-color-presets"
+              class="flex flex-nowrap items-center justify-center gap-5 overflow-x-auto px-1 py-1 sm:gap-6">
+              <div class="relative shrink-0"><input type="radio" name="categoryEditColor" value="#A8D8FF" id="preset-edit-c1" class="peer sr-only" checked /><label for="preset-edit-c1" style="background-color:#A8D8FF" class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-gray-400/40 shadow-sm outline-none ring-offset-2 transition hover:brightness-[1.04] peer-checked:ring-2 peer-checked:ring-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 dark:border-gray-500/45 dark:ring-offset-gray-900 sm:h-11 sm:w-11" title="파랑"><span class="sr-only">파랑</span></label></div>
+              <div class="relative shrink-0"><input type="radio" name="categoryEditColor" value="#FFB4B4" id="preset-edit-c2" class="peer sr-only" /><label for="preset-edit-c2" style="background-color:#FFB4B4" class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-gray-400/40 shadow-sm outline-none ring-offset-2 transition hover:brightness-[1.04] peer-checked:ring-2 peer-checked:ring-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 dark:border-gray-500/45 dark:ring-offset-gray-900 sm:h-11 sm:w-11" title="빨강"><span class="sr-only">빨강</span></label></div>
+              <div class="relative shrink-0"><input type="radio" name="categoryEditColor" value="#FFF59B" id="preset-edit-c3" class="peer sr-only" /><label for="preset-edit-c3" style="background-color:#FFF59B" class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-gray-400/40 shadow-sm outline-none ring-offset-2 transition hover:brightness-[1.04] peer-checked:ring-2 peer-checked:ring-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 dark:border-gray-500/45 dark:ring-offset-gray-900 sm:h-11 sm:w-11" title="노랑"><span class="sr-only">노랑</span></label></div>
+              <div class="relative shrink-0"><input type="radio" name="categoryEditColor" value="#FFD4A3" id="preset-edit-c4" class="peer sr-only" /><label for="preset-edit-c4" style="background-color:#FFD4A3" class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-gray-400/40 shadow-sm outline-none ring-offset-2 transition hover:brightness-[1.04] peer-checked:ring-2 peer-checked:ring-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 dark:border-gray-500/45 dark:ring-offset-gray-900 sm:h-11 sm:w-11" title="주황"><span class="sr-only">주황</span></label></div>
+              <div class="relative shrink-0"><input type="radio" name="categoryEditColor" value="#B8F2C9" id="preset-edit-c5" class="peer sr-only" /><label for="preset-edit-c5" style="background-color:#B8F2C9" class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-gray-400/40 shadow-sm outline-none ring-offset-2 transition hover:brightness-[1.04] peer-checked:ring-2 peer-checked:ring-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 dark:border-gray-500/45 dark:ring-offset-gray-900 sm:h-11 sm:w-11" title="초록"><span class="sr-only">초록</span></label></div>
+              <div class="relative shrink-0"><input type="radio" name="categoryEditColor" value="#D5DCE3" id="preset-edit-c6" class="peer sr-only" /><label for="preset-edit-c6" style="background-color:#D5DCE3" class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-gray-400/40 shadow-sm outline-none ring-offset-2 transition hover:brightness-[1.04] peer-checked:ring-2 peer-checked:ring-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 dark:border-gray-500/45 dark:ring-offset-gray-900 sm:h-11 sm:w-11" title="회색"><span class="sr-only">회색</span></label></div>
+            </div>
+          </div>
+          <div class="flex justify-end pt-1">
+            <button type="submit" id="btn-category-update"
+              class="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-800 shadow-sm transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700">
+              수정 적용
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <footer
+      class="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-gray-100 bg-gray-50/90 px-5 py-4 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/80 sm:px-6">
+      <button type="button" id="btn-category-cancel"
+        class="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+        취소
+      </button>
+    </footer>
+  </div>
+</div>

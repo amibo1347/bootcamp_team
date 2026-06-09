@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <title>시스템 로그</title>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+</head>
+
+<body
+    x-data="{ page: 'system-log', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
+    x-init="
+            darkMode = JSON.parse(localStorage.getItem('darkMode'));
+            $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}">
+
+    <div th:replace="~{partials/preloader}"></div>
+
+    <div class="flex h-screen overflow-hidden">
+        <div th:replace="~{partials/sidebar}"></div>
+
+        <div class="page-content">
+            <div th:replace="~{partials/overlay}"></div>
+            <div th:replace="~{partials/header}"></div>
+
+            <main class="page-main">
+                <header class="ml-2 min-w-0">
+                    <h2 class="page-heading">시스템 로그</h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        회사 관리자(ADMIN) 전용 — 회원 관리·게시판·결재 양식 등 관리 행위 이력을 회사 단위로 보관합니다.
+                        보관 기간이 지난 로그는 AI 가 일·월·분기 단위로 요약하여 보존합니다.
+                    </p>
+                </header>
+
+                <!--
+                    상단 모드 탭: 최근(raw) / 일별 요약 / 월별 요약 / 분기 요약
+                    ※ raw 가 디폴트. 요약 탭은 보관 기간 경과 후 자동 생성된 row 만 노출.
+                -->
+                <section class="mt-2">
+                    <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700">
+                        <button type="button" data-log-mode="raw"
+                            class="js-log-mode -mb-px border-b-2 border-indigo-500 px-5 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-300">
+                            최근 (보관 기간 내)
+                        </button>
+                        <button type="button" data-log-mode="daily"
+                            class="js-log-mode -mb-px border-b-2 border-transparent px-5 py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            일별 요약
+                        </button>
+                        <button type="button" data-log-mode="monthly"
+                            class="js-log-mode -mb-px border-b-2 border-transparent px-5 py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            월별 요약
+                        </button>
+                        <button type="button" data-log-mode="quarterly"
+                            class="js-log-mode -mb-px border-b-2 border-transparent px-5 py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            분기 요약
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 로딩/오류 안내 -->
+                <div id="systemLogMessage" role="alert"
+                    class="hidden rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/40 dark:bg-rose-950/40 dark:text-rose-200"></div>
+
+                <!-- 목록 컨테이너 — JS 가 mode 별로 다르게 렌더링 -->
+                <section class="overflow-hidden rounded-xl border border-stroke bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <div id="systemLogList" class="divide-y divide-gray-100 dark:divide-strokedark">
+                        <div id="systemLogLoading" class="p-10 text-center text-sm text-gray-400">불러오는 중...</div>
+                    </div>
+                    <div id="systemLogEmpty" class="hidden p-12 text-center text-sm text-gray-400 dark:text-gray-300">
+                        표시할 로그가 없습니다.
+                    </div>
+                </section>
+
+                <section id="systemLogPagination" class="pt-1"></section>
+            </main>
+        </div>
+    </div>
+
+    <script type="module" src="/js/index.js"></script>
+    <script src="/js/common/utils.js"></script>
+    <script src="/js/admin/system-log.js"></script>
+</body>
+
+</html>

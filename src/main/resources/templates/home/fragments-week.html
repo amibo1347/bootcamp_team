@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <body>
+    <!-- [카드] 주간 일정(월~금) — 좌측 스택 높이에 맞춤, 일정 많을 때 본문만 스크롤 -->
+    <section
+      th:fragment="weekCard"
+      class="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+    >
+      <header
+        class="flex shrink-0 items-center justify-between border-b border-gray-100 px-3.5 py-2.5 dark:border-gray-700"
+      >
+        <h2 class="text-sm font-semibold text-gray-800 dark:text-white">
+          주간 일정
+        </h2>
+        <span
+          id="home-week-range-label"
+          class="text-xs text-gray-500 dark:text-gray-400"
+        ></span>
+      </header>
+      <div class="page-scroll-gutter flex min-h-0 flex-1 flex-col gap-2 overflow-hidden p-2.5 sm:p-3">
+        <!-- 월~금 그리드 — 일정 많을 때 요일 셀 내부 스크롤 -->
+        <div
+          id="home-week-calendar"
+          class="grid min-h-0 flex-1 grid-cols-5 gap-1.5 sm:gap-2"
+          role="grid"
+          aria-label="월요일부터 금요일까지 주간 일정"
+        ></div>
+        <!--
+          남는 하단 여백: 내일 일정 중 가장 빠른 1건.
+          JS 가 데이터 없으면 안내문구만 표시.
+        -->
+        <div
+          id="home-week-tomorrow"
+          class="shrink-0 rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/30"
+          aria-label="내일 첫 일정"
+        ></div>
+      </div>
+    </section>
+  </body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <!-- CSRF: 휴지통 복구·영구삭제 등 POST 요청 헤더에 사용 -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <title th:text="${board.boardName} + ' - 휴지통'">게시판 휴지통</title>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+    <!-- DESIGN_RULES 4-3: Danger 호버 고정색 -->
+    <style>
+        .btn-delete-hover:hover {
+            background-color: #fda4af;
+        }
+    </style>
+</head>
+
+<body th:attr="data-board-id=${board.boardId}"
+    x-data="{ page: 'board', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
+    x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{ 'dark bg-gray-900': darkMode === true }">
+
+    <!-- 레이아웃: 게시판 목록(list)과 동일한 shell -->
+    <div th:replace="~{partials/preloader}"></div>
+
+    <div class="flex h-screen overflow-hidden">
+        <div th:replace="~{partials/sidebar}"></div>
+
+        <div class="page-content">
+            <div th:replace="~{partials/overlay}"></div>
+            <div th:replace="~{partials/header}"></div>
+
+            <!-- 휴지통 본문 -->
+            <main class="page-main">
+                <section class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 class="page-heading" th:text="${board.boardName}">게시판</h2>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">삭제된 게시글은 복구하거나 영구 삭제할 수 있습니다.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <a th:href="@{/board/{id}(id=${board.boardId})}"
+                            class="whitespace-nowrap rounded-xl bg-gray-200 px-6 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-300 dark:!bg-white/10 dark:!text-gray-300 dark:hover:!bg-white/15">
+                            게시판으로
+                        </a>
+                    </div>
+                </section>
+
+                <!-- 목록 상단 메시지(로드 실패 등) -->
+                <div id="trashPageMessage" role="alert" class="hidden rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/40 dark:bg-rose-950/40 dark:text-rose-200"></div>
+
+                <!-- 삭제글 테이블 -->
+                <section
+                    class="overflow-hidden rounded-xl border border-stroke bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full table-fixed text-sm">
+                            <colgroup>
+                                <col style="width: clamp(56px, 7vw, 80px);" />
+                                <col />
+                                <col style="width: clamp(88px, 12vw, 140px);" />
+                                <col style="width: clamp(136px, 18vw, 176px);" />
+                                <col style="width: clamp(180px, 22vw, 260px);" />
+                            </colgroup>
+                            <thead class="bg-gray-50 dark:bg-meta-4/60">
+                                <tr class="text-left text-gray-600 dark:text-gray-300">
+                                    <th class="whitespace-nowrap px-5 py-3 font-semibold">번호</th>
+                                    <th class="px-5 py-3 font-semibold">제목</th>
+                                    <th class="whitespace-nowrap px-5 py-3 font-semibold">작성자</th>
+                                    <th class="whitespace-nowrap px-5 py-3 font-semibold">작성일</th>
+                                    <th class="whitespace-nowrap px-5 py-3 font-semibold">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trashListBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="trashListEmpty" class="hidden px-5 py-16 text-center text-gray-500 dark:text-gray-300">
+                        휴지통에 게시글이 없습니다.
+                    </div>
+                </section>
+
+                <section id="trashPagination" class="pt-1"></section>
+            </main>
+        </div>
+    </div>
+
+    <script type="module" src="/js/index.js"></script>
+    <script src="/js/common/utils.js"></script>
+    <script src="/js/board/trash.js"></script>
+</body>
+
+</html>

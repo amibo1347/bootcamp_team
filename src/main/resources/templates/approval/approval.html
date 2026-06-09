@@ -1,0 +1,236 @@
+<!doctype html>
+<!-- ================================================================ -->
+<!-- [전자결재 셸] 탭 · 위저드 · 내 결재함 · 관리자 함 — approval-main.js 로 페이지 초기화 -->
+<!-- ================================================================ -->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>전자결재 | 인트라넷</title>
+  <meta name="_csrf" th:content="${_csrf.token}" />
+  <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+  <link rel="stylesheet" th:href="@{/css/output.css}" />
+  <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+  <th:block th:replace="~{approval/common/inbox-table-styles :: inboxTableStyles}"></th:block>
+  <!-- [전자결재 전용] : 글로벌 utility 가 숨긴 네이티브 달력 picker 를 복구.
+       output.css 가 재빌드 되면 이 블록은 잉여 (input.css 에서 .flatpickr-input 으로 스코프 됨). -->
+  <style>
+    #approval-panel-wizard input[type="date"]::-webkit-calendar-picker-indicator {
+      display: block;
+      -webkit-appearance: auto;
+      appearance: auto;
+      opacity: 1;
+      cursor: pointer;
+    }
+    #approval-panel-wizard input[type="date"]::-webkit-inner-spin-button {
+      display: block;
+      -webkit-appearance: auto;
+      appearance: auto;
+    }
+
+    /* [B안] 동적 양식 — 12 컬럼 그리드. admin 캔버스의 (row, col, span) 좌표를 그대로 신청 화면에서 재현. */
+    [data-approval-form-section="DYNAMIC"] {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+      grid-auto-rows: minmax(76px, auto);
+    }
+    [data-approval-form-section="DYNAMIC"].hidden {
+      display: none;
+    }
+    /* 모바일: 1 컬럼 stack. inline grid-column 보다 specificity 높이려고 !important. */
+    @media (max-width: 640px) {
+      [data-approval-form-section="DYNAMIC"] > * {
+        grid-column: 1 / -1 !important;
+        grid-row: auto !important;
+      }
+    }
+
+    /* 결재 상세 모달의 동적 본문 — 동일 12 컬럼 그리드 */
+    .approval-detail-dynamic-body {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 640px) {
+      .approval-detail-dynamic-body > * {
+        grid-column: 1 / -1 !important;
+      }
+    }
+  </style>
+</head>
+
+<body
+  x-data="{ page: 'approval', loaded: true, darkMode: false, stickyMenu: false, sidebarToggle: false, scrollTop: false }"
+  x-init="
+         darkMode = JSON.parse(localStorage.getItem('darkMode'));
+         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+  :class="{'dark bg-gray-900': darkMode === true}"
+  th:attr="data-is-admin=${session.memberSession != null and session.memberSession.isAdmin()},
+           data-member-id=${session.memberSession != null ? session.memberSession.memberId : ''}">
+  <!-- ===== Preloader Start ===== -->
+  <div th:replace="~{partials/preloader}"></div>
+  <!-- ===== Preloader End ===== -->
+
+  <!-- ===== Page Wrapper Start ===== -->
+  <div class="flex h-screen overflow-hidden">
+    <!-- ===== Sidebar Start ===== -->
+    <div th:replace="~{partials/sidebar}"></div>
+    <!-- ===== Sidebar End ===== -->
+
+    <!-- ===== Content Area Start ===== -->
+    <div class="page-content">
+      <div th:replace="~{partials/overlay}"></div>
+
+      <!-- ===== Header Start ===== -->
+      <div th:replace="~{partials/header}"></div>
+      <!-- ===== Header End ===== -->
+
+      <!-- ===== Main Content Start ===== -->
+      <main class="page-main">
+        <h2 class="page-heading">전자결재</h2>
+
+        <!-- [탭] 전환 버튼 — 관리자 탭은 서버에서만 렌더 -->
+        <div class="flex flex-wrap gap-2 border-b border-gray-200 pb-4 dark:border-gray-800" role="tablist">
+          <button type="button" id="approval-tab-wizard" data-approval-tab="wizard"
+            class="rounded-lg px-4 py-2 text-sm font-medium bg-indigo-400 text-white">
+            기안
+          </button>
+          <button type="button" id="approval-tab-my" data-approval-tab="my"
+            class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
+            내 결재함
+          </button>
+          <th:block th:if="${session.memberSession != null and session.memberSession.isAdmin()}">
+            <button type="button" id="approval-tab-pending" data-approval-tab="pending"
+              class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
+              대기함
+            </button>
+            <button type="button" id="approval-tab-completed" data-approval-tab="completed"
+              class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
+              완료함
+            </button>
+          </th:block>
+        </div>
+
+        <!-- 패널: 기안 위저드 -->
+        <section id="approval-panel-wizard" class="approval-panel space-y-6">
+          <!-- [위저드 카드] 좌측 세로 스텝퍼 + 우측 콘텐츠 2단 레이아웃 -->
+          <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="flex min-h-[28rem] flex-col lg:flex-row">
+              <!-- ===== 좌측: 세로형 스텝퍼 (원·텍스트 세로 중앙 정렬) ===== -->
+              <nav
+                class="shrink-0 border-b border-gray-200 px-8 py-8 lg:w-56 lg:border-b-0 lg:border-r lg:px-8 lg:py-10 dark:border-gray-800"
+                aria-label="기안 진행 단계">
+                <ol class="flex flex-row justify-center gap-10 text-sm lg:flex-col lg:items-stretch lg:justify-start lg:gap-0">
+                  <!-- [스텝 1] 양식 -->
+                  <li class="flex flex-col items-center lg:items-stretch">
+                    <div class="flex items-center gap-3 lg:gap-4">
+                      <span id="approval-step-indicator-1"
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-400 text-sm font-semibold leading-none text-white"
+                        aria-hidden="true">1</span>
+                      <span id="approval-step-label-1"
+                        class="text-center font-semibold leading-none text-brand-600 dark:text-brand-400 lg:text-left">양식</span>
+                    </div>
+                    <div class="hidden h-10 w-9 shrink-0 items-center justify-center lg:flex" aria-hidden="true">
+                      <span class="h-full w-px border-l border-dashed border-gray-200 dark:border-gray-700"></span>
+                    </div>
+                  </li>
+                  <!-- [스텝 2] 결재자 -->
+                  <li class="flex flex-col items-center lg:items-stretch">
+                    <div class="flex items-center gap-3 lg:gap-4">
+                      <span id="approval-step-indicator-2"
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold leading-none text-gray-400 dark:bg-gray-800 dark:text-gray-500"
+                        aria-hidden="true">2</span>
+                      <span id="approval-step-label-2"
+                        class="text-center leading-none text-gray-500 dark:text-gray-400 lg:text-left">결재자</span>
+                    </div>
+                    <div class="hidden h-10 w-9 shrink-0 items-center justify-center lg:flex" aria-hidden="true">
+                      <span class="h-full w-px border-l border-dashed border-gray-200 dark:border-gray-700"></span>
+                    </div>
+                  </li>
+                  <!-- [스텝 3] 작성 -->
+                  <li class="flex flex-col items-center lg:items-stretch">
+                    <div class="flex items-center gap-3 lg:gap-4">
+                      <span id="approval-step-indicator-3"
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold leading-none text-gray-400 dark:bg-gray-800 dark:text-gray-500"
+                        aria-hidden="true">3</span>
+                      <span id="approval-step-label-3"
+                        class="text-center leading-none text-gray-500 dark:text-gray-400 lg:text-left">작성</span>
+                    </div>
+                  </li>
+                </ol>
+              </nav>
+
+              <!-- ===== 우측: 스텝 콘텐츠 + 하단 버튼 (적당한 좌우 여백 · 콘텐츠는 max-width 안에서 확장) ===== -->
+              <div class="flex min-h-0 flex-1 flex-col py-8 px-6 lg:py-10 lg:px-10">
+                <div class="mx-auto flex w-full min-w-0 max-w-2xl flex-1 flex-col">
+                <div class="flex-1 space-y-6">
+                  <div id="approval-step-1" class="approval-wizard-step">
+                    <th:block th:replace="~{approval/user/wizard-step-form :: wizardStepForm}"></th:block>
+                  </div>
+                  <div id="approval-step-2" class="approval-wizard-step hidden">
+                    <th:block th:replace="~{approval/user/wizard-step-approver :: wizardStepApprover}"></th:block>
+                  </div>
+                  <div id="approval-step-3" class="approval-wizard-step hidden">
+                    <th:block th:replace="~{approval/user/wizard-step-draft :: wizardStepDraft}"></th:block>
+                  </div>
+                </div>
+
+                <!-- [하단 네비] 우측 영역 내부 — 이전(좌) / 다음·제출(우) -->
+                <div class="mt-auto flex items-center justify-between gap-3 border-t border-gray-100 pt-8 dark:border-gray-800">
+                  <button type="button" id="approval-wizard-back"
+                    class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                    disabled>이전</button>
+                  <div class="flex gap-2">
+                    <button type="button" id="approval-wizard-next"
+                      class="rounded-lg bg-indigo-400 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">다음</button>
+                    <button type="button" id="approval-wizard-submit"
+                      class="hidden rounded-lg bg-indigo-400 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">제출</button>
+                  </div>
+                </div>
+                <p id="approval-wizard-message" class="mt-4 hidden text-sm text-green-600 dark:text-green-400"
+                  role="status"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 패널: 내 결재함 -->
+        <section id="approval-panel-my" class="approval-panel hidden">
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">내 결재함</h3>
+            <th:block th:replace="~{approval/user/my-inbox-table :: myInboxTable}"></th:block>
+          </div>
+        </section>
+
+        <!-- 패널: 관리자 대기함 -->
+        <section id="approval-panel-pending" class="approval-panel hidden"
+          th:if="${session.memberSession != null and session.memberSession.isAdmin()}">
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            <th:block th:replace="~{approval/admin/pending-inbox :: pendingInbox}"></th:block>
+          </div>
+        </section>
+
+        <!-- 패널: 관리자 완료함 -->
+        <section id="approval-panel-completed" class="approval-panel hidden"
+          th:if="${session.memberSession != null and session.memberSession.isAdmin()}">
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            <th:block th:replace="~{approval/admin/completed-inbox :: completedInbox}"></th:block>
+          </div>
+        </section>
+      </main>
+      <!-- ===== Main Content End ===== -->
+    </div>
+    <!-- ===== Content Area End ===== -->
+  </div>
+  <!-- ===== Page Wrapper End ===== -->
+
+  <script type="module" src="/js/index.js"></script>
+  <script type="module" src="/js/approval/approval-main.js"></script>
+</body>
+
+</html>

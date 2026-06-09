@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <body>
+    <!--
+      [공통 채팅 패널] partials/chat :: floatingChat
+      ※ sidebar 처럼 모든 페이지에 자동 포함된다 (partials/sidebar.html 마지막에 include).
+      ※ 디자인 원칙:
+         - 백드롭 없음 → 패널이 떠 있어도 뒤 페이지에서 클릭/입력 가능 (외부 클릭 닫힘 X).
+         - 닫기/뒤로/X 버튼으로만 패널을 닫는다.
+         - 추후 AI 채팅도 같은 패널에 들어가게 확장 가능 (peer.type === 'AI' 같은 분기).
+    -->
+    <div th:fragment="floatingChat">
+      <!--
+        FAB + 패널 스택.
+        ※ chat-stack 컨테이너는 pointer-events:none 으로 두고, panel/fab 만 pointer-events:auto.
+          → 패널이 떠 있어도 그 외 영역은 페이지 클릭/입력이 정상 동작.
+        ※ data-me-id : 본인 memberId — JS 가 "내가 보낸 메시지" 좌/우 정렬에 사용.
+      -->
+      <div
+        id="chat-stack"
+        th:data-me-id="${session.memberSession != null ? session.memberSession.memberId : ''}"
+        class="pointer-events-none fixed bottom-6 right-6 z-[10080] flex w-[min(calc((100vw-2rem)*0.75),20rem)] flex-col items-end gap-3 sm:bottom-8 sm:right-8 sm:w-[min(calc((100vw-3rem)*0.75),24rem)] lg:w-[min(calc((100vw-3rem)*0.75),28rem)]"
+      >
+        <!-- 패널 본체 -->
+        <div
+          id="chat-panel"
+          role="dialog"
+          aria-labelledby="chat-title"
+          class="pointer-events-auto hidden flex max-h-[min(85vh,34rem)] w-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 dark:border-gray-600 dark:bg-gray-900 dark:ring-white/10"
+        >
+          <!-- 헤더: 3열 그리드로 탭/제목을 닫기(X) 버튼과 대칭되게 정중앙 배치 -->
+          <header
+            class="grid shrink-0 grid-cols-[2.25rem_1fr_2.25rem] items-center gap-x-2 px-3 py-3 text-white sm:px-4"
+            style="background-color:#4f46e5;"
+          >
+            <!-- 왼쪽: 뒤로(서브뷰) / 목록 탭일 때는 빈 칸으로 우측 X와 대칭 -->
+            <div class="flex h-9 w-9 items-center justify-center justify-self-start">
+              <button
+                type="button"
+                id="chat-back"
+                class="hidden h-9 w-9 items-center justify-center rounded-lg text-white/90 hover:bg-white/10"
+                aria-label="뒤로"
+              >
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/>
+                </svg>
+              </button>
+            </div>
+            <!-- 가운데: 탭(목록) 또는 제목(스레드·회원선택) -->
+            <div class="flex min-w-0 items-center justify-center">
+              <nav
+                id="chat-header-tabs"
+                class="flex items-center justify-center gap-2 sm:gap-3"
+                role="tablist"
+                aria-label="채팅 패널 탭"
+              >
+              <button
+                type="button"
+                id="chat-tab-employee"
+                role="tab"
+                aria-selected="true"
+                aria-controls="chat-screen-list"
+                data-panel-tab="chat"
+                class="inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-sm font-bold text-white transition sm:text-base"
+              >
+                <span>채팅</span>
+                <span
+                  id="chat-badge"
+                  class="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-white/25 px-1.5 py-0.5 text-xs font-bold tabular-nums"
+                >0</span>
+              </button>
+              <span class="select-none text-white/35" aria-hidden="true">|</span>
+              <button
+                type="button"
+                id="chat-tab-ai"
+                role="tab"
+                aria-selected="false"
+                aria-controls="chat-screen-ai"
+                data-panel-tab="ai"
+                class="rounded-md px-1 py-0.5 text-sm font-medium text-white/55 transition hover:text-white/80 sm:text-base"
+              >
+                AI 비서
+              </button>
+              </nav>
+              <h2 id="chat-title" class="hidden w-full truncate text-center text-sm font-semibold sm:text-base">채팅</h2>
+            </div>
+            <!-- 오른쪽: 닫기 -->
+            <div class="flex h-9 w-9 items-center justify-center justify-self-end">
+              <button
+                type="button"
+                id="chat-close"
+                class="flex h-9 w-9 items-center justify-center rounded-lg text-white/90 hover:bg-white/10"
+                aria-label="닫기"
+              >
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+              </button>
+            </div>
+          </header>
+
+          <div class="flex min-h-0 flex-1 flex-col">
+            <!-- ===== 화면 1: 직원 대화 목록 (채팅 탭) ===== -->
+            <div id="chat-screen-list" class="flex min-h-0 flex-1 flex-col" role="tabpanel" aria-labelledby="chat-tab-employee">
+              <div class="relative flex min-h-0 flex-1 flex-col">
+                <div
+                  id="chat-list"
+                  class="min-h-0 flex-1 divide-y divide-gray-100 overflow-y-auto pb-14 dark:divide-gray-700"
+                  aria-label="대화 목록"
+                ></div>
+                <!-- 직원 새 채팅용 FAB -->
+                <button
+                  type="button"
+                  id="chat-new"
+                  class="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full text-lg font-bold leading-none text-white shadow-lg"
+                  style="background-color:#4f46e5;"
+                  aria-label="새 대화"
+                >+</button>
+              </div>
+            </div>
+
+            <!-- ===== 화면 1-b: AI 비서 목록 (AI 비서 탭, AJAX 로드) ===== -->
+            <div id="chat-screen-ai" class="hidden min-h-0 flex flex-1 flex-col" role="tabpanel" aria-labelledby="chat-tab-ai">
+              <div class="relative flex min-h-0 flex-1 flex-col">
+                <div
+                  id="chat-ai-body"
+                  class="min-h-0 flex-1 overflow-y-auto divide-y divide-gray-100 pb-14 dark:divide-gray-700"
+                  aria-label="AI 비서 대화 목록"
+                  aria-live="polite"
+                ></div>
+                <button
+                  type="button"
+                  id="chat-ai-new"
+                  class="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full text-lg font-bold leading-none text-white shadow-lg"
+                  style="background-color:#4f46e5;"
+                  aria-label="새 AI 대화"
+                >+</button>
+              </div>
+            </div>
+
+            <!-- ===== 화면 2: 메시지 스레드 ===== -->
+            <div id="chat-screen-thread" class="hidden min-h-0 flex flex-1 flex-col">
+              <div id="chat-messages"
+                class="min-h-0 flex-1 bg-white px-3 py-3 dark:bg-gray-900 sm:px-4"
+                style="overflow-y: scroll; scrollbar-gutter: stable;"
+                aria-live="polite"></div>
+              <footer id="chat-footer"
+                class="shrink-0 border-t border-gray-100 bg-white p-2.5 dark:border-gray-700 dark:bg-gray-900">
+                <!-- 파일 미리보기 (선택된 첨부 칩) -->
+                <div id="chat-file-preview" class="mb-2 hidden flex-wrap gap-1.5"></div>
+                <div class="flex items-center gap-2">
+                  <!-- 파일 첨부 -->
+                  <label for="chat-file-input"
+                    class="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                    title="파일 첨부">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21.44 11.05l-9.19 9.19a6 6 0 11-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66L9.41 17.41a2 2 0 01-2.83-2.83l8.49-8.49"/>
+                    </svg>
+                  </label>
+                  <input type="file" id="chat-file-input" multiple class="hidden" />
+
+                  <input type="text" id="chat-input" autocomplete="off"
+                    class="min-w-0 flex-1 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    placeholder="메시지 입력..." />
+
+                  <button type="button" id="chat-send"
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-md"
+                    style="background-color:#4f46e5;"
+                    aria-label="전송">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-4-4l4 4-4 4"/>
+                    </svg>
+                  </button>
+                </div>
+              </footer>
+            </div>
+
+            <!-- ===== 화면 3: 회원 선택 (새 채팅) ===== -->
+            <div id="chat-screen-pick" class="hidden min-h-0 flex flex-1 flex-col">
+              <!-- 검색/필터 -->
+              <div class="shrink-0 space-y-2 border-b border-gray-100 p-3 dark:border-gray-700">
+                <input type="text" id="chat-pick-name" placeholder="이름 검색"
+                  class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-gray-600 dark:bg-gray-900 dark:text-white" />
+                <div class="grid grid-cols-2 gap-2">
+                  <select id="chat-pick-dept"
+                    class="w-full rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                    <option value="">전체 부서</option>
+                  </select>
+                  <select id="chat-pick-position"
+                    class="w-full rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                    <option value="">전체 직급</option>
+                  </select>
+                </div>
+              </div>
+              <div id="chat-pick-list"
+                class="min-h-0 flex-1 divide-y divide-gray-100 overflow-y-auto dark:divide-gray-700"
+                aria-label="직원 목록"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FAB + 우상단 빨간 미확인 메시지 배지 -->
+        <div class="pointer-events-auto relative">
+          <button type="button" id="chat-fab"
+            class="flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg ring-2 ring-white/40 transition hover:opacity-90 sm:h-16 sm:w-16"
+            style="background-color:#4f46e5;"
+            aria-haspopup="dialog" aria-controls="chat-panel" aria-expanded="false" title="채팅">
+            <span class="sr-only">채팅 열기</span>
+            <svg class="h-7 w-7 sm:h-8 sm:w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+          </button>
+          <!-- 헤더 알림 종 배지(#header-alert-badge) 와 동일한 스타일 — orange-500 + ring-white. -->
+          <span id="chat-fab-badge"
+            class="pointer-events-none absolute -right-0.5 -top-0.5 z-10 hidden h-5 min-w-5 max-w-[2.75rem] shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-500 px-1 text-[10px] font-bold tabular-nums leading-none text-white shadow-sm ring-2 ring-white dark:bg-orange-500 dark:text-white dark:ring-gray-900"
+            role="status" aria-live="polite">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 채팅 스크립트는 sidebar 가 include 되는 모든 페이지에서 한 번만 로드 (chat.js 안에서 idempotent 가드). -->
+    <script th:fragment="chatScript" src="/js/common/chat.js" defer></script>
+  </body>
+</html>

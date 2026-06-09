@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>시스템 점검 중</title>
+  <style>
+    /*
+        점검 페이지는 비로그인 + 빌드된 output.css 없이도 렌더되어야 한다.
+        Tailwind 의존 X. 자체 스타일만 사용.
+    */
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      color: #1f2937;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 1rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+      max-width: 520px;
+      width: 100%;
+      padding: 2.5rem;
+      text-align: center;
+    }
+    .icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 0.75rem;
+      color: #111827;
+    }
+    .desc {
+      font-size: 0.95rem;
+      color: #4b5563;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    .meta-box {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      padding: 1rem 1.25rem;
+      text-align: left;
+      font-size: 0.875rem;
+      color: #374151;
+      margin-bottom: 1.5rem;
+    }
+    .meta-box .label {
+      color: #6b7280;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 0.25rem;
+    }
+    .home-btn {
+      display: inline-block;
+      background: #4f46e5;
+      color: #ffffff;
+      text-decoration: none;
+      padding: 0.625rem 1.25rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: 0.875rem;
+      transition: background-color 0.15s ease;
+    }
+    .home-btn:hover { background: #4338ca; }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <!-- ─── 점검 중일 때 ─────────────────────────────────────────── -->
+    <th:block th:if="${active}">
+      <div class="icon">🛠️</div>
+      <h1>시스템 점검 중입니다</h1>
+      <p class="desc">
+        더 안정적인 서비스를 위해 잠시 시스템 점검을 진행하고 있습니다.<br />
+        점검이 끝나면 자동으로 접속할 수 있습니다.
+      </p>
+
+      <div th:if="${reason != null and !reason.isBlank()}" class="meta-box">
+        <div class="label">점검 사유</div>
+        <div th:text="${reason}">사유</div>
+      </div>
+
+      <div th:if="${endsAt != null}" class="meta-box">
+        <div class="label">예상 종료 시각</div>
+        <div th:text="${#temporals.format(endsAt, 'yyyy년 M월 d일 HH:mm')}">시각</div>
+      </div>
+    </th:block>
+
+    <!-- ─── 점검이 끝난 뒤 URL 직접 접근 ─────────────────────────── -->
+    <th:block th:unless="${active}">
+      <div class="icon">✅</div>
+      <h1>점검이 완료되었습니다</h1>
+      <p class="desc">
+        현재는 정상 운영 중입니다. 홈으로 이동해 다시 이용해주세요.
+      </p>
+      <a th:href="@{/}" class="home-btn">홈으로 이동</a>
+    </th:block>
+  </div>
+
+  <!--
+      점검 종료 자동 감지 — 점검 중일 때 30초마다 상태를 폴링하다 active=false 가 되면 홈으로 이동.
+      ※ 비로그인도 호출 가능한 /api/system-maintenance/current 사용.
+  -->
+  <script th:if="${active}">
+    (function () {
+      const POLL_MS = 30000;
+      async function check() {
+        try {
+          const res = await fetch('/api/system-maintenance/current', { cache: 'no-store' });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (!data.active) {
+            window.location.href = '/';
+          }
+        } catch (e) { /* 무시 — 다음 폴링 시 재시도 */ }
+      }
+      setInterval(check, POLL_MS);
+    })();
+  </script>
+</body>
+
+</html>

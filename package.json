@@ -6,6 +6,8 @@
   "scripts": {
     "start": "webpack serve --open --config webpack.config.js",
     "build": "webpack --config webpack.config.js",
+    "css:build": "tailwindcss -i src/main/resources/static/css/input.css -o src/main/resources/static/css/output.css --minify",
+    "css:watch": "tailwindcss -i src/main/resources/static/css/input.css -o src/main/resources/static/css/output.css --watch",
     "sort": "npx prettier --write src"
   },
   "keywords": [],
@@ -55,6 +57,7 @@
     "flatpickr": "^4.6.13",
     "fullcalendar": "^6.1.15",
     "jsvectormap": "^1.6.0",
+    "korean-lunar-calendar": "^0.3.6",
     "swiper": "^11.1.14"
   }
 }

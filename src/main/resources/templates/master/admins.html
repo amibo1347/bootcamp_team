@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" th:href="@{/css/master.css}" />
+  <title>MASTER 계정 관리</title>
+</head>
+
+<body class="master-page">
+  <div class="master-shell">
+    <div class="master-container">
+      <div class="master-panel">
+
+        <a th:href="@{/master}" class="master-link">← 콘솔로 돌아가기</a>
+
+        <div style="margin-top: 0.75rem;">
+          <span class="master-badge">MASTER</span>
+          <h1 class="master-title">MASTER 계정 관리</h1>
+          <p class="master-sub">
+            계정을 받은 팀원은 첫 로그인 때 인증 앱(2차 인증) 등록이 필요합니다.
+          </p>
+        </div>
+
+        <div th:if="${errorMessage != null}" class="alert-box alert-error"
+             style="margin-top: 1.25rem;" role="alert">
+          <span th:text="${errorMessage}">오류 메시지</span>
+        </div>
+        <div th:if="${successMessage != null}" class="alert-box alert-success"
+             style="margin-top: 1.25rem;" role="status">
+          <span th:text="${successMessage}">완료 메시지</span>
+        </div>
+
+        <!-- 기존 MASTER 계정 목록 -->
+        <table class="master-table">
+          <thead>
+            <tr>
+              <th>아이디</th>
+              <th>이름</th>
+              <th>이메일</th>
+              <th>2차 인증</th>
+              <th>마지막 로그인</th>
+              <th>상태</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:if="${admins == null or admins.isEmpty()}">
+              <td colspan="6" class="master-empty">등록된 MASTER 계정이 없습니다.</td>
+            </tr>
+            <tr th:each="admin : ${admins}">
+              <td th:text="${admin.loginId}">master</td>
+              <td th:text="${admin.name}">이름</td>
+              <td th:text="${admin.email != null and !admin.email.isBlank() ? admin.email : '-'}">-</td>
+              <td>
+                <span th:if="${admin.hasTotp()}" class="master-tag master-tag--on">등록</span>
+                <span th:unless="${admin.hasTotp()}" class="master-tag master-tag--muted">미등록</span>
+              </td>
+              <td th:text="${admin.lastLoginAt != null
+                            ? #temporals.format(admin.lastLoginAt, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+              <td>
+                <span th:if="${admin.isActive != null and admin.isActive.name() == 'Y'}"
+                      class="master-tag master-tag--on">활성</span>
+                <span th:unless="${admin.isActive != null and admin.isActive.name() == 'Y'}"
+                      class="master-tag master-tag--off">비활성</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr class="master-divider" />
+        <h2 class="master-section-title">새 MASTER 계정 추가</h2>
+
+        <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+        <form method="post" th:action="@{/master/admins}">
+          <div class="field-group">
+            <label for="loginId" class="field-label">아이디</label>
+            <input type="text" id="loginId" name="loginId" class="field-input"
+                   th:value="${formLoginId}" autocomplete="off" required />
+          </div>
+          <div class="field-group">
+            <label for="name" class="field-label">이름</label>
+            <input type="text" id="name" name="name" class="field-input"
+                   th:value="${formName}" required />
+          </div>
+          <div class="field-group">
+            <label for="email" class="field-label">이메일 (선택)</label>
+            <input type="email" id="email" name="email" class="field-input"
+                   th:value="${formEmail}" />
+          </div>
+          <div class="field-group">
+            <label for="password" class="field-label">초기 비밀번호 (8자 이상)</label>
+            <input type="password" id="password" name="password" class="field-input"
+                   autocomplete="new-password" minlength="8" required />
+          </div>
+          <div class="field-group" style="margin-bottom: 0;">
+            <label for="confirmPassword" class="field-label">초기 비밀번호 확인</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" class="field-input"
+                   autocomplete="new-password" minlength="8" required />
+          </div>
+          <button type="submit" class="master-btn" style="margin-top: 1.5rem;">계정 생성</button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

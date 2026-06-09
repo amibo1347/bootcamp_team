@@ -1,0 +1,439 @@
+(() => {
+  const PAGE_SIZE = 10;
+  /** 마지막으로 로드된 휴지통 페이지(0-base), 복구/삭제 후 동일 페이지 재조회에 사용 */
+  let trashCurrentPage = 0;
+
+  // getPostHeaders / formatDate / escapeHtml 은 /js/common/utils.js 의 window 전역.
+
+  /**
+   * Spring Data Page JSON을 프론트에서 쓰기 좋은 형태로 정규화한다.
+   * @param {unknown} payload
+   * @returns {{ items: Array, currentPage: number, totalPages: number }}
+   */
+  function normalizePage(payload) {
+    const items = Array.isArray(payload?.content)
+      ? payload.content
+      : Array.isArray(payload?.items)
+        ? payload.items
+        : [];
+    const currentPage = Number.isFinite(payload?.number) ? Number(payload.number) : 0;
+    const totalPages = Number.isFinite(payload?.totalPages)
+      ? Number(payload.totalPages)
+      : Math.max(items.length ? 1 : 0, Math.ceil(items.length / PAGE_SIZE));
+
+    return {
+      items,
+      currentPage: currentPage >= 0 ? currentPage : 0,
+      totalPages: totalPages >= 0 ? totalPages : 0,
+    };
+  }
+
+  /**
+   * 휴지통 목록 API를 호출한다.
+   * @param {number} boardId
+   * @param {number} page 0-base
+   */
+  async function fetchTrashArticles(boardId, page) {
+    const response = await fetch(
+      `/api/board/${boardId}/articles/trash?page=${page}&size=${PAGE_SIZE}`,
+      {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin',
+      }
+    );
+    if (!response.ok) {
+      const msg = await window.getApiErrorMessage(response, '휴지통 목록을 불러오지 못했습니다.');
+      throw new Error(msg);
+    }
+    const payload = await response.json();
+    return normalizePage(payload);
+  }
+
+  /**
+   * 복구 API
+   * @param {number} boardId
+   * @param {number} articleId
+   */
+  async function postRestore(boardId, articleId) {
+    const response = await fetch(`/api/board/${boardId}/articles/trash/${articleId}/restore`, {
+      method: 'POST',
+      headers: getPostHeaders(),
+      credentials: 'same-origin',
+    });
+    if (!response.ok) {
+      throw new Error(await window.getApiErrorMessage(response, '복구에 실패했습니다.'));
+    }
+  }
+
+  /**
+   * 영구 삭제 API
+   * @param {number} boardId
+   * @param {number} articleId
+   */
+  async function postPermanentDelete(boardId, articleId) {
+    const response = await fetch(`/api/board/${boardId}/articles/trash/${articleId}/delete`, {
+      method: 'POST',
+      headers: getPostHeaders(),
+      credentials: 'same-origin',
+    });
+    if (!response.ok) {
+      throw new Error(await window.getApiErrorMessage(response, '영구 삭제에 실패했습니다.'));
+    }
+  }
+
+  /**
+   * 상단 에러 영역 표시
+   * @param {string} message
+   */
+  function showPageMessage(message) {
+    const el = document.getElementById('trashPageMessage');
+    if (!el) return;
+    el.textContent = message;
+    el.classList.remove('hidden');
+  }
+
+  /**
+   * 상단 에러 영역 숨김
+   */
+  function hidePageMessage() {
+    const el = document.getElementById('trashPageMessage');
+    if (!el) return;
+    el.textContent = '';
+    el.classList.add('hidden');
+  }
+
+  // ===== 휴지통 본문 미리보기 모달 =====
+
+  /** 한 번만 만들고 재사용하는 모달 DOM 캐시. */
+  let trashDetailModal = null;
+
+  /** 본문 미리보기 모달을 lazy 하게 생성·반환. */
+  function ensureTrashDetailModal() {
+    if (trashDetailModal) return trashDetailModal;
+    const root = document.createElement('div');
+    root.id = 'trashDetailModal';
+    root.className = 'hidden fixed inset-0 z-[10050] bg-transparent';
+    root.innerHTML = `
+      <div class="absolute w-full max-w-2xl rounded-xl border border-gray-200 bg-white shadow-xl dark:border-strokedark dark:bg-boxdark" data-modal-panel>
+        <header class="flex items-start justify-between gap-4 border-b border-gray-200 px-5 py-3 dark:border-strokedark">
+          <h3 class="text-base font-semibold text-gray-900 dark:text-white" data-modal-title>제목</h3>
+          <button type="button" data-modal-close
+            class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/10"
+            aria-label="닫기">✕</button>
+        </header>
+        <div class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400" data-modal-meta></div>
+        <div class="max-h-[60vh] overflow-y-auto px-5 py-4 text-sm leading-relaxed text-gray-800 dark:text-gray-100"
+             data-modal-body>본문을 불러오는 중...</div>
+      </div>
+    `;
+    document.body.appendChild(root);
+    root.addEventListener('click', (e) => {
+      if (e.target === root || e.target.closest('[data-modal-close]')) closeTrashDetailModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !root.classList.contains('hidden')) closeTrashDetailModal();
+    });
+    trashDetailModal = root;
+    return root;
+  }
+
+  /**
+   * 제목 버튼을 기준으로 모달을 위/아래에 배치한다.
+   * @param {HTMLElement} modal 모달 루트
+   * @param {HTMLElement|null} anchorEl 클릭한 제목 버튼
+   */
+  function positionTrashDetailModal(modal, anchorEl) {
+    const panel = modal.querySelector('[data-modal-panel]');
+    const bodyEl = modal.querySelector('[data-modal-body]');
+    if (!(panel instanceof HTMLElement) || !(bodyEl instanceof HTMLElement)) return;
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const padding = 16;
+    const gap = 8;
+    const modalWidth = Math.min(560, Math.max(260, viewportWidth - padding * 2));
+
+    panel.style.width = `${modalWidth}px`;
+    panel.style.maxHeight = `${Math.max(180, viewportHeight - padding * 2)}px`;
+    panel.style.overflow = 'hidden';
+
+    if (!(anchorEl instanceof HTMLElement)) {
+      panel.style.left = `${Math.max(padding, (viewportWidth - modalWidth) / 2)}px`;
+      panel.style.top = `${Math.max(padding, (viewportHeight - panel.offsetHeight) / 2)}px`;
+      return;
+    }
+
+    const anchorRect = anchorEl.getBoundingClientRect();
+    const availableBelow = viewportHeight - anchorRect.bottom - padding - gap;
+    const availableAbove = anchorRect.top - padding - gap;
+    const shouldPlaceBelow = availableBelow >= 260 || availableBelow >= availableAbove;
+    const availableSpace = shouldPlaceBelow ? availableBelow : availableAbove;
+
+    // 선택한 방향의 남은 높이에 맞춰 본문 스크롤 영역을 줄인다.
+    const bodyMaxHeight = Math.max(80, Math.min(Math.max(80, availableSpace - 112), viewportHeight * 0.6));
+    bodyEl.style.maxHeight = `${bodyMaxHeight}px`;
+
+    const panelHeight = panel.getBoundingClientRect().height;
+    const left = Math.min(Math.max(padding, anchorRect.left), viewportWidth - modalWidth - padding);
+    const preferredTop = shouldPlaceBelow
+      ? anchorRect.bottom + gap
+      : anchorRect.top - panelHeight - gap;
+    const top = Math.min(
+      Math.max(padding, preferredTop),
+      Math.max(padding, viewportHeight - panelHeight - padding)
+    );
+
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
+  }
+
+  function closeTrashDetailModal() {
+    if (!trashDetailModal) return;
+    trashDetailModal.classList.add('hidden');
+  }
+
+  /** GET /api/board/{boardId}/articles/trash/{articleId} */
+  async function fetchTrashArticleDetail(boardId, articleId) {
+    const res = await fetch(`/api/board/${boardId}/articles/trash/${articleId}`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin',
+    });
+    if (!res.ok) throw new Error(await window.getApiErrorMessage(res, '본문을 불러오지 못했습니다.'));
+    return res.json();
+  }
+
+  /**
+   * 휴지통 게시글 본문 모달 열기. 백엔드 sanitizer 가 정제한 HTML 을 그대로 노출.
+   * @param {number} boardId
+   * @param {number} articleId
+   * @param {string} fallbackTitle
+   * @param {HTMLElement|null} anchorEl 모달 위치 기준이 되는 제목 버튼
+   */
+  async function openTrashArticleModal(boardId, articleId, fallbackTitle, anchorEl) {
+    const modal = ensureTrashDetailModal();
+    const titleEl = modal.querySelector('[data-modal-title]');
+    const metaEl = modal.querySelector('[data-modal-meta]');
+    const bodyEl = modal.querySelector('[data-modal-body]');
+    titleEl.textContent = fallbackTitle || '본문 불러오는 중...';
+    metaEl.textContent = '';
+    bodyEl.textContent = '본문을 불러오는 중...';
+    modal.classList.remove('hidden');
+    positionTrashDetailModal(modal, anchorEl);
+    try {
+      const dto = await fetchTrashArticleDetail(boardId, articleId);
+      titleEl.textContent = dto.title || '(제목 없음)';
+      metaEl.textContent = `작성자: ${dto.authorName || '-'} · 작성일: ${formatDate(dto.createdAt)}`;
+      // 게시글 content 는 ArticleService.createArticle/updateArticle 에서 HtmlSanitizer 로 정제되어 저장됨.
+      bodyEl.innerHTML = dto.content || '<p class="text-gray-400">본문이 비어 있습니다.</p>';
+      positionTrashDetailModal(modal, anchorEl);
+    } catch (e) {
+      bodyEl.textContent = e?.message || '본문을 불러오지 못했습니다.';
+      positionTrashDetailModal(modal, anchorEl);
+    }
+  }
+
+  /**
+   * 테이블 본문 렌더링
+   * @param {Array<object>} articles
+   * @param {number} boardId
+   * @param {number} currentPage
+   */
+  function renderRows(articles, boardId, currentPage) {
+    const body = document.getElementById('trashListBody');
+    const empty = document.getElementById('trashListEmpty');
+    if (!body || !empty) return;
+
+    if (!articles.length) {
+      empty.classList.remove('hidden');
+      body.innerHTML = '';
+      return;
+    }
+    empty.classList.add('hidden');
+
+    const baseNo = currentPage * PAGE_SIZE;
+    body.innerHTML = articles
+      .map((post, index) => {
+        const articleId = Number(post.articleId || 0);
+        const rowNo = baseNo + index + 1;
+        const title = escapeHtml(post.title || '(제목 없음)');
+        const author = escapeHtml(post.authorName || '-');
+
+        return `
+          <tr class="border-t border-gray-100 text-gray-700 dark:border-strokedark dark:text-gray-200 dark:hover:bg-meta-4/40">
+            <td class="whitespace-nowrap px-5 py-3">${rowNo}</td>
+            <td class="px-5 py-3">
+              <button type="button" data-action="preview" data-article-id="${articleId}"
+                class="line-clamp-2 text-left text-gray-700 underline-offset-2 hover:text-indigo-600 hover:underline dark:text-gray-200 dark:hover:text-indigo-300"
+                title="${title}">${title}</button>
+            </td>
+            <td class="whitespace-nowrap px-5 py-3">${author}</td>
+            <td class="whitespace-nowrap px-5 py-3">${formatDate(post.createdAt)}</td>
+            <td class="whitespace-nowrap px-5 py-3">
+              <div class="flex flex-wrap gap-2">
+                <!-- 복구·영구 삭제: unifiedTrash 와 동일 톤 (다크 전용 rose/indigo 오버라이드 없음) -->
+                <button type="button" data-action="restore" data-article-id="${articleId}"
+                  class="rounded-lg bg-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-700 shadow-sm transition-all hover:bg-indigo-300">
+                  복구
+                </button>
+                <button type="button" data-action="permanent" data-article-id="${articleId}"
+                  class="btn-delete-hover rounded-lg bg-rose-200 px-3 py-1.5 text-xs font-medium text-rose-500 shadow-sm transition-all">
+                  영구 삭제
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      })
+      .join('');
+  }
+
+  /**
+   * 페이지네이션 UI (board/view.js와 동일 패턴)
+   * @param {number} currentPage
+   * @param {number} totalPages
+   * @param {(p:number)=>void} onMove
+   */
+  function renderPagination(currentPage, totalPages, onMove) {
+    const pagination = document.getElementById('trashPagination');
+    if (!pagination) return;
+    if (totalPages <= 1) {
+      pagination.innerHTML = '';
+      return;
+    }
+
+    const createPageButton = (label, targetPage, disabled = false, active = false) => `
+      <button
+        type="button"
+        data-page="${targetPage}"
+        ${disabled ? 'disabled' : ''}
+        class="rounded-md border px-3 py-1.5 text-sm transition
+          ${active
+        ? 'border-indigo-300 bg-indigo-200 font-semibold text-indigo-700 dark:border-indigo-500/60 dark:bg-indigo-500/20 dark:text-indigo-200'
+        : 'border-gray-300 bg-white text-gray-700 hover:border-indigo-300 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/60 dark:hover:text-indigo-300'
+      }">
+        ${label}
+      </button>
+    `;
+
+    let buttons = createPageButton('이전', currentPage - 1, currentPage <= 0);
+    for (let page = 0; page < totalPages; page += 1) {
+      buttons += createPageButton(String(page + 1), page, false, page === currentPage);
+    }
+    buttons += createPageButton('다음', currentPage + 1, currentPage >= totalPages - 1);
+
+    pagination.innerHTML = `<div class="flex flex-wrap items-center justify-center gap-2">${buttons}</div>`;
+    pagination.querySelectorAll('button[data-page]').forEach((button) => {
+      if (button.disabled) return;
+      button.addEventListener('click', () => {
+        const targetPage = Number(button.dataset.page);
+        if (!Number.isFinite(targetPage) || targetPage < 0 || targetPage >= totalPages) return;
+        onMove(targetPage);
+      });
+    });
+  }
+
+  /**
+   * 목록 + 페이지네이션 갱신
+   * @param {number} boardId
+   * @param {number} page
+   */
+  async function loadTrash(boardId, page) {
+    hidePageMessage();
+    const requestPage = Math.max(0, page);
+    let { items, currentPage, totalPages } = await fetchTrashArticles(boardId, requestPage);
+
+    // 마지막 줄만 남은 페이지에서 영구 삭제 등으로 해당 페이지가 비었을 때 이전 페이지로 맞춤
+    if (items.length === 0 && totalPages > 0) {
+      const maxIndex = totalPages - 1;
+      if (requestPage > maxIndex) {
+        return loadTrash(boardId, maxIndex);
+      }
+      if (requestPage > 0) {
+        return loadTrash(boardId, requestPage - 1);
+      }
+    }
+
+    trashCurrentPage = currentPage;
+    renderRows(items, boardId, currentPage);
+    renderPagination(currentPage, totalPages, (next) => loadTrash(boardId, next));
+  }
+
+  /**
+   * 행의 복구/영구삭제 클릭 처리 (이벤트 위임)
+   * @param {number} boardId
+   */
+  function attachRowActions(boardId) {
+    const body = document.getElementById('trashListBody');
+    if (!body) return;
+
+    body.addEventListener('click', async (event) => {
+      const previewBtn = event.target.closest('button[data-action="preview"]');
+      if (previewBtn) {
+        const articleId = Number(previewBtn.dataset.articleId || 0);
+        if (!articleId) return;
+        const titleHint = previewBtn.getAttribute('title') || '';
+        openTrashArticleModal(boardId, articleId, titleHint, previewBtn);
+        return;
+      }
+
+      const restoreBtn = event.target.closest('button[data-action="restore"]');
+      const permanentBtn = event.target.closest('button[data-action="permanent"]');
+      const target = restoreBtn || permanentBtn;
+      if (!target) return;
+
+      const articleId = Number(target.dataset.articleId || 0);
+      if (!articleId) return;
+
+      if (restoreBtn) {
+        const ok = window.confirm('이 게시글을 복구하시겠습니까?');
+        if (!ok) return;
+        restoreBtn.disabled = true;
+        try {
+          await postRestore(boardId, articleId);
+          await loadTrash(boardId, trashCurrentPage);
+        } catch (e) {
+          window.alert(e?.message || '복구에 실패했습니다.');
+        } finally {
+          restoreBtn.disabled = false;
+        }
+        return;
+      }
+
+      if (permanentBtn) {
+        const ok1 = window.confirm(
+          '이 글을 영구 삭제하시겠습니까? 휴지통에서 제거되며 일반 사용자는 복구할 수 없습니다.'
+        );
+        if (!ok1) return;
+        const ok2 = window.confirm(
+          '정말 영구 삭제합니다. 첨부 파일을 포함한 데이터가 삭제되며 되돌릴 수 없습니다.'
+        );
+        if (!ok2) return;
+        permanentBtn.disabled = true;
+        try {
+          await postPermanentDelete(boardId, articleId);
+          await loadTrash(boardId, trashCurrentPage);
+        } catch (e) {
+          window.alert(e?.message || '영구 삭제에 실패했습니다.');
+        } finally {
+          permanentBtn.disabled = false;
+        }
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const boardId = Number(document.body.dataset.boardId || 0);
+    if (!boardId) return;
+
+    attachRowActions(boardId);
+
+    loadTrash(boardId, 0).catch(async (error) => {
+      console.error(error);
+      showPageMessage(error?.message || '휴지통 목록을 불러오지 못했습니다.');
+      renderRows([], boardId, 0);
+      renderPagination(0, 1, () => { });
+    });
+  });
+})();

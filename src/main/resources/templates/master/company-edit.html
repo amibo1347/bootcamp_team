@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" th:href="@{/css/master.css}" />
+  <title>회사 정보 수정</title>
+</head>
+
+<body class="master-page">
+  <div class="master-shell">
+    <div class="master-container" style="max-width: 560px;">
+      <div class="master-panel">
+
+        <a th:href="@{/master/companies}" class="master-link">← 회사 목록으로</a>
+
+        <div style="margin-top: 0.75rem;">
+          <span class="master-badge">MASTER</span>
+          <h1 class="master-title" th:text="${company.companyName}">회사명</h1>
+        </div>
+
+        <div th:if="${errorMessage != null}" class="alert-box alert-error"
+             style="margin-top: 1.25rem;" role="alert">
+          <span th:text="${errorMessage}">오류 메시지</span>
+        </div>
+        <div th:if="${successMessage != null}" class="alert-box alert-success"
+             style="margin-top: 1.25rem;" role="status">
+          <span th:text="${successMessage}">완료 메시지</span>
+        </div>
+
+        <!-- 섹션 탭 (정보 기본 선택) — 한 화면에 한 섹션만 보여 길이를 줄인다. -->
+        <input type="radio" name="ce-tab" id="ce-tab-info"   class="master-tab-radio" checked />
+        <input type="radio" name="ce-tab" id="ce-tab-logo"   class="master-tab-radio" />
+        <input type="radio" name="ce-tab" id="ce-tab-code"   class="master-tab-radio" />
+        <input type="radio" name="ce-tab" id="ce-tab-admin"  class="master-tab-radio" />
+        <input type="radio" name="ce-tab" id="ce-tab-status" class="master-tab-radio" />
+
+        <div class="master-tabnav">
+          <label for="ce-tab-info">정보</label>
+          <label for="ce-tab-logo">로고</label>
+          <label for="ce-tab-code">코드</label>
+          <label for="ce-tab-admin">대표</label>
+          <label for="ce-tab-status">상태</label>
+        </div>
+
+        <!-- ===== 정보 ===== -->
+        <div class="master-tabpanel master-tabpanel--info">
+          <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+          <form method="post" th:action="@{/master/companies/{id}(id=${company.companyId})}">
+            <div class="field-group">
+              <label for="companyName" class="field-label">회사명</label>
+              <input type="text" id="companyName" name="companyName" class="field-input"
+                     th:value="${company.companyName}" required />
+            </div>
+            <div class="field-group">
+              <label for="companyDomain" class="field-label">도메인 (필수)</label>
+              <input type="text" id="companyDomain" name="companyDomain" class="field-input"
+                     th:value="${company.companyDomain}" placeholder="예: acme" required />
+              <p class="master-sub" style="margin-top: 0.35rem;">
+                회사별 로그인 주소(<code>/회사도메인/login</code>)로 사용됩니다. 영문/숫자/.-_ 2~40자.
+              </p>
+            </div>
+            <div class="field-group" style="margin-bottom: 0;">
+              <label class="field-label" style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" name="usesEmployeeNo" th:checked="${company.usesEmployeeNo()}" />
+                <span>사번 사용 회사</span>
+              </label>
+              <p class="master-sub" style="margin-top: 0.35rem;">
+                체크하면 이 회사의 직원은 회원가입·로그인 시 '아이디' 대신 '사번'을 입력하고, 화면에도 사번이 표시됩니다.
+              </p>
+            </div>
+            <button type="submit" class="master-btn-outline master-btn--block" style="margin-top: 1.5rem;">정보 저장</button>
+          </form>
+        </div>
+
+        <!-- ===== 로고 ===== -->
+        <div class="master-tabpanel master-tabpanel--logo">
+          <div th:if="${hasLogo}" style="margin-bottom: 1rem;">
+            <img th:src="@{/api/company/{id}/logo(id=${company.companyId})}" alt="회사 로고"
+                 style="max-width: 180px; max-height: 90px; border: 1px solid #e2e8f0;
+                        border-radius: 0.6rem; background: #f8fafc; padding: 0.5rem;" />
+            <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+            <form method="post" style="margin-top: 0.5rem;"
+                  th:action="@{/master/companies/{id}/logo/delete(id=${company.companyId})}">
+              <button type="submit" class="master-btn master-btn--inline">로고 삭제</button>
+            </form>
+          </div>
+          <p th:unless="${hasLogo}" class="master-sub" style="margin-bottom: 1rem;">등록된 로고가 없습니다.</p>
+
+          <!-- 멀티파트 폼은 CSRF 토큰을 본문에서 읽지 못하므로 쿼리 파라미터로 전달 -->
+          <form method="post" enctype="multipart/form-data"
+                th:action="@{/master/companies/{id}/logo(id=${company.companyId},_csrf=${_csrf.token})}">
+            <label class="field-label">로고 이미지 업로드</label>
+            <!-- 파일 선택 영역을 드롭존 형태로 명확히 표시 -->
+            <label for="logoFile" class="master-filedrop">
+              <span class="master-filedrop-icon">🖼️</span>
+              <span class="master-filedrop-main">클릭하여 로고 이미지 선택</span>
+              <span class="master-filedrop-sub" id="editLogoFileName">PNG / JPG 등 이미지 파일</span>
+              <input type="file" id="logoFile" name="logoFile" accept="image/*" required
+                     onchange="previewEditLogo(event)" />
+            </label>
+            <img id="editLogoPreview" alt="로고 미리보기"
+                 style="display: none; margin-top: 0.6rem; max-width: 180px; max-height: 90px;
+                        border: 1px solid #e2e8f0; border-radius: 0.6rem; background: #f8fafc; padding: 0.5rem;" />
+            <button type="submit" class="master-btn-outline" style="margin-top: 0.9rem;">로고 업로드</button>
+          </form>
+        </div>
+
+        <!-- ===== 코드 ===== -->
+        <div class="master-tabpanel master-tabpanel--code">
+          <p class="master-sub">직원 회원가입 시 입력하는 코드입니다. 재발급하면 이전 코드는 무효가 됩니다.</p>
+          <code class="secret-code" style="margin-top: 0.75rem;" th:text="${company.companyCode}">CODE</code>
+          <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+          <form method="post" th:action="@{/master/companies/{id}/code(id=${company.companyId})}"
+                style="margin-top: 0.75rem;">
+            <button type="submit" class="master-btn master-btn--inline">코드 재발급</button>
+          </form>
+        </div>
+
+        <!-- ===== 대표 계정 ===== -->
+        <div class="master-tabpanel master-tabpanel--admin">
+          <div th:if="${companyAdmin != null}">
+            <p class="master-sub" style="margin-bottom: 0.25rem;">
+              아이디: <strong th:text="${companyAdmin.loginId}">admin</strong>
+              <span th:if="${companyAdmin.name != null}"
+                    th:text="'(' + ${companyAdmin.name} + ')'">(이름)</span>
+            </p>
+            <p class="master-sub">
+              비밀번호를 초기화하면 임시 비밀번호가 발급됩니다. 발급된 임시 비밀번호를 대표에게 전달하세요.
+            </p>
+            <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+            <form method="post"
+                  th:action="@{/master/companies/{id}/admin/reset-password(id=${company.companyId})}"
+                  style="margin-top: 0.75rem;"
+                  onsubmit="return confirm('대표 계정의 비밀번호를 초기화하시겠습니까?');">
+              <button type="submit" class="master-btn master-btn--inline">비밀번호 초기화</button>
+            </form>
+
+            <!-- 대표 위임 -->
+            <p class="master-sub" style="margin-top: 1.25rem;">
+              대표직 위임 — 다른 직원을 새 대표로 지정합니다. 위임하면 기존 대표는 일반 직원으로 변경됩니다.
+            </p>
+            <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+            <form th:if="${not #lists.isEmpty(delegationCandidates)}" method="post" id="delegate-form"
+                  th:action="@{/master/companies/{id}/admin/delegate(id=${company.companyId})}"
+                  style="margin-top: 0.5rem;">
+              <!-- 이름으로 검색 — 후보가 많을 때 빠르게 찾기 위한 클라이언트 필터 -->
+              <input type="text" id="delegate-search" class="field-input"
+                     placeholder="이름으로 검색" autocomplete="off" />
+              <input type="hidden" name="newAdminMemberId" id="delegate-selected" />
+              <div id="delegate-list" class="delegate-list">
+                <button type="button" th:each="m : ${delegationCandidates}"
+                        class="delegate-option"
+                        th:data-member-id="${m.memberId}"
+                        th:data-name="${m.name}"
+                        th:text="${m.name} + '(' + ${m.loginId} + ')'">홍길동(hong)</button>
+              </div>
+              <p id="delegate-empty" class="master-sub" style="display:none; margin-top:0.3rem;">
+                검색 결과가 없습니다.
+              </p>
+              <p class="master-sub" style="margin-top:0.5rem;">
+                선택: <strong id="delegate-selected-label">없음</strong>
+              </p>
+              <button type="submit" class="master-btn master-btn--inline" style="margin-top: 0.3rem;">대표 위임</button>
+            </form>
+            <p th:if="${#lists.isEmpty(delegationCandidates)}" class="master-sub" style="margin-top: 0.5rem;">
+              위임할 수 있는 다른 재직 직원이 없습니다.
+            </p>
+          </div>
+          <p th:if="${companyAdmin == null}" class="master-sub">대표(ADMIN) 계정이 없습니다.</p>
+        </div>
+
+        <!-- ===== 상태 ===== -->
+        <div class="master-tabpanel master-tabpanel--status">
+          <p class="master-sub" style="margin-bottom: 0.75rem;">
+            현재 상태:
+            <span th:if="${company.isActiveCompany()}" class="master-tag master-tag--on">활성</span>
+            <span th:unless="${company.isActiveCompany()}" class="master-tag master-tag--off">비활성</span>
+          </p>
+          <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+          <form method="post" th:action="@{/master/companies/{id}/toggle(id=${company.companyId})}">
+            <button type="submit"
+                    th:class="${company.isActiveCompany()} ? 'master-btn-outline' : 'master-btn master-btn--inline'"
+                    th:text="${company.isActiveCompany()} ? '비활성화' : '활성화'">토글</button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 대표 위임 — 이름 검색 필터 + 선택 처리 -->
+  <script>
+    (function () {
+      var search = document.getElementById('delegate-search');
+      if (!search) return; // 위임 후보가 없으면 폼 자체가 렌더되지 않음
+
+      var list   = document.getElementById('delegate-list');
+      var empty  = document.getElementById('delegate-empty');
+      var hidden = document.getElementById('delegate-selected');
+      var label  = document.getElementById('delegate-selected-label');
+      var form   = document.getElementById('delegate-form');
+      var options = Array.prototype.slice.call(list.querySelectorAll('.delegate-option'));
+
+      // 이름 검색 — 입력값을 포함하는 후보만 노출.
+      function applyFilter() {
+        var q = search.value.trim().toLowerCase();
+        var shown = 0;
+        options.forEach(function (opt) {
+          var name = (opt.getAttribute('data-name') || '').toLowerCase();
+          var match = q === '' || name.indexOf(q) !== -1;
+          opt.style.display = match ? 'block' : 'none';
+          if (match) shown += 1;
+        });
+        empty.style.display = (shown === 0) ? 'block' : 'none';
+      }
+
+      // 후보 클릭 → 선택. hidden input 에 memberId 를 담고 강조 표시.
+      options.forEach(function (opt) {
+        opt.addEventListener('click', function () {
+          hidden.value = opt.getAttribute('data-member-id');
+          label.textContent = opt.textContent;
+          options.forEach(function (o) { o.style.background = 'none'; });
+          opt.style.background = '#e0e7ff';
+        });
+      });
+
+      search.addEventListener('input', applyFilter);
+
+      form.addEventListener('submit', function (e) {
+        if (!hidden.value) {
+          e.preventDefault();
+          alert('위임할 직원을 선택하세요.');
+          return;
+        }
+        if (!confirm('대표직을 위임하시겠습니까? 기존 대표는 일반 직원이 됩니다.')) {
+          e.preventDefault();
+        }
+      });
+    })();
+  </script>
+
+  <!-- 로고 파일 선택 시 파일명 표시 + 미리보기 -->
+  <script>
+    function previewEditLogo(event) {
+      var input = event.target;
+      var preview = document.getElementById('editLogoPreview');
+      var nameLabel = document.getElementById('editLogoFileName');
+      var file = input.files && input.files[0];
+      if (!file) {
+        if (preview) { preview.style.display = 'none'; preview.removeAttribute('src'); }
+        if (nameLabel) nameLabel.textContent = 'PNG / JPG 등 이미지 파일';
+        return;
+      }
+      if (nameLabel) nameLabel.textContent = file.name;
+      if (preview) {
+        var url = URL.createObjectURL(file);
+        preview.src = url;
+        preview.style.display = 'block';
+        preview.onload = function () { URL.revokeObjectURL(url); };
+      }
+    }
+  </script>
+</body>
+
+</html>

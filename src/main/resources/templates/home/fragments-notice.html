@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <body>
+    <!--
+      [카드] 공지사항 — 시스템 디폴트 NOTICE 보드의 최신 3건을 SSR.
+      ※ MainController 가 noticeBoardId(첫 번째 NOTICE 보드, 없으면 lazy 생성) 와 latestNotices 를 model 에 노출.
+      ※ 클릭 시 해당 게시판 글 상세로 이동.
+    -->
+    <section
+      th:fragment="noticeCard"
+      class="flex shrink-0 flex-col rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+    >
+      <header
+        class="flex shrink-0 items-center justify-between border-b border-gray-100 px-3.5 py-2.5 dark:border-gray-700"
+      >
+        <h2 class="text-sm font-semibold text-gray-800 dark:text-white">
+          공지사항
+        </h2>
+        <a
+          th:if="${noticeBoardId != null}"
+          th:href="@{|/board/${noticeBoardId}|}"
+          class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        >최근 3건 ›</a>
+        <span
+          th:if="${noticeBoardId == null}"
+          class="text-xs text-gray-400"
+        >로그인 필요</span>
+      </header>
+      <ul
+        class="space-y-1 px-3 py-2.5 text-sm"
+        id="home-notice-list"
+        aria-label="공지사항 목록"
+      >
+        <!-- 비어있을 때 -->
+        <li th:if="${latestNotices == null or #lists.isEmpty(latestNotices)}"
+            class="px-2 py-3 text-center text-xs text-gray-400">
+          등록된 공지가 없습니다.
+        </li>
+
+        <!--
+          최신 3건 — 제목 클릭 시 글 상세(/board/{boardId}/articles/{articleId})로 이동.
+          createdAt 은 LocalDateTime.toString() 형식("2026-05-18T..") — null 가드 + 앞 5~10 (MM-dd) 만 노출.
+        -->
+        <!-- 좁은 열에 맞춘 한 줄 리스트: 제목 + 날짜 -->
+        <li th:each="n : ${latestNotices}">
+          <a th:href="@{|/board/${noticeBoardId}/articles/${n.articleId}|}"
+             class="flex items-start justify-between gap-2 rounded-lg border border-transparent px-2 py-2 hover:border-gray-200 hover:bg-gray-50 dark:hover:border-gray-600 dark:hover:bg-gray-900/50">
+            <span class="min-w-0 flex-1 truncate font-medium text-gray-900 dark:text-white"
+                  th:text="${n.title}">공지 제목</span>
+            <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400"
+                  th:text="${n.createdAt != null and #strings.length(n.createdAt) >= 10 ? #strings.substring(n.createdAt, 5, 10) : ''}">05-12</span>
+          </a>
+        </li>
+      </ul>
+    </section>
+  </body>
+</html>

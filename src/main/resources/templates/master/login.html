@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" th:href="@{/css/master.css}" />
+  <title>MASTER 로그인</title>
+</head>
+
+<body class="master-page">
+  <div class="master-auth">
+    <div class="master-card">
+      <div style="text-align: center; margin-bottom: 1.75rem;">
+        <span class="master-badge">MASTER</span>
+        <h1 class="master-title">시스템 운영자 로그인</h1>
+      </div>
+
+      <div th:if="${errorMessage != null}" class="alert-box alert-error"
+           style="margin-bottom: 1.25rem;" role="alert">
+        <span th:text="${errorMessage}">오류 메시지</span>
+      </div>
+
+      <!-- th:action 으로 CSRF 토큰 자동 주입 -->
+      <form method="post" th:action="@{/master/login}">
+        <div class="field-group">
+          <label for="loginId" class="field-label">아이디</label>
+          <input type="text" id="loginId" name="loginId" class="field-input"
+                 placeholder="MASTER 아이디" autocomplete="username" required />
+        </div>
+        <div class="field-group" style="margin-bottom: 0;">
+          <label for="password" class="field-label">비밀번호</label>
+          <input type="password" id="password" name="password" class="field-input"
+                 placeholder="비밀번호" autocomplete="current-password" required />
+        </div>
+        <button type="submit" class="master-btn" style="margin-top: 1.5rem;">로그인</button>
+      </form>
+    </div>
+  </div>
+</body>
+
+</html>

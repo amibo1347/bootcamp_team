@@ -1,7 +1,7 @@
 // ============================================================
 // [의존성 임포트] : Alpine.js (UI 반응형), flatpickr (날짜 선택), Dropzone (파일 업로드)
 // ============================================================
-import "./components/calendar-init.js";
+import "../resources/static/js/calendar/calendar-init.js";
 import Alpine from "alpinejs";
 import persist from "@alpinejs/persist";
 import flatpickr from "flatpickr";

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <link rel="stylesheet" th:href="@{/css/output.css}" />
+  <title>로그인 | 회사 선택</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
+    input::placeholder { color: #9ca3af; opacity: 0.85; }
+    input:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+    .login-card {
+      width: 35vw !important; aspect-ratio: 1 / 1 !important; min-width: 360px;
+      box-sizing: border-box; background-color: #ffffff; border-radius: 3rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); padding: 4rem;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+  </style>
+</head>
+
+<body style="margin: 0; padding: 0;">
+  <div class="flex min-h-screen w-full items-center justify-center bg-gray-300">
+    <div class="login-card bg-white">
+
+      <div style="margin-bottom: 1.5rem; text-align: center;">
+        <h1 style="font-size: 1.5rem; font-weight: 700; color: #374151; margin: 0 0 0.5rem;">회사 로그인</h1>
+        <p style="font-size: 0.875rem; color: #6b7280; margin: 0;">소속 회사의 도메인을 입력하세요.</p>
+      </div>
+
+      <div th:if="${errorMessage != null}"
+        class="flex items-center p-4 mb-6 text-sm border-2 rounded-2xl shadow-sm text-red-900 border-red-200 bg-red-100/80"
+        role="alert">
+        <p class="font-medium" th:text="${errorMessage}"></p>
+      </div>
+
+      <!-- 도메인 입력 → /{domain}/login 으로 이동 (서버 왕복 없이 클라이언트 이동) -->
+      <form id="domain-form" onsubmit="return false;">
+        <div style="display: flex; flex-direction: column; gap: 0.75rem">
+          <div>
+            <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.375rem;">
+              회사 도메인
+            </label>
+            <input type="text" id="company-domain" placeholder="예: acme" autocomplete="off" autofocus style="
+              width: 100%; height: 3rem; border: none; background-color: #f3f4f6;
+              border-radius: 0.75rem; padding: 0 1rem; font-size: 0.875rem;
+              color: #1f2937; box-sizing: border-box;" />
+          </div>
+          <button type="submit" style="
+            height: 3rem; border: none; border-radius: 0.75rem; background-color: #a6b2c9;
+            color: #ffffff; font-size: 0.875rem; font-weight: 600; cursor: pointer;
+            transition: background-color 0.2s; margin-top: 1rem;"
+            onmouseover="this.style.backgroundColor='#8f9db5'"
+            onmouseout="this.style.backgroundColor='#A6B2C9'">
+            로그인 페이지로 이동
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var form = document.getElementById('domain-form');
+      var input = document.getElementById('company-domain');
+      form.addEventListener('submit', function () {
+        var domain = (input.value || '').trim();
+        if (!domain) { input.focus(); return; }
+        // 영문/숫자/.-_ 만 허용 (CompanyService.normalizeDomain 과 동일 기준)
+        if (!/^[A-Za-z0-9._-]{2,40}$/.test(domain)) {
+          alert('도메인 형식이 올바르지 않습니다.');
+          input.focus();
+          return;
+        }
+        window.location.href = '/' + encodeURIComponent(domain) + '/login';
+      });
+    })();
+  </script>
+</body>
+
+</html>

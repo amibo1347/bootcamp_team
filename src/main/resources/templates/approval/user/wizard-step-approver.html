@@ -1,0 +1,15 @@
+<!-- ================================================================ -->
+<!-- [위저드 스텝 2] 결재선 선택 — 1~4단계 다인 결재선. 선택 시 모달이 열림 -->
+<!-- ================================================================ -->
+<div xmlns:th="http://www.thymeleaf.org" th:fragment="wizardStepApprover" class="space-y-4">
+  <p class="text-sm text-gray-600 dark:text-gray-400">
+    결재선(1~4단계)을 선택하세요. 옵션을 고르면 결재자 선택 모달이 열립니다.
+    마지막 단계가 최종 결재자입니다.
+  </p>
+  <!-- [결재선 선택] DESIGN_RULES 5-2 커스텀 콤보박스 — approval-combobox.js -->
+  <div class="relative z-20 w-full sm:max-w-md">
+    <select id="approval-approver-select" class="sr-only pointer-events-none" tabindex="-1" aria-hidden="true">
+      <option value="">불러오는 중…</option>
+    </select>
+  </div>
+</div>

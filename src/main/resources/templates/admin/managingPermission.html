@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <title>
+        Managing Permissions
+    </title>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+</head>
+
+<body
+    x-data="{ page: 'permission', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-init="
+            darkMode = JSON.parse(localStorage.getItem('darkMode'));
+            $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}">
+
+    <div th:replace="~{partials/preloader}"></div>
+
+    <div class="flex h-screen overflow-hidden">
+        <div th:replace="~{partials/sidebar}"></div>
+
+        <div class="page-content">
+            <div th:replace="~{partials/overlay}"></div>
+            <div th:replace="~{partials/header}"></div>
+
+            <main class="page-main">
+                <h2 class="page-heading">권한 관리</h2>
+
+                <!--
+                    탭 구조: [직급별 권한 부여] / [회원별 권한 부여]
+                    ※ 조직도 구성의 상태 탭(활성/휴직/퇴사)과 동일한 시각 패턴. 활성 탭만 컨텐츠를 표시.
+                    ※ 탭 전환은 permission.js 의 switchPermissionTab() 에서 처리.
+                -->
+                <div>
+                    <!-- 탭 버튼 줄 -->
+                    <div class="mb-4 flex border-b border-gray-200 dark:border-gray-700">
+                        <button type="button" data-perm-tab="position" onclick="switchPermissionTab('position')"
+                            class="js-perm-tab js-perm-tab-active -mb-px border-b-2 border-indigo-500 px-5 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-300">
+                            직급별 권한 부여
+                        </button>
+                        <button type="button" data-perm-tab="member" onclick="switchPermissionTab('member')"
+                            class="js-perm-tab -mb-px border-b-2 border-transparent px-5 py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            회원별 권한 부여
+                        </button>
+                    </div>
+
+                    <!-- ===== 탭 1: 직급별 권한 부여 ===== -->
+                    <section id="permTabPosition" class="js-perm-tab-panel p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                        <!--
+                            탭 헤더: 제목 + 우측 액션 — 회원 탭과 동일 레이아웃( mb-6 · h3 스타일 · min-h )로 타이틀 위치 일치
+                            ※ [직급 관리] 색상: DESIGN_RULES 4-4 Neutral Action (회색)
+                        -->
+                        <div class="mb-6 flex min-h-[38px] items-center justify-between gap-3">
+                            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">직급별 권한 부여</h3>
+                            <a th:href="@{/admin/position/list}"
+                                class="flex h-[38px] shrink-0 items-center justify-center rounded-xl bg-gray-200 px-5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                                직급 관리
+                            </a>
+                        </div>
+
+                        <div class="flex min-h-[400px] flex-col overflow-hidden rounded-xl border border-gray-400 dark:border-gray-700">
+                            <div th:if="${positions == null or #lists.isEmpty(positions)}"
+                                class="p-20 text-center text-gray-400 dark:text-gray-300">등록된 직급이 없습니다.</div>
+
+                            <!--
+                                각 직급 한 행. 대표(ADMIN) 직급은 컨트롤러에서 이미 제외되어 내려온다.
+                                ※ 저장 시 권한이 1개라도 체크되면 SUB_ADMIN 으로 자동 전환, 모두 해제면 USER 로 복귀.
+                            -->
+                            <div th:each="pos : ${positions}"
+                                th:id="'perm-row-' + ${pos.positionId}"
+                                class="flex flex-col gap-4 border-b border-gray-400 p-5 transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5">
+
+                                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                    <!-- 직급 정보 -->
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-lg font-semibold text-gray-900 dark:text-white"
+                                            th:text="${pos.positionName}">직급명</span>
+                                        <span th:if="${pos.isAdmin}"
+                                            class="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300">
+                                            관리자
+                                        </span>
+                                        <span th:if="${!pos.isAdmin}"
+                                            class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-300">
+                                            일반
+                                        </span>
+                                        <span class="ml-2 text-xs text-gray-400 dark:text-gray-300">
+                                            레벨 <span th:text="${pos.positionLevel}">0</span>
+                                        </span>
+                                    </div>
+
+                                    <!-- 저장 버튼 -->
+                                    <div class="flex-shrink-0">
+                                        <button type="button"
+                                            th:attr="data-position-id=${pos.positionId}"
+                                            onclick="savePermissions(this)"
+                                            class="rounded-xl bg-indigo-400 px-6 py-2 text-sm font-medium text-white transition hover:bg-indigo-500">
+                                            저장
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- 권한 체크박스들 -->
+                                <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+                                    <label th:each="perm : ${allPermissions}"
+                                        class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-200">
+                                        <input type="checkbox"
+                                            th:name="'perm-' + ${pos.positionId}"
+                                            th:value="${perm.name()}"
+                                            th:checked="${pos.permissions != null and pos.permissions.contains(perm)}"
+                                            class="h-4 w-4 cursor-pointer accent-indigo-500" />
+                                        <span th:text="${perm.label}">권한명</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- ===== 탭 2: 회원별 권한 부여 ===== -->
+                    <section id="permTabMember" class="js-perm-tab-panel hidden p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                        <!-- 탭 헤더: 직급 탭과 동일 — 우측에 보이지 않는 spacer 로 [직급 관리] 버튼 폭 맞춤 -->
+                        <div class="mb-6 flex min-h-[38px] items-center justify-between gap-3">
+                            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">회원별 권한 부여</h3>
+                            <span class="pointer-events-none invisible flex h-[38px] shrink-0 items-center justify-center rounded-xl px-5 py-2 text-sm font-medium"
+                                aria-hidden="true">직급 관리</span>
+                        </div>
+                        <p class="mb-6 text-xs text-gray-500 dark:text-gray-300">
+                            회원을 체크하고 권한을 선택해 [등록]을 누르면, 선택된 회원들의 예외 권한이 일괄 설정됩니다.<br/>
+                            ※ 직급 권한과 합산되어 적용되며, 변경 사항은 회원이 다시 로그인할 때 반영됩니다.
+                        </p>
+
+                        <!--
+                            검색 영역: 부서 / 직급 / 이름. 조직도 구성과 동일한 UX.
+                            ※ 옵션은 회원 데이터(.js-member-row) 의 data-* 속성에서 동적으로 채운다 (permission.js).
+                            ※ 검색은 클라이언트 사이드 필터 — DOM 의 행을 show/hide 만 한다.
+                        -->
+                        <div class="mb-4 rounded-xl border border-stroke bg-white px-5 py-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
+                            <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
+                                <!-- DESIGN_RULES 5-2: 네이티브 select 숨김 + permission.js 커스텀 콤보박스 -->
+                                <div class="relative z-20 flex-1">
+                                    <label for="memberSearchDept"
+                                        class="mb-1 block text-sm text-gray-600 dark:text-gray-300">부서별 조회</label>
+                                    <select id="memberSearchDept" class="hidden" tabindex="-1" aria-hidden="true"
+                                        onchange="filterMemberList()">
+                                        <option value="">전체 부서</option>
+                                    </select>
+                                </div>
+                                <div class="relative z-20 flex-1">
+                                    <label for="memberSearchPosition"
+                                        class="mb-1 block text-sm text-gray-600 dark:text-gray-300">직급별 조회</label>
+                                    <select id="memberSearchPosition" class="hidden" tabindex="-1" aria-hidden="true"
+                                        onchange="filterMemberList()">
+                                        <option value="">전체 직급</option>
+                                    </select>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-300">이름 검색</label>
+                                    <input type="text" id="memberSearchName" oninput="filterMemberList()" placeholder="이름을 입력하세요"
+                                        class="w-full appearance-none rounded border border-stroke bg-transparent py-2.5 px-4 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-meta-4 text-black dark:text-white" />
+                                </div>
+                                <div>
+                                    <button type="button" onclick="resetMemberSearch()"
+                                        class="flex h-[42px] shrink-0 items-center justify-center rounded-xl bg-gray-200 py-2 px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                                        초기화
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!--
+                            상단 패널: 권한 6개 체크박스 + [등록] 버튼 + 선택 인원 수.
+                            ※ 인사이동 UI 와 동일한 패턴으로 다중 선택 일괄 변경.
+                        -->
+                        <div class="mb-4 rounded-xl border border-stroke bg-gray-50 px-5 py-4 dark:border-strokedark dark:bg-meta-4">
+                            <div class="mb-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+                                <label th:each="perm : ${allPermissions}"
+                                    class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-200">
+                                    <input type="checkbox" name="memberPerm"
+                                        th:value="${perm.name()}"
+                                        class="js-member-perm h-4 w-4 cursor-pointer accent-indigo-500" />
+                                    <span th:text="${perm.label}">권한명</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span id="memberSelectedCount" class="text-sm text-gray-500 dark:text-gray-300">선택 0명</span>
+                                <button type="button" onclick="submitMemberPermissions()"
+                                    class="flex h-[38px] shrink-0 items-center justify-center rounded-xl bg-indigo-400 py-2 px-6 text-sm font-medium text-white transition hover:bg-indigo-500">
+                                    등록
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 회원 목록 (체크박스 + 정보) -->
+                        <div class="flex min-h-[400px] flex-col overflow-hidden rounded-xl border border-gray-400 dark:border-gray-700">
+
+                            <!-- 헤더: 전체 선택 (검색 결과 기준) -->
+                            <div class="flex items-center gap-3 border-b border-gray-400 bg-gray-50 px-5 py-3 dark:border-gray-700 dark:bg-meta-4">
+                                <input type="checkbox" id="memberSelectAll" onclick="onMemberSelectAll(this)"
+                                    class="h-4 w-4 cursor-pointer accent-indigo-500" />
+                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">전체 선택 (검색 결과)</span>
+                            </div>
+
+                            <div th:if="${members == null or #lists.isEmpty(members)}"
+                                class="p-20 text-center text-gray-400 dark:text-gray-300">활성 회원이 없습니다.</div>
+
+                            <!--
+                                각 회원 행에 data-* 로 dept/position/name 을 박아둔다.
+                                ※ permission.js 의 filterMemberList() 가 이 값을 기준으로 show/hide.
+                                ※ 부서/직급의 값/표시 텍스트는 동일하게 이름을 사용 (id가 노출되지 않으므로 단순화).
+                            -->
+                            <div id="memberListEmptySearch" class="hidden p-20 text-center text-gray-400 dark:text-gray-300">
+                                검색 결과가 없습니다.
+                            </div>
+
+                            <div th:each="m : ${members}"
+                                class="js-member-row flex items-center gap-3 border-b border-gray-400 p-4 transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5"
+                                th:attr="data-dept=${m.dept != null ? m.dept.deptName : ''},
+                                         data-position=${m.position != null ? m.position.positionName : ''},
+                                         data-name=${m.name}">
+
+                                <input type="checkbox" th:value="${m.memberId}"
+                                    onclick="onMemberCheck(this)"
+                                    class="js-member-check h-4 w-4 cursor-pointer accent-indigo-500" />
+
+                                <div class="flex flex-1 flex-col gap-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="font-semibold text-gray-900 dark:text-white"
+                                            th:text="${m.name}">이름</span>
+                                        <span
+                                            class="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
+                                            th:text="${m.dept != null ? m.dept.deptName : '미지정'}">부서</span>
+                                        <span class="text-xs font-medium text-gray-500 dark:text-gray-300"
+                                            th:text="${m.position != null ? m.position.positionName : '직급 미지정'}">직급</span>
+                                    </div>
+                                    <!-- 현재 예외 권한 뱃지 -->
+                                    <div class="flex flex-wrap gap-1">
+                                        <th:block th:if="${m.extraPermissions != null and not #sets.isEmpty(m.extraPermissions)}">
+                                            <span th:each="ep : ${m.extraPermissions}"
+                                                class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-500/15"
+                                                style="color: #b45309;"
+                                                th:text="${ep.label}">권한</span>
+                                        </th:block>
+                                        <span th:if="${m.extraPermissions == null or #sets.isEmpty(m.extraPermissions)}"
+                                            class="text-xs text-gray-400 dark:text-gray-300">예외 권한 없음</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module" src="/js/index.js"></script>
+    <script src="/js/admin/permission.js"></script>
+</body>
+
+</html>

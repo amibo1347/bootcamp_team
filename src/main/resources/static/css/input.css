@@ -3,7 +3,31 @@ layer(base);
 
 @import "tailwindcss";
 
+@source "../../templates/**/*.html";
+@source "../../../js/**/*.js";
+
 @custom-variant dark (&:is(.dark *));
+
+/* Thymeleaf HTML 및 정적 JS에서 사용하는 유틸 클래스가 output.css에 포함되도록 스캔 경로 지정 */
+@source "../../templates/**/*.html";
+@source "../js/**/*.js";
+
+/* 디자인 규칙 4-6 (Restore / 복귀 버튼) 색상 강제 포함:
+   아직 어떤 템플릿에서도 사용 전이지만, 휴직 직원 목록 화면이 추가될 때
+   별도 빌드 없이 바로 적용되도록 safelist 처럼 미리 포함시킨다. */
+@source inline("bg-emerald-200 text-emerald-700 hover:bg-emerald-300");
+
+/* ADMIN 시스템 로그 페이지의 액션 배지·자연어 강조 색상.
+   system-log.js 가 actionCode 에 따라 동적으로 클래스명을 조합하므로,
+   PurgeCSS 가 누락하지 않도록 safelist 로 명시. */
+@source inline("bg-emerald-100 bg-blue-100 bg-rose-100 bg-teal-100 bg-orange-100 bg-amber-100 bg-indigo-100 bg-slate-100 bg-gray-100");
+@source inline("text-emerald-700 text-blue-700 text-rose-700 text-teal-700 text-orange-700 text-amber-700 text-indigo-700 text-slate-700 text-gray-700");
+@source inline("text-emerald-600 text-blue-600 text-rose-600 text-teal-600 text-orange-600 text-amber-600 text-indigo-600");
+@source inline("ring-1 ring-inset ring-emerald-200 ring-blue-200 ring-rose-200 ring-teal-200 ring-orange-200 ring-amber-200 ring-indigo-200 ring-slate-200 ring-gray-200");
+@source inline("dark:bg-emerald-900/40 dark:bg-blue-900/40 dark:bg-rose-900/40 dark:bg-teal-900/40 dark:bg-orange-900/40 dark:bg-amber-900/40 dark:bg-indigo-900/40 dark:bg-slate-700 dark:bg-gray-700");
+@source inline("dark:text-emerald-200 dark:text-blue-200 dark:text-rose-200 dark:text-teal-200 dark:text-orange-200 dark:text-amber-200 dark:text-indigo-200 dark:text-slate-200 dark:text-gray-200");
+@source inline("dark:text-emerald-300 dark:text-blue-300 dark:text-rose-300 dark:text-teal-300 dark:text-orange-300 dark:text-amber-300 dark:text-indigo-300");
+@source inline("dark:ring-emerald-500/30 dark:ring-blue-500/30 dark:ring-rose-500/30 dark:ring-teal-500/30 dark:ring-orange-500/30 dark:ring-amber-500/30 dark:ring-indigo-500/30 dark:ring-slate-500/30 dark:ring-gray-500/30");
 
 @theme {
   --font-*: initial;
@@ -80,6 +104,15 @@ layer(base);
   --color-gray-900: #101828;
   --color-gray-950: #0c111d;
   --color-gray-dark: #1a2231;
+
+  /* TailAdmin 레거시 이름 — 템플릿의 border-stroke, dark:bg-boxdark, dark:bg-meta-4 등이 빌드되도록 */
+  --color-primary: #465fff;
+  --color-stroke: #e4e7ec;
+  --color-strokedark: #344054;
+  --color-boxdark: #1d2939;
+  --color-meta-4: #313d4a;
+  --color-form-strokedark: #475467;
+  --color-gray: #f2f4f7;
 
   --color-orange-25: #fffaf5;
   --color-orange-50: #fff6ed;
@@ -178,6 +211,102 @@ layer(base);
   }
 }
 
+@layer components {
+  /* 메뉴 아이템 기본 스타일 (Inactive) */
+  /* 기본 상태: 회색 */
+.menu-item {
+  @apply flex items-center gap-3 px-4 py-3 text-gray-500 transition-all;
+}
+
+/* 1. 마우스 오버 시 스타일 (선택되지 않았어도 마우스 대면 변화) */
+.menu-item:hover {
+  @apply bg-gray-100 text-indigo-600;
+}
+
+/* 2. 클릭하여 선택된 상태 (Active) - 파란색 배경 */
+.menu-item-active {
+  @apply bg-indigo-600! text-white!;
+}
+
+/* 하위 메뉴(Dropdown) 스타일 분리 */
+.menu-dropdown-item {
+  @apply py-2 px-4 text-sm text-gray-500 hover:text-indigo-600 transition-colors;
+}
+
+/* 하위 메뉴가 실제로 선택되었을 때만 파란 글씨/배경 */
+.menu-dropdown-item-active {
+  @apply text-indigo-600 font-bold bg-indigo-50 rounded-md;
+}
+
+  /*
+   * [캘린더 일정 모달] 네이티브 select — 모달 내 text input 과 동일 톤(rounded-xl, shadow-sm, brand 포커스)
+   * 단일 select 는 appearance-none + 형제 SVG 화살표(템플릿) 조합을 위해 우측 패딩(pr-10) 확보.
+   */
+  .calendar-native-select {
+    @apply w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-3 pr-10 text-sm text-gray-900 shadow-sm transition
+      focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25
+      dark:border-gray-600 dark:bg-gray-800/60 dark:text-white dark:focus:border-brand-500;
+  }
+  .dark .calendar-native-select {
+    color-scheme: dark;
+  }
+  .calendar-native-select-multiple {
+    @apply max-h-40 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-sm transition
+      focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25
+      dark:border-gray-600 dark:bg-gray-800/60 dark:text-white dark:focus:border-brand-500;
+  }
+  .dark .calendar-native-select-multiple {
+    color-scheme: dark;
+  }
+
+  /* 일정 모달 커스텀 콤보박스(열린 목록) — managingBoard 권한 패널·DESIGN_RULES 5-2 패널 톤 */
+  .calendar-combobox-trigger {
+    @apply flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-gray-300 bg-white px-4 py-3 text-left text-sm font-normal text-gray-900 shadow-sm transition
+      focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25
+      dark:border-gray-600 dark:bg-gray-800/60 dark:text-white dark:focus:border-brand-500;
+  }
+  .cal-combobox-panel {
+    @apply max-h-56 overflow-y-auto rounded-lg border border-gray-300 bg-white py-1 shadow-xl ring-1 ring-black/5 dark:border-strokedark dark:bg-meta-4 dark:ring-white/10;
+  }
+  .cal-combobox-option {
+    @apply w-full cursor-pointer px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/10;
+  }
+  .cal-combobox-option[aria-selected="true"] {
+    @apply bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-200;
+  }
+
+  /* 매주 반복 요일 칩 — managingBoard 톤과 통일 */
+  .cal-weekday-btn {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 transition hover:bg-gray-50
+      dark:border-gray-600 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:bg-white/5;
+  }
+  .cal-weekday-btn[aria-pressed="true"] {
+    @apply border-indigo-400 bg-indigo-400 text-white hover:bg-indigo-500;
+  }
+
+  /* 매월 반복 일자 셀 (1~31 미니 그리드) */
+  .cal-monthday-btn {
+    @apply inline-flex h-8 items-center justify-center rounded-md border border-gray-200 bg-white text-xs font-medium text-gray-700 transition hover:bg-gray-50
+      dark:border-gray-600 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:bg-white/5;
+  }
+  .cal-monthday-btn[aria-pressed="true"] {
+    @apply border-indigo-400 bg-indigo-400 text-white hover:bg-indigo-500;
+  }
+
+  /*
+   * [게시판 알림 토글]
+   *  - OFF: HTML 인라인 클래스(휴지통과 동일한 hover 톤) 그대로 사용.
+   *  - ON (aria-pressed="true"): 글쓰기 버튼과 동일한 indigo-400 풀채움 + 흰 아이콘 + hover 시 indigo-500.
+   *    인라인 hover utility 가 specificity 로 침범할 수 있으므로 `!` 로 강제 우선 적용.
+   */
+  .board-alert-toggle[aria-pressed="true"] {
+    @apply border-indigo-400! bg-indigo-400! text-white! shadow-sm
+      hover:border-indigo-500! hover:bg-indigo-500! hover:text-white!
+      dark:border-indigo-400! dark:bg-indigo-400! dark:text-white!
+      dark:hover:border-indigo-500! dark:hover:bg-indigo-500! dark:hover:text-white!;
+  }
+}
+
 @utility menu-item {
   @apply text-theme-sm relative flex items-center gap-3 rounded-lg px-3 py-2 font-medium;
 }
@@ -248,17 +377,120 @@ layer(base);
   background-color: #344054;
 }
 
+/* ===== 앱 페이지 공통 레이아웃 (콘텐츠 영역 · main · h2 · 스크롤 본문 통일) ===== */
+@layer components {
+  /* 헤더 아래 스크롤 영역 — scrollbar-gutter로 스크롤 유무와 관계없이 동일 가로 폭 */
+  .page-content {
+    @apply relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto;
+    scrollbar-gutter: stable;
+  }
+
+  /* 본문 main — 패딩·섹션 간격 통일 */
+  .page-main {
+    @apply space-y-8 p-8;
+  }
+
+  /* 캘린더: 우하단 채팅 FAB 겹침 방지(하단만). 가로는 page-main 과 동일(p-8) */
+  .page-main--calendar {
+    @apply pb-28 sm:pb-32;
+  }
+
+  /* 페이지 최상단 제목(h2) */
+  .page-heading {
+    @apply ml-2 text-2xl font-black text-gray-900 dark:text-white;
+  }
+
+  /* 카드·패널 내부 스크롤 본문 — 스크롤바 유무와 동일 폭 */
+  .page-scroll-body {
+    @apply min-h-0 flex-1 overflow-y-auto;
+    scrollbar-gutter: stable;
+  }
+
+  /* 스크롤 없는 본문도 gutter 만 적용해 스크롤 영역과 동일 폭 */
+  .page-scroll-gutter {
+    scrollbar-gutter: stable;
+  }
+
+  /*
+    홈 대시보드 하단 2열 — Tailwind arbitrary grid 가 빌드 누락될 수 있어 명시적 정의.
+    모바일: 1열(오늘 → 공지 → 주간) / md 이상: 왼쪽(오늘+공지) | 오른쪽(주간)
+  */
+  .home-dashboard-bottom {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .home-dashboard-bottom {
+      grid-template-columns: 18rem minmax(0, 1fr);
+      align-items: start;
+      gap: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .home-dashboard-bottom {
+      grid-template-columns: 20rem minmax(0, 1fr);
+      gap: 1.75rem;
+    }
+  }
+
+  /* DESIGN_RULES 5-2 — 폼 라벨·네이티브 select (managingBoard 기준) */
+  .form-field-label {
+    @apply mb-1 block text-sm text-gray-600 dark:text-gray-300;
+  }
+
+  .form-native-select {
+    @apply relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-gray-700 dark:bg-meta-4 dark:text-white dark:[color-scheme:dark] dark:focus:ring-indigo-400/40;
+  }
+
+  /* DESIGN_RULES 5-2 — 커스텀 드롭다운 트리거·패널 (단일 선택) */
+  .form-combobox-trigger {
+    @apply flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30 dark:focus-visible:ring-indigo-400/40;
+  }
+
+  .form-combobox-panel {
+    @apply absolute left-0 top-full z-[10001] mt-2 max-h-36 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white p-1 shadow-lg dark:border-strokedark dark:bg-meta-4 dark:text-gray-300 dark:shadow-black/40;
+  }
+
+  .form-combobox-option {
+    @apply block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/10;
+  }
+
+  .form-combobox-option.is-selected {
+    @apply bg-indigo-50 font-semibold text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300;
+  }
+
+  .form-combobox-arrow {
+    @apply inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300;
+  }
+
+  .form-combobox-arrow.is-open {
+    @apply rotate-180;
+  }
+}
+
 @layer base {
   body {
-    @apply font-outfit relative z-1 bg-gray-50 text-base font-normal;
+    @apply font-outfit relative z-1 bg-gray-50 text-base font-normal text-gray-900;
+  }
+
+  /* 다크: 인덱스 본문(bg-gray-900) + 사이드바 메뉴 비활성 글자 톤(text-gray-300)과 정렬 */
+  body.dark {
+    @apply bg-gray-900 text-gray-300;
   }
 }
 
 @layer utilities {
-  input[type="date"]::-webkit-inner-spin-button,
-  input[type="time"]::-webkit-inner-spin-button,
-  input[type="date"]::-webkit-calendar-picker-indicator,
-  input[type="time"]::-webkit-calendar-picker-indicator {
+  /* flatpickr 가 붙은 입력만 네이티브 picker 인디케이터를 숨긴다.
+     (일반 type=date 입력은 OS 기본 캘린더 팝업을 유지) */
+  input.flatpickr-input[type="date"]::-webkit-inner-spin-button,
+  input.flatpickr-input[type="time"]::-webkit-inner-spin-button,
+  input.flatpickr-input[type="date"]::-webkit-calendar-picker-indicator,
+  input.flatpickr-input[type="time"]::-webkit-calendar-picker-indicator {
     display: none;
     -webkit-appearance: none;
   }
@@ -416,8 +648,16 @@ span.flatpickr-weekday,
 }
 
 /* fullcalendar */
+#calendar {
+  @apply w-full max-w-full;
+}
+.fc {
+  /* 테마 기본값의 오늘 칸 배경(연한 색) 제거 — 오늘은 숫자/헤더만 브랜드 박스로 표시 */
+  --fc-today-bg-color: transparent;
+  @apply w-full max-w-full;
+}
 .fc .fc-view-harness {
-  @apply custom-scrollbar max-w-full overflow-x-auto;
+  @apply custom-scrollbar w-full max-w-full overflow-x-auto;
 }
 .fc-dayGridMonth-view.fc-view.fc-daygrid {
   @apply min-w-[718px];
@@ -438,25 +678,51 @@ span.flatpickr-weekday,
 .fc-button-group .fc-button {
   @apply flex h-10 w-10 items-center justify-center rounded-lg! border border-gray-200 bg-transparent hover:border-gray-200 hover:bg-gray-50 focus:shadow-none active:border-gray-200! active:bg-transparent! active:shadow-none! dark:border-gray-800 dark:hover:border-gray-800 dark:hover:bg-gray-900;
 }
+/*
+  이전/다음: FC 가 버튼 안에 "이전"/"다음" 텍스트를 넣고, 여기서 ::before 로 Chevron 을 그려
+  텍스트+아이콘이 겹치면 정렬이 무너짐 → 글자 레이아웃 제거 후 아이콘 박스만 dead-center.
+*/
+.fc-button-group .fc-button.fc-prev-button,
+.fc-button-group .fc-button.fc-next-button {
+  @apply relative overflow-hidden p-0!;
+  font-size: 0;
+  line-height: 0;
+  color: transparent;
+}
+.fc-button-group .fc-button.fc-prev-button:before,
+.fc-button-group .fc-button.fc-next-button:before {
+  @apply absolute block;
+  content: "";
+  inset: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: auto;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
 .fc-button-group .fc-button.fc-prev-button:before {
-  @apply mt-1 inline-block;
-  content: url("data:image/svg+xml,%3Csvg width='25' height='24' viewBox='0 0 25 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M16.0068 6L9.75684 12.25L16.0068 18.5' stroke='%23344054' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E%0A");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 25 24' fill='none'%3E%3Cpath d='M16.0068 6L9.75684 12.25L16.0068 18.5' stroke='%23344054' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 .fc-button-group .fc-button.fc-next-button:before {
-  @apply mt-1 inline-block;
-  content: url("data:image/svg+xml,%3Csvg width='25' height='24' viewBox='0 0 25 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.50684 19L15.7568 12.75L9.50684 6.5' stroke='%23344054' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E%0A");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 25 24' fill='none'%3E%3Cpath d='M9.50684 19L15.7568 12.75L9.50684 6.5' stroke='%23344054' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 .dark .fc-button-group .fc-button.fc-prev-button:before {
-  content: url("data:image/svg+xml,%3Csvg width='25' height='24' viewBox='0 0 25 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M16.0068 6L9.75684 12.25L16.0068 18.5' stroke='%2398A2B3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E%0A");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 25 24' fill='none'%3E%3Cpath d='M16.0068 6L9.75684 12.25L16.0068 18.5' stroke='%2398A2B3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 .dark .fc-button-group .fc-button.fc-next-button:before {
-  content: url("data:image/svg+xml,%3Csvg width='25' height='24' viewBox='0 0 25 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.50684 19L15.7568 12.75L9.50684 6.5' stroke='%2398A2B3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E%0A");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 25 24' fill='none'%3E%3Cpath d='M9.50684 19L15.7568 12.75L9.50684 6.5' stroke='%2398A2B3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 .fc-button-group .fc-button .fc-icon {
   @apply hidden;
 }
+/* 오늘(custom todayCal): 이전/다음과 동일한 박스 톤 + 텍스트 라벨용 가로 자동 */
+#calendar .fc-header-toolbar .fc-todayCal-button,
+.fc-button-group .fc-button.fc-todayCal-button {
+  @apply flex h-10! w-auto! min-w-10 shrink-0 items-center justify-center rounded-lg! border border-gray-200 bg-transparent px-2.5! text-xs font-medium text-gray-700 hover:border-gray-200 hover:bg-gray-50 focus:shadow-none active:border-gray-200! active:bg-transparent! active:shadow-none! dark:border-gray-800 dark:text-gray-200 dark:hover:border-gray-800 dark:hover:bg-gray-900 sm:px-3 sm:text-sm;
+}
 .fc-addEventButton-button {
-  @apply bg-brand-500! hover:bg-brand-600! rounded-lg! border-0! px-4! py-2.5! text-sm! font-medium! focus:shadow-none!;
+  @apply bg-indigo-400! text-white! hover:bg-indigo-500! rounded-lg! border-0! px-4! py-2.5! text-sm! font-medium! focus:shadow-none!;
 }
 .fc-toolbar-title {
   @apply text-lg! font-medium! text-gray-800 dark:text-white/90;
@@ -482,14 +748,15 @@ span.flatpickr-weekday,
 .fc .fc-col-header-cell-cushion {
   @apply px-5! py-4! text-sm font-medium text-gray-400 uppercase;
 }
+/* 오늘 날짜: 칸 전체 배경 없음 — 숫자/헤더 라벨만 브랜드 박스(불투명) */
 .fc .fc-daygrid-day.fc-day-today {
+  @apply bg-transparent;
+}
+.fc .fc-daygrid-day.fc-day-today .fc-scrollgrid-sync-inner {
   @apply bg-transparent;
 }
 .fc .fc-daygrid-day {
   @apply p-2;
-}
-.fc .fc-daygrid-day.fc-day-today .fc-scrollgrid-sync-inner {
-  @apply rounded-sm bg-gray-100 dark:bg-white/[0.03];
 }
 .fc .fc-daygrid-day-number {
   @apply p-3! text-sm font-medium text-gray-700 dark:text-gray-400;
@@ -503,6 +770,14 @@ span.flatpickr-weekday,
 .fc .fc-day-other .fc-daygrid-day-top .fc-daygrid-day-number {
   @apply text-gray-400 dark:text-white/30;
 }
+/* 월 뷰: 오늘 숫자만 강조 — min-h·py 를 낮춰 파란 박스 세로를 살짝 줄임 */
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  @apply inline-flex min-h-7 min-w-8 items-center justify-center rounded-md bg-brand-500 px-2 py-0.5 text-sm font-semibold text-white;
+}
+/*
+ * 주간(timeGridWeek) 열 헤더의 오늘: 아래에서 셀 전체 브랜드 배경으로 처리
+ * (월 그리드용 col 헤더에는 fc-day-today 가 거의 없음)
+ */
 .event-fc-color {
   @apply rounded-lg py-2.5 pr-3 pl-4;
 }
@@ -547,4 +822,269 @@ span.flatpickr-weekday,
 }
 .fc .fc-timegrid-axis-cushion {
   @apply text-sm font-medium text-gray-500 dark:text-gray-400;
+}
+/*
+ * 주·일 뷰 (1-1, 2-2): 시간 문자열이 감싸는 div 중앙에 오도록
+ * .fc-timegrid-slot-label-frame.fc-scrollgrid-shrink-frame 기준 수평·수직 정렬
+ */
+.fc-timeGridWeek-view .fc-direction-ltr .fc-timegrid-slot-label-frame,
+.fc-timeGridDay-view .fc-direction-ltr .fc-timegrid-slot-label-frame {
+  @apply flex items-center justify-center px-3 py-1.5 text-center text-sm font-medium text-gray-500 dark:text-gray-400;
+}
+.fc-timeGridWeek-view .fc-timegrid-slot-label-cushion,
+.fc-timeGridDay-view .fc-timegrid-slot-label-cushion {
+  @apply block w-full text-center leading-tight;
+}
+/* 주·일 뷰: 왼쪽 축 열 너비만 간단히 지정 (이전 단순 규칙으로 복구) */
+.fc-timeGridWeek-view .fc-timegrid-axis,
+.fc-timeGridDay-view .fc-timegrid-axis,
+.fc-timeGridWeek-view .fc-timegrid-slot-label,
+.fc-timeGridDay-view .fc-timegrid-slot-label {
+  min-width: 6rem !important;
+  width: 6rem !important;
+}
+
+/*
+ * FullCalendar 가 <col style="width:43px"> 를 인라인으로 부여 → td width 6rem 가 무시됨.
+ * colgroup>col 자체에 width 를 강제해야 셀이 6rem 으로 그려지고 글자가 셀 안에 들어온다.
+ */
+.fc-timeGridWeek-view .fc-timegrid-slots colgroup col:first-child,
+.fc-timeGridDay-view .fc-timegrid-slots colgroup col:first-child,
+.fc-timeGridWeek-view .fc-scrollgrid-section-header colgroup col:first-child,
+.fc-timeGridDay-view .fc-scrollgrid-section-header colgroup col:first-child,
+.fc-timeGridWeek-view .fc-scrollgrid-section-body colgroup col:first-child,
+.fc-timeGridDay-view .fc-scrollgrid-section-body colgroup col:first-child {
+  width: 6rem !important;
+  min-width: 6rem !important;
+}
+
+/*
+ * [세로선 정리] fc-scrollgrid-shrink-frame 이 콘텐츠 폭으로 줄어들면서 frame 자체의
+ * 우측 보더가 글자 가운데에 그려진다 → frame/cushion 보더 제거 + width:100% 로 셀을 채워
+ * 글자가 셀 전체에서 가운데 정렬되도록 한다. 셀(td) 우측에만 1px 세로선을 남긴다.
+ */
+.fc-timeGridWeek-view .fc-timegrid-slot-label-frame,
+.fc-timeGridDay-view .fc-timegrid-slot-label-frame,
+.fc-timeGridWeek-view .fc-timegrid-slot-label-cushion,
+.fc-timeGridDay-view .fc-timegrid-slot-label-cushion {
+  width: 100% !important;
+  border: 0 !important;
+  box-sizing: border-box;
+}
+.fc-timeGridWeek-view .fc-timegrid-slot-label,
+.fc-timeGridDay-view .fc-timegrid-slot-label {
+  border-right: 1px solid #e5e7eb !important;
+  border-left: 0 !important;
+  box-sizing: border-box;
+}
+.dark .fc-timeGridWeek-view .fc-timegrid-slot-label,
+.dark .fc-timeGridDay-view .fc-timegrid-slot-label {
+  border-right-color: #374151 !important;
+}
+
+/* 같은 시간축 열의 '종일' 등 축 라벨도 셀 안에서 가운데 */
+.fc-timeGridWeek-view .fc-timegrid-axis .fc-timegrid-axis-cushion,
+.fc-timeGridDay-view .fc-timegrid-axis .fc-timegrid-axis-cushion {
+  @apply flex items-center justify-center px-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400;
+}
+/*
+ * '종일' 라벨도 fc-scrollgrid-shrink-cushion 클래스 때문에 콘텐츠 폭으로 줄어들어 가운데 정렬이 무효 → 시간 라벨과 동일하게 width:100% 강제
+ */
+.fc-timeGridWeek-view .fc-timegrid-axis-frame,
+.fc-timeGridDay-view .fc-timegrid-axis-frame,
+.fc-timeGridWeek-view .fc-timegrid-axis-cushion,
+.fc-timeGridDay-view .fc-timegrid-axis-cushion {
+  width: 100% !important;
+  border: 0 !important;
+  box-sizing: border-box;
+}
+/* 주 뷰: 날짜 헤더(예: 5.10(일)) 셀 안 중앙 정렬 */
+.fc-timeGridWeek-view .fc-col-header-cell .fc-col-header-cell-cushion {
+  @apply mx-auto flex w-full justify-center text-center font-medium normal-case text-gray-700 dark:text-gray-300;
+}
+/* 주 뷰: 오늘 열은 헤더 셀 전체 브랜드색 (테마 th 배경보다 우선) */
+.fc-timeGridWeek-view th.fc-col-header-cell.fc-day-today {
+  @apply bg-brand-500! dark:bg-brand-500!;
+}
+.fc-timeGridWeek-view .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
+  @apply flex min-h-[3.25rem] w-full items-center justify-center rounded-none bg-transparent px-2 py-3 text-center text-sm font-semibold text-white;
+}
+
+/* =============================================================================
+ * 전자결재 위저드 select — DESIGN_RULES 5-2 (레이어 밖 · Tailwind 빌드/캐시와 무관하게 적용)
+ * ============================================================================= */
+#approval-panel-wizard select.approval-wizard-select {
+  box-sizing: border-box;
+  display: block;
+  position: relative;
+  z-index: 20;
+  width: 100%;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25em 1.25em;
+  padding: 0.625rem 2.5rem 0.625rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #111827;
+  cursor: pointer;
+}
+
+#approval-panel-wizard select.approval-wizard-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #a5b4fc;
+}
+
+body.dark #approval-panel-wizard select.approval-wizard-select {
+  border-color: #374151;
+  background-color: #313d4a;
+  color: #ffffff;
+  color-scheme: dark;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%9ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+}
+
+body.dark #approval-panel-wizard select.approval-wizard-select:focus {
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.4);
+}
+
+/*
+  근태·내 근무표 — 오늘/이번 달 네비 버튼
+  캘린더 todayCal 과 동일: 흰 박스 + 테두리, 가운데 indigo 점(::before), 라벨 텍스트 없음
+*/
+.att-today-nav-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(229 231 235);
+  background-color: rgb(255 255 255);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  flex-shrink: 0;
+  font-size: 0;
+  line-height: 0;
+}
+.att-today-nav-btn::before {
+  content: "";
+  display: block;
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 9999px;
+  background-color: rgb(79 70 229);
+  flex-shrink: 0;
+}
+.att-today-nav-btn:hover {
+  background-color: rgb(249 250 251);
+}
+.dark .att-today-nav-btn {
+  border-color: rgb(55 65 81);
+  background-color: rgb(17 24 39);
+}
+.dark .att-today-nav-btn::before {
+  background-color: rgb(129 140 248);
+}
+.dark .att-today-nav-btn:hover {
+  background-color: rgb(31 41 55);
+}
+
+/*
+  권한 관리 — 회원 검색 select (DESIGN_RULES 5-2)
+  ※ 레이어 밖 고정 CSS. permission.js 커스텀 콤보박스 트리거와 동일 톤.
+*/
+.perm-filter-combobox-trigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  color: #1f2937;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.perm-filter-combobox-trigger:hover {
+  border-color: #c7d2fe;
+  background-color: rgb(238 242 255 / 0.4);
+}
+.perm-filter-combobox-trigger:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #a5b4fc;
+}
+.perm-filter-combobox-panel {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 10001;
+  margin-top: 0.25rem;
+  max-height: 16rem;
+  width: 100%;
+  overflow: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  padding: 0.25rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+.perm-filter-combobox-option {
+  display: block;
+  width: 100%;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+  color: #374151;
+}
+.perm-filter-combobox-option:hover {
+  background-color: #f9fafb;
+}
+.perm-filter-combobox-option.is-selected {
+  background-color: #eef2ff;
+  font-weight: 600;
+  color: #4338ca;
+}
+body.dark .perm-filter-combobox-trigger {
+  border-color: #344054;
+  background-color: #1d2939;
+  color: #e5e7eb;
+}
+body.dark .perm-filter-combobox-trigger:hover {
+  border-color: rgb(99 102 241 / 0.4);
+  background-color: rgb(30 27 75 / 0.3);
+}
+body.dark .perm-filter-combobox-trigger:focus {
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.4);
+}
+body.dark .perm-filter-combobox-panel {
+  border-color: #344054;
+  background-color: #313d4a;
+  color: #d1d5db;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.35);
+}
+body.dark .perm-filter-combobox-option {
+  color: #d1d5db;
+}
+body.dark .perm-filter-combobox-option:hover {
+  background-color: rgb(255 255 255 / 0.1);
+}
+body.dark .perm-filter-combobox-option.is-selected {
+  background-color: rgb(99 102 241 / 0.15);
+  color: #a5b4fc;
 }

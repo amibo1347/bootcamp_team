@@ -27,12 +27,20 @@
             return;
         }
 
+        // 현재 회사 로그인 페이지(/{도메인}/login)의 회사 id — 이 회사 코드만 인증 허용.
+        const pageCompanyId = document.querySelector('input[name="companyId"]')?.value || '';
+
         try {
-            const response = await fetch(`/api/member/company/verify?companyCode=${userInput}`, {
+            const response = await fetch(
+                `/api/member/company/verify?companyCode=${encodeURIComponent(userInput)}`
+                + `&expectedCompanyId=${encodeURIComponent(pageCompanyId)}`, {
                 method: 'GET'
             });
 
-            if (!response.ok) throw new Error('네트워크 응답 에러');
+            if (!response.ok) {
+                alert(await window.getApiErrorMessage(response, '서버 통신 중 오류가 발생했습니다.'));
+                return;
+            }
 
             // 1. 서버가 { "isVerify": true, "companyId": ... } 객체를 보냅니다.
             const result = await response.json();
@@ -40,11 +48,12 @@
 
             // 2. result 자체가 아니라 result 안의 'isVerify' 속성을 확인해야 합니다.
             if (result.isVerify) {
-                // 성공: 가입 페이지로 이동 (나중에 companyId가 필요하면 result.companyId로 사용 가능!)
+                // 성공: 현재 회사의 회원가입 페이지(/{도메인}/signup)로 이동.
                 alert("인증에 성공했습니다");
-                location.href = `/member/signup`;
+                const companyDomain = document.querySelector('input[name="companyDomain"]')?.value || '';
+                location.href = `/${encodeURIComponent(companyDomain)}/signup`;
             } else {
-                alert("인증 코드가 일치하지 않습니다.");
+                alert(result.message || "인증 코드가 일치하지 않습니다.");
                 $accessCodeInput.value = '';
                 $accessCodeInput.focus();
             }

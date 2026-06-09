@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <title>Managing Boards</title>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+    <style>
+        /* 삭제 버튼 호버 색상을 고정한다(Tailwind 빌드 여부와 무관하게 적용) */
+        .btn-delete-hover:hover {
+            background-color: #fda4af;
+        }
+    </style>
+</head>
+
+<body
+    x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}">
+
+    <div th:replace="~{partials/preloader}"></div>
+
+    <div class="flex h-screen overflow-hidden">
+        <div th:replace="~{partials/sidebar}"></div>
+
+        <div class="page-content">
+            <div th:replace="~{partials/overlay}"></div>
+            <div th:replace="~{partials/header}"></div>
+
+            <main class="page-main">
+                <h2 class="page-heading">게시판 관리</h2>
+
+                <section
+                    class="p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <h3 class="text-xl font-semibold text-black dark:text-white mb-6">게시판 생성</h3>
+                    <form id="createBoardForm" class="space-y-6">
+                        <input id="readScope" type="hidden" value="ALL" />
+                        <input id="writeScope" type="hidden" value="ALL" />
+                        <input id="commentScope" type="hidden" value="ALL" />
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div>
+                                <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">게시판명</label>
+                                <input id="boardName" type="text" required
+                                    class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-gray-700 dark:bg-meta-4 dark:text-white" />
+                            </div>
+                            <div class="relative z-20">
+                                <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">게시판 타입</label>
+                                <select id="boardType"
+                                    class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-gray-700 dark:bg-meta-4 dark:text-white dark:[color-scheme:dark] dark:focus:ring-indigo-400/40">
+                                    <option value="NOTICE">공지사항</option>
+                                    <option value="POLICY">사내정책</option>
+                                    <option value="FREE">자유게시판</option>
+                                    <option value="QNA">Q&A 게시판</option>
+                                    <option value="ANONYMOUS">익명게시판</option>
+                                    <option value="ETC">기타</option>
+                                </select>
+                            </div>
+                            <div class="relative z-20">
+                                <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">뷰 타입</label>
+                                <select id="viewType"
+                                    class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-gray-700 dark:bg-meta-4 dark:text-white dark:[color-scheme:dark] dark:focus:ring-indigo-400/40">
+                                    <option value="LIST">목록</option>
+                                    <option value="ALBUM">앨범</option>
+                                    <option value="CARD">카드</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="button" data-toggle-target="permissionSettingsPanel" aria-expanded="false"
+                            aria-controls="permissionSettingsPanel"
+                            class="group flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white px-4 py-3.5 text-left shadow-sm transition hover:border-indigo-200 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:border-strokedark dark:from-meta-4 dark:to-boxdark dark:hover:border-indigo-500/50 dark:focus-visible:ring-offset-gray-900">
+                            <span class="flex min-w-0 items-center gap-3">
+                                <span
+                                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 ring-1 ring-inset ring-indigo-600/10 dark:bg-indigo-500/15 dark:text-indigo-300 dark:ring-white/10"
+                                    aria-hidden="true">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                                        class="h-5 w-5">
+                                        <path fill-rule="evenodd"
+                                            d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="min-w-0">
+                                    <span class="block text-sm font-semibold text-gray-900 dark:text-white">권한 설정</span>
+                                    <span class="block truncate text-xs font-normal text-gray-500 dark:text-gray-300">읽기
+                                        · 쓰기 · 댓글 접근 범위</span>
+                                </span>
+                            </span>
+                            <span data-toggle-arrow
+                                class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out group-hover:text-indigo-500 dark:text-gray-300 dark:group-hover:text-indigo-400"
+                                aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                                    class="h-5 w-5">
+                                    <path fill-rule="evenodd"
+                                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </span>
+                        </button>
+
+                        <div id="permissionSettingsPanel"
+                            class="hidden grid grid-cols-1 gap-4 rounded-xl border border-gray-100 bg-gray-50/70 p-4 shadow-inner ring-1 ring-black/5 dark:border-strokedark dark:bg-meta-4/40 dark:ring-white/5">
+                            <div class="rounded-xl border border-gray-200 p-4 dark:border-strokedark dark:bg-black/10">
+                                <p class="text-sm font-semibold text-gray-700 mb-3 dark:text-gray-300">읽기 권한</p>
+                                <div class="flex items-center gap-6 text-sm mb-3 dark:text-gray-300">
+                                    <label class="inline-flex items-center gap-2">
+                                        <input type="radio" name="readScopeOption" value="ALL" checked
+                                            class="h-4 w-4" />
+                                        <span>전체</span>
+                                    </label>
+                                    <label class="inline-flex items-center gap-2">
+                                        <input type="radio" name="readScopeOption" value="RESTRICTED" class="h-4 w-4" />
+                                        <span>제한</span>
+                                    </label>
+                                </div>
+                                <div id="readLimitedOptions" class="hidden space-y-3">
+                                    <div id="deptField" class="relative z-20">
+                                        <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">부서</label>
+                                        <button type="button" data-toggle-target="readDeptPanel" aria-expanded="false"
+                                            aria-controls="readDeptPanel"
+                                            class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30">
+                                            <span class="truncate">부서 선택</span>
+                                            <span data-toggle-arrow
+                                                class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300"
+                                                aria-hidden="true">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                    fill="currentColor" class="h-4 w-4">
+                                                    <path fill-rule="evenodd"
+                                                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                            </span>
+                                        </button>
+                                        <div id="readDeptPanel"
+                                            class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
+                                            <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2 dark:border-gray-600 dark:text-gray-300">
+                                                <input type="checkbox" data-select-all="deptId" checked
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span>전체 선택</span>
+                                            </label>
+                                            <label th:each="dept : ${departments}"
+                                                class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+                                                <input type="checkbox" data-multi-group="deptId"
+                                                    th:value="${dept.deptId}" class="h-4 w-4 rounded border-gray-300" />
+                                                <span th:text="${dept.deptName}"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div id="positionField" class="relative z-20">
+                                        <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">직급</label>
+                                        <button type="button" data-toggle-target="readPositionPanel"
+                                            aria-expanded="false" aria-controls="readPositionPanel"
+                                            class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30">
+                                            <span class="truncate">직급 선택</span>
+                                            <span data-toggle-arrow
+                                                class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300"
+                                                aria-hidden="true">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                    fill="currentColor" class="h-4 w-4">
+                                                    <path fill-rule="evenodd"
+                                                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                            </span>
+                                        </button>
+                                        <div id="readPositionPanel"
+                                            class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
+                                            <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2 dark:border-gray-600 dark:text-gray-300">
+                                                <input type="checkbox" data-select-all="positionId" checked
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span>전체 선택</span>
+                                            </label>
+                                            <label th:each="pos : ${positions}"
+                                                class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+                                                <input type="checkbox" data-multi-group="positionId"
+                                                    th:value="${pos.positionId}"
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span th:text="${pos.positionName}"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="rounded-xl border border-gray-200 p-4 dark:border-strokedark dark:bg-black/10">
+                                <p class="text-sm font-semibold text-gray-700 mb-3 dark:text-gray-300">쓰기 권한</p>
+                                <div class="flex items-center gap-6 text-sm mb-3 dark:text-gray-300">
+                                    <label class="inline-flex items-center gap-2">
+                                        <input type="radio" name="writeScopeOption" value="ALL" checked
+                                            class="h-4 w-4" />
+                                        <span>전체</span>
+                                    </label>
+                                    <label class="inline-flex items-center gap-2">
+                                        <input type="radio" name="writeScopeOption" value="RESTRICTED"
+                                            class="h-4 w-4" />
+                                        <span>제한</span>
+                                    </label>
+                                </div>
+                                <div id="writeLimitedOptions" class="hidden space-y-3">
+                                    <div class="relative z-20">
+                                        <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">부서</label>
+                                        <button type="button" data-toggle-target="writeDeptPanel" aria-expanded="false"
+                                            aria-controls="writeDeptPanel"
+                                            class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30">
+                                            <span class="truncate">부서 선택</span>
+                                            <span data-toggle-arrow
+                                                class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300"
+                                                aria-hidden="true">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                    fill="currentColor" class="h-4 w-4">
+                                                    <path fill-rule="evenodd"
+                                                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                            </span>
+                                        </button>
+                                        <div id="writeDeptPanel"
+                                            class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
+                                            <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2 dark:border-gray-600 dark:text-gray-300">
+                                                <input type="checkbox" data-select-all="writeDeptId" checked
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span>전체 선택</span>
+                                            </label>
+                                            <label th:each="dept : ${departments}"
+                                                class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+                                                <input type="checkbox" data-multi-group="writeDeptId"
+                                                    th:value="${dept.deptId}" class="h-4 w-4 rounded border-gray-300" />
+                                                <span th:text="${dept.deptName}"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="relative z-20">
+                                        <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">직급</label>
+                                        <button type="button" data-toggle-target="writePositionPanel"
+                                            aria-expanded="false" aria-controls="writePositionPanel"
+                                            class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30">
+                                            <span class="truncate">직급 선택</span>
+                                            <span data-toggle-arrow
+                                                class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300"
+                                                aria-hidden="true">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                    fill="currentColor" class="h-4 w-4">
+                                                    <path fill-rule="evenodd"
+                                                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                            </span>
+                                        </button>
+                                        <div id="writePositionPanel"
+                                            class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
+                                            <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2 dark:border-gray-600 dark:text-gray-300">
+                                                <input type="checkbox" data-select-all="writePositionId" checked
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span>전체 선택</span>
+                                            </label>
+                                            <label th:each="pos : ${positions}"
+                                                class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+                                                <input type="checkbox" data-multi-group="writePositionId"
+                                                    th:value="${pos.positionId}"
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span th:text="${pos.positionName}"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="rounded-xl border border-gray-200 p-4 dark:border-strokedark dark:bg-black/10">
+                                <p class="text-sm font-semibold text-gray-700 mb-3 dark:text-gray-300">댓글 권한</p>
+                                <div class="flex items-center gap-6 text-sm dark:text-gray-300">
+                                    <label class="inline-flex items-center gap-2">
+                                        <input type="radio" name="commentScopeOption" value="ALL" checked
+                                            class="h-4 w-4" />
+                                        <span>전체</span>
+                                    </label>
+                                    <label class="inline-flex items-center gap-2">
+                                        <input type="radio" name="commentScopeOption" value="RESTRICTED"
+                                            class="h-4 w-4" />
+                                        <span>제한</span>
+                                    </label>
+                                    <label class="inline-flex items-center gap-2">
+                                        <input type="radio" name="commentScopeOption" value="NONE" class="h-4 w-4" />
+                                        <span>비활성</span>
+                                    </label>
+                                </div>
+                                <div id="commentLimitedOptions" class="hidden space-y-3 mt-3">
+                                    <div class="relative z-20">
+                                        <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">부서</label>
+                                        <button type="button" data-toggle-target="commentDeptPanel"
+                                            aria-expanded="false" aria-controls="commentDeptPanel"
+                                            class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30">
+                                            <span class="truncate">부서 선택</span>
+                                            <span data-toggle-arrow
+                                                class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300"
+                                                aria-hidden="true">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                    fill="currentColor" class="h-4 w-4">
+                                                    <path fill-rule="evenodd"
+                                                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                            </span>
+                                        </button>
+                                        <div id="commentDeptPanel"
+                                            class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
+                                            <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2 dark:border-gray-600 dark:text-gray-300">
+                                                <input type="checkbox" data-select-all="commentDeptId" checked
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span>전체 선택</span>
+                                            </label>
+                                            <label th:each="dept : ${departments}"
+                                                class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+                                                <input type="checkbox" data-multi-group="commentDeptId"
+                                                    th:value="${dept.deptId}" class="h-4 w-4 rounded border-gray-300" />
+                                                <span th:text="${dept.deptName}"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="relative z-20">
+                                        <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">직급</label>
+                                        <button type="button" data-toggle-target="commentPositionPanel"
+                                            aria-expanded="false" aria-controls="commentPositionPanel"
+                                            class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30">
+                                            <span class="truncate">직급 선택</span>
+                                            <span data-toggle-arrow
+                                                class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300"
+                                                aria-hidden="true">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                    fill="currentColor" class="h-4 w-4">
+                                                    <path fill-rule="evenodd"
+                                                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                            </span>
+                                        </button>
+                                        <div id="commentPositionPanel"
+                                            class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
+                                            <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2 dark:border-gray-600 dark:text-gray-300">
+                                                <input type="checkbox" data-select-all="commentPositionId" checked
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span>전체 선택</span>
+                                            </label>
+                                            <label th:each="pos : ${positions}"
+                                                class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+                                                <input type="checkbox" data-multi-group="commentPositionId"
+                                                    th:value="${pos.positionId}"
+                                                    class="h-4 w-4 rounded border-gray-300" />
+                                                <span th:text="${pos.positionName}"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" data-toggle-target="etcSettingsPanel" aria-expanded="false"
+                            aria-controls="etcSettingsPanel"
+                            class="group flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white px-4 py-3.5 text-left shadow-sm transition hover:border-indigo-200 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:border-strokedark dark:from-meta-4 dark:to-boxdark dark:hover:border-indigo-500/50 dark:focus-visible:ring-offset-gray-900">
+                            <span class="flex min-w-0 items-center gap-3">
+                                <span
+                                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 ring-1 ring-inset ring-black/5 dark:bg-white/10 dark:text-gray-300 dark:ring-white/10"
+                                    aria-hidden="true">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                                        class="h-5 w-5">
+                                        <path fill-rule="evenodd"
+                                            d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 00-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 00-2.282.819l-.922 1.597a1.875 1.875 0 00.432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 000 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 00-.432 2.385l.922 1.597a1.875 1.875 0 002.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 002.28-.819l.923-1.597a1.875 1.875 0 00-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 000-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 00-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 00-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 00-1.85-1.567h-1.843ZM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5Z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="min-w-0">
+                                    <span class="block text-sm font-semibold text-gray-900 dark:text-white">기타 설정</span>
+                                    <span class="block truncate text-xs font-normal text-gray-500 dark:text-gray-300">익명
+                                        표시 · 활성화 · AI 옵션</span>
+                                </span>
+                            </span>
+                            <span data-toggle-arrow
+                                class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out group-hover:text-indigo-500 dark:text-gray-300 dark:group-hover:text-indigo-400"
+                                aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                                    class="h-5 w-5">
+                                    <path fill-rule="evenodd"
+                                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </span>
+                        </button>
+
+                        <div id="etcSettingsPanel"
+                            class="hidden grid grid-cols-1 gap-4 items-end rounded-xl border border-gray-100 bg-gray-50/70 p-4 shadow-inner ring-1 ring-black/5 dark:border-strokedark dark:bg-meta-4/40 dark:ring-white/5 lg:grid-cols-2">
+                            <div class="relative z-20">
+                                <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">익명 여부</label>
+                                <select id="anonymousType"
+                                    class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-gray-700 dark:bg-meta-4 dark:text-white dark:[color-scheme:dark] dark:focus:ring-indigo-400/40">
+                                    <option value="NAME">이름</option>
+                                    <option value="ANONYMOUS">익명</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-6 pb-2">
+                                <label class="inline-flex items-center gap-2">
+                                    <input id="isActive" type="checkbox" checked class="h-4 w-4" />
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">활성화</span>
+                                </label>
+                                <label class="inline-flex items-center gap-2">
+                                    <input id="isAiUse" type="checkbox" class="h-4 w-4" />
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">AI 사용</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end pt-2">
+                            <button type="submit"
+                                class="rounded-lg bg-indigo-400 px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-indigo-500 active:scale-[0.98] dark:bg-indigo-500 dark:hover:bg-indigo-600">
+                                게시판 생성
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <section
+                    class="p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <div class="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <h3 class="text-xl font-semibold text-black dark:text-white">게시판 목록</h3>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <article th:each="board : ${boards}"
+                            class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
+                            <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                <div>
+                                    <h4 class="text-base font-semibold text-gray-900 dark:text-white"
+                                        th:text="${board.boardName}">게시판명</h4>
+                                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300"
+                                        th:switch="${board.boardType.name()}">
+                                        <span th:case="'NOTICE'">공지사항</span>
+                                        <span th:case="'POLICY'">사내정책</span>
+                                        <span th:case="'FREE'">자유게시판</span>
+                                        <span th:case="'QNA'">Q&amp;A 게시판</span>
+                                        <span th:case="'ANONYMOUS'">익명게시판</span>
+                                        <span th:case="'ARCHIVE'">보관함</span>
+                                        <span th:case="*" th:text="${board.boardType}">-</span>
+                                    </p>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <a th:href="@{/board/{id}(id=${board.boardId})}"
+                                        class="rounded-lg bg-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-300 dark:!bg-white/10 dark:!text-gray-300 dark:hover:!bg-white/15">
+                                        게시판 보기
+                                    </a>
+                                    <button type="button"
+                                        class="rounded-lg bg-indigo-200 px-3 py-1.5 text-sm text-indigo-700 hover:bg-indigo-300 dark:bg-indigo-900/40 dark:text-indigo-200 dark:hover:bg-indigo-900/60"
+                                        th:attr="data-board-id=${board.boardId},
+                                                 data-board-name=${board.boardName},
+                                                 data-board-type=${board.boardType},
+                                                 data-dept-id=${board.dept != null ? board.dept.deptId : ''},
+                                                 data-position-id=${board.position != null ? board.position.positionId : ''},
+                                                 data-view-type=${board.viewType},
+                                                 data-read-scope=${board.readScope},
+                                                 data-write-scope=${board.writeScope},
+                                                 data-comment-scope=${board.commentScope},
+                                                 data-anonymous-type=${board.anonymousType},
+                                                 data-is-active=${board.isActive},
+                                                 data-is-ai-use=${board.isAiUse}" onclick="openEditModal(this)">
+                                        수정
+                                    </button>
+                                    <button type="button"
+                                        class="btn-delete-hover rounded-lg bg-rose-200 px-3 py-1.5 text-sm text-rose-500"
+                                        th:attr="onclick=|deleteBoard(${board.boardId})|">
+                                        삭제
+                                    </button>
+                                </div>
+                            </div>
+
+                            <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 xl:grid-cols-3">
+                                <div class="rounded-lg bg-gray-50 px-3 py-2 dark:bg-meta-4/60">
+                                    <dt class="text-xs font-semibold text-gray-500 dark:text-gray-300">뷰 타입</dt>
+                                    <dd class="mt-1 text-gray-800 dark:text-gray-200"
+                                        th:switch="${board.viewType.name()}">
+                                        <span th:case="'LIST'">목록</span>
+                                        <span th:case="'ALBUM'">앨범</span>
+                                        <span th:case="'CARD'">카드</span>
+                                        <span th:case="*" th:text="${board.viewType}">-</span>
+                                    </dd>
+                                </div>
+
+                                <div class="rounded-lg bg-gray-50 px-3 py-2 dark:bg-meta-4/60">
+                                    <dt class="text-xs font-semibold text-gray-500 dark:text-gray-300">익명 여부</dt>
+                                    <dd class="mt-1 text-gray-800 dark:text-gray-200"
+                                        th:switch="${board.anonymousType.name()}">
+                                        <span th:case="'NAME'">이름</span>
+                                        <span th:case="'ANONYMOUS'">익명</span>
+                                        <span th:case="*" th:text="${board.anonymousType}">-</span>
+                                    </dd>
+                                </div>
+
+                                <div class="rounded-lg bg-gray-50 px-3 py-2 dark:bg-meta-4/60">
+                                    <dt class="text-xs font-semibold text-gray-500 dark:text-gray-300">활성 / AI</dt>
+                                    <dd class="mt-1 flex flex-wrap gap-2">
+                                        <span th:if="${board.isActive}"
+                                            class="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">활성</span>
+                                        <span th:unless="${board.isActive}"
+                                            class="inline-flex rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-600 dark:text-gray-100">비활성</span>
+                                        <span th:if="${board.isAiUse}"
+                                            class="inline-flex rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200">AI
+                                            사용</span>
+                                        <span th:unless="${board.isAiUse}"
+                                            class="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-white/10 dark:text-gray-300">AI
+                                            미사용</span>
+                                    </dd>
+                                </div>
+
+                                <div class="rounded-lg bg-gray-50 px-3 py-2 dark:bg-meta-4/60">
+                                    <dt class="text-xs font-semibold text-gray-500 dark:text-gray-300">읽기 권한</dt>
+                                    <dd class="mt-1 text-gray-800 dark:text-gray-200">
+                                        <th:block th:if="${board.readScope.name() == 'ALL'}">전체</th:block>
+                                        <th:block th:if="${board.readScope.name() == 'RESTRICTED'}">
+                                            <div class="space-y-1">
+                                                <span
+                                                    class="inline-flex rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">제한</span>
+                                                <p class="text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+                                                    <span th:if="${board.dept != null}">부서 <span
+                                                            th:text="${board.dept.deptName}">-</span></span>
+                                                    <span th:if="${board.dept != null and board.position != null}"> ·
+                                                    </span>
+                                                    <span th:if="${board.position != null}">직급 <span
+                                                            th:text="${board.position.positionName}">-</span></span>
+                                                </p>
+                                            </div>
+                                        </th:block>
+                                    </dd>
+                                </div>
+
+                                <div class="rounded-lg bg-gray-50 px-3 py-2 dark:bg-meta-4/60">
+                                    <dt class="text-xs font-semibold text-gray-500 dark:text-gray-300">쓰기 권한</dt>
+                                    <dd class="mt-1 text-gray-800 dark:text-gray-200">
+                                        <th:block th:if="${board.writeScope.name() == 'ALL'}">전체</th:block>
+                                        <th:block th:if="${board.writeScope.name() == 'RESTRICTED'}">
+                                            <div class="space-y-1">
+                                                <span
+                                                    class="inline-flex rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">제한</span>
+                                                <p class="text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+                                                    <span th:if="${board.dept != null}">부서 <span
+                                                            th:text="${board.dept.deptName}">-</span></span>
+                                                    <span th:if="${board.dept != null and board.position != null}"> ·
+                                                    </span>
+                                                    <span th:if="${board.position != null}">직급 <span
+                                                            th:text="${board.position.positionName}">-</span></span>
+                                                </p>
+                                            </div>
+                                        </th:block>
+                                    </dd>
+                                </div>
+
+                                <div class="rounded-lg bg-gray-50 px-3 py-2 dark:bg-meta-4/60">
+                                    <dt class="text-xs font-semibold text-gray-500 dark:text-gray-300">댓글 권한</dt>
+                                    <dd class="mt-1 text-gray-800 dark:text-gray-200">
+                                        <th:block th:if="${board.commentScope.name() == 'ALL'}">전체</th:block>
+                                        <th:block th:if="${board.commentScope.name() == 'RESTRICTED'}">
+                                            <div class="space-y-1">
+                                                <span
+                                                    class="inline-flex rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">제한</span>
+                                                <p class="text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+                                                    <span th:if="${board.dept != null}">부서 <span
+                                                            th:text="${board.dept.deptName}">-</span></span>
+                                                    <span th:if="${board.dept != null and board.position != null}"> ·
+                                                    </span>
+                                                    <span th:if="${board.position != null}">직급 <span
+                                                            th:text="${board.position.positionName}">-</span></span>
+                                                </p>
+                                            </div>
+                                        </th:block>
+                                        <th:block th:if="${board.commentScope.name() == 'NONE'}">
+                                            <div class="space-y-1">
+                                                <span
+                                                    class="inline-flex rounded-md bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-800 dark:bg-slate-600 dark:text-slate-100">비활성</span>
+                                                <p class="text-xs text-gray-500 dark:text-gray-300">댓글 작성 불가</p>
+                                            </div>
+                                        </th:block>
+                                    </dd>
+                                </div>
+                            </dl>
+                        </article>
+
+                        <div th:if="${boards == null or #lists.isEmpty(boards)}"
+                            class="rounded-xl border border-dashed border-gray-300 px-4 py-12 text-center text-gray-500 dark:border-strokedark dark:text-gray-300">
+                            등록된 게시판이 없습니다.
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- 게시판 수정 모달 (배경 클릭 시 닫기 — calendar 모달과 동일 패턴) -->
+    <div id="editModal"
+        class="fixed inset-0 z-9999 hidden items-center justify-center overflow-y-auto p-4 sm:p-6 dark:bg-transparent">
+        <!-- 배경 딤: 바깥 영역 클릭 시 닫기 -->
+        <div class="modal-close-btn fixed inset-0 z-0 bg-black/50 dark:bg-black/70" aria-hidden="true"></div>
+        <div
+            class="relative z-10 w-full max-w-4xl rounded-2xl border border-gray-100 bg-white shadow-xl dark:border-strokedark dark:bg-boxdark">
+            <form id="editBoardForm" class="max-h-[85vh] overflow-y-auto p-6 md:p-7">
+                <h3 class="mb-6 text-2xl font-bold text-gray-900 dark:text-white">게시판 수정</h3>
+                <input id="editBoardId" type="hidden" />
+                <input id="editReadScope" type="hidden" value="ALL" />
+                <input id="editWriteScope" type="hidden" value="ALL" />
+                <input id="editCommentScope" type="hidden" value="ALL" />
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">게시판명</label>
+                        <input id="editBoardName" type="text" required
+                            class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-gray-700 dark:bg-meta-4 dark:text-white" />
+                    </div>
+                    <div class="relative z-20">
+                        <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">게시판 타입</label>
+                        <select id="editBoardType"
+                            class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-gray-700 dark:bg-meta-4 dark:text-white dark:[color-scheme:dark] dark:focus:ring-indigo-400/40">
+                            <option value="NOTICE">공지사항</option>
+                            <option value="POLICY">사내정책</option>
+                            <option value="FREE">자유게시판</option>
+                            <option value="QNA">Q&A 게시판</option>
+                            <option value="ANONYMOUS">익명게시판</option>
+                            <option value="ARCHIVE">보관함</option>
+                        </select>
+                    </div>
+                    <div class="relative z-20">
+                        <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">뷰 타입</label>
+                        <select id="editViewType"
+                            class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-gray-700 dark:bg-meta-4 dark:text-white dark:[color-scheme:dark] dark:focus:ring-indigo-400/40">
+                            <option value="LIST">목록</option>
+                            <option value="ALBUM">앨범</option>
+                            <option value="CARD">카드</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="button" data-toggle-target="editPermissionSettingsPanel" aria-expanded="false"
+                    aria-controls="editPermissionSettingsPanel"
+                    class="mt-6 group flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white px-4 py-3.5 text-left shadow-sm transition hover:border-indigo-200 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:border-strokedark dark:from-meta-4 dark:to-boxdark dark:hover:border-indigo-500/50 dark:focus-visible:ring-offset-gray-900">
+                    <span class="flex min-w-0 items-center gap-3">
+                        <span
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 ring-1 ring-inset ring-indigo-600/10 dark:bg-indigo-500/15 dark:text-indigo-300 dark:ring-white/10"
+                            aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                                class="h-5 w-5">
+                                <path fill-rule="evenodd"
+                                    d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                        <span class="min-w-0">
+                            <span class="block text-sm font-semibold text-gray-900 dark:text-white">권한 설정</span>
+                            <span class="block truncate text-xs font-normal text-gray-500 dark:text-gray-300">읽기 · 쓰기 · 댓글 접근 범위</span>
+                        </span>
+                    </span>
+                    <span data-toggle-arrow
+                        class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out group-hover:text-indigo-500 dark:text-gray-300 dark:group-hover:text-indigo-400"
+                        aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
+                            <path fill-rule="evenodd"
+                                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </span>
+                </button>
+
+                <div id="editPermissionSettingsPanel"
+                    class="hidden grid grid-cols-1 gap-4 rounded-xl border border-gray-100 bg-gray-50/70 p-4 shadow-inner ring-1 ring-black/5 dark:border-strokedark dark:bg-meta-4/40 dark:ring-white/5">
+                    <div class="rounded-xl border border-gray-200 p-4 dark:border-strokedark dark:bg-black/10">
+                        <p class="text-sm font-semibold text-gray-700 mb-3 dark:text-gray-300">읽기 권한</p>
+                        <div class="flex items-center gap-6 text-sm mb-3 dark:text-gray-300">
+                            <label class="inline-flex items-center gap-2">
+                                <input type="radio" name="editReadScopeOption" value="ALL" checked class="h-4 w-4" />
+                                <span>전체</span>
+                            </label>
+                            <label class="inline-flex items-center gap-2">
+                                <input type="radio" name="editReadScopeOption" value="RESTRICTED" class="h-4 w-4" />
+                                <span>제한</span>
+                            </label>
+                        </div>
+                        <div id="editReadLimitedOptions" class="hidden space-y-3">
+                            <div class="relative z-20">
+                                <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">부서</label>
+                                <button type="button" data-toggle-target="editReadDeptPanel" aria-expanded="false"
+                                    aria-controls="editReadDeptPanel"
+                                    class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30">
+                                    <span class="truncate">부서 선택</span>
+                                    <span data-toggle-arrow
+                                        class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300"
+                                        aria-hidden="true">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                            <path fill-rule="evenodd"
+                                                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </span>
+                                </button>
+                                <div id="editReadDeptPanel"
+                                    class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
+                                    <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2 dark:border-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" data-select-all="editDeptId" checked
+                                            class="h-4 w-4 rounded border-gray-300" />
+                                        <span>전체 선택</span>
+                                    </label>
+                                    <label th:each="dept : ${departments}"
+                                        class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+                                        <input type="checkbox" data-multi-group="editDeptId" th:value="${dept.deptId}"
+                                            class="h-4 w-4 rounded border-gray-300" />
+                                        <span th:text="${dept.deptName}"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="relative z-20">
+                                <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">직급</label>
+                                <button type="button" data-toggle-target="editReadPositionPanel" aria-expanded="false"
+                                    aria-controls="editReadPositionPanel"
+                                    class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30">
+                                    <span class="truncate">직급 선택</span>
+                                    <span data-toggle-arrow
+                                        class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300"
+                                        aria-hidden="true">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                            <path fill-rule="evenodd"
+                                                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </span>
+                                </button>
+                                <div id="editReadPositionPanel"
+                                    class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
+                                    <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2 dark:border-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" data-select-all="editPositionId" checked
+                                            class="h-4 w-4 rounded border-gray-300" />
+                                        <span>전체 선택</span>
+                                    </label>
+                                    <label th:each="pos : ${positions}"
+                                        class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+                                        <input type="checkbox" data-multi-group="editPositionId"
+                                            th:value="${pos.positionId}" class="h-4 w-4 rounded border-gray-300" />
+                                        <span th:text="${pos.positionName}"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl border border-gray-200 p-4 dark:border-strokedark dark:bg-black/10">
+                        <p class="text-sm font-semibold text-gray-700 mb-3 dark:text-gray-300">쓰기 권한</p>
+                        <div class="flex items-center gap-6 text-sm mb-3 dark:text-gray-300">
+                            <label class="inline-flex items-center gap-2">
+                                <input type="radio" name="editWriteScopeOption" value="ALL" checked class="h-4 w-4" />
+                                <span>전체</span>
+                            </label>
+                            <label class="inline-flex items-center gap-2">
+                                <input type="radio" name="editWriteScopeOption" value="RESTRICTED" class="h-4 w-4" />
+                                <span>제한</span>
+                            </label>
+                        </div>
+                        <div id="editWriteLimitedOptions" class="hidden space-y-3">
+                            <div class="relative z-20">
+                                <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">부서</label>
+                                <button type="button" data-toggle-target="editWriteDeptPanel" aria-expanded="false"
+                                    aria-controls="editWriteDeptPanel"
+                                    class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30">
+                                    <span class="truncate">부서 선택</span>
+                                    <span data-toggle-arrow
+                                        class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300"
+                                        aria-hidden="true">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                            <path fill-rule="evenodd"
+                                                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </span>
+                                </button>
+                                <div id="editWriteDeptPanel"
+                                    class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
+                                    <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2 dark:border-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" data-select-all="editWriteDeptId" checked
+                                            class="h-4 w-4 rounded border-gray-300" />
+                                        <span>전체 선택</span>
+                                    </label>
+                                    <label th:each="dept : ${departments}"
+                                        class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+                                        <input type="checkbox" data-multi-group="editWriteDeptId"
+                                            th:value="${dept.deptId}" class="h-4 w-4 rounded border-gray-300" />
+                                        <span th:text="${dept.deptName}"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="relative z-20">
+                                <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">직급</label>
+                                <button type="button" data-toggle-target="editWritePositionPanel" aria-expanded="false"
+                                    aria-controls="editWritePositionPanel"
+                                    class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30">
+                                    <span class="truncate">직급 선택</span>
+                                    <span data-toggle-arrow
+                                        class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300"
+                                        aria-hidden="true">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                            <path fill-rule="evenodd"
+                                                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </span>
+                                </button>
+                                <div id="editWritePositionPanel"
+                                    class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
+                                    <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2 dark:border-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" data-select-all="editWritePositionId" checked
+                                            class="h-4 w-4 rounded border-gray-300" />
+                                        <span>전체 선택</span>
+                                    </label>
+                                    <label th:each="pos : ${positions}"
+                                        class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+                                        <input type="checkbox" data-multi-group="editWritePositionId"
+                                            th:value="${pos.positionId}" class="h-4 w-4 rounded border-gray-300" />
+                                        <span th:text="${pos.positionName}"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl border border-gray-200 p-4 dark:border-strokedark dark:bg-black/10">
+                        <p class="text-sm font-semibold text-gray-700 mb-3 dark:text-gray-300">댓글 권한</p>
+                        <div class="flex items-center gap-6 text-sm dark:text-gray-300">
+                            <label class="inline-flex items-center gap-2">
+                                <input type="radio" name="editCommentScopeOption" value="ALL" checked class="h-4 w-4" />
+                                <span>전체</span>
+                            </label>
+                            <label class="inline-flex items-center gap-2">
+                                <input type="radio" name="editCommentScopeOption" value="RESTRICTED" class="h-4 w-4" />
+                                <span>제한</span>
+                            </label>
+                            <label class="inline-flex items-center gap-2">
+                                <input type="radio" name="editCommentScopeOption" value="NONE" class="h-4 w-4" />
+                                <span>비활성</span>
+                            </label>
+                        </div>
+                        <div id="editCommentLimitedOptions" class="hidden space-y-3 mt-3">
+                            <div class="relative z-20">
+                                <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">부서</label>
+                                <button type="button" data-toggle-target="editCommentDeptPanel" aria-expanded="false"
+                                    aria-controls="editCommentDeptPanel"
+                                    class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30">
+                                    <span class="truncate">부서 선택</span>
+                                    <span data-toggle-arrow
+                                        class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300"
+                                        aria-hidden="true">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                            <path fill-rule="evenodd"
+                                                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </span>
+                                </button>
+                                <div id="editCommentDeptPanel"
+                                    class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
+                                    <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2 dark:border-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" data-select-all="editCommentDeptId" checked
+                                            class="h-4 w-4 rounded border-gray-300" />
+                                        <span>전체 선택</span>
+                                    </label>
+                                    <label th:each="dept : ${departments}"
+                                        class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+                                        <input type="checkbox" data-multi-group="editCommentDeptId"
+                                            th:value="${dept.deptId}" class="h-4 w-4 rounded border-gray-300" />
+                                        <span th:text="${dept.deptName}"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="relative z-20">
+                                <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">직급</label>
+                                <button type="button" data-toggle-target="editCommentPositionPanel" aria-expanded="false"
+                                    aria-controls="editCommentPositionPanel"
+                                    class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 dark:border-strokedark dark:bg-boxdark dark:text-gray-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30">
+                                    <span class="truncate">직급 선택</span>
+                                    <span data-toggle-arrow
+                                        class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out dark:text-gray-300"
+                                        aria-hidden="true">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                            <path fill-rule="evenodd"
+                                                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </span>
+                                </button>
+                                <div id="editCommentPositionPanel"
+                                    class="mt-2 hidden max-h-36 overflow-y-auto rounded-lg border border-gray-300 bg-white p-3 dark:border-strokedark dark:bg-meta-4 dark:text-gray-300">
+                                    <label class="flex items-center gap-2 py-1 text-sm font-semibold text-gray-700 border-b border-gray-200 mb-2 pb-2 dark:border-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" data-select-all="editCommentPositionId" checked
+                                            class="h-4 w-4 rounded border-gray-300" />
+                                        <span>전체 선택</span>
+                                    </label>
+                                    <label th:each="pos : ${positions}"
+                                        class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+                                        <input type="checkbox" data-multi-group="editCommentPositionId"
+                                            th:value="${pos.positionId}" class="h-4 w-4 rounded border-gray-300" />
+                                        <span th:text="${pos.positionName}"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" data-toggle-target="editEtcSettingsPanel" aria-expanded="false"
+                    aria-controls="editEtcSettingsPanel"
+                    class="mt-6 group flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white px-4 py-3.5 text-left shadow-sm transition hover:border-indigo-200 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:border-strokedark dark:from-meta-4 dark:to-boxdark dark:hover:border-indigo-500/50 dark:focus-visible:ring-offset-gray-900">
+                    <span class="flex min-w-0 items-center gap-3">
+                        <span
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 ring-1 ring-inset ring-black/5 dark:bg-white/10 dark:text-gray-300 dark:ring-white/10"
+                            aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                                class="h-5 w-5">
+                                <path fill-rule="evenodd"
+                                    d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.89c-.02.12-.115.26-.297.348a7.493 7.493 0 00-.986.57c-.166.114-.334.126-.45.082L6.3 5.508a1.875 1.875 0 00-2.282.818l-.922 1.598a1.875 1.875 0 00.432 2.385l.84.692c.095.078.17.229.154.43a7.62 7.62 0 000 1.138c.015.201-.059.353-.153.43l-.841.693a1.875 1.875 0 00-.432 2.385l.922 1.597a1.875 1.875 0 002.282.818l1.019-.382c.115-.043.283-.031.45.083.312.213.641.404.985.57.182.087.277.227.297.349l.178 1.071c.151.904.933 1.568 1.85 1.568h1.844c.916 0 1.699-.664 1.85-1.568l.178-1.071c.02-.122.114-.262.297-.35.344-.165.673-.356.985-.57.167-.113.335-.125.45-.082l1.02.382a1.875 1.875 0 002.28-.818l.923-1.597a1.875 1.875 0 00-.432-2.385l-.84-.693c-.095-.077-.17-.229-.154-.43a7.62 7.62 0 000-1.138c-.016-.201.059-.352.153-.43l.84-.692a1.875 1.875 0 00.433-2.385l-.922-1.598a1.875 1.875 0 00-2.282-.818l-1.02.382c-.114.044-.282.032-.449-.082a7.493 7.493 0 00-.985-.57c-.183-.087-.277-.227-.297-.349l-.179-1.071a1.875 1.875 0 00-1.85-1.567h-1.843zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                        <span class="min-w-0">
+                            <span class="block text-sm font-semibold text-gray-900 dark:text-white">기타 설정</span>
+                            <span class="block truncate text-xs font-normal text-gray-500 dark:text-gray-300">익명 표시 · 활성화 · AI 옵션</span>
+                        </span>
+                    </span>
+                    <span data-toggle-arrow
+                        class="inline-flex shrink-0 text-gray-400 transition-transform duration-200 ease-out group-hover:text-indigo-500 dark:text-gray-300 dark:group-hover:text-indigo-400"
+                        aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
+                            <path fill-rule="evenodd"
+                                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </span>
+                </button>
+
+                <div id="editEtcSettingsPanel"
+                    class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 items-end rounded-xl border border-gray-100 bg-gray-50/70 p-4 shadow-inner ring-1 ring-black/5 dark:border-strokedark dark:bg-meta-4/40 dark:ring-white/5">
+                    <div class="relative z-20">
+                        <label class="mb-1 block text-sm text-gray-600 dark:text-gray-300">익명 여부</label>
+                        <select id="editAnonymousType"
+                            class="relative z-20 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-gray-700 dark:bg-meta-4 dark:text-white dark:[color-scheme:dark] dark:focus:ring-indigo-400/40">
+                            <option value="NAME">이름</option>
+                            <option value="ANONYMOUS">익명</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-6 pb-2">
+                        <label class="inline-flex items-center gap-2">
+                            <input id="editIsActive" type="checkbox" class="h-4 w-4" />
+                            <span class="text-sm text-gray-700 dark:text-gray-300">활성화</span>
+                        </label>
+                        <label class="inline-flex items-center gap-2">
+                            <input id="editIsAiUse" type="checkbox" class="h-4 w-4" />
+                            <span class="text-sm text-gray-700 dark:text-gray-300">AI 사용</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- DESIGN_RULES 4-4(취소) · 4-2(저장) -->
+                <div class="mt-4 flex justify-end gap-3">
+                    <button type="button" onclick="closeEditModal()"
+                        class="rounded-lg bg-gray-200 px-6 py-2.5 text-sm font-medium text-gray-700 transition-all hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">취소</button>
+                    <button type="submit"
+                        class="rounded-lg bg-indigo-200 px-6 py-2.5 text-sm font-medium text-indigo-700 transition-all hover:bg-indigo-300">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="/js/index.js"></script>
+    <script src="/js/admin/board.js"></script>
+</body>
+
+</html>

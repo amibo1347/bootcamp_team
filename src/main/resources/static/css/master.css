@@ -1,0 +1,348 @@
+/* ================================================================
+ * MASTER 콘솔 공통 스타일
+ *  - 기준: master/login 화면. 모든 MASTER 관련 페이지는 이 파일을 따른다.
+ *  - output.css(Tailwind purge 빌드)에 의존하지 않는 독립 스타일시트.
+ * ================================================================ */
+
+html, body { margin: 0; padding: 0; width: 100%; }
+* { box-sizing: border-box; }
+
+body.master-page {
+  font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  background-color: #0f172a;
+  color: #1e293b;
+  min-height: 100vh;
+}
+
+/* --- 레이아웃: 인증 화면(중앙 카드) --- */
+.master-auth {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 1.5rem;
+}
+.master-card {
+  width: 100%; max-width: 420px;
+  background: #ffffff; border-radius: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  padding: 2.75rem 2.5rem;
+}
+.master-card--wide { max-width: 460px; }
+
+/* --- 레이아웃: 콘솔 본문(패널) --- */
+.master-shell { padding: 2.5rem 1.5rem; }
+.master-container { max-width: 880px; margin: 0 auto; }
+.master-panel {
+  background: #ffffff; border-radius: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  padding: 2.25rem 2.25rem;
+}
+.master-panel-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+}
+
+/* --- 타이포 --- */
+.master-badge {
+  display: inline-block; background: #0f172a; color: #fff;
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.15em;
+  padding: 0.3rem 0.7rem; border-radius: 9999px;
+}
+.master-title { margin: 1rem 0 0.25rem; font-size: 1.4rem; font-weight: 700; color: #0f172a; }
+.master-sub { margin: 0; font-size: 0.85rem; color: #64748b; line-height: 1.5; }
+.master-section-title {
+  margin: 1.75rem 0 1rem; font-size: 1rem; font-weight: 700; color: #0f172a;
+}
+.master-divider { margin: 1.75rem 0 0; border: none; border-top: 1px solid #e2e8f0; }
+.master-link { color: #64748b; font-size: 0.82rem; text-decoration: none; }
+.master-link:hover { color: #0f172a; text-decoration: underline; }
+
+/* --- 입력 필드 --- */
+.field-label { display: block; margin-bottom: 0.4rem; font-size: 0.83rem; font-weight: 600; color: #334155; }
+.field-group { margin-bottom: 1rem; }
+.field-input {
+  width: 100%; height: 3rem; border: 1px solid #e2e8f0; background: #f8fafc;
+  border-radius: 0.75rem; padding: 0 1rem; font-size: 0.9rem; color: #1e293b;
+}
+.field-input::placeholder { color: #94a3b8; }
+.field-input:focus {
+  outline: none; border-color: #0f172a;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1); background: #fff;
+}
+.field-input--code {
+  font-size: 1.2rem; letter-spacing: 0.35em; text-align: center;
+}
+
+/* --- 버튼 (MASTER 전용 흑백 2종) --- */
+/* 1) 회색 배경 + 흰 텍스트 — .master-btn */
+.master-btn {
+  display: inline-block; width: 100%; height: 3rem; border: none;
+  border-radius: 0.75rem; background: #64748b; color: #ffffff;
+  font-size: 0.9rem; font-weight: 600; text-align: center; line-height: 3rem;
+  text-decoration: none; cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.master-btn:hover { background: #475569; color: #ffffff; }
+/* 테이블·헤더 등 컴팩트 버튼 */
+.master-btn.master-btn--inline {
+  width: auto; height: auto; line-height: normal;
+  font-size: 0.83rem; font-weight: 500; padding: 0.55rem 1rem;
+}
+/* 2) 흰 배경 + 회색 텍스트 — .master-btn-outline */
+.master-btn-outline {
+  display: inline-block; border: 1px solid #e2e8f0; background: #ffffff; color: #64748b;
+  border-radius: 0.75rem; font-size: 0.83rem; font-weight: 500;
+  padding: 0.55rem 1rem; text-decoration: none; cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.master-btn-outline:hover {
+  background: #f8fafc; color: #475569; border-color: #cbd5e1;
+}
+/* 전체 너비 — 흰 배경(2번) 스타일 */
+.master-btn-outline.master-btn--block,
+button.master-btn-outline.master-btn--block,
+a.master-btn-outline.master-btn--block {
+  display: block; width: 100%; height: 3rem; line-height: 3rem;
+  text-align: center; font-size: 0.9rem; font-weight: 600; padding: 0;
+}
+
+/* --- 알림 박스 --- */
+.alert-box {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.75rem 1rem; border-radius: 0.75rem; font-size: 0.83rem;
+}
+.alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+
+/* --- 읽기 전용 정보 목록 --- */
+.master-info { margin: 1.25rem 0 0; }
+.master-info > div {
+  display: flex; justify-content: space-between; gap: 1rem;
+  padding: 0.6rem 0; border-bottom: 1px solid #f1f5f9;
+}
+.master-info dt { margin: 0; font-size: 0.83rem; color: #64748b; }
+.master-info dd { margin: 0; font-size: 0.88rem; font-weight: 600; color: #1e293b; }
+
+/* --- TOTP 등록 화면 --- */
+.qr-box { display: flex; justify-content: center; margin: 1.5rem 0 1rem; }
+.qr-box img { width: 200px; height: 200px; border: 1px solid #e2e8f0; border-radius: 0.75rem; }
+.secret-label { margin: 0 0 0.35rem; font-size: 0.78rem; color: #64748b; }
+.secret-code {
+  display: block; word-break: break-all; background: #f1f5f9;
+  border-radius: 0.6rem; padding: 0.6rem 0.8rem;
+  font-family: monospace; font-size: 0.82rem; color: #334155; text-align: center;
+}
+
+/* --- 자리표시 영역 --- */
+.master-placeholder {
+  margin-top: 1.5rem; border: 1px dashed #cbd5e1; background: #f8fafc;
+  border-radius: 1rem; padding: 2.5rem; text-align: center;
+  color: #64748b; font-size: 0.88rem;
+}
+
+/* --- 표 --- */
+.master-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.master-table th, .master-table td {
+  text-align: left; padding: 0.6rem 0.5rem; font-size: 0.83rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+.master-table th { color: #64748b; font-weight: 600; }
+.master-table td { color: #1e293b; }
+.master-table tr:last-child td { border-bottom: none; }
+.master-empty { padding: 1.5rem 0.5rem; text-align: center; color: #94a3b8; font-size: 0.83rem; }
+
+/* --- 상태 태그 --- */
+.master-tag {
+  display: inline-block; padding: 0.15rem 0.5rem; border-radius: 9999px;
+  font-size: 0.72rem; font-weight: 600;
+}
+.master-tag--on { background: #f0fdf4; color: #166534; }
+.master-tag--off { background: #fef2f2; color: #991b1b; }
+.master-tag--muted { background: #f1f5f9; color: #64748b; }
+
+/* ================================================================
+ * MASTER 사용량 대시보드 전용
+ * ================================================================ */
+
+/* 사용량 대시보드는 표가 넓어야 해서 컨테이너 폭 확장 — login 카드 폭에 묶이지 않게 한다. */
+.master-container--wide { max-width: 1180px; }
+
+/* --- KPI 카드 그리드 (상단) --- */
+.master-kpi-grid {
+  margin-top: 1.25rem;
+  display: grid; gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.master-kpi {
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 0.85rem; padding: 0.85rem 1rem;
+}
+.master-kpi-label {
+  margin: 0; font-size: 0.72rem; font-weight: 600;
+  color: #64748b; letter-spacing: 0.04em;
+}
+.master-kpi-value {
+  margin: 0.3rem 0 0; font-size: 1.4rem; font-weight: 700;
+  color: #0f172a; line-height: 1.2;
+}
+.master-kpi-sub {
+  margin: 0.2rem 0 0; font-size: 0.74rem; color: #94a3b8;
+}
+
+/* --- 검색·내보내기 툴바 --- */
+.master-toolbar {
+  margin-top: 1.5rem;
+  display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+}
+.master-toolbar .field-input {
+  height: 2.4rem; flex: 1 1 220px; max-width: 320px; font-size: 0.85rem;
+}
+.master-toolbar-spacer { flex: 1 1 auto; }
+
+/* --- 표: 사용량 전용 보강 --- */
+.master-table--usage th { cursor: pointer; user-select: none; white-space: nowrap; }
+.master-table--usage th[data-sort-dir="asc"]::after  { content: " ▲"; color: #0f172a; }
+.master-table--usage th[data-sort-dir="desc"]::after { content: " ▼"; color: #0f172a; }
+.master-table--usage td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.master-table--usage tr.master-table-total td {
+  font-weight: 700; background: #f8fafc; border-top: 2px solid #e2e8f0;
+}
+.master-table--usage tr.is-hidden { display: none; }
+.master-table--usage td.muted { color: #94a3b8; }
+
+/* --- 차트 캔버스 박스 --- */
+.master-chart-box {
+  margin-top: 1.75rem; padding: 1rem 1.1rem 0.6rem;
+  background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.85rem;
+}
+.master-chart-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+.master-chart-title { margin: 0; font-size: 0.92rem; font-weight: 700; color: #0f172a; }
+.master-chart-sub { margin: 0; font-size: 0.75rem; color: #94a3b8; }
+/* Chart.js responsive 모드 — 부모 wrap 의 고정 height 가 캔버스 무한 확장을 막는다.
+   position: relative 는 차트가 wrap 을 기준으로 fill 하게 하는 표준 패턴. */
+.master-chart-canvas-wrap { position: relative; width: 100%; height: 220px; }
+.master-chart-canvas-wrap > canvas { width: 100% !important; height: 100% !important; display: block; }
+
+/* --- 생성 시각 / 안내 --- */
+.master-meta { margin-top: 1rem; font-size: 0.74rem; color: #94a3b8; }
+
+/* ================================================================
+ * MASTER 모달 (회사 추가 / 공지 추가 등)
+ *  - 체크박스 토글 방식: 별도 JS 없이 .modal-toggle 으로 열고 닫는다.
+ * ================================================================ */
+.modal-toggle { position: absolute; opacity: 0; pointer-events: none; }
+.master-modal {
+  display: none;
+  position: fixed; inset: 0; z-index: 1000;
+  align-items: flex-start; justify-content: center;
+  padding: 2.5rem 1rem;
+  background: rgba(15, 23, 42, 0.55);
+  overflow-y: auto;
+}
+.modal-toggle:checked ~ .master-modal { display: flex; }
+/* 배경(backdrop) 클릭 시 닫기 — 카드 뒤를 덮는 label. */
+.master-modal-backdrop { position: absolute; inset: 0; cursor: default; }
+.master-modal-card {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 540px;
+  background: #ffffff; border-radius: 1.25rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  padding: 1.75rem 1.75rem 2rem;
+}
+.master-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+.master-modal-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #0f172a; }
+/* 닫기(X) — label 이 체크박스를 해제한다. */
+.master-modal-close {
+  display: flex; align-items: center; justify-content: center;
+  width: 2rem; height: 2rem; border-radius: 0.6rem;
+  font-size: 1.25rem; line-height: 1; color: #64748b; cursor: pointer;
+  border: 1px solid #e2e8f0; background: #fff; transition: background 0.15s, color 0.15s;
+}
+.master-modal-close:hover { background: #f8fafc; color: #0f172a; }
+/* 헤더의 "추가" 트리거 버튼 정렬 */
+.master-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; margin: 1.75rem 0 0;
+}
+.master-section-head .master-section-title { margin: 0; }
+
+/* --- 파일 선택 영역 (드롭존 형태로 명확히 표시) --- */
+.master-filedrop {
+  display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+  margin-top: 0.4rem; padding: 1.4rem 1rem;
+  border: 2px dashed #cbd5e1; border-radius: 0.9rem;
+  background: #f8fafc; text-align: center; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.master-filedrop:hover { border-color: #94a3b8; background: #f1f5f9; }
+.master-filedrop-icon { font-size: 1.5rem; line-height: 1; }
+.master-filedrop-main { font-size: 0.86rem; font-weight: 600; color: #334155; }
+.master-filedrop-sub { font-size: 0.76rem; color: #94a3b8; }
+.master-filedrop input[type="file"] { display: none; }
+
+/* ================================================================
+ * 점검 모드 수동/예약 탭 토글 (라디오 기반, JS 없음)
+ * ================================================================ */
+.maint-mode-radio { position: absolute; opacity: 0; pointer-events: none; }
+.maint-tabs {
+  display: flex; gap: 0.35rem; margin-top: 1.25rem; padding: 0.3rem;
+  background: #f1f5f9; border-radius: 0.85rem;
+}
+.maint-tab {
+  flex: 1; text-align: center; padding: 0.6rem; border-radius: 0.65rem;
+  font-size: 0.86rem; font-weight: 600; color: #64748b; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+/* 선택된 탭 강조 */
+#maint-mode-manual:checked   ~ .maint-tabs label[for="maint-mode-manual"],
+#maint-mode-schedule:checked ~ .maint-tabs label[for="maint-mode-schedule"] {
+  background: #ffffff; color: #0f172a; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+/* 선택된 모드의 섹션만 표시 */
+.maint-section { display: none; }
+#maint-mode-manual:checked   ~ .maint-section--manual   { display: block; }
+#maint-mode-schedule:checked ~ .maint-section--schedule { display: block; }
+
+/* ================================================================
+ * 회사 수정 등 다중 섹션 탭 (라디오 기반, JS 없음)
+ * ================================================================ */
+.master-tab-radio { position: absolute; opacity: 0; pointer-events: none; }
+.master-tabnav {
+  display: flex; gap: 0.3rem; margin-top: 1.25rem; padding: 0.3rem;
+  background: #f1f5f9; border-radius: 0.85rem;
+}
+.master-tabnav label {
+  flex: 1; text-align: center; padding: 0.55rem 0.3rem; border-radius: 0.6rem;
+  font-size: 0.8rem; font-weight: 600; color: #64748b; cursor: pointer;
+  white-space: nowrap; transition: background 0.15s, color 0.15s;
+}
+.master-tabpanel { display: none; margin-top: 1.5rem; }
+/* 선택된 탭 강조 */
+#ce-tab-info:checked   ~ .master-tabnav label[for="ce-tab-info"],
+#ce-tab-logo:checked   ~ .master-tabnav label[for="ce-tab-logo"],
+#ce-tab-code:checked   ~ .master-tabnav label[for="ce-tab-code"],
+#ce-tab-admin:checked  ~ .master-tabnav label[for="ce-tab-admin"],
+#ce-tab-status:checked ~ .master-tabnav label[for="ce-tab-status"] {
+  background: #ffffff; color: #0f172a; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+/* 선택된 탭의 패널만 표시 */
+#ce-tab-info:checked   ~ .master-tabpanel--info,
+#ce-tab-logo:checked   ~ .master-tabpanel--logo,
+#ce-tab-code:checked   ~ .master-tabpanel--code,
+#ce-tab-admin:checked  ~ .master-tabpanel--admin,
+#ce-tab-status:checked ~ .master-tabpanel--status {
+  display: block;
+}
+
+/* 대표 위임 후보 목록 — 약 3명까지 보이고 나머지는 스크롤 */
+.delegate-list {
+  margin-top: 0.4rem; max-height: 6.5rem; overflow-y: auto;
+  border: 1px solid #e2e8f0; border-radius: 0.5rem;
+}
+.delegate-option {
+  display: block; width: 100%; text-align: left; padding: 0.45rem 0.7rem;
+  border: none; background: none; cursor: pointer; font-size: 0.88rem; line-height: 1.3;
+}
+.delegate-option:hover { background: #f1f5f9; }
