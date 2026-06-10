@@ -8,6 +8,8 @@ WorkingDirectory=/opt/team
 # 환경변수 파일 — 비밀값/경로 주입. 파일이 없어도(앞의 '-') 기동된다.
 # 최소한 TNS_ADMIN_DIR=/opt/team/wallet 은 반드시 들어가야 DB가 붙는다.
 EnvironmentFile=-/opt/team/team.env
+# 타임존 KST 고정 — 미설정 시 JVM이 OS 기본(GMT)을 상속해 LocalDateTime.now()가 UTC로 기록됨(출퇴근 9시간 오차).
+Environment=TZ=Asia/Seoul
 # AMD E2.1.Micro(1GB) 기준 힙 제한. OOM 나면 더 낮추고, ARM(6GB)로 옮기면 -Xmx1024m 로.
 ExecStart=/usr/bin/java -Xmx512m -XX:MaxMetaspaceSize=160m -jar /opt/team/bootcamp-0.0.1-SNAPSHOT.jar
 SuccessExitStatus=143
