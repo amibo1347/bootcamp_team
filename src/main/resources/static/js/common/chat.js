@@ -354,13 +354,13 @@
       if (activeMode === 'chat') markConversationRead(id);
     };
 
-    /** AI 모드에선 파일 첨부 label 숨김 (텍스트 전용). 사람 채팅은 다시 표시. */
+    /** 파일 첨부는 AI(요약)·사람 채팅 모두 허용. */
     function setComposerForMode(mode) {
       const fileLabel = document.querySelector('label[for="chat-file-input"]');
       const isAi = mode === 'ai';
-      if (fileLabel) fileLabel.style.display = isAi ? 'none' : '';
-      if (filePreview) filePreview.style.display = isAi ? 'none' : '';
-      if (inputEl) inputEl.placeholder = isAi ? 'AI 비서에게 질문하기...' : '메시지 입력...';
+      if (fileLabel) fileLabel.style.display = '';
+      if (filePreview) filePreview.style.display = '';
+      if (inputEl) inputEl.placeholder = isAi ? 'AI 비서에게 질문 또는 파일(PDF/PPTX/DOCX) 요약...' : '메시지 입력...';
     }
     const showPick = () => {
       view = 'pick';
@@ -523,10 +523,73 @@
       panel.classList.add('hidden');
       fab.setAttribute('aria-expanded', 'false');
     };
+    // FAB 드래그로 이동했으면 그 직후의 click(패널 열기)은 무시.
+    let fabDragged = false;
     fab.addEventListener('click', () => {
+      if (fabDragged) { fabDragged = false; return; }
       if (panel.classList.contains('hidden')) openPanel();
       else closePanel();
     });
+
+    // ─── FAB 드래그(위치 이동) ─────────────────────────────────────
+    // FAB 래퍼를 body 직속 fixed 로 떼고, 버튼을 잡아 끌면 화면 안에서 자유롭게 이동.
+    // 살짝(임계값 이내) 움직이면 클릭으로 간주해 패널이 열린다.
+    function setupDraggableFab() {
+      const fabWrap = document.getElementById('chat-fab-wrap');
+      if (!fabWrap || fabWrap.dataset.dragInit === '1') return;
+      fabWrap.dataset.dragInit = '1';
+
+      if (fabWrap.parentElement !== document.body) document.body.appendChild(fabWrap);
+      fabWrap.style.position = 'fixed';
+      fabWrap.style.zIndex = '10081';
+      // 초기 위치: 기존과 동일하게 우측 하단.
+      fabWrap.style.right = '1.5rem';
+      fabWrap.style.bottom = '1.5rem';
+      fabWrap.style.left = 'auto';
+      fabWrap.style.top = 'auto';
+
+      const onDown = (e) => {
+        const isTouch = e.type === 'touchstart';
+        if (!isTouch && e.button !== 0) return;
+        const pt = isTouch ? e.touches[0] : e;
+        const r = fabWrap.getBoundingClientRect();
+        const offX = pt.clientX - r.left;
+        const offY = pt.clientY - r.top;
+        const sx = pt.clientX, sy = pt.clientY;
+        fabDragged = false;
+        if (!isTouch) e.preventDefault();
+
+        const move = (ev) => {
+          const p = (ev.touches ? ev.touches[0] : ev);
+          if (Math.abs(p.clientX - sx) > 4 || Math.abs(p.clientY - sy) > 4) fabDragged = true;
+          if (!fabDragged) return;
+          if (ev.cancelable) ev.preventDefault();
+          let nl = p.clientX - offX;
+          let nt = p.clientY - offY;
+          nl = Math.max(4, Math.min(window.innerWidth - fabWrap.offsetWidth - 4, nl));
+          nt = Math.max(4, Math.min(window.innerHeight - fabWrap.offsetHeight - 4, nt));
+          fabWrap.style.left = nl + 'px';
+          fabWrap.style.top = nt + 'px';
+          fabWrap.style.right = 'auto';
+          fabWrap.style.bottom = 'auto';
+        };
+        const up = () => {
+          document.removeEventListener('mousemove', move);
+          document.removeEventListener('mouseup', up);
+          document.removeEventListener('touchmove', move);
+          document.removeEventListener('touchend', up);
+        };
+        document.addEventListener('mousemove', move);
+        document.addEventListener('mouseup', up);
+        document.addEventListener('touchmove', move, { passive: false });
+        document.addEventListener('touchend', up);
+      };
+
+      fab.addEventListener('mousedown', onDown);
+      fab.addEventListener('touchstart', onDown, { passive: true });
+    }
+    setupDraggableFab();
+
     closeBtn.addEventListener('click', closePanel);
     backBtn.addEventListener('click', () => {
       if (view !== 'thread' && view !== 'pick') return;
@@ -1423,13 +1486,42 @@
       const text = inputEl.value.trim();
       const hasText = text.length > 0;
       const hasFiles = pendingFiles.length > 0;
-      // AI 모드는 텍스트만, 사람 채팅은 텍스트 또는 파일
-      if (activeMode === 'ai' ? !hasText : (!hasText && !hasFiles)) return;
+      // AI: 텍스트 또는 파일(요약), 사람 채팅: 텍스트 또는 파일
+      if (!hasText && !hasFiles) return;
       sendBtn.disabled = true;
       // 사용자 말풍선을 먼저 그려두면 AI 응답 대기 시간 UX 가 자연스러움.
       const me = currentMemberIdGuess();
       try {
-        if (activeMode === 'ai') {
+        if (activeMode === 'ai' && hasFiles) {
+          // ── AI 파일 요약 ── (첫 파일 1개 요약. 텍스트가 있으면 추가 요청으로 전달)
+          const file = pendingFiles[0];
+          const reqLabel = '📎 ' + file.name + ' 요약 요청' + (hasText ? ' — ' + text : '');
+          appendMessage({ messageId: 'tmp-' + Date.now(), senderId: me, text: reqLabel, createdAt: new Date().toISOString(), attachments: [] });
+          inputEl.value = '';
+          pendingFiles = [];
+          renderFilePreview();
+          const loadingHtml = '<div id="chat-ai-loading" class="mb-2 flex justify-start"><div class="rounded-2xl rounded-bl-sm bg-gray-100 px-3 py-2 text-xs text-gray-500 dark:bg-gray-700 dark:text-gray-300">📄 문서를 읽고 요약 중...</div></div>';
+          messagesEl.insertAdjacentHTML('beforeend', loadingHtml);
+          scrollMessagesToBottom();
+          const form = new FormData();
+          form.append('file', file);
+          if (hasText) form.append('text', text);
+          const res = await fetch('/api/ai/conversations/' + activeConvId + '/summarize-file', {
+            method: 'POST',
+            headers: csrfHeader(),
+            body: form,
+          });
+          const loadingF = document.getElementById('chat-ai-loading');
+          if (loadingF) loadingF.remove();
+          if (!res.ok) throw new Error(await window.getApiErrorMessage(res, '파일 요약에 실패했습니다.'));
+          const dto = await res.json();
+          appendMessage(aiMsgToChatBubble(dto, me));
+          if (dto && dto.sessionTitle) {
+            if (titleEl) titleEl.textContent = dto.sessionTitle;
+            activePeerName = dto.sessionTitle;
+            loadAiList();
+          }
+        } else if (activeMode === 'ai') {
           // 즉시 USER 말풍선 표시
           appendMessage({ messageId: 'tmp-' + Date.now(), senderId: me, text, createdAt: new Date().toISOString(), attachments: [] });
           inputEl.value = '';
