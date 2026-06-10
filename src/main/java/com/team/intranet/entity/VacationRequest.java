@@ -3,6 +3,7 @@ package com.team.intranet.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
+import com.team.intranet.enums.HalfDayPeriod;
 import com.team.intranet.enums.VacationType;
 
 @Entity
@@ -32,6 +33,11 @@ public class VacationRequest {
 
      @Column(name = "total_days", nullable = false)
      private Double totalDays; // 총 휴가일수 (반차 0.5 단위)
+
+    // 반차 구분. null = 종일. AM/PM = 반차(시작일 하루, 0.5일).
+    @Enumerated(EnumType.STRING)
+    @Column(name = "half_day_period", length = 10)
+    private HalfDayPeriod halfDayPeriod;
 
     @Lob
     @Column(name = "reason", columnDefinition = "CLOB")

@@ -42,6 +42,7 @@ export function mountVacationFormInputs(root = document) {
   const start = root.querySelector('#vacation-start');
   const end = root.querySelector('#vacation-end');
   const days = root.querySelector('#vacation-days');
+  const half = root.querySelector('#vacation-half');
   if (!(start instanceof HTMLInputElement)
     || !(end instanceof HTMLInputElement)
     || !(days instanceof HTMLInputElement)) {
@@ -54,7 +55,29 @@ export function mountVacationFormInputs(root = document) {
   days.classList.add('bg-gray-100', 'cursor-not-allowed', 'dark:bg-gray-800');
   days.value = '0';
 
+  const isHalf = () => half instanceof HTMLSelectElement && half.value !== '';
+
+  // 반차일 때: 종료일을 시작일로 강제하고 입력을 잠근다(반차는 하루만).
+  function syncEndForHalf() {
+    if (!(end instanceof HTMLInputElement)) return;
+    if (isHalf()) {
+      end.value = start.value;
+      end.readOnly = true;
+      end.classList.add('bg-gray-100', 'cursor-not-allowed', 'dark:bg-gray-800');
+    } else {
+      end.readOnly = false;
+      end.classList.remove('bg-gray-100', 'cursor-not-allowed', 'dark:bg-gray-800');
+    }
+  }
+
   function recalc() {
+    // 단위(종일/반차) 변경에 따라 종료일 잠금 상태를 항상 먼저 reconcile.
+    syncEndForHalf();
+    // 반차 — 시작일만 있으면 0.5일.
+    if (isHalf()) {
+      days.value = start.value ? '0.5' : '0';
+      return;
+    }
     if (!start.value || !end.value) {
       days.value = '0';
       return;
@@ -73,6 +96,9 @@ export function mountVacationFormInputs(root = document) {
   end.addEventListener('change', recalc);
   start.addEventListener('input', recalc);
   end.addEventListener('input', recalc);
+  if (half instanceof HTMLSelectElement) {
+    half.addEventListener('change', recalc);
+  }
 
   // input row 어디를 클릭해도 네이티브 캘린더 picker 가 뜨도록.
   // (브라우저 기본은 아이콘 클릭만 picker 를 연다)
@@ -86,11 +112,16 @@ export function mountVacationFormInputs(root = document) {
  * @returns {{ vacationType: string, days: number, startDate: string, endDate: string }}
  */
 export function serializeVacationForm(root = document) {
+  const halfDayPeriod = getValue(root, '#vacation-half'); // '' | 'AM' | 'PM'
+  const isHalf = halfDayPeriod === 'AM' || halfDayPeriod === 'PM';
+  const startDate = getValue(root, '#vacation-start');
   return {
     vacationType: getValue(root, '#vacation-type'),
-    days: Number(getValue(root, '#vacation-days') || 0),
-    startDate: getValue(root, '#vacation-start'),
-    endDate: getValue(root, '#vacation-end'),
+    // 반차면 0.5일·하루 고정. 서버에서도 동일하게 강제하지만 클라이언트 표시값도 맞춰 보낸다.
+    days: isHalf ? 0.5 : Number(getValue(root, '#vacation-days') || 0),
+    startDate,
+    endDate: isHalf ? startDate : getValue(root, '#vacation-end'),
+    halfDayPeriod: isHalf ? halfDayPeriod : null,
   };
 }
 
@@ -105,6 +136,16 @@ export function validateVacationForm(root = document) {
   if (!data.vacationType) {
     return { valid: false, message: '휴가 유형을 입력하세요.', data };
   }
+
+  const isHalf = data.halfDayPeriod === 'AM' || data.halfDayPeriod === 'PM';
+  if (isHalf) {
+    // 반차 — 시작일만 있으면 충분(종료일=시작일, 0.5일 자동).
+    if (!data.startDate) {
+      return { valid: false, message: '반차 날짜를 선택하세요.', data };
+    }
+    return { valid: true, message: '', data };
+  }
+
   if (!Number.isFinite(data.days) || data.days <= 0) {
     return { valid: false, message: '휴가 일수를 입력하세요.', data };
   }
@@ -127,10 +168,16 @@ export function resetVacationForm(root = document) {
   const days = root.querySelector('#vacation-days');
   const start = root.querySelector('#vacation-start');
   const end = root.querySelector('#vacation-end');
+  const half = root.querySelector('#vacation-half');
 
   if (type instanceof HTMLSelectElement) type.value = '';
   else if (type instanceof HTMLInputElement) type.value = '';
   if (days instanceof HTMLInputElement) days.value = '0';
   if (start instanceof HTMLInputElement) start.value = '';
-  if (end instanceof HTMLInputElement) end.value = '';
+  if (end instanceof HTMLInputElement) {
+    end.value = '';
+    end.readOnly = false;
+    end.classList.remove('bg-gray-100', 'cursor-not-allowed', 'dark:bg-gray-800');
+  }
+  if (half instanceof HTMLSelectElement) half.value = '';
 }

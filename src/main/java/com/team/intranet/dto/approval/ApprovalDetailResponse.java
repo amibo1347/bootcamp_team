@@ -146,15 +146,20 @@ public class ApprovalDetailResponse {
         private LocalDate endDate;
         private Double totalDays;
         private String reason;
+        private String halfDayPeriod;   // "AM"/"PM"/null — 종일이면 null
+        private String halfDayLabel;    // "오전 반차"/"오후 반차"/null
 
         static VacationBody from(VacationRequest v) {
+            var half = v.getHalfDayPeriod();
             return new VacationBody(
                 v.getVacationType(),
                 v.getVacationType() != null ? v.getVacationType().getDescription() : null,
                 v.getStartDate(),
                 v.getEndDate(),
                 v.getTotalDays(),
-                v.getReason()
+                v.getReason(),
+                half != null ? half.name() : null,
+                half != null ? half.getDescription() : null
             );
         }
     }

@@ -1,5 +1,6 @@
 package com.team.intranet.service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,6 +41,7 @@ import com.team.intranet.entity.Member;
 import com.team.intranet.entity.VacationRequest;
 import com.team.intranet.enums.ApprovalStatus;
 import com.team.intranet.enums.ErrorCode;
+import com.team.intranet.enums.HalfDayPeriod;
 import com.team.intranet.enums.VacationType;
 import com.team.intranet.enums.Visibility;
 import com.team.intranet.enums.member.Role;
@@ -617,13 +619,35 @@ public class ApprovalService {
         String typeLabel = vacation.getVacationType() != null
             ? vacation.getVacationType().getDescription()
             : "휴가";
+        HalfDayPeriod half = vacation.getHalfDayPeriod();
+        String title = "[휴가] " + typeLabel
+            + (half != null ? " (" + half.getDescription() + ")" : "");
+
+        // 반차는 반나절 시간대로(오전 09~13, 오후 14~18), 종일 휴가는 하루 종일 일정으로 등록.
+        LocalDateTime startAt;
+        LocalDateTime endAt;
+        boolean allDay;
+        if (half == HalfDayPeriod.AM) {
+            startAt = vacation.getStartDate().atTime(9, 0);
+            endAt   = vacation.getStartDate().atTime(13, 0);
+            allDay  = false;
+        } else if (half == HalfDayPeriod.PM) {
+            startAt = vacation.getStartDate().atTime(14, 0);
+            endAt   = vacation.getStartDate().atTime(18, 0);
+            allDay  = false;
+        } else {
+            startAt = vacation.getStartDate().atStartOfDay();
+            endAt   = vacation.getEndDate().atTime(23, 59, 59);
+            allDay  = true;
+        }
+
         Calendar event = Calendar.builder()
             .member(approval.getDrafter())
-            .title("[휴가] " + typeLabel)
+            .title(title)
             .description(approval.getTitle())
-            .startAt(vacation.getStartDate().atStartOfDay())
-            .endAt(vacation.getEndDate().atTime(23, 59, 59))
-            .allDay(true)
+            .startAt(startAt)
+            .endAt(endAt)
+            .allDay(allDay)
             .isRepeat(false)
             .isAlert(false)
             .visibility(Visibility.PRIVATE)
@@ -662,19 +686,35 @@ public class ApprovalService {
         if (payload == null) {
             throw new BusinessException(ErrorCode.VACATION_REQUEST_NOT_FOUND);
         }
-        if (payload.getStartDate() == null || payload.getEndDate() == null) {
+        if (payload.getStartDate() == null) {
             throw new BusinessException(ErrorCode.INVALID_VACATION_PERIOD);
         }
-        if (payload.getStartDate().isAfter(payload.getEndDate())) {
-            throw new BusinessException(ErrorCode.INVALID_VACATION_PERIOD);
+
+        HalfDayPeriod half = HalfDayPeriod.parse(payload.getHalfDayPeriod());
+
+        LocalDate startDate = payload.getStartDate();
+        LocalDate endDate;
+        double totalDays;
+
+        if (half != null) {
+            // 반차 — 시작일 하루에만 적용, 0.5일로 강제. 종료일·일수 입력은 무시한다.
+            endDate = startDate;
+            totalDays = 0.5;
+        } else {
+            endDate = payload.getEndDate();
+            if (endDate == null || startDate.isAfter(endDate)) {
+                throw new BusinessException(ErrorCode.INVALID_VACATION_PERIOD);
+            }
+            totalDays = payload.getDays() == null ? 1.0 : payload.getDays();
         }
 
         VacationRequest v = VacationRequest.builder()
             .approval(approval)
             .vacationType(resolveVacationType(payload.getVacationType()))
-            .startDate(payload.getStartDate())
-            .endDate(payload.getEndDate())
-            .totalDays(payload.getDays() == null ? 1.0 : payload.getDays())
+            .startDate(startDate)
+            .endDate(endDate)
+            .totalDays(totalDays)
+            .halfDayPeriod(half)
             .reason(payload.getVacationType())
             .build();
         vacationRepository.save(v);
