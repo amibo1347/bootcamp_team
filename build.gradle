@@ -26,6 +26,9 @@ repositories {
 dependencies {
 	implementation 'org.jsoup:jsoup:1.17.2'
 	implementation 'dev.samstevens.totp:totp:1.7.1'
+	// AI 파일 요약 — 문서 텍스트 추출 (PDF: PDFBox / PPTX·DOCX: Apache POI)
+	implementation 'org.apache.pdfbox:pdfbox:2.0.31'
+	implementation 'org.apache.poi:poi-ooxml:5.2.5'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.springframework.boot:spring-boot-starter-security'

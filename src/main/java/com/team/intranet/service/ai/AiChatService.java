@@ -85,6 +85,8 @@ public class AiChatService {
     private final LlmClientFactory llmClientFactory;
     private final AiBoardContextService aiBoardContextService;
     private final AiCalendarContextService aiCalendarContextService;
+    private final AiLeaveContextService aiLeaveContextService;
+    private final DocumentTextExtractor documentTextExtractor;
     private final AiProposalExtractor proposalExtractor;
     private final com.team.intranet.service.CalendarService calendarService;
     private final com.team.intranet.repository.CalendarRepository calendarRepository;
@@ -317,6 +319,77 @@ public class AiChatService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    // ─── 파일 요약 (PDF/PPTX/DOCX/TXT) ──────────────────────────────
+
+    /**
+     * 업로드한 회의자료 등 문서를 텍스트 추출 → LLM 요약 → ASSISTANT 메시지로 저장/반환.
+     *  - 본인 세션만. USER 메시지 수에 포함(rate limit 적용).
+     *  - 추출 텍스트만 근거로 요약(외부지식 금지)하도록 시스템 프롬프트로 제약.
+     */
+    @Transactional
+    public AiChatMessageDto summarizeFile(MemberSession ms, Long sessionId,
+                                          String fileName, byte[] data, String userInstruction) {
+        if (data == null || data.length == 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+        AiChatSession session = loadAndAssertOwner(ms, sessionId);
+
+        AiConfig cfg = aiConfigService.getCurrent();
+        enforceRateLimit(ms, cfg);
+
+        // 1. 텍스트 추출 (지원 형식/빈 텍스트 검증 포함)
+        String extracted = documentTextExtractor.extract(fileName, data);
+
+        // 2. USER 메시지(요약 요청) 저장
+        String safeName = (fileName == null || fileName.isBlank()) ? "첨부 파일" : fileName.trim();
+        String instruction = (userInstruction != null && !userInstruction.isBlank())
+            ? userInstruction.trim() : null;
+        String userLabel = "📎 " + safeName + " 요약 요청"
+            + (instruction != null ? " — " + instruction : "");
+        messageRepository.save(AiChatMessage.user(session, userLabel));
+        boolean isFirstUserMessage = "새 대화".equals(session.getTitle());
+
+        // 3. LLM 요약 호출
+        String systemPrompt = """
+            당신은 사내 문서 요약 비서입니다.
+            - 아래 첨부 문서에서 추출된 텍스트만 근거로 한국어로 요약하세요. 외부 지식·추측·창작 금지.
+            - 형식: 맨 위 1~2문장 핵심 요약 + 그 아래 핵심 항목 불릿(•) 정리.
+            - 회의자료라면 안건/결정사항/할 일(담당자·기한)이 보이면 별도로 모아 주세요.
+            - 텍스트가 잘려 일부만 있을 수 있습니다. 없는 내용을 지어내지 마세요.
+            """;
+        String userContent = "다음은 '" + safeName + "' 파일에서 추출한 내용입니다."
+            + (instruction != null ? "\n[사용자 추가 요청] " + instruction : "")
+            + "\n\n---\n" + extracted;
+
+        LlmResponse resp;
+        try {
+            resp = llmClientFactory.generate(List.of(
+                LlmMessage.system(systemPrompt), LlmMessage.user(userContent)));
+        } catch (Exception e) {
+            if (e.getMessage() != null && e.getMessage().contains("HTTP 429")) {
+                throw new BusinessException(ErrorCode.AI_PROVIDER_QUOTA_EXCEEDED);
+            }
+            throw new BusinessException(ErrorCode.AI_PROVIDER_ERROR);
+        }
+
+        String content = resp.content() != null ? resp.content().trim() : "";
+        if (content.isBlank()) {
+            content = "문서 요약을 생성하지 못했어요. 다시 시도해 주세요.";
+        }
+
+        AiChatMessage assistantMsg = messageRepository.save(
+            AiChatMessage.assistant(session, content, resp.promptTokens(), resp.completionTokens()));
+        session.touch();
+
+        AiChatMessageDto dto = AiChatMessageDto.from(assistantMsg);
+        if (isFirstUserMessage) {
+            String newTitle = truncate("파일 요약: " + safeName, TITLE_USER_MAX_LEN);
+            session.setTitle(newTitle);
+            dto.setSessionTitle(newTitle);
+        }
+        return dto;
     }
 
     // ─── 액션 제안 확정 (일정 등록/수정/삭제) ───────────────────────
@@ -564,7 +637,8 @@ public class AiChatService {
         req.setVacation(new VacationPayload(
             vacationType,
             p.totalDays() != null ? p.totalDays() : 1.0,
-            startDate, endDate));
+            startDate, endDate,
+            null)); // AI 경로는 반차 구분 미사용(종일). 반차는 0.5일 totalDays 로 표현.
         req.setAttachmentIds(attachmentIds); // 선택 사항 — null/빈 리스트면 첨부 없음
 
         try {
@@ -1081,7 +1155,9 @@ public class AiChatService {
             ? aiBoardContextService.buildContext(ms) : "";
         String calendarContext = includeCalendar
             ? aiCalendarContextService.buildContext(me.getMemberId()) : "";
-        String leaveContext    = includeLeave ? buildLeaveGuide(ms) : "";
+        // 내 연차 현황(읽기, "남은 연차 며칠?") + 휴가 신청 가이드(쓰기) 를 함께 첨부.
+        String leaveContext    = includeLeave
+            ? (aiLeaveContextService.buildContext(ms) + buildLeaveGuide(ms)) : "";
         String expenseContext  = includeExpense ? buildExpenseGuide(ms) : "";
         return basePrompt + boardContext + calendarContext + leaveContext + expenseContext;
     }

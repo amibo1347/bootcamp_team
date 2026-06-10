@@ -1,5 +1,6 @@
 package com.team.intranet.controller.api;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -11,7 +12,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import com.team.intranet.dto.ai.AiChatMessageDto;
 import com.team.intranet.dto.ai.AiChatSessionDto;
 import com.team.intranet.service.ai.AiChatService;
@@ -96,6 +99,24 @@ public class AiChatApiController {
             @AuthenticatedMember MemberSession ms) {
         String content = body == null ? null : body.get("content");
         return ResponseEntity.ok(aiChatService.sendMessage(ms, sessionId, content));
+    }
+
+    /**
+     * 파일 요약 — 회의자료 등(PDF/PPTX/DOCX/TXT)을 업로드하면 텍스트 추출 후 AI 가 요약.
+     * multipart: file(필수), text(선택 추가 요청). 응답: ASSISTANT 요약 메시지 1건.
+     */
+    @PostMapping("/conversations/{id}/summarize-file")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AiChatMessageDto> summarizeFile(
+            @PathVariable("id") Long sessionId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "text", required = false) String text,
+            @AuthenticatedMember MemberSession ms) throws IOException {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(aiChatService.summarizeFile(
+            ms, sessionId, file.getOriginalFilename(), file.getBytes(), text));
     }
 
     /**
