@@ -1,5 +1,6 @@
 package com.team.intranet.controller.view;
 
+import java.time.Year;
 import java.util.Collections;
 import java.util.List;
 
@@ -15,8 +16,10 @@ import com.team.intranet.dto.AttendanceDto;
 import com.team.intranet.dto.AttendancePolicyDto;
 import com.team.intranet.entity.Board;
 import com.team.intranet.repository.ArticleRepository;
+import com.team.intranet.repository.MemberRepository;
 import com.team.intranet.service.AttendanceService;
 import com.team.intranet.service.BoardService;
+import com.team.intranet.service.LeaveBalanceService;
 import com.team.intranet.session.MemberSession;
 
 import lombok.RequiredArgsConstructor;
@@ -28,6 +31,8 @@ public class MainController {
     private final AttendanceService attendanceService;
     private final BoardService boardService;
     private final ArticleRepository articleRepository;
+    private final LeaveBalanceService leaveBalanceService;
+    private final MemberRepository memberRepository;
 
     @GetMapping({ "/", "/index", "" })
     public String index(
@@ -72,7 +77,22 @@ public class MainController {
     }
 
     @GetMapping("/profile")
-    public String profile() {
+    public String profile(
+            @SessionAttribute(name = "memberSession", required = false) MemberSession ms,
+            Model model) {
+        if (ms != null && ms.getMemberId() != null && ms.getCompanyId() != null) {
+            // 입사일(effective) — 상단 프로필 박스 표시용
+            memberRepository.findById(ms.getMemberId())
+                .ifPresent(m -> model.addAttribute("hireDate", m.getEffectiveHireDate()));
+            // 내 잔여 연차 — 계산 실패가 프로필을 깨지 않도록 방어
+            try {
+                model.addAttribute("leaveSummary",
+                    leaveBalanceService.getMySummary(ms.getCompanyId(), ms.getMemberId(),
+                        Year.now().getValue()));
+            } catch (Exception e) {
+                model.addAttribute("leaveSummary", null);
+            }
+        }
         return "profile";
     }
 

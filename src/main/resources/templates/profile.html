@@ -102,6 +102,18 @@
                       <p th:if="${ms.deptName != null}" class="text-sm text-gray-500 dark:text-gray-300"
                         th:text="${ms.deptName}">부서</p>
                     </div>
+                    <!-- 입사일 · 잔여 연차 -->
+                    <div class="mt-1.5 flex flex-row flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                      <span class="text-gray-500 dark:text-gray-400">입사일</span>
+                      <span class="font-medium text-gray-800 dark:text-white/90"
+                        th:text="${hireDate != null ? #temporals.format(hireDate, 'yyyy-MM-dd') : '-'}">-</span>
+                      <th:block th:if="${leaveSummary != null}">
+                        <div class="h-3.5 w-px shrink-0 bg-gray-300 dark:bg-gray-700"></div>
+                        <span class="text-gray-500 dark:text-gray-400">잔여 연차</span>
+                        <span class="font-semibold text-emerald-600 dark:text-emerald-400"
+                          th:text="${#numbers.formatDecimal(leaveSummary.remaining, 1, 1)} + '일'">-</span>
+                      </th:block>
+                    </div>
                   </div>
                 </div>
               </div>
