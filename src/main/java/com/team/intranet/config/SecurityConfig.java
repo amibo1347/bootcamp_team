@@ -133,7 +133,9 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/admin/waitingList", "/admin/memberList",
                     "/admin/dept/**", "/admin/position/**",
-                    "/api/admin/dept/**", "/api/admin/position/**"
+                    "/api/admin/dept/**", "/api/admin/position/**",
+                    // 휴가 관리: SUB_ADMIN(VACATION_MANAGE) 도 진입. 세부 권한은 사이드바 노출 + 서비스에서.
+                    "/admin/leave/**", "/api/admin/leave/**"
                 ).hasAnyRole("SUB_ADMIN", "ADMIN")
                 .requestMatchers("/api/admin/**", "/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/subAdmin/**", "/subAdmin/**").hasRole("SUB_ADMIN")

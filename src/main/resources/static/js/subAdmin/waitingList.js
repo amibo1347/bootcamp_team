@@ -130,6 +130,11 @@
         // 컨트롤러 요구사항에 따라 필요시 추가 (현재 디자인상으론 position만 있음)
         params.append('positionId', positionId);
         params.append('deptId', deptId);
+        // 입사일 (선택). 비우면 서버에서 승인일을 입사일로 사용.
+        const hireElement = document.getElementById(`hire-${memberId}`);
+        if (hireElement && hireElement.value) {
+            params.append('hireDate', hireElement.value);
+        }
         try {
             const response = await fetch(`/api/subAdmin/accept/${memberId}`, {
                 method: 'POST',

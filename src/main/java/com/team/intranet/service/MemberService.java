@@ -93,7 +93,8 @@ public class MemberService {
      * 가입 승인 (WAIT → JOIN)
      */
     @Transactional
-    public void acceptMember(MemberSession ms, Long memberId, Long deptId, Long positionId) {
+    public void acceptMember(MemberSession ms, Long memberId, Long deptId, Long positionId,
+                             java.time.LocalDate hireDate) {
         Member targetMember = findMemberAndValidateOwner(ms, memberId);
 
         if (targetMember.getStatus() != Status.WAIT) {
@@ -103,7 +104,7 @@ public class MemberService {
         Dept dept = findDeptAndValidateOwner(ms, deptId);
         Position position = findPositionAndValidateOwner(ms, positionId);
 
-        targetMember.accept(dept, position);
+        targetMember.accept(dept, position, hireDate);
 
         publishMemberLog(ms, SystemLogAction.APPROVE, targetMember,
             "부서: " + dept.getDeptName() + " / 직급: " + position.getPositionName());
@@ -290,13 +291,14 @@ public class MemberService {
             String phone,
             String email,
             String name,
-            LocalDateTime birthDay) {
-        
+            LocalDateTime birthDay,
+            java.time.LocalDate hireDate) {
+
         Member targetMember = findMemberAndValidateOwner(ms, memberId);
         Dept dept = findDeptAndValidateOwner(ms, deptId);
         Position position = findPositionAndValidateOwner(ms, positionId);
 
-        targetMember.updateInfo(dept, position, profileImg, phone, email, name, birthDay);
+        targetMember.updateInfo(dept, position, profileImg, phone, email, name, birthDay, hireDate);
     }
 
     /**

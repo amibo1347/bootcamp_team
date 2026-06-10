@@ -182,6 +182,8 @@ window.openEditModal = (button) => {
     document.querySelector('#editEmail').value = button.dataset.email || '';
     document.querySelector('#editPhone').value = button.dataset.phone || '';
     document.querySelector('#editBirth').value = button.dataset.birth || '';
+    const hireEl = document.querySelector('#editHire');
+    if (hireEl) hireEl.value = button.dataset.hire || '';
 
     // 2. 프로필 이미지 처리
     const modalImg = document.querySelector('#modalProfileImg');
@@ -246,6 +248,8 @@ window.updateMember = async () => {
     formData.append('email', document.querySelector('#editEmail').value);
     formData.append('phone', document.querySelector('#editPhone').value);
     formData.append('birthDay', document.querySelector('#editBirth').value.replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3'));
+    const hireInput = document.querySelector('#editHire');
+    formData.append('hireDate', hireInput ? hireInput.value : '');
     // 만약 파일이 선택되었다면 파일도 추가
     if (fileInput.files[0]) {
         formData.append('profileImg', fileInput.files[0]);

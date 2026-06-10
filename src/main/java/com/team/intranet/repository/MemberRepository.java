@@ -18,6 +18,9 @@ public interface MemberRepository extends JpaRepository<Member, Long>{
     List<Member> findByCompanyCompanyId(Long companyId);
     List<Member> findByStatusAndCompanyCompanyId(Status status, Long companyId);
 
+    /** 입사일 backfill 마이그레이션용 — hireDate 미설정 회원. */
+    List<Member> findByHireDateIsNull();
+
     /** 로그인 인증 — loginId 는 회사별로만 유니크하므로 (회사, loginId) 복합키로 조회. */
     Optional<Member> findByCompany_CompanyIdAndLoginId(Long companyId, String loginId);
 

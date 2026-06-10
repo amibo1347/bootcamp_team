@@ -103,6 +103,14 @@
                                             th:text="${pos.positionName}"></option>
                                     </select>
                                 </div>
+
+                                <!-- 입사일 (직급 선택 우측). 미입력 시 승인일이 입사일로 설정됨. -->
+                                <div class="flex w-full items-center gap-2 sm:w-auto">
+                                    <label th:for="'hire-' + ${member.memberId}"
+                                        class="shrink-0 text-sm text-gray-500 dark:text-gray-400">입사일</label>
+                                    <input type="date" th:id="'hire-' + ${member.memberId}"
+                                        class="w-full rounded border border-stroke bg-transparent py-1.5 px-3 text-sm text-black outline-none transition focus:border-primary dark:border-form-strokedark dark:bg-meta-4 dark:text-white sm:w-40" />
+                                </div>
                             </div>
 
                             <!-- 승인 · 거절 버튼 (좌우 배치) -->

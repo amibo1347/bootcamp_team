@@ -64,6 +64,13 @@ public class SubAdminApiController {
       return date.atStartOfDay();
   }
 
+    /** "yyyy-MM-dd" / "yyyyMMdd" → LocalDate. blank 면 null(입사일 미지정). */
+    private LocalDate parseHireDate(String input) {
+        if (input == null || input.isBlank()) return null;
+        String digits = input.replaceAll("-", "");
+        return LocalDate.parse(digits, DateTimeFormatter.ofPattern("yyyyMMdd"));
+    }
+
     // 가입 승인용 포스트매핑
     @PostMapping("/accept/{id}")
     @PreAuthorize("hasRole('SUB_ADMIN') or hasRole('ADMIN')")
@@ -71,10 +78,11 @@ public class SubAdminApiController {
             @PathVariable("id") Long memberId,
             @RequestParam Long deptId,
             @RequestParam Long positionId,
+            @RequestParam(value = "hireDate", required = false) String hireDate,
             @SessionAttribute("memberSession") MemberSession ms) {
 
 
-        memberService.acceptMember(ms, memberId, deptId, positionId);
+        memberService.acceptMember(ms, memberId, deptId, positionId, parseHireDate(hireDate));
         return "redirect:/admin/waitingList";
     }
 
@@ -90,13 +98,15 @@ public class SubAdminApiController {
             @RequestParam String email,
             @RequestParam String phone,
             @RequestParam String birthDay,
+            @RequestParam(value = "hireDate", required = false) String hireDate,
             HttpSession session) throws IOException {
-        
+
         MemberSession ms = (MemberSession) session.getAttribute("memberSession");
 
         byte[] imgBytes = (profileImg != null && !profileImg.isEmpty()) ? profileImg.getBytes() : null;
-        
-        memberService.updateMemberInfo(ms, memberId, deptId, positionId, imgBytes, phone, email, name, parseBirthDay(birthDay));
+
+        memberService.updateMemberInfo(ms, memberId, deptId, positionId, imgBytes, phone, email, name,
+            parseBirthDay(birthDay), parseHireDate(hireDate));
 
         return "redirect:/admin/memberList";
     }
