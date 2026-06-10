@@ -168,8 +168,9 @@
                         canApprovalTemplate=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).APPROVAL_TEMPLATE_MANAGEMENT)},
                         canTrashAll=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).TRASH_MANAGEMENT)},
                         canAttendance=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).ATTENDANCE_MANAGEMENT)},
+                        canVacation=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).VACATION_MANAGE)},
                         trashVisible=${ms != null and (ms.isAdminOrMaster() or canTrashAll)},
-                        adminSectionVisible=${isCompanyAdmin or canDept or canPosition or canWaiting or canMember or canAttendance or trashVisible or isAdminRole}">
+                        adminSectionVisible=${isCompanyAdmin or canDept or canPosition or canWaiting or canMember or canAttendance or canVacation or trashVisible or isAdminRole}">
 
             <!-- ===== 인트로 ===== -->
             <div class="help-intro">
@@ -213,15 +214,15 @@
               <article id="help-dashboard" class="help-card">
                 <h3 class="help-card-title"><span class="help-card-no">1</span> 첫 화면(대시보드)과 출퇴근 체크</h3>
                 <p class="help-lead">
-                  로그인하면 보이는 첫 화면이 <b>대시보드</b>입니다. 맨 위 <b>「출퇴근 기록」 카드</b>에
-                  현재 시각이 실시간으로 흐르고, 큰 <b>[출근]</b> 버튼이 있어요. 하루를 시작할 때
-                  여기서 출근을 찍고, 아래 <b>근무 진행률</b>과 회사 공지를 함께 확인합니다.
+                  로그인하면 보이는 첫 화면이 <b>대시보드</b>입니다. 맨 위 <b>「출퇴근 기록」 카드</b>에는
+                  내 <b>이름·직급·부서</b>와 <b>오늘 날짜</b>가 표시되고, 한 줄에 <b>실시간 시각</b>과
+                  <b>[출근]</b> 버튼, <b>근무 진행</b> 막대, <b>출근/퇴근 기록</b> 칸이 나란히 있어요.
                 </p>
-                <th:block th:replace="~{partials/help-shot :: shot('dashboard.png', '대시보드 「출퇴근 기록」 카드 — 실시간 시각·출근 버튼·근무 진행률')}"></th:block>
+                <th:block th:replace="~{partials/help-shot :: shot('dashboard.png', '「출퇴근 기록」 카드 — 실시간 시각·[출근] 버튼·근무 진행 막대·출근/퇴근 기록')}"></th:block>
                 <ol class="help-steps">
-                  <li>출근하면 <b>「출퇴근 기록」</b> 카드의 파란 <b>[출근]</b> 버튼을 누릅니다.</li>
-                  <li>출근을 찍으면 아래 <b>「출근」</b> 칸에 시각이 기록되고 버튼이 <b>[퇴근]</b>으로 바뀝니다.</li>
-                  <li>퇴근할 때 <b>[퇴근]</b>을 한 번 더 눌러 마칩니다. <b>근무 진행</b> 막대로 진행률도 보여요.</li>
+                  <li>하루를 시작할 때 카드 왼쪽의 파란 <b>[출근]</b> 버튼을 누릅니다. (옆에 현재 시각이 실시간으로 흐릅니다.)</li>
+                  <li>출근을 찍으면 오른쪽 <b>「출근」</b> 칸에 시각이 기록되고 버튼이 <b>[퇴근]</b>으로 바뀝니다.</li>
+                  <li>퇴근할 때 <b>[퇴근]</b>을 한 번 더 눌러 마칩니다. 가운데 <b>근무 진행</b> 막대로 진행률(%)도 보여요.</li>
                   <li>실수로 눌렀다면 <b>[퇴근 취소]</b>로 되돌릴 수 있어요.</li>
                 </ol>
                 <p class="help-tip">
@@ -265,15 +266,18 @@
               <article id="help-profile" class="help-card">
                 <h3 class="help-card-title"><span class="help-card-no">4</span> 내 정보 / 계정 설정</h3>
                 <p class="help-lead">
-                  오른쪽 위 <b>내 이름</b>을 누르면 메뉴가 열립니다. 여기 <b>[계정 설정]</b>에서
-                  프로필 사진과 내 정보를 관리할 수 있어요. (지금 보고 있는 <b>도움말</b>도 이 메뉴에 있습니다.)
+                  오른쪽 위 <b>내 이름</b>을 누르면 메뉴(계정 설정·도움말·로그아웃)가 열려요.
+                  <b>[계정 설정]</b>을 누르면 <b>「내 프로필」</b> 화면으로 갑니다. 위쪽 카드에서 프로필 사진과 함께
+                  <b>입사일</b>·<b>잔여 연차</b>를 한눈에 볼 수 있고, <b>비밀번호 변경</b>도 여기서 합니다.
+                  (지금 보고 있는 <b>도움말</b>도 같은 메뉴에 있어요.)
                 </p>
-                <th:block th:replace="~{partials/help-shot :: shot('profile.png', '내 이름 메뉴(계정 설정·도움말·로그아웃)와 「내 프로필」 화면')}"></th:block>
+                <th:block th:replace="~{partials/help-shot :: shot('profile.png', '「내 프로필」 — 프로필 사진·입사일·잔여 연차·비밀번호 변경과 「개인 정보」 수정')}"></th:block>
                 <ol class="help-steps">
                   <li>오른쪽 위 <b>내 이름/프로필 사진</b>을 누르면 메뉴가 열립니다. (계정 설정 · 도움말 · 로그아웃)</li>
                   <li><b>[계정 설정]</b>을 누르면 <b>「내 프로필」</b> 화면으로 이동합니다.</li>
-                  <li>프로필 사진의 <b>카메라 아이콘</b>으로 사진을 바꿀 수 있어요.</li>
-                  <li><b>「개인 정보」</b>의 <b>[수정]</b> 버튼으로 이름·연락처 등을 고쳐 저장합니다.</li>
+                  <li>위쪽 카드에서 <b>입사일</b>과 <b>잔여 연차</b>를 확인하고, 프로필 사진의 <b>카메라 아이콘</b>으로 사진을 바꿀 수 있어요.</li>
+                  <li>오른쪽 <b>[비밀번호 변경]</b>으로 비밀번호를 바꿉니다.</li>
+                  <li><b>「개인 정보」</b>의 <b>[수정]</b> 버튼으로 이름·이메일·연락처·생년월일을 고쳐 저장합니다.</li>
                 </ol>
               </article>
             </section>
@@ -513,9 +517,30 @@
                 </ol>
               </article>
 
+              <!-- 휴가 관리 -->
+              <article th:if="${canVacation}" id="help-vacation" class="help-card">
+                <h3 class="help-card-title"><span class="help-card-no">G</span> 휴가 관리</h3>
+                <p class="help-lead">
+                  직원들의 <b>연차</b>를 관리하는 곳입니다. 위쪽 <b>「회사 기본 연차」</b>로 기본 부여일수와 <b>기준 연도</b>를 정하고,
+                  아래 <b>「직원별 연차 현황」</b> 표에서 직원마다 부여일수를 조정합니다. <b>잔여 = 부여 − 사용</b>으로 자동 계산되고,
+                  <b>신청중</b>(아직 승인 전인 연차)도 함께 보여줍니다.
+                </p>
+                <th:block th:replace="~{partials/help-shot :: shot('vacation.png', '휴가 관리 — 회사 기본 연차 설정과 직원별 연차 현황(부여·사용·신청중·잔여)')}"></th:block>
+                <ol class="help-steps">
+                  <li>왼쪽 <b>관리 &gt; 직원 관리 &gt; 휴가 관리</b>로 이동합니다.</li>
+                  <li><b>「회사 기본 연차」</b>에서 <b>기본 부여일수</b>를 입력하고 <b>[저장]</b>합니다. 개인별로 따로 설정하지 않은 직원에게 적용돼요. 오른쪽 <b>기준 연도</b>로 연도를 바꿔 볼 수 있습니다.</li>
+                  <li>표에서 직원의 <b>부여(일)</b>를 입력하고 그 줄의 <b>[저장]</b>을 누릅니다. <b>사용</b>·<b>신청중</b>·<b>잔여</b>는 자동으로 계산돼요.</li>
+                  <li>여러 명에게 같은 값을 줄 땐 왼쪽 <b>체크박스로 선택</b> → 오른쪽 위 <b>「선택 직원에게 [부여]일」</b> 입력 → <b>[일괄 적용]</b>. (맨 위 체크박스로 전체 선택)</li>
+                  <li>머리글의 <b>「부서」·「직급」 드롭다운</b>으로 원하는 부서·직급만 골라 볼 수 있습니다.</li>
+                  <li><b>이름·입사일·부여·사용·신청중·잔여</b> 머리글을 누르면 오름/내림차순으로 <b>정렬</b>됩니다. 기본은 직급 순(대표가 맨 위)으로 정렬돼요.</li>
+                  <li><b>입사일</b>은 <b>가입 승인</b> 때 입력하거나 <b>조직도 구성</b>의 직원 수정에서 바꿀 수 있습니다.</li>
+                  <li>본인보다 <b>상위이거나 같은 권한</b>인 직원의 연차는 수정할 수 없습니다(해당 줄이 흐리게 표시되고 입력·저장이 잠깁니다).</li>
+                </ol>
+              </article>
+
               <!-- 통합 휴지통 -->
               <article th:if="${trashVisible}" id="help-trash" class="help-card">
-                <h3 class="help-card-title"><span class="help-card-no">G</span> 통합 휴지통</h3>
+                <h3 class="help-card-title"><span class="help-card-no">H</span> 통합 휴지통</h3>
                 <p class="help-lead">
                   여러 게시판에 흩어진 <b>삭제된 글</b>을 한곳에 모아 보는 곳입니다. 어느 게시판의 글인지(게시판·제목·작성자·작성일)
                   한눈에 보고, 실수로 지운 것을 <b>되살리거나</b> 완전히 <b>지울</b> 수 있어요.
@@ -530,7 +555,7 @@
 
               <!-- 시스템 로그 (회사 대표) -->
               <article th:if="${isAdminRole}" id="help-system-log" class="help-card">
-                <h3 class="help-card-title"><span class="help-card-no">H</span> 시스템 로그 <span class="help-section-badge" style="margin-left:auto">회사 대표</span></h3>
+                <h3 class="help-card-title"><span class="help-card-no">I</span> 시스템 로그 <span class="help-section-badge" style="margin-left:auto">회사 대표</span></h3>
                 <p class="help-lead">
                   회원 관리·게시판·결재 양식 같은 <b>관리 행위 이력</b>을 회사 단위로 모아 보는 기능입니다.
                   오른쪽 위 <b>내 이름 메뉴</b>에서 <b>계정 설정</b> 아래 · <b>도움말</b> 위에 있습니다.
