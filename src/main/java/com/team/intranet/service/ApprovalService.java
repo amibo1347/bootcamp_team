@@ -715,7 +715,7 @@ public class ApprovalService {
             .endDate(endDate)
             .totalDays(totalDays)
             .halfDayPeriod(half)
-            .reason(payload.getVacationType())
+            .reason(payload.getReason())
             .build();
         vacationRepository.save(v);
     }

@@ -629,16 +629,20 @@ public class AiChatService {
             .or(() -> formTemplateRepository.findByCompanyIsNullAndFormCode("VACATION"))
             .orElseThrow(() -> new BusinessException(ErrorCode.FORM_TEMPLATE_NOT_FOUND));
 
+        // 사유 — 본문 reason 필드로. 제목에는 넣지 않는다(각 정보를 알맞은 위치에).
+        String reason = (p.reason() != null && !p.reason().isBlank()) ? p.reason().trim() : null;
+
         ApprovalSubmitRequest req = new ApprovalSubmitRequest();
         req.setFormTemplateId(template.getFormTemplateId());
         req.setFormCode("VACATION");
         req.setApprovalLine(approvalLine);
-        req.setTitle(buildLeaveTitle(vacationType, startDate, p.reason()));
+        req.setTitle(buildLeaveTitle(vacationType, startDate));
         req.setVacation(new VacationPayload(
             vacationType,
             p.totalDays() != null ? p.totalDays() : 1.0,
             startDate, endDate,
-            null)); // AI 경로는 반차 구분 미사용(종일). 반차는 0.5일 totalDays 로 표현.
+            null,      // halfDayPeriod — AI 경로는 종일. 반차는 0.5일 totalDays 로 표현.
+            reason));  // 사유 — 휴가 정보의 사유 칸에 표시
         req.setAttachmentIds(attachmentIds); // 선택 사항 — null/빈 리스트면 첨부 없음
 
         try {
@@ -655,7 +659,7 @@ public class AiChatService {
             .map(id -> memberRepository.findById(id).map(Member::getName).orElse("?"))
             .reduce((a, b) -> a + " → " + b).orElse("");
         Double days = p.totalDays() != null ? p.totalDays() : 1.0;
-        String confirmText = "✅ 휴가 신청서가 결재 상신되었습니다."
+        String confirmText = "✅ 휴가 신청이 완료되었습니다."
             + "\n• " + req.getTitle()
             + "\n• 기간: " + formatLeaveRange(startDate, endDate) + " (" + days + "일)"
             + "\n• 결재선: " + approverNames;
@@ -735,7 +739,7 @@ public class AiChatService {
         String approverNames = approvalLine.stream()
             .map(id -> memberRepository.findById(id).map(Member::getName).orElse("?"))
             .reduce((a, b) -> a + " → " + b).orElse("");
-        String confirmText = "✅ 지출결의서가 결재 상신되었습니다."
+        String confirmText = "✅ 지출결의서 신청이 완료되었습니다."
             + "\n• " + req.getTitle()
             + "\n• 금액: " + formatWon(p.amount()) + "원"
             + "\n• 분류: " + category
@@ -828,11 +832,10 @@ public class AiChatService {
         }
     }
 
-    private String buildLeaveTitle(String vacationType, LocalDate startDate, String reason) {
+    private String buildLeaveTitle(String vacationType, LocalDate startDate) {
         String label = leaveTypeLabel(vacationType);
-        String base = "[" + label + "] " + startDate.format(DateTimeFormatter.ofPattern("M월 d일")) + " 휴가";
-        if (reason != null && !reason.isBlank()) base += " - " + reason.trim();
-        return base;
+        // 사유는 본문 reason 필드로 들어가므로 제목엔 포함하지 않는다.
+        return "[" + label + "] " + startDate.format(DateTimeFormatter.ofPattern("M월 d일")) + " 휴가";
     }
 
     /** VacationType 코드 → 한글 라벨. 코드가 아니면 입력값을 그대로 반환. */
@@ -1056,6 +1059,42 @@ public class AiChatService {
               해당 게시판의 게시글을 우선적으로 참고해 답변하세요.
             - 데이터에 나열되지 않은 게시판에 대한 질문은 "권한이 없거나 AI 가 접근할 수 없는 게시판입니다." 라고 답하세요.
             - 추측·창작 금지. 데이터에 있는 내용만 인용하세요.
+
+            🧭 게시판 이동 (json:navigate):
+            - 사용자가 특정 "게시판"으로 이동을 원하면(예: "공지사항 게시판 열어줘"),
+              짧은 확인 문장 + 아래 json:navigate 블록 1개. boardId 는 위 데이터의 "이동용 boardId=" 값만.
+            - 데이터에 없는(권한 없는) 게시판은 블록 없이 "접근할 수 없는 게시판입니다." 라고만.
+
+            ```json:navigate
+            {
+              "items": [ { "boardId": 3, "title": "공지사항" } ]
+            }
+            ```
+
+            🔍 게시글 검색/이동 (json:search) — 게시글을 "찾거나" 제목·날짜·작성자로 이동할 때:
+            - 사용자가 게시글을 찾거나(예: "5월 12일 게시글 찾아줘", "워크숍 글 어딨어")
+              제목·작성자로 특정 게시글에 가고 싶어하면, 짧은 확인 문장 + 아래 json:search 블록 1개를 출력하세요.
+            - ⚠️ AI 가 직접 게시글 목록을 나열하지 마세요. 블록만 출력하면 시스템이 **실제로 검색해
+              결과를 5건씩 페이지네이션 카드**로 보여주고, 각 결과에 [이동] 버튼이 붙습니다. (제목 중복도 카드에서 구분됨)
+            - 사용자의 자연어를 아래 검색 조건으로 변환하세요. 해당 없는 조건은 null.
+              · keyword   : 제목/본문에 들어갈 핵심어 (예: "워크숍"). 날짜만 찾을 땐 null.
+              · author    : 작성자 이름 (예: "홍길동"). 없으면 null.
+              · boardId   : 특정 게시판으로 한정할 때만. 위 "이동용 boardId=" 값. 없으면 null(전체 검색).
+              · startDate / endDate : "YYYY-MM-DD". 오늘 날짜 기준으로 자연어 해석.
+                  "5월 12일" → start=end=그 날.  "5월 12일부터" → start만.  "지난주" → 해당 주 범위.
+            - "내용"을 묻는 질문(예: "공지 내용 요약해줘")은 검색이 아니라 본문으로 답하세요. 찾기/이동 의도일 때만 블록.
+
+            ```json:search
+            {
+              "keyword": null,
+              "author": null,
+              "boardId": null,
+              "startDate": "2026-05-12",
+              "endDate": "2026-05-12"
+            }
+            ```
+            • 예) "홍길동이 쓴 회식 관련 글" → { "keyword":"회식", "author":"홍길동", "boardId":null, "startDate":null, "endDate":null }
+            • id·날짜 같은 시스템 값은 본문 답변에 노출하지 말고, 변환은 블록 안에서만 하세요.
 
             📅 일정 조회/관리 (조회 · 등록 · 수정 · 삭제):
             • "지난주 일정", "지난달 회의", "어제 뭐 했지", "이번 주 미팅" 같은 회고형/조회 질문도

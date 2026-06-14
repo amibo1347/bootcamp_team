@@ -25,9 +25,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class AiProposalExtractor {
 
     /** ```json:{type}  {...}  ``` 블록. multiline + DOTALL.
-     *  지원 type: calendar / calendar_update / calendar_delete / leave / expense */
+     *  지원 type: calendar / calendar_update / calendar_delete / leave / expense / navigate / search */
     private static final Pattern BLOCK_RE = Pattern.compile(
-        "```\\s*json:(?<type>calendar_update|calendar_delete|calendar|leave|expense)\\s*\\n(?<body>.*?)\\n```",
+        "```\\s*json:(?<type>calendar_update|calendar_delete|calendar|leave|expense|navigate|search)\\s*\\n(?<body>.*?)\\n```",
         Pattern.CASE_INSENSITIVE | Pattern.DOTALL
     );
 

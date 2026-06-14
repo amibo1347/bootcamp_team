@@ -15,8 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import com.team.intranet.dto.ai.AiBoardSearchResponse;
 import com.team.intranet.dto.ai.AiChatMessageDto;
 import com.team.intranet.dto.ai.AiChatSessionDto;
+import com.team.intranet.service.ai.AiBoardSearchService;
 import com.team.intranet.service.ai.AiChatService;
 import com.team.intranet.config.AuthenticatedMember;
 import com.team.intranet.session.MemberSession;
@@ -37,6 +39,7 @@ import lombok.RequiredArgsConstructor;
 public class AiChatApiController {
 
     private final AiChatService aiChatService;
+    private final AiBoardSearchService aiBoardSearchService;
 
     @GetMapping("/conversations")
     @PreAuthorize("isAuthenticated()")
@@ -180,6 +183,35 @@ public class AiChatApiController {
         }
         return ResponseEntity.ok(
             aiChatService.confirmExpenseProposal(ms, messageId, parseAttachmentIds(body)));
+    }
+
+    /**
+     * AI 게시글 검색 (채팅 카드의 [이전]/[다음] 페이지네이션이 호출) — 한 페이지 5건.
+     *  GET /api/ai/board-search?keyword=&author=&boardId=&startDate=&endDate=&page=
+     *  날짜는 yyyy-MM-dd. 모든 파라미터 선택. 회사 격리 + 게시판 ACL 은 서비스에서 적용.
+     */
+    @GetMapping("/board-search")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AiBoardSearchResponse> boardSearch(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "author", required = false) String author,
+            @RequestParam(value = "boardId", required = false) Long boardId,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @AuthenticatedMember MemberSession ms) {
+        return ResponseEntity.ok(aiBoardSearchService.search(
+            ms, keyword, author, boardId, parseDate(startDate), parseDate(endDate), page));
+    }
+
+    /** "yyyy-MM-dd" → LocalDate. 비거나 형식 오류면 null(해당 조건 미적용). */
+    private static java.time.LocalDate parseDate(String s) {
+        if (s == null || s.isBlank()) return null;
+        try {
+            return java.time.LocalDate.parse(s.trim());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /** 요청 body 의 attachmentIds(JSON 배열) → List&lt;Long&gt;. 숫자가 아닌 항목은 무시. */

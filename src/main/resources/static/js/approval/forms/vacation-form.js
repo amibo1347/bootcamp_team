@@ -122,6 +122,7 @@ export function serializeVacationForm(root = document) {
     startDate,
     endDate: isHalf ? startDate : getValue(root, '#vacation-end'),
     halfDayPeriod: isHalf ? halfDayPeriod : null,
+    reason: getValue(root, '#vacation-reason') || null,
   };
 }
 
@@ -169,7 +170,9 @@ export function resetVacationForm(root = document) {
   const start = root.querySelector('#vacation-start');
   const end = root.querySelector('#vacation-end');
   const half = root.querySelector('#vacation-half');
+  const reason = root.querySelector('#vacation-reason');
 
+  if (reason instanceof HTMLTextAreaElement) reason.value = '';
   if (type instanceof HTMLSelectElement) type.value = '';
   else if (type instanceof HTMLInputElement) type.value = '';
   if (days instanceof HTMLInputElement) days.value = '0';
