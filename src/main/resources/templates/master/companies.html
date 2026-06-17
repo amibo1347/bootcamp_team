@@ -18,7 +18,7 @@
         <div style="margin-top: 0.75rem;">
           <span class="master-badge">MASTER</span>
           <h1 class="master-title">회사 관리</h1>
-          <p class="master-sub">회사를 생성·관리합니다. 회사 생성 시 대표(ADMIN) 계정이 함께 만들어집니다.</p>
+          <p class="master-sub">회사 생성 시 대표(ADMIN) 계정이 함께 만들어집니다.</p>
         </div>
 
         <div th:if="${errorMessage != null}" class="alert-box alert-error"
@@ -30,13 +30,17 @@
           <span th:text="${successMessage}">완료 메시지</span>
         </div>
 
-        <!-- 검색 -->
-        <form method="get" th:action="@{/master/companies}"
-              style="display: flex; gap: 0.5rem; margin-top: 1.25rem;">
-          <input type="text" name="q" class="field-input" th:value="${q}"
-                 placeholder="회사명 검색" style="flex: 1;" />
-          <button type="submit" class="master-btn-outline">검색</button>
-        </form>
+        <!-- 검색 + 회사 추가 -->
+        <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 1.25rem;">
+          <form method="get" th:action="@{/master/companies}"
+                style="display: flex; gap: 0.5rem; flex: 1;">
+            <input type="text" name="q" class="field-input" th:value="${q}"
+                   placeholder="회사명 검색" style="flex: 1;" />
+            <button type="submit" class="master-btn-outline">검색</button>
+          </form>
+          <label for="company-add-toggle" class="master-btn master-btn--inline"
+                 style="cursor: pointer; white-space: nowrap;">+ 회사 추가</label>
+        </div>
 
         <!-- 회사 목록 -->
         <table class="master-table">
@@ -87,73 +91,87 @@
           </tbody>
         </table>
 
-        <hr class="master-divider" />
-        <h2 class="master-section-title">새 회사 추가</h2>
+        <!-- ===== 회사 추가 모달 ===== -->
+        <!-- 체크박스 토글: 위 [+ 회사 추가] label 로 열고, 헤더 X·배경 클릭으로 닫는다. -->
+        <!-- 검증 실패(errorMessage)로 입력값이 되돌아온 경우 모달을 자동으로 다시 연다. -->
+        <input type="checkbox" id="company-add-toggle" class="modal-toggle"
+               th:checked="${errorMessage != null}" />
+        <div class="master-modal">
+          <label for="company-add-toggle" class="master-modal-backdrop" aria-hidden="true"></label>
+          <div class="master-modal-card">
+            <div class="master-modal-head">
+              <h2 class="master-modal-title">새 회사 추가</h2>
+              <label for="company-add-toggle" class="master-modal-close" aria-label="닫기">&times;</label>
+            </div>
 
-        <!-- 멀티파트 폼은 CSRF 토큰을 본문에서 읽지 못하므로 쿼리 파라미터로 전달 (수정 페이지 로고 업로드와 동일 패턴) -->
-        <form method="post" enctype="multipart/form-data"
-              th:action="@{/master/companies(_csrf=${_csrf.token})}">
-          <p class="master-sub" style="margin-bottom: 0.75rem; font-weight: 600; color: #334155;">회사 정보</p>
-          <div class="field-group">
-            <label for="companyName" class="field-label">회사명</label>
-            <input type="text" id="companyName" name="companyName" class="field-input"
-                   th:value="${formCompanyName}" required />
-          </div>
-          <div class="field-group">
-            <label for="companyDomain" class="field-label">도메인 (필수)</label>
-            <input type="text" id="companyDomain" name="companyDomain" class="field-input"
-                   th:value="${formCompanyDomain}" placeholder="예: acme" required />
-            <p class="master-sub" style="margin-top: 0.35rem;">
-              회사별 로그인 주소(/{도메인}/login)로 사용됩니다. 영문/숫자/.-_ 2~40자.
-            </p>
-          </div>
-          <div class="field-group">
-            <label class="field-label" style="display: flex; align-items: center; gap: 0.5rem;">
-              <input type="checkbox" name="usesEmployeeNo" th:checked="${formUsesEmployeeNo}" />
-              <span>사번 사용 회사</span>
-            </label>
-            <p class="master-sub" style="margin-top: 0.35rem;">
-              체크하면 직원이 회원가입·로그인 시 '아이디' 대신 '사번'을 입력합니다.
-            </p>
-          </div>
+            <!-- 멀티파트 폼은 CSRF 토큰을 본문에서 읽지 못하므로 쿼리 파라미터로 전달 (수정 페이지 로고 업로드와 동일 패턴) -->
+            <form method="post" enctype="multipart/form-data"
+                  th:action="@{/master/companies(_csrf=${_csrf.token})}">
+              <p class="master-sub" style="margin-bottom: 0.75rem; font-weight: 600; color: #334155;">회사 정보</p>
+              <div class="field-group">
+                <label for="companyName" class="field-label">회사명</label>
+                <input type="text" id="companyName" name="companyName" class="field-input"
+                       th:value="${formCompanyName}" required />
+              </div>
+              <div class="field-group">
+                <label for="companyDomain" class="field-label">도메인 (필수)</label>
+                <input type="text" id="companyDomain" name="companyDomain" class="field-input"
+                       th:value="${formCompanyDomain}" placeholder="예: acme" required />
+                <p class="master-sub" style="margin-top: 0.35rem;">
+                  회사별 로그인 주소(/{도메인}/login)로 사용됩니다. 영문/숫자/.-_ 2~40자.
+                </p>
+              </div>
+              <div class="field-group">
+                <label class="field-label" style="display: flex; align-items: center; gap: 0.5rem;">
+                  <input type="checkbox" name="usesEmployeeNo" th:checked="${formUsesEmployeeNo}" />
+                  <span>사번 사용 회사</span>
+                </label>
+                <p class="master-sub" style="margin-top: 0.35rem;">
+                  체크하면 직원이 회원가입·로그인 시 '아이디' 대신 '사번'을 입력합니다.
+                </p>
+              </div>
 
-          <div class="field-group">
-            <label for="logoFile" class="field-label">회사 로고 (선택, PNG / JPG 등)</label>
-            <input type="file" id="logoFile" name="logoFile" accept="image/*"
-                   onchange="previewCompanyLogo(event)"
-                   style="display: block; margin: 0.4rem 0 0; font-size: 0.85rem;" />
-            <!-- 선택한 로고 미리보기 — 파일 선택 전엔 숨김. -->
-            <img id="logoPreview" alt="로고 미리보기"
-                 style="display: none; margin-top: 0.6rem; max-width: 180px; max-height: 90px;
-                        border: 1px solid #e2e8f0; border-radius: 0.6rem; background: #f8fafc; padding: 0.5rem;" />
-            <p class="master-sub" style="margin-top: 0.35rem;">
-              생성 후에도 [수정] 화면에서 변경·삭제할 수 있습니다.
-            </p>
-          </div>
+              <div class="field-group">
+                <label class="field-label">회사 로고 (선택)</label>
+                <!-- 파일 선택 영역을 드롭존 형태로 명확히 표시 -->
+                <label for="logoFile" class="master-filedrop">
+                  <span class="master-filedrop-icon">🖼️</span>
+                  <span class="master-filedrop-main">클릭하여 로고 이미지 선택</span>
+                  <span class="master-filedrop-sub" id="logoFileName">PNG / JPG 등 이미지 파일</span>
+                  <input type="file" id="logoFile" name="logoFile" accept="image/*"
+                         onchange="previewCompanyLogo(event)" />
+                </label>
+                <!-- 선택한 로고 미리보기 — 파일 선택 전엔 숨김. -->
+                <img id="logoPreview" alt="로고 미리보기"
+                     style="display: none; margin-top: 0.6rem; max-width: 180px; max-height: 90px;
+                            border: 1px solid #e2e8f0; border-radius: 0.6rem; background: #f8fafc; padding: 0.5rem;" />
+              </div>
 
-          <p class="master-sub" style="margin: 1.25rem 0 0.75rem; font-weight: 600; color: #334155;">
-            대표(ADMIN) 계정
-          </p>
-          <div class="field-group">
-            <label for="adminLoginId" class="field-label">대표 아이디</label>
-            <input type="text" id="adminLoginId" name="adminLoginId" class="field-input"
-                   th:value="${formAdminLoginId}" autocomplete="off" required />
+              <p class="master-sub" style="margin: 1.25rem 0 0.75rem; font-weight: 600; color: #334155;">
+                대표(ADMIN) 계정
+              </p>
+              <div class="field-group">
+                <label for="adminLoginId" class="field-label">대표 아이디</label>
+                <input type="text" id="adminLoginId" name="adminLoginId" class="field-input"
+                       th:value="${formAdminLoginId}" autocomplete="off" required />
+              </div>
+              <div class="field-group">
+                <label for="adminName" class="field-label">대표 이름</label>
+                <input type="text" id="adminName" name="adminName" class="field-input"
+                       th:value="${formAdminName}" required />
+              </div>
+              <div class="field-group">
+                <label for="adminEmail" class="field-label">대표 이메일 (선택)</label>
+                <input type="email" id="adminEmail" name="adminEmail" class="field-input"
+                       th:value="${formAdminEmail}" />
+              </div>
+              <p class="master-sub" style="margin-bottom: 0;">
+                대표 초기 비밀번호는 회사 생성 시 자동 발급되며, 생성 후 안내 메시지에 표시됩니다.
+              </p>
+              <button type="submit" class="master-btn" style="margin-top: 1.5rem;">회사 생성</button>
+            </form>
           </div>
-          <div class="field-group">
-            <label for="adminName" class="field-label">대표 이름</label>
-            <input type="text" id="adminName" name="adminName" class="field-input"
-                   th:value="${formAdminName}" required />
-          </div>
-          <div class="field-group">
-            <label for="adminEmail" class="field-label">대표 이메일 (선택)</label>
-            <input type="email" id="adminEmail" name="adminEmail" class="field-input"
-                   th:value="${formAdminEmail}" />
-          </div>
-          <p class="master-sub" style="margin-bottom: 0;">
-            대표 초기 비밀번호는 회사 생성 시 자동 발급되며, 생성 후 안내 메시지에 표시됩니다.
-          </p>
-          <button type="submit" class="master-btn" style="margin-top: 1.5rem;">회사 생성</button>
-        </form>
+        </div>
 
       </div>
     </div>
@@ -165,12 +183,15 @@
       const input = event.target;
       const preview = document.getElementById('logoPreview');
       if (!preview) return;
+      const nameLabel = document.getElementById('logoFileName');
       const file = input.files && input.files[0];
       if (!file) {
         preview.style.display = 'none';
         preview.removeAttribute('src');
+        if (nameLabel) nameLabel.textContent = 'PNG / JPG 등 이미지 파일';
         return;
       }
+      if (nameLabel) nameLabel.textContent = file.name;
       const url = URL.createObjectURL(file);
       preview.src = url;
       preview.style.display = 'block';

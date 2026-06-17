@@ -13,10 +13,15 @@
           <option value="">선택하세요</option>
         </select>
       </div>
+      <!-- [휴가 단위] 종일 / 오전 반차 / 오후 반차. 반차 선택 시 시작일 하루·0.5일로 자동 처리. -->
       <div>
-        <label for="vacation-days" class="mb-1 block text-xs text-gray-600 dark:text-gray-400">일수</label>
-        <input id="vacation-days" type="number" min="0" step="0.5" value="0" readonly
-          class="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm cursor-not-allowed dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+        <label for="vacation-half" class="mb-1 block text-xs text-gray-600 dark:text-gray-400">휴가 단위</label>
+        <select id="vacation-half"
+          class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white">
+          <option value="">종일</option>
+          <option value="AM">오전 반차</option>
+          <option value="PM">오후 반차</option>
+        </select>
       </div>
       <div>
         <label for="vacation-start" class="mb-1 block text-xs text-gray-600 dark:text-gray-400">시작일</label>
@@ -27,6 +32,16 @@
         <label for="vacation-end" class="mb-1 block text-xs text-gray-600 dark:text-gray-400">종료일</label>
         <input id="vacation-end" type="date"
           class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+      </div>
+      <div class="sm:col-span-2">
+        <label for="vacation-days" class="mb-1 block text-xs text-gray-600 dark:text-gray-400">일수</label>
+        <input id="vacation-days" type="number" min="0" step="0.5" value="0" readonly
+          class="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm cursor-not-allowed dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+      </div>
+      <div class="sm:col-span-2">
+        <label for="vacation-reason" class="mb-1 block text-xs text-gray-600 dark:text-gray-400">사유</label>
+        <textarea id="vacation-reason" rows="2" maxlength="500" placeholder="휴가 사유 (선택)"
+          class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"></textarea>
       </div>
     </div>
   </div>

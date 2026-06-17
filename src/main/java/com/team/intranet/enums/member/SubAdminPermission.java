@@ -30,7 +30,12 @@ public enum SubAdminPermission {
      * 근태 관리 (/admin/attendance/list).
      * ※ 본인 근태 조회(/me/attendance)는 모든 회원이 가능. 이 권한은 회사 전체 근태표·정책 편집 전용.
      */
-    ATTENDANCE_MANAGEMENT("근태 관리");
+    ATTENDANCE_MANAGEMENT("근태 관리"),
+    /**
+     * 휴가 관리 (/admin/leave/list).
+     * ※ 회사 기본 연차 부여일수 설정 + 직원별 연차 부여/조정 전용. 본인 잔여 연차 조회는 권한 무관.
+     */
+    VACATION_MANAGE("휴가 관리");
 
     private final String label;
 

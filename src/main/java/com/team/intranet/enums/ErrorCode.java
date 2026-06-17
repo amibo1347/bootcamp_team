@@ -99,6 +99,7 @@ public enum ErrorCode {
     
     VACATION_REQUEST_NOT_FOUND(404, "해당 휴가 신청을 찾을 수 없습니다"),
     INVALID_VACATION_PERIOD(400, "휴가 시작일이 종료일보다 늦습니다"),
+    INVALID_LEAVE_DAYS(400, "연차 일수는 0 이상이어야 합니다"),
 
     // 알림
     ALERT_NOT_FOUND(404, "해당 알림을 찾을 수 없습니다"),
@@ -106,6 +107,8 @@ public enum ErrorCode {
 
     // AI
     AI_SESSION_NOT_FOUND(404, "해당 AI 대화를 찾을 수 없습니다"),
+    UNSUPPORTED_FILE_TYPE(400, "지원하지 않는 파일 형식입니다 (PDF, PPTX, DOCX, TXT만 요약 가능)"),
+    FILE_TEXT_EMPTY(400, "파일에서 텍스트를 추출하지 못했습니다 (스캔 이미지 PDF 등은 지원하지 않습니다)"),
     AI_RATE_LIMIT_EXCEEDED(429, "오늘 AI 호출 한도를 초과했습니다"),
     AI_PROVIDER_QUOTA_EXCEEDED(429, "오늘 AI 무료 사용량 한도에 도달했습니다. 내일 다시 시도해주세요."),
     AI_PROVIDER_ERROR(503, "AI 모델 호출에 실패했습니다");

@@ -67,6 +67,50 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
   """)
   Page<Article> findByBoard_BoardIdAndIsDeletedTrue(Long boardId, Pageable pageable);
 
+    /**
+     * AI 비서 게시글 검색 — 접근 가능한 여러 게시판을 한 번에. 빈 조건(null)은 건너뜀.
+     *  - :boardIds  검색 대상 게시판 ID 목록 (비어 있으면 호출하지 말 것 — IN () 무효)
+     *  - :from/:to  작성일 범위 [from, to). null 이면 해당 경계 무제한
+     *  - :keyword   제목 OR 본문 부분일치 (CLOB 본문은 case-sensitive)
+     *  - :author    작성자명 부분일치 (익명글 제외)
+     * 정렬은 Pageable(Sort) 로 전달.
+     */
+    @Query(value = """
+        SELECT a FROM Article a
+        JOIN FETCH a.board b
+        LEFT JOIN FETCH a.author au
+        WHERE a.isDeleted = false
+          AND b.boardId IN :boardIds
+          AND (:from IS NULL OR a.createdAt >= :from)
+          AND (:to   IS NULL OR a.createdAt <  :to)
+          AND (:keyword IS NULL
+               OR LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR a.content LIKE CONCAT('%', :keyword, '%'))
+          AND (:author IS NULL
+               OR (a.isAnonymous = false AND au IS NOT NULL
+                   AND LOWER(au.name) LIKE LOWER(CONCAT('%', :author, '%'))))
+        """,
+        countQuery = """
+        SELECT COUNT(a) FROM Article a LEFT JOIN a.author au
+        WHERE a.isDeleted = false
+          AND a.board.boardId IN :boardIds
+          AND (:from IS NULL OR a.createdAt >= :from)
+          AND (:to   IS NULL OR a.createdAt <  :to)
+          AND (:keyword IS NULL
+               OR LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR a.content LIKE CONCAT('%', :keyword, '%'))
+          AND (:author IS NULL
+               OR (a.isAnonymous = false AND au IS NOT NULL
+                   AND LOWER(au.name) LIKE LOWER(CONCAT('%', :author, '%'))))
+        """)
+    Page<Article> aiSearch(
+            @Param("boardIds") List<Long> boardIds,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            @Param("keyword") String keyword,
+            @Param("author") String author,
+            Pageable pageable);
+
     Page<Article> findByBoard_BoardIdAndAuthor_MemberIdAndIsDeletedTrue(Long boardId, Long memberId, Pageable pageable);
 
     Optional<Article> findByArticleIdAndBoard_BoardIdAndIsDeletedFalse(Long articleId, Long boardId);

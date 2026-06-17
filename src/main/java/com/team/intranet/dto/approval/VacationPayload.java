@@ -18,4 +18,6 @@ public class VacationPayload {
     private Double days;           // 0.5 단위
     private LocalDate startDate;
     private LocalDate endDate;
+    private String halfDayPeriod;  // null/"" = 종일, "AM" = 오전 반차, "PM" = 오후 반차
+    private String reason;         // 휴가 사유 (자유 텍스트, 없으면 null/"")
 }

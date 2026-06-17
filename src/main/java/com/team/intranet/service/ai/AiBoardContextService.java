@@ -69,7 +69,8 @@ public class AiBoardContextService {
 
         for (Board b : aiBoards) {
             sb.append("\n## ").append(b.getBoardName())
-              .append(" (게시판 종류: ").append(b.getBoardType()).append(")\n");
+              .append(" (게시판 종류: ").append(b.getBoardType())
+              .append(", 이동용 boardId=").append(b.getBoardId()).append(")\n");
 
             List<Article> recent = articleRepository
                 .findByBoard_BoardIdAndIsDeletedFalse(
@@ -85,7 +86,13 @@ public class AiBoardContextService {
             for (Article a : recent) {
                 String date = a.getCreatedAt() != null ? a.getCreatedAt().toLocalDate().toString() : "?";
                 String title = a.getTitle() != null ? a.getTitle() : "(제목 없음)";
-                sb.append("  ").append(idx++).append(". [").append(date).append("] ").append(title).append("\n");
+                // 익명 글은 작성자를 노출하지 않는다.
+                String author = a.isAnonymous() ? "익명"
+                    : (a.getAuthor() != null ? a.getAuthor().getName()
+                        : (a.getAuthorDisplayName() != null ? a.getAuthorDisplayName() : "알 수 없음"));
+                sb.append("  ").append(idx++).append(". [").append(date).append("] ").append(title)
+                  .append(" (이동용 articleId=").append(a.getArticleId())
+                  .append(", 작성자=").append(author).append(")\n");
                 String preview = truncate(stripHtml(a.getContent()), CONTENT_PREVIEW_LEN);
                 if (!preview.isBlank()) {
                     sb.append("     본문: ").append(preview).append("\n");

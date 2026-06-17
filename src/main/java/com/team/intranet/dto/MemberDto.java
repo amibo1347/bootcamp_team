@@ -50,7 +50,8 @@ public class MemberDto {
    // 저장
    //  ※ Member 의 마지막 인자 4개는 휴직 정보(reason/start/expectedReturn/extended) — 신규 가입은 null/false.
    public Member toEntity() {
-      return new Member(null, this.loginId, this.password, this.email, LocalDateTime.now(), this.acceptedAt, this.name,
+      return new Member(null, this.loginId, this.password, this.email, LocalDateTime.now(), this.acceptedAt,
+            null /* hireDate — 신규 가입은 미지정(승인/마이그레이션/수정에서 채움) */, this.name,
             getFullBirthDate(), Role.USER, this.phone, Status.WAIT, LocalDateTime.now(), null, null, null, null,
             java.util.EnumSet.noneOf(com.team.intranet.enums.member.SubAdminPermission.class),
             null, null, null, false);

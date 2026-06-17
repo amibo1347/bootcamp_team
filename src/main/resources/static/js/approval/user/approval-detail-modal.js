@@ -111,6 +111,7 @@ function renderVacationBody(v) {
       <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">휴가 정보</h3>
       <dl class="grid grid-cols-2 gap-3 rounded-xl border border-gray-200 bg-white p-4 text-sm dark:border-gray-700 dark:bg-white/[0.03]">
         <div><dt class="text-xs text-gray-500">유형</dt><dd class="font-medium text-gray-900 dark:text-white">${esc(typeLabel)}</dd></div>
+        <div><dt class="text-xs text-gray-500">단위</dt><dd class="font-medium text-gray-900 dark:text-white">${esc(v.halfDayLabel || '종일')}</dd></div>
         <div><dt class="text-xs text-gray-500">일수</dt><dd class="font-medium text-gray-900 dark:text-white">${esc(v.totalDays ?? v.days ?? '—')}</dd></div>
         <div><dt class="text-xs text-gray-500">시작일</dt><dd class="font-medium text-gray-900 dark:text-white">${esc(formatDate(v.startDate))}</dd></div>
         <div><dt class="text-xs text-gray-500">종료일</dt><dd class="font-medium text-gray-900 dark:text-white">${esc(formatDate(v.endDate))}</dd></div>

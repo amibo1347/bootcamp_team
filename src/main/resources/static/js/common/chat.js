@@ -354,13 +354,13 @@
       if (activeMode === 'chat') markConversationRead(id);
     };
 
-    /** AI 모드에선 파일 첨부 label 숨김 (텍스트 전용). 사람 채팅은 다시 표시. */
+    /** 파일 첨부는 AI(요약)·사람 채팅 모두 허용. */
     function setComposerForMode(mode) {
       const fileLabel = document.querySelector('label[for="chat-file-input"]');
       const isAi = mode === 'ai';
-      if (fileLabel) fileLabel.style.display = isAi ? 'none' : '';
-      if (filePreview) filePreview.style.display = isAi ? 'none' : '';
-      if (inputEl) inputEl.placeholder = isAi ? 'AI 비서에게 질문하기...' : '메시지 입력...';
+      if (fileLabel) fileLabel.style.display = '';
+      if (filePreview) filePreview.style.display = '';
+      if (inputEl) inputEl.placeholder = isAi ? 'AI 비서에게 질문 또는 파일(PDF/PPTX/DOCX) 요약...' : '메시지 입력...';
     }
     const showPick = () => {
       view = 'pick';
@@ -523,10 +523,73 @@
       panel.classList.add('hidden');
       fab.setAttribute('aria-expanded', 'false');
     };
+    // FAB 드래그로 이동했으면 그 직후의 click(패널 열기)은 무시.
+    let fabDragged = false;
     fab.addEventListener('click', () => {
+      if (fabDragged) { fabDragged = false; return; }
       if (panel.classList.contains('hidden')) openPanel();
       else closePanel();
     });
+
+    // ─── FAB 드래그(위치 이동) ─────────────────────────────────────
+    // FAB 래퍼를 body 직속 fixed 로 떼고, 버튼을 잡아 끌면 화면 안에서 자유롭게 이동.
+    // 살짝(임계값 이내) 움직이면 클릭으로 간주해 패널이 열린다.
+    function setupDraggableFab() {
+      const fabWrap = document.getElementById('chat-fab-wrap');
+      if (!fabWrap || fabWrap.dataset.dragInit === '1') return;
+      fabWrap.dataset.dragInit = '1';
+
+      if (fabWrap.parentElement !== document.body) document.body.appendChild(fabWrap);
+      fabWrap.style.position = 'fixed';
+      fabWrap.style.zIndex = '10081';
+      // 초기 위치: 기존과 동일하게 우측 하단.
+      fabWrap.style.right = '1.5rem';
+      fabWrap.style.bottom = '1.5rem';
+      fabWrap.style.left = 'auto';
+      fabWrap.style.top = 'auto';
+
+      const onDown = (e) => {
+        const isTouch = e.type === 'touchstart';
+        if (!isTouch && e.button !== 0) return;
+        const pt = isTouch ? e.touches[0] : e;
+        const r = fabWrap.getBoundingClientRect();
+        const offX = pt.clientX - r.left;
+        const offY = pt.clientY - r.top;
+        const sx = pt.clientX, sy = pt.clientY;
+        fabDragged = false;
+        if (!isTouch) e.preventDefault();
+
+        const move = (ev) => {
+          const p = (ev.touches ? ev.touches[0] : ev);
+          if (Math.abs(p.clientX - sx) > 4 || Math.abs(p.clientY - sy) > 4) fabDragged = true;
+          if (!fabDragged) return;
+          if (ev.cancelable) ev.preventDefault();
+          let nl = p.clientX - offX;
+          let nt = p.clientY - offY;
+          nl = Math.max(4, Math.min(window.innerWidth - fabWrap.offsetWidth - 4, nl));
+          nt = Math.max(4, Math.min(window.innerHeight - fabWrap.offsetHeight - 4, nt));
+          fabWrap.style.left = nl + 'px';
+          fabWrap.style.top = nt + 'px';
+          fabWrap.style.right = 'auto';
+          fabWrap.style.bottom = 'auto';
+        };
+        const up = () => {
+          document.removeEventListener('mousemove', move);
+          document.removeEventListener('mouseup', up);
+          document.removeEventListener('touchmove', move);
+          document.removeEventListener('touchend', up);
+        };
+        document.addEventListener('mousemove', move);
+        document.addEventListener('mouseup', up);
+        document.addEventListener('touchmove', move, { passive: false });
+        document.addEventListener('touchend', up);
+      };
+
+      fab.addEventListener('mousedown', onDown);
+      fab.addEventListener('touchstart', onDown, { passive: true });
+    }
+    setupDraggableFab();
+
     closeBtn.addEventListener('click', closePanel);
     backBtn.addEventListener('click', () => {
       if (view !== 'thread' && view !== 'pick') return;
@@ -1148,6 +1211,149 @@
         messagesEl.innerHTML = '<div class="text-center text-xs text-rose-500 py-6">메시지를 불러올 수 없습니다.</div>';
       }
     }
+    /**
+     * 게시판/게시글 이동 제안 카드 HTML. type=navigate.
+     *  - items[].boardId(+선택 articleId) 로 이동. articleId 있으면 게시글, 없으면 게시판.
+     *  - 같은 제목이 여러 건이면 항목별 [이동] 버튼을 나열해 사용자가 선택.
+     */
+    function navigateProposalCardHtml(m) {
+      const p = m.proposal || {};
+      const hasId = (v) => v !== null && v !== undefined && v !== '';
+      let items = Array.isArray(p.items) ? p.items.slice() : [];
+      // 하위호환: 예전 단일 { boardId, boardName } 형태도 허용.
+      if (items.length === 0 && hasId(p.boardId)) {
+        items = [{ boardId: p.boardId, title: p.boardName }];
+      }
+      items = items.filter((it) => it && hasId(it.boardId));
+      if (items.length === 0) return '';
+
+      const linkStyle = 'background:#4f46e5;color:#fff;border:none;padding:6px 16px;border-radius:6px;'
+        + 'font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.2);'
+        + 'text-decoration:none;display:inline-block;white-space:nowrap;';
+      const hrefOf = (it) => hasId(it.articleId)
+        ? '/board/' + encodeURIComponent(it.boardId) + '/articles/' + encodeURIComponent(it.articleId)
+        : '/board/' + encodeURIComponent(it.boardId);
+
+      const multi = items.length > 1;
+      const head = multi ? '🧭 게시글 선택' : '🧭 이동';
+      let body;
+      if (multi) {
+        body = items.map((it) => {
+          const title = esc(it.title || '게시글');
+          const sub = [it.date, it.author].filter(Boolean).map(esc).join(' · ');
+          return '<div class="flex items-center justify-between gap-2 border-t border-indigo-100 py-1.5 dark:border-indigo-900/40">'
+            +   '<div class="min-w-0">'
+            +     '<div class="truncate font-medium text-gray-900 dark:text-white">' + title + '</div>'
+            +     (sub ? '<div class="text-[11px] text-gray-500">' + sub + '</div>' : '')
+            +   '</div>'
+            +   '<a href="' + hrefOf(it) + '" style="' + linkStyle + '">이동</a>'
+            + '</div>';
+        }).join('');
+      } else {
+        const it = items[0];
+        const title = esc(it.title || (hasId(it.articleId) ? '게시글' : '게시판'));
+        body = '<div class="font-semibold text-gray-900 dark:text-white">' + title + '</div>'
+          + '<div class="mt-2 flex justify-end gap-2"><a href="' + hrefOf(it) + '" style="' + linkStyle + '">이동</a></div>';
+      }
+      return ''
+        + '<div class="mb-2 flex justify-start">'
+        +   '<div class="max-w-[85%] rounded-2xl border border-indigo-200 bg-indigo-50/50 p-3 text-xs text-gray-700 dark:border-indigo-900/50 dark:bg-indigo-900/20 dark:text-gray-200">'
+        +     '<div class="mb-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-300">' + head + '</div>'
+        +     body
+        +   '</div>'
+        + '</div>';
+    }
+
+    /**
+     * 게시글 검색 카드 HTML. type=search.
+     *  - 검색 조건(키워드/작성자/게시판/날짜)을 data 속성에 담아두고,
+     *    렌더 후 hydrateSearchCards() 가 /api/ai/board-search 를 호출해 5건씩 채운다.
+     *  - [이전]/[다음] 으로 같은 카드 안에서 페이지를 교체한다.
+     */
+    function searchProposalCardHtml(m) {
+      const p = m.proposal || {};
+      const a = (v) => (v === null || v === undefined || v === '') ? '' : esc(String(v));
+      return ''
+        + '<div class="mb-2 flex justify-start">'
+        +   '<div class="w-[85%] max-w-[85%] rounded-2xl border border-indigo-200 bg-indigo-50/50 p-3 text-xs text-gray-700 dark:border-indigo-900/50 dark:bg-indigo-900/20 dark:text-gray-200"'
+        +       ' data-ai-search="1" data-page="0"'
+        +       ' data-kw="' + a(p.keyword) + '"'
+        +       ' data-author="' + a(p.author) + '"'
+        +       ' data-board="' + a(p.boardId) + '"'
+        +       ' data-start="' + a(p.startDate) + '"'
+        +       ' data-end="' + a(p.endDate) + '">'
+        +     '<div class="mb-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-300">🔍 게시글 검색</div>'
+        +     '<div data-ai-search-body class="py-2 text-gray-400">검색 중…</div>'
+        +   '</div>'
+        + '</div>';
+    }
+
+    /** 검색 결과 한 페이지(JSON) → 카드 본문 HTML (목록 + [이전]/[다음] 푸터). */
+    function renderSearchBody(data) {
+      const items = Array.isArray(data && data.items) ? data.items : [];
+      if (items.length === 0) {
+        return '<div class="py-2 text-gray-500">검색 결과가 없습니다.</div>';
+      }
+      const linkStyle = 'background:#4f46e5;color:#fff;border:none;padding:5px 12px;border-radius:6px;'
+        + 'font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block;white-space:nowrap;';
+      const rows = items.map((it) => {
+        const title = esc(it.title || '게시글');
+        const sub = [it.boardName, it.date, it.author].filter(Boolean).map(esc).join(' · ');
+        const href = '/board/' + encodeURIComponent(it.boardId) + '/articles/' + encodeURIComponent(it.articleId);
+        return '<div class="flex items-center justify-between gap-2 border-t border-indigo-100 py-1.5 dark:border-indigo-900/40">'
+          +   '<div class="min-w-0">'
+          +     '<div class="truncate font-medium text-gray-900 dark:text-white">' + title + '</div>'
+          +     (sub ? '<div class="text-[11px] text-gray-500">' + sub + '</div>' : '')
+          +   '</div>'
+          +   '<a href="' + href + '" style="' + linkStyle + '">이동</a>'
+          + '</div>';
+      }).join('');
+      const page = data.page || 0;
+      const totalPages = Math.max(1, data.totalPages || 1);
+      const navBtn = 'background:#fff;color:#4f46e5;border:1px solid #c7d2fe;border-radius:6px;'
+        + 'padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;';
+      const prevStyle = navBtn + (data.hasPrev ? '' : 'opacity:0.4;pointer-events:none;');
+      const nextStyle = navBtn + (data.hasNext ? '' : 'opacity:0.4;pointer-events:none;');
+      const footer = '<div class="mt-2 flex items-center justify-between border-t border-indigo-100 pt-2 dark:border-indigo-900/40">'
+        +   '<button type="button" data-ai-search-prev style="' + prevStyle + '">이전</button>'
+        +   '<span class="text-[11px] text-gray-500">' + (page + 1) + ' / ' + totalPages + ' 페이지 · 총 ' + (data.totalElements || 0) + '건</span>'
+        +   '<button type="button" data-ai-search-next style="' + nextStyle + '">다음</button>'
+        + '</div>';
+      return rows + footer;
+    }
+
+    /** 검색 카드의 한 페이지를 API 로 불러와 본문을 교체한다. */
+    async function loadSearchPage(card, page) {
+      const body = card.querySelector('[data-ai-search-body]');
+      if (!body) return;
+      const d = card.dataset;
+      const params = new URLSearchParams();
+      if (d.kw) params.set('keyword', d.kw);
+      if (d.author) params.set('author', d.author);
+      if (d.board) params.set('boardId', d.board);
+      if (d.start) params.set('startDate', d.start);
+      if (d.end) params.set('endDate', d.end);
+      params.set('page', String(Math.max(0, parseInt(page, 10) || 0)));
+      body.innerHTML = '<div class="py-2 text-gray-400">검색 중…</div>';
+      try {
+        const res = await fetch('/api/ai/board-search?' + params.toString());
+        if (!res.ok) throw new Error('search failed');
+        const data = await res.json();
+        card.dataset.page = String(data.page || 0);
+        body.innerHTML = renderSearchBody(data);
+      } catch (e) {
+        body.innerHTML = '<div class="py-2 text-rose-500">검색 중 오류가 발생했습니다.</div>';
+      }
+    }
+
+    /** 새로 렌더된 검색 카드들(아직 안 불러온 것)을 첫 페이지로 채운다. */
+    function hydrateSearchCards() {
+      messagesEl.querySelectorAll('[data-ai-search]:not([data-loaded])').forEach((card) => {
+        card.dataset.loaded = '1';
+        loadSearchPage(card, 0);
+      });
+    }
+
     /** 메시지 1건 HTML + proposal 카드(있으면). */
     function fullMessageHtml(m, me) {
       let html = messageBubbleHtml(m, me);
@@ -1158,6 +1364,10 @@
         html += leaveProposalCardHtml(m);
       } else if (t === 'expense') {
         html += expenseProposalCardHtml(m);
+      } else if (t === 'navigate') {
+        html += navigateProposalCardHtml(m);
+      } else if (t === 'search') {
+        html += searchProposalCardHtml(m);
       }
       return html;
     }
@@ -1168,6 +1378,7 @@
         return;
       }
       messagesEl.innerHTML = msgs.map(m => fullMessageHtml(m, me)).join('');
+      hydrateSearchCards();
     }
     function appendMessage(m) {
       if (!m) return;
@@ -1176,10 +1387,23 @@
       // 첫 메시지인 경우 안내 텍스트 제거
       if (messagesEl.querySelector('.text-center')) messagesEl.innerHTML = '';
       messagesEl.insertAdjacentHTML('beforeend', fullMessageHtml(m, me));
+      hydrateSearchCards();
       scrollMessagesToBottom();
     }
 
     // 일정 제안 카드의 [등록/수정/삭제] 버튼 위임 처리. 한 endpoint 로 통합 (서버가 type 분기).
+    // 게시글 검색 카드 [이전]/[다음] — 같은 카드 안에서 페이지 교체.
+    messagesEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-ai-search-prev],[data-ai-search-next]');
+      if (!btn) return;
+      const card = btn.closest('[data-ai-search]');
+      if (!card) return;
+      const cur = Math.max(0, parseInt(card.dataset.page || '0', 10) || 0);
+      const next = btn.hasAttribute('data-ai-search-next') ? cur + 1 : cur - 1;
+      if (next < 0) return;
+      loadSearchPage(card, next);
+    });
+
     messagesEl.addEventListener('click', async (e) => {
       const btn = e.target.closest(
         '[data-ai-confirm-calendar],[data-ai-confirm-update],[data-ai-confirm-delete]');
@@ -1423,13 +1647,42 @@
       const text = inputEl.value.trim();
       const hasText = text.length > 0;
       const hasFiles = pendingFiles.length > 0;
-      // AI 모드는 텍스트만, 사람 채팅은 텍스트 또는 파일
-      if (activeMode === 'ai' ? !hasText : (!hasText && !hasFiles)) return;
+      // AI: 텍스트 또는 파일(요약), 사람 채팅: 텍스트 또는 파일
+      if (!hasText && !hasFiles) return;
       sendBtn.disabled = true;
       // 사용자 말풍선을 먼저 그려두면 AI 응답 대기 시간 UX 가 자연스러움.
       const me = currentMemberIdGuess();
       try {
-        if (activeMode === 'ai') {
+        if (activeMode === 'ai' && hasFiles) {
+          // ── AI 파일 요약 ── (첫 파일 1개 요약. 텍스트가 있으면 추가 요청으로 전달)
+          const file = pendingFiles[0];
+          const reqLabel = '📎 ' + file.name + ' 요약 요청' + (hasText ? ' — ' + text : '');
+          appendMessage({ messageId: 'tmp-' + Date.now(), senderId: me, text: reqLabel, createdAt: new Date().toISOString(), attachments: [] });
+          inputEl.value = '';
+          pendingFiles = [];
+          renderFilePreview();
+          const loadingHtml = '<div id="chat-ai-loading" class="mb-2 flex justify-start"><div class="rounded-2xl rounded-bl-sm bg-gray-100 px-3 py-2 text-xs text-gray-500 dark:bg-gray-700 dark:text-gray-300">📄 문서를 읽고 요약 중...</div></div>';
+          messagesEl.insertAdjacentHTML('beforeend', loadingHtml);
+          scrollMessagesToBottom();
+          const form = new FormData();
+          form.append('file', file);
+          if (hasText) form.append('text', text);
+          const res = await fetch('/api/ai/conversations/' + activeConvId + '/summarize-file', {
+            method: 'POST',
+            headers: csrfHeader(),
+            body: form,
+          });
+          const loadingF = document.getElementById('chat-ai-loading');
+          if (loadingF) loadingF.remove();
+          if (!res.ok) throw new Error(await window.getApiErrorMessage(res, '파일 요약에 실패했습니다.'));
+          const dto = await res.json();
+          appendMessage(aiMsgToChatBubble(dto, me));
+          if (dto && dto.sessionTitle) {
+            if (titleEl) titleEl.textContent = dto.sessionTitle;
+            activePeerName = dto.sessionTitle;
+            loadAiList();
+          }
+        } else if (activeMode === 'ai') {
           // 즉시 USER 말풍선 표시
           appendMessage({ messageId: 'tmp-' + Date.now(), senderId: me, text, createdAt: new Date().toISOString(), attachments: [] });
           inputEl.value = '';

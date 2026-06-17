@@ -19,6 +19,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
+import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
 
 @Configuration
 @RequiredArgsConstructor 
@@ -35,6 +37,16 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * 동시 세션 제어가 세션 소멸(로그아웃/만료)을 SessionRegistry 에 반영하려면
+     * HttpSessionEventPublisher 를 서블릿 리스너로 등록해야 한다.
+     *  - 미등록 시: 로그아웃해도 레지스트리에 세션이 남아 "이미 N개 접속 중"으로 오판될 수 있다.
+     */
+    @Bean
+    public ServletListenerRegistrationBean<HttpSessionEventPublisher> httpSessionEventPublisher() {
+        return new ServletListenerRegistrationBean<>(new HttpSessionEventPublisher());
     }
 
 
@@ -121,7 +133,9 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/admin/waitingList", "/admin/memberList",
                     "/admin/dept/**", "/admin/position/**",
-                    "/api/admin/dept/**", "/api/admin/position/**"
+                    "/api/admin/dept/**", "/api/admin/position/**",
+                    // 휴가 관리: SUB_ADMIN(VACATION_MANAGE) 도 진입. 세부 권한은 사이드바 노출 + 서비스에서.
+                    "/admin/leave/**", "/api/admin/leave/**"
                 ).hasAnyRole("SUB_ADMIN", "ADMIN")
                 .requestMatchers("/api/admin/**", "/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/subAdmin/**", "/subAdmin/**").hasRole("SUB_ADMIN")
@@ -150,6 +164,16 @@ public class SecurityConfig {
                 .permitAll()
                 )
                 .authenticationProvider(memberAuthenticationProvider)
+                // 💡 동시 로그인 제어 — 한 계정당 활성 세션 1개. (A안: 새 로그인 허용 + 기존 세션 강제 만료)
+                //    · maximumSessions(1)           : 계정당 세션 1개로 제한
+                //    · maxSessionsPreventsLogin(false): 새 로그인을 허용하고 "기존" 세션을 만료시킴(최신 우선)
+                //    · expiredSessionStrategy        : 만료된 기존 기기의 다음 요청 처리(페이지 redirect / API 401)
+                //    ※ 같은 사용자 식별은 MemberPrincipal(memberId) 기준 → 회사 다른 동일 아이디는 별개 사용자.
+                .sessionManagement(session -> session
+                .maximumSessions(1)
+                .maxSessionsPreventsLogin(false)
+                .expiredSessionStrategy(new MemberSessionExpiredStrategy())
+                )
                 // 💡 비인증 진입 시 회사별 로그인 페이지로 보냄 (lastCompanyDomain 쿠키 기반).
                 //    SecurityConfig 의 loginPage("/company-login") 만으로는 회사 정보를 알 수 없어
                 //    자동 로그아웃 후 회사 선택 랜딩으로 떨어지는 문제를 해결.

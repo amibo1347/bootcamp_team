@@ -12,7 +12,8 @@
              canApprovalTemplate=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).APPROVAL_TEMPLATE_MANAGEMENT)},
              canTrashAll=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).TRASH_MANAGEMENT)},
              canAttendance=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).ATTENDANCE_MANAGEMENT)},
-             staffVisible=${canWaiting or canMember or canAttendance},
+             canVacation=${ms != null and ms.hasPermission(T(com.team.intranet.enums.member.SubAdminPermission).VACATION_MANAGE)},
+             staffVisible=${canWaiting or canMember or canAttendance or canVacation},
              organizationVisible=${canDept or canPosition},
              managementVisible=${isCompanyAdmin or organizationVisible or staffVisible or canBoard},
              trashSectionVisible=${ms != null and (ms.isAdminOrMaster() or canTrashAll)}"
@@ -107,6 +108,11 @@
                     if (path.includes('/admin/attendance/list')) {
                         this.selected = 'Staff';
                         this.page = 'attendanceAdmin';
+                        return;
+                    }
+                    if (path.includes('/admin/leave/list')) {
+                        this.selected = 'Staff';
+                        this.page = 'vacationAdmin';
                         return;
                     }
                     if (path.includes('/me/attendance')) {
@@ -254,6 +260,13 @@
                                         :class="page=== 'attendanceAdmin' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
                                         @click="page = 'attendanceAdmin'">
                                         근태 관리
+                                    </a>
+                                </li>
+                                <li th:if="${canVacation}">
+                                    <a th:href="@{/admin/leave/list}" class="menu-dropdown-item group"
+                                        :class="page=== 'vacationAdmin' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                                        @click="page = 'vacationAdmin'">
+                                        휴가 관리
                                     </a>
                                 </li>
                             </ul>

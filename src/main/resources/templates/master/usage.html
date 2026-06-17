@@ -18,7 +18,6 @@
         <div style="margin-top: 0.75rem;">
           <span class="master-badge">MASTER</span>
           <h1 class="master-title">회사 사용량</h1>
-          <p class="master-sub">전사 KPI · 회사별 회원/게시글/결재/스토리지 사용 현황 · 최근 30일 추이.</p>
         </div>
 
         <!-- ────────────────────── KPI 카드 ────────────────────── -->
@@ -41,17 +40,14 @@
           <div class="master-kpi">
             <p class="master-kpi-label">전체 게시글</p>
             <p class="master-kpi-value" th:text="${summary.totalArticles}">0</p>
-            <p class="master-kpi-sub">삭제 제외</p>
           </div>
           <div class="master-kpi">
             <p class="master-kpi-label">전체 결재</p>
             <p class="master-kpi-value" th:text="${summary.totalApprovals}">0</p>
-            <p class="master-kpi-sub">상태 무관 누적</p>
           </div>
           <div class="master-kpi">
-            <p class="master-kpi-label">총 스토리지</p>
+            <p class="master-kpi-label">총 저장 용량</p>
             <p class="master-kpi-value" data-bytes th:attr="data-bytes=${summary.totalStorageBytes}">0</p>
-            <p class="master-kpi-sub">게시판 + 결재 첨부 합계</p>
           </div>
         </div>
 
@@ -94,7 +90,7 @@
               <th data-sort-key="newMembers"     data-sort-type="num"  style="text-align:right;">이번달 신규</th>
               <th data-sort-key="articles"       data-sort-type="num"  style="text-align:right;">게시글 수</th>
               <th data-sort-key="approvals"      data-sort-type="num"  style="text-align:right;">결재 수</th>
-              <th data-sort-key="storage"        data-sort-type="num"  style="text-align:right;">스토리지</th>
+              <th data-sort-key="storage"        data-sort-type="num"  style="text-align:right;">저장 용량</th>
               <th data-sort-key="lastActivity"   data-sort-type="date">마지막 활동</th>
             </tr>
           </thead>
@@ -148,8 +144,7 @@
 
         <p class="master-meta">
           기준 시각: <span th:text="${#temporals.format(generatedAt, 'yyyy-MM-dd HH:mm:ss')}">-</span>
-          · 스토리지는 게시판/결재 첨부 합계입니다 (이미지·채팅 첨부는 추후 합산).
-          · 마지막 활동은 관리자 시스템 로그 기준입니다.
+          · 저장 용량은 게시판·결재 첨부 파일의 합계입니다.
         </p>
 
       </div>

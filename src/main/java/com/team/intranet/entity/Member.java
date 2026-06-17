@@ -69,6 +69,10 @@ public class Member {
     @Column(name = "accepted_at", updatable = true)
     private LocalDateTime acceptedAt; // 승인 날짜
 
+    // 입사일 — 법정 연차 산정 기준. null 인 기존 데이터는 acceptedAt/createdAt 로 폴백(getEffectiveHireDate).
+    @Column(name = "hire_date")
+    private LocalDate hireDate;
+
     @Column(name = "name")
     private String name;
 
@@ -199,18 +203,19 @@ public class Member {
         return member;
     }
 
-    // 가입 승인
-    public void accept(Dept dept, Position position) {
+    // 가입 승인. hireDate 미입력(null) 시 승인일을 입사일로 사용.
+    public void accept(Dept dept, Position position, LocalDate hireDate) {
         this.status = Status.JOIN;
         this.statusChangedAt = LocalDateTime.now();
         this.dept = dept;
         this.position = position;
         this.acceptedAt = LocalDateTime.now();
         this.role = position.getRole();
+        this.hireDate = (hireDate != null) ? hireDate : LocalDate.now();
     }
 
     // 기존 회원 정보 변경
-    public void updateInfo(Dept dept, Position position, byte[] profileImg, String phone, String email, String name, LocalDateTime birthDay) {
+    public void updateInfo(Dept dept, Position position, byte[] profileImg, String phone, String email, String name, LocalDateTime birthDay, LocalDate hireDate) {
         this.phone = phone;
         this.email = email;
         this.name = name;
@@ -221,6 +226,16 @@ public class Member {
         this.dept = dept;
         this.position = position;
         this.role = position.getRole();
+        // hireDate 는 null 허용(미입력 시 기존값 유지하지 않고 명시적으로 비울 수 있게 그대로 반영).
+        this.hireDate = hireDate;
+    }
+
+    /** 입사일 — 명시값 우선, 없으면 승인일, 그것도 없으면 가입일. (법정 연차 계산 폴백) */
+    public LocalDate getEffectiveHireDate() {
+        if (hireDate != null) return hireDate;
+        if (acceptedAt != null) return acceptedAt.toLocalDate();
+        if (createdAt != null) return createdAt.toLocalDate();
+        return null;
     }
 
     // 본인 자기수정 (내 프로필 페이지): 이름/이메일/전화/생년월일만 변경.

@@ -58,6 +58,14 @@ public class Company {
     @Column(name = "logo")
     private byte[] logo;
 
+    /**
+     * 회사 기본 연차 부여일수 — 개인 원장(LeaveBalance)이 없는 회원에게 적용되는 기본값.
+     *  - 기존 데이터(컬럼 추가 전 row)는 NULL → getDefaultAnnualLeaveDaysOrDefault() 에서 15 로 간주.
+     *  - 회계연도(1/1~12/31) 기준. 입사일 비례·법정 자동계산은 후속 작업.
+     */
+    @Column(name = "default_annual_leave_days")
+    private Double defaultAnnualLeaveDays;
+
     /** 신규 회사 생성. 활성(Y) 상태로 시작. */
     public static Company create(String companyName, String companyCode, String companyDomain,
                                  boolean usesEmployeeNo) {
@@ -100,6 +108,16 @@ public class Company {
     /** 회사 코드 재발급. */
     public void reissueCode(String newCode) {
         this.companyCode = newCode;
+    }
+
+    /** 회사 기본 연차 부여일수 — NULL(기존 데이터)은 법정 기본 15일로 간주. */
+    public double getDefaultAnnualLeaveDaysOrDefault() {
+        return defaultAnnualLeaveDays != null ? defaultAnnualLeaveDays : 15.0;
+    }
+
+    /** 회사 기본 연차 부여일수 설정. */
+    public void updateDefaultAnnualLeaveDays(double days) {
+        this.defaultAnnualLeaveDays = days;
     }
 
     public void activate() { this.isActive = IsActive.Y; }

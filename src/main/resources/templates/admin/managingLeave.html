@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+
+    <title>휴가 관리</title>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block th:replace="~{partials/darkmode-style :: darkmodeStyle}"></th:block>
+    <style>
+        /* 직원별 연차 표: 모든 셀 1줄 고정 + 컴팩트 여백 (가로 스크롤 최소화) */
+        #leaveListContainer th,
+        #leaveListContainer td {
+            white-space: nowrap;
+            padding: 0.5rem;
+        }
+        #leaveListContainer th { font-weight: 500; }
+        /* 정렬 가능한 헤더 버튼 */
+        #leaveListContainer .leave-sort {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            cursor: pointer;
+            font: inherit;
+            color: inherit;
+        }
+        #leaveListContainer .leave-sort:hover { color: #4f46e5; }
+        #leaveListContainer .sort-ind { font-size: 0.7em; line-height: 1; }
+        /* 메모 컬럼이 남는 가로폭을 흡수 → 메모칸이 늘어나고 저장 버튼과의 빈 여백 제거 */
+        #leaveListContainer th.memo-cell,
+        #leaveListContainer td.memo-cell { width: 100%; }
+        #leaveListContainer td.memo-cell input { width: 100%; }
+        /* 부서/직급 필터 드롭다운: 테두리 없이 주변 헤더와 동일한 톤으로 블렌드 */
+        #leaveListContainer .leave-filter-select {
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+            text-align: center;
+            text-align-last: center;
+            font: inherit;
+            color: inherit;
+        }
+        #leaveListContainer .leave-filter-select:focus { outline: none; }
+    </style>
+</head>
+
+<body
+    x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-init="
+         darkMode = JSON.parse(localStorage.getItem('darkMode'));
+         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}">
+    <div th:replace="~{partials/preloader}"></div>
+
+    <div class="flex h-screen overflow-hidden">
+        <div th:replace="~{partials/sidebar}"></div>
+
+        <div class="page-content">
+            <div th:replace="~{partials/overlay}"></div>
+            <div th:replace="~{partials/header}"></div>
+
+            <main class="page-main">
+                <h2 class="page-heading">휴가 관리</h2>
+
+                <!-- ===== 계층1: 회사 기본 정책 ===== -->
+                <section
+                    class="flex flex-wrap items-center gap-4 rounded-xl border border-stroke bg-white p-6 shadow-sm dark:border-strokedark dark:bg-boxdark sm:gap-6">
+                    <h2 class="shrink-0 text-lg font-semibold text-gray-900 dark:text-white">회사 기본 연차</h2>
+                    <div class="hidden h-8 w-px shrink-0 bg-gray-200 sm:block dark:bg-strokedark"></div>
+
+                    <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-3">
+                        <span class="text-sm text-gray-600 dark:text-gray-300">기본 부여일수</span>
+                        <input type="number" step="0.5" min="0" id="companyDefaultInput"
+                            th:value="${companyDefault}"
+                            class="h-10 w-28 shrink-0 rounded-lg border border-gray-400 bg-white px-3 text-sm text-gray-900 outline-none transition-all focus:ring-2 focus:ring-indigo-300 dark:border-gray-600 dark:bg-meta-4 dark:text-white">
+                        <span class="text-sm text-gray-600 dark:text-gray-300">일</span>
+
+                        <button type="button" id="saveDefaultBtn"
+                            class="shrink-0 rounded-lg bg-indigo-400 px-5 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-indigo-500 active:scale-[0.98]"
+                            onclick="saveCompanyDefault()">
+                            저장
+                        </button>
+
+                        <span class="ml-2 text-xs text-gray-400 dark:text-gray-500">
+                            개인별로 따로 설정하지 않은 직원에게 적용됩니다.
+                        </span>
+                    </div>
+
+                    <!-- 연도 선택 (페이지 새로고침) -->
+                    <div class="flex shrink-0 items-center gap-2">
+                        <span class="text-sm text-gray-600 dark:text-gray-300">기준 연도</span>
+                        <select id="yearSelect" onchange="changeYear(this.value)"
+                            class="h-10 rounded-lg border border-gray-400 bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-indigo-300 dark:border-gray-600 dark:bg-meta-4 dark:text-white">
+                            <option th:each="y : ${yearOptions}" th:value="${y}" th:text="${y} + '년'"
+                                th:selected="${y == year}"></option>
+                        </select>
+                    </div>
+                </section>
+
+                <!-- ===== 계층2: 직원별 명부 ===== -->
+                <section
+                    class="mt-6 p-6 border border-stroke rounded-xl bg-white shadow-sm dark:border-strokedark dark:bg-boxdark">
+                    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+                        <h2 class="text-xl font-semibold text-black dark:text-white">
+                            직원별 연차 현황 <span th:text="'(' + ${year} + '년)'" class="text-base text-gray-400"></span>
+                        </h2>
+                        <!-- 선택 직원에게 같은 부여 연차 일괄 적용 -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-sm text-gray-600 dark:text-gray-300">선택 직원에게</span>
+                            <input type="number" step="0.5" min="0" id="bulkGrantedInput" placeholder="부여"
+                                class="h-9 w-24 rounded-lg border border-gray-400 bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-indigo-300 dark:border-gray-600 dark:bg-meta-4 dark:text-white">
+                            <span class="text-sm text-gray-600 dark:text-gray-300">일</span>
+                            <button type="button" onclick="applyBulkGranted()"
+                                class="shrink-0 rounded-lg bg-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-indigo-500 active:scale-[0.98]">
+                                일괄 적용
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 부분 교체 대상 컨테이너 -->
+                    <div id="leaveListContainer" th:fragment="leaveListContainer">
+                        <input type="hidden" id="currentYear" th:value="${year}">
+
+                        <div class="overflow-x-auto rounded-xl border border-gray-400 dark:border-gray-700">
+                            <!-- 글씨/여백을 줄이고 모든 셀을 1줄(whitespace-nowrap)로 — 가로 스크롤 최소화 -->
+                            <table class="w-full table-auto text-xs">
+                                <thead>
+                                    <tr class="border-b border-gray-400 bg-gray-50 text-left text-gray-600 dark:border-gray-700 dark:bg-meta-4 dark:text-gray-300">
+                                        <th class="text-center">
+                                            <input type="checkbox" id="leaveSelectAll" class="h-4 w-4 align-middle accent-indigo-500">
+                                        </th>
+                                        <th><button type="button" class="leave-sort" data-key="name" data-type="text" onclick="sortLeave(this)">이름<span class="sort-ind"></span></button></th>
+                                        <th class="text-center">
+                                            <!-- 부서 클릭(드롭다운)으로 부서별 필터 — 주변 헤더 톤과 동일하게 블렌드 -->
+                                            <select id="deptFilter" onchange="filterByDept()" class="leave-filter-select">
+                                                <option value="">부서(전체)</option>
+                                            </select>
+                                        </th>
+                                        <th class="text-center">
+                                            <!-- 직급 드롭다운으로 직급별 필터 -->
+                                            <select id="positionFilter" onchange="filterByPosition()" class="leave-filter-select">
+                                                <option value="">직급(전체)</option>
+                                            </select>
+                                        </th>
+                                        <th class="text-center"><button type="button" class="leave-sort" data-key="hire" data-type="text" onclick="sortLeave(this)">입사일<span class="sort-ind"></span></button></th>
+                                        <th class="text-center"><button type="button" class="leave-sort" data-key="granted" data-type="num" onclick="sortLeave(this)">부여(일)<span class="sort-ind"></span></button></th>
+                                        <th class="text-center"><button type="button" class="leave-sort" data-key="used" data-type="num" onclick="sortLeave(this)">사용<span class="sort-ind"></span></button></th>
+                                        <th class="text-center"><button type="button" class="leave-sort" data-key="pending" data-type="num" onclick="sortLeave(this)">신청중<span class="sort-ind"></span></button></th>
+                                        <th class="text-center"><button type="button" class="leave-sort" data-key="remaining" data-type="num" onclick="sortLeave(this)">잔여<span class="sort-ind"></span></button></th>
+                                        <th class="memo-cell">메모</th>
+                                        <th class="text-center">저장</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="row : ${rows}" th:id="'leave-row-' + ${row.memberId}"
+                                        th:classappend="${!row.editable} ? ' opacity-60' : ''"
+                                        th:attr="data-member-id=${row.memberId},
+                                                 data-name=${row.name},
+                                                 data-dept=${row.deptName} ?: '',
+                                                 data-position=${row.positionName} ?: '',
+                                                 data-level=${row.positionLevel} ?: '',
+                                                 data-hire=${row.hireDate != null ? #temporals.format(row.hireDate, 'yyyy-MM-dd') : ''},
+                                                 data-used=${row.used},
+                                                 data-pending=${row.pending},
+                                                 data-remaining=${row.remaining}"
+                                        class="border-b border-gray-300 transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5">
+                                        <td class="text-center">
+                                            <input type="checkbox" class="leave-row-check h-4 w-4 align-middle accent-indigo-500"
+                                                th:value="${row.memberId}" th:disabled="${!row.editable}">
+                                        </td>
+                                        <td class="font-medium text-gray-900 dark:text-white" th:text="${row.name}"></td>
+                                        <td class="text-center text-gray-600 dark:text-gray-300" th:text="${row.deptName} ?: '-'"></td>
+                                        <td class="text-center text-gray-600 dark:text-gray-300" th:text="${row.positionName} ?: '-'"></td>
+                                        <td class="text-center text-gray-600 dark:text-gray-300"
+                                            th:text="${row.hireDate != null ? #temporals.format(row.hireDate, 'yyyy-MM-dd') : '-'}"></td>
+                                        <td class="text-center">
+                                            <input type="number" step="0.5" min="0"
+                                                th:id="'granted-' + ${row.memberId}" th:value="${row.granted}"
+                                                th:disabled="${!row.editable}"
+                                                th:classappend="${!row.editable} ? ' cursor-not-allowed bg-gray-100 dark:bg-gray-700' : ''"
+                                                class="h-8 w-16 rounded-lg border border-gray-300 bg-white px-2 text-center text-gray-900 outline-none focus:ring-2 focus:ring-indigo-300 dark:border-gray-600 dark:bg-meta-4 dark:text-white">
+                                        </td>
+                                        <td class="text-center text-gray-700 dark:text-gray-200"
+                                            th:text="${#numbers.formatDecimal(row.used, 1, 1)}"></td>
+                                        <td class="text-center text-amber-600 dark:text-amber-400"
+                                            th:text="${#numbers.formatDecimal(row.pending, 1, 1)}"></td>
+                                        <td class="text-center font-semibold"
+                                            th:classappend="${row.remaining < 0} ? ' text-rose-500' : ' text-emerald-600 dark:text-emerald-400'"
+                                            th:text="${#numbers.formatDecimal(row.remaining, 1, 1)}"></td>
+                                        <td class="memo-cell">
+                                            <input type="text" maxlength="200"
+                                                th:id="'note-' + ${row.memberId}" th:value="${row.note}"
+                                                placeholder="메모" th:disabled="${!row.editable}"
+                                                th:classappend="${!row.editable} ? ' cursor-not-allowed bg-gray-100 dark:bg-gray-700' : ''"
+                                                class="h-8 rounded-lg border border-gray-300 bg-white px-2 text-gray-900 outline-none focus:ring-2 focus:ring-indigo-300 placeholder:text-gray-400 dark:border-gray-600 dark:bg-meta-4 dark:text-white">
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button"
+                                                th:disabled="${!row.editable}"
+                                                th:classappend="${!row.editable} ? ' cursor-not-allowed opacity-50' : ' hover:bg-indigo-300'"
+                                                th:title="${!row.editable} ? '상위 또는 동급 권한 직원은 수정할 수 없습니다' : ''"
+                                                class="rounded-lg bg-indigo-200 px-3 py-1 text-xs font-medium text-indigo-700 shadow-sm transition-all"
+                                                th:attr="onclick=${row.editable} ? |saveMemberLeave('${row.memberId}')| : null">
+                                                저장
+                                            </button>
+                                        </td>
+                                    </tr>
+
+                                    <tr th:if="${rows == null or #lists.isEmpty(rows)}">
+                                        <td colspan="11" class="p-20 text-center text-gray-400 dark:text-gray-300">
+                                            재직 중인 직원이 없습니다.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/admin/leave.js"></script>
+    <script type="module" src="/js/index.js"></script>
+</body>
+
+</html>

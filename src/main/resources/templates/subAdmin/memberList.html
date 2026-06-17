@@ -364,7 +364,7 @@
                                                     </span>
                                                     <span>입사일:
                                                         <span
-                                                            th:text="${emp.acceptedAt != null ? #temporals.format(emp.acceptedAt, 'yyyy-MM-dd') : '-'}">-</span>
+                                                            th:text="${emp.effectiveHireDate != null ? #temporals.format(emp.effectiveHireDate, 'yyyy-MM-dd') : '-'}">-</span>
                                                     </span>
                                                 </div>
                                             </th:block>
@@ -420,6 +420,7 @@
                                                              data-email=${emp.email != null ? emp.email : ''},
                                                              data-phone=${emp.phone != null ? emp.phone : ''},
                                                              data-birth=${emp.birthDay != null ? #temporals.format(emp.birthDay, 'yyyy-MM-dd') : ''},
+                                                             data-hire=${emp.hireDate != null ? #temporals.format(emp.hireDate, 'yyyy-MM-dd') : ''},
                                                              data-profile-img=@{/api/member/{id}/profileImg(id=${emp.memberId})}">
                                                 수정
                                             </button>
@@ -606,6 +607,12 @@
                     <div class="flex items-center gap-4">
                         <label class="w-24 font-medium text-gray-600 dark:text-gray-300">생년월일</label>
                         <input type="text" id="editBirth" name="birth"
+                            class="flex-1 rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary outline-none dark:border-strokedark dark:bg-meta-4 dark:text-gray-200">
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <label class="w-24 font-medium text-gray-600 dark:text-gray-300">입사일</label>
+                        <input type="date" id="editHire" name="hireDate"
                             class="flex-1 rounded border border-stroke bg-gray py-2 px-4 text-black focus:border-primary outline-none dark:border-strokedark dark:bg-meta-4 dark:text-gray-200">
                     </div>
                 </div>
