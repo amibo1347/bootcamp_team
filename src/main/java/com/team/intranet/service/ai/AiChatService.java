@@ -65,18 +65,23 @@ public class AiChatService {
     private static final java.util.regex.Pattern BOARD_KEYWORDS = java.util.regex.Pattern.compile(
         "게시판|공지|게시글|자유게시판|익명|복지|공지사항|작성자|글쓴이");
     private static final java.util.regex.Pattern CALENDAR_KEYWORDS = java.util.regex.Pattern.compile(
-        "일정|캘린더|등록|수정|삭제|약속|미팅|회의|언제|"
-        + "아침|오전|점심|오후|저녁|밤|새벽|"
-        + "월요일|화요일|수요일|목요일|금요일|토요일|일요일|"
-        + "내일|모레|오늘|어제|그제|얼마\\s*전|최근|"
-        + "이번\\s*주|다음\\s*주|지난\\s*주|이번\\s*달|다음\\s*달|지난\\s*달|"
+        "일정|캘린더|스케줄|등록|수정|삭제|변경|옮겨|약속|미팅|회의|면담|이벤트|행사|언제|며칠|몇\\s*일|몇\\s*시|"
+        + "아침|오전|점심|정오|오후|저녁|밤|새벽|낮|"
+        + "월요일|화요일|수요일|목요일|금요일|토요일|일요일|평일|주말|"
+        // 상대 날짜 자연어 — 동의어/한자어/구어체 모두 포함 (날짜 환산 기준표가 처리)
+        + "오늘|금일|당일|본일|내일|명일|익일|다음\\s*날|모레|모래|내일\\s*모레|글피|그글피|"
+        + "어제|어저께|작일|전날|그제|그저께|그끄제|그끄저께|얼마\\s*전|최근|요즘|"
+        + "이번\\s*주|금주|다음\\s*주|담주|차주|오는\\s*주|돌아오는\\s*주|지난\\s*주|저번\\s*주|전주|지지난\\s*주|다다음\\s*주|"
+        + "이번\\s*달|금월|당월|다음\\s*달|담달|내달|차월|지난\\s*달|저번\\s*달|전월|말일|월초|월말|"
         + "\\d{1,2}\\s*시|\\d{1,2}\\s*일|\\d{1,2}\\s*월");
     /** 휴가 신청 키워드. "결재선/결재자" 같은 공용 단어는 제외 — 지출 대화를 휴가로 오인하지 않도록. */
     private static final java.util.regex.Pattern LEAVE_KEYWORDS = java.util.regex.Pattern.compile(
-        "휴가|연차|반차|월차|병가|경조사|휴직|연가");
+        "휴가|연차|반차|반반차|월차|연월차|병가|경조사|휴직|연가|정기\\s*휴가|특별\\s*휴가|"
+        + "보건\\s*휴가|생리\\s*휴가|출산\\s*휴가|육아\\s*휴직|대체\\s*휴무|보상\\s*휴가|쉬는\\s*날|쉴게요|월\\s*차|연\\s*차");
     /** 지출결의서 신청 — 결재선 + 직급 컨텍스트를 첨부해야 함. */
     private static final java.util.regex.Pattern EXPENSE_KEYWORDS = java.util.regex.Pattern.compile(
-        "지출|결의서|지출\\s*결의|경비|영수증|정산|식대|교통비|출장비|회식비|법인카드|법카|환급|비용\\s*청구|비용\\s*처리");
+        "지출|결의서|지출\\s*결의|경비|영수증|정산|식대|교통비|출장비|회식비|숙박비|주유비|접대비|소모품비|복리후생비|"
+        + "다과비|간식비|운영비|비품\\s*구매|법인카드|법카|환급|청구|비용\\s*청구|비용\\s*처리|비용\\s*정산");
 
     private final AiChatSessionRepository sessionRepository;
     private final AiChatMessageRepository messageRepository;
@@ -986,6 +991,70 @@ public class AiChatService {
         return false;
     }
 
+    /**
+     * 자연어 날짜 표현(어제·모레·다음주 금요일·금일·글피 …)을 오늘 기준 실제 날짜로 미리 환산해
+     * 시스템 프롬프트에 주입하는 "날짜 환산 기준표".
+     *  - LLM 은 날짜 산술(특히 주·월 경계)에 약하므로, 직접 계산을 시키지 않고 이 표를 그대로 참조하게 한다.
+     *  - 주(週)는 월요일 시작 ~ 일요일 끝. 모든 날짜에 요일을 함께 표기해 "다음주 수요일" 같은 표현도 곧장 환산 가능.
+     */
+    static String buildDateReference() {
+        LocalDate today = LocalDate.now();
+        DateTimeFormatter d = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        String[] dow = {"월", "화", "수", "목", "금", "토", "일"}; // ISO: MONDAY=1 … SUNDAY=7
+        java.util.function.Function<LocalDate, String> f =
+            ld -> ld.format(d) + " (" + dow[ld.getDayOfWeek().getValue() - 1] + ")";
+        // 한 주(월~일)의 7일을 "월=…, 화=…" 형태로 펼친다.
+        java.util.function.Function<LocalDate, String> week = mon -> {
+            StringBuilder s = new StringBuilder();
+            for (int i = 0; i < 7; i++) {
+                s.append(dow[i]).append('=').append(mon.plusDays(i).format(d));
+                if (i < 6) s.append(", ");
+            }
+            return s.toString();
+        };
+
+        LocalDate monThis = today.with(java.time.DayOfWeek.MONDAY);
+        LocalDate monLast = monThis.minusWeeks(1);
+        LocalDate monNext = monThis.plusWeeks(1);
+
+        LocalDate firstThisM = today.withDayOfMonth(1);
+        LocalDate lastThisM  = today.withDayOfMonth(today.lengthOfMonth());
+        LocalDate firstLastM = firstThisM.minusMonths(1);
+        LocalDate lastLastM  = firstThisM.minusDays(1);
+        LocalDate firstNextM = firstThisM.plusMonths(1);
+        LocalDate lastNextM  = firstNextM.withDayOfMonth(firstNextM.lengthOfMonth());
+
+        StringBuilder w = new StringBuilder();
+        w.append("\n📅 날짜 환산 기준표 — 사용자가 날짜를 자연어로 말하면 반드시 아래 표로 환산하세요.\n");
+        w.append("   (절대 직접 날짜를 암산하지 말고 이 표를 그대로 인용. 주(週)는 월요일 시작 ~ 일요일 끝.)\n");
+        w.append("기준 = 오늘 ").append(f.apply(today)).append("\n");
+        w.append("[일 단위]\n");
+        w.append("• 그끄저께/그끄제 = ").append(f.apply(today.minusDays(3))).append("\n");
+        w.append("• 그저께/그제 = ").append(f.apply(today.minusDays(2))).append("\n");
+        w.append("• 어제/어저께/작일/전날 = ").append(f.apply(today.minusDays(1))).append("\n");
+        w.append("• 오늘/금일/당일/본일 = ").append(f.apply(today)).append("\n");
+        w.append("• 내일/명일/익일/다음날 = ").append(f.apply(today.plusDays(1))).append("\n");
+        w.append("• 모레/모래/내일모레 = ").append(f.apply(today.plusDays(2))).append("\n");
+        w.append("• 글피 = ").append(f.apply(today.plusDays(3))).append("\n");
+        w.append("• 그글피 = ").append(f.apply(today.plusDays(4))).append("\n");
+        w.append("[주 단위] (월~일)\n");
+        w.append("• 지지난주/전전주 = ").append(f.apply(monLast.minusWeeks(1))).append(" ~ ").append(f.apply(monLast.minusDays(1))).append("\n");
+        w.append("• 지난주/저번주/전주 = ").append(f.apply(monLast)).append(" ~ ").append(f.apply(monThis.minusDays(1))).append("  | ").append(week.apply(monLast)).append("\n");
+        w.append("• 이번주/금주/당주 = ").append(f.apply(monThis)).append(" ~ ").append(f.apply(monThis.plusDays(6))).append("  | ").append(week.apply(monThis)).append("\n");
+        w.append("• 다음주/담주/차주/오는주/돌아오는주 = ").append(f.apply(monNext)).append(" ~ ").append(f.apply(monNext.plusDays(6))).append("  | ").append(week.apply(monNext)).append("\n");
+        w.append("• 다다음주 = ").append(f.apply(monNext.plusWeeks(1))).append(" ~ ").append(f.apply(monNext.plusWeeks(2).minusDays(1))).append("\n");
+        w.append("• 이번 주말 = ").append(f.apply(monThis.plusDays(5))).append(" ~ ").append(f.apply(monThis.plusDays(6))).append(" (토~일)\n");
+        w.append("[월 단위]\n");
+        w.append("• 지난달/저번달/전월 = ").append(firstLastM.format(d)).append(" ~ ").append(lastLastM.format(d)).append("\n");
+        w.append("• 이번달/금월/당월 = ").append(firstThisM.format(d)).append(" ~ ").append(lastThisM.format(d)).append(" (말일=").append(lastThisM.format(d)).append(")\n");
+        w.append("• 다음달/담달/내달/차월 = ").append(firstNextM.format(d)).append(" ~ ").append(lastNextM.format(d)).append("\n");
+        w.append("[규칙] 위에 없는 표현은 오늘(").append(today.format(d)).append(") 기준으로 계산: ");
+        w.append("'N일/주/달 후·전'은 기간이 아니라 그만큼 떨어진 '하루'로 해석(예: 2주 후 = 오늘+14일, 사흘 뒤 = 오늘+3일). ");
+        w.append("'오는/이번/다음 X요일'은 해당 요일 하루(이미 지난 요일을 '오는 X요일'이라 하면 다음 주 그 요일). ");
+        w.append("막연한 '조만간/요즘/최근'은 사용자에게 정확한 날짜를 되묻거나 가까운 날로 제안.\n");
+        return w.toString();
+    }
+
     private String buildSystemPrompt(MemberSession ms, Member me, boolean includeBoard,
                                      boolean includeCalendar, boolean includeLeave,
                                      boolean includeExpense) {
@@ -1006,6 +1075,7 @@ public class AiChatService {
             - 사용자 역할: %s
             - 사용자 보유 권한: %s
             - 오늘 날짜: %s
+            %s
 
             🚫 팩트 기반 응답 원칙 (절대 위반 금지 — 최우선):
             - 아래 첨부된 데이터(게시판/일정/회원 명단/휴가 양식 등) 안의 사실만 인용하세요.
@@ -1080,8 +1150,9 @@ public class AiChatService {
               · keyword   : 제목/본문에 들어갈 핵심어 (예: "워크숍"). 날짜만 찾을 땐 null.
               · author    : 작성자 이름 (예: "홍길동"). 없으면 null.
               · boardId   : 특정 게시판으로 한정할 때만. 위 "이동용 boardId=" 값. 없으면 null(전체 검색).
-              · startDate / endDate : "YYYY-MM-DD". 오늘 날짜 기준으로 자연어 해석.
-                  "5월 12일" → start=end=그 날.  "5월 12일부터" → start만.  "지난주" → 해당 주 범위.
+              · startDate / endDate : "YYYY-MM-DD". 위 "날짜 환산 기준표" 로 자연어를 환산.
+                  "5월 12일" → start=end=그 날.  "5월 12일부터" → start만.  "지난주/저번주/전주" → 표의 해당 주 범위.
+                  "어제/그제/모레/글피/금일" 등 상대 표현도 모두 표에서 찾아 환산.
             - "내용"을 묻는 질문(예: "공지 내용 요약해줘")은 검색이 아니라 본문으로 답하세요. 찾기/이동 의도일 때만 블록.
 
             ```json:search
@@ -1116,7 +1187,9 @@ public class AiChatService {
                 "밤"       → 20:00 ~ 21:00
                 "새벽"     → 06:00 ~ 07:00
                 시각 자체가 전혀 없으면 → 09:00 ~ 10:00
-                "내일/모레/이번주 X요일" 등도 오늘 날짜 기준으로 계산해서 그대로 등록.
+            • 날짜(요일/주/달) 자연어는 위 "날짜 환산 기준표" 를 그대로 인용해 환산하세요.
+                "내일/모레/글피/그제/금일", "이번주·다음주·지난주 X요일", "다음달/말일" 등 전부 표에서 찾아
+                정확한 YYYY-MM-DD 로 변환해 등록하세요. 절대 직접 암산하거나 사용자에게 날짜를 되묻지 마세요.
             • 짧은 자연어 확인 문장 + 아래 JSON 블록 1개를 함께 출력. 등록·수정·삭제 외엔 절대 블록을 출력하지 마세요.
 
             [신규 등록]
@@ -1186,6 +1259,7 @@ public class AiChatService {
                 me.getName(), companyName, position, dept,
                 roleLabel, permLabel,
                 LocalDate.now().toString(),
+                buildDateReference(),
                 companyName);
 
         // 회사 게시판 / 본인 일정 / 휴가 컨텍스트는 lazy 첨부 — 토큰 절약.
@@ -1213,7 +1287,8 @@ public class AiChatService {
             • 휴가 종류는 묻지 마세요. 종류는 카드의 dropdown 에서 사용자가 직접 고릅니다.
               사용자가 자발적으로 종류를 말하면 그 값을 vacationType 추론에만 반영하세요.
             • 사용자가 "가능한지" 만 물으면 위 "본인 일정" 과 비교해 충돌 여부만 답하세요.
-            • 기간은 "다음주 금요일" 등 자연어를 오늘 날짜 기준으로 계산하세요.
+            • 기간은 "다음주 금요일", "모레", "이번달 말일" 등 자연어를 위 "날짜 환산 기준표" 로 환산하세요
+              (직접 암산 금지). 표에 없으면 오늘 기준으로 계산하세요.
 
             [2단계] 결재선 확정 — ⚠️ 절대 임의로 만들지 마세요.
             • 결재선은 결재자 "회원" 으로 지정됩니다. 사용자에게 결재자 성함을
@@ -1273,7 +1348,8 @@ public class AiChatService {
               필요한지 모릅니다. 아직 받지 못한 필수 항목을 콕 집어 직접 물어보세요.
               (예: "금액과 결재선을 알려주세요." / "결재자 성함을 알려주세요.")
             • 분류는 식대/교통비/출장비/회식비/비품 등 자유 텍스트입니다.
-            • 지출일은 "어제", "지난주 금요일" 등 자연어를 오늘 날짜 기준으로 계산하세요.
+            • 지출일은 "어제", "그제", "지난주 금요일", "지난달 말일" 등 자연어를 위 "날짜 환산 기준표" 로
+              환산하세요 (직접 암산 금지). 표에 없으면 오늘 기준으로 계산하세요.
             • 상세 내역은 선택 사항 — 사용자가 말하지 않으면 빈 문자열로 두고 굳이 다시 묻지 마세요.
 
             [2단계] 결재선 확정 — ⚠️ 절대 임의로 만들지 말고, 반드시 명시적으로 물어보세요.
