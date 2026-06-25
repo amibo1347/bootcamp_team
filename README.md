@@ -168,7 +168,6 @@ bootcamp_team/
 │   ├── team.env.example     # 환경변수 템플릿
 │   └── nginx-team.conf      # Nginx 리버스 프록시 설정
 │
-├── docs/                    # 설계 문서 (ERD 등)
 ├── build.gradle             # 백엔드 빌드 정의
 ├── package.json             # 프론트 빌드 스크립트
 ├── webpack.config.js        # 정적 자산 번들 설정
